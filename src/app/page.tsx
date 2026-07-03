@@ -4,11 +4,10 @@
 // of which tab is visible) and lays out the header bar, tab bar and panels.
 // Hidden tabs stay mounted — only their visibility changes.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AutopilotPanel } from "@/components/autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomegrownPanel } from "@/components/homegrown-panel";
-import { KeywordSpotterPanel } from "@/components/keyword-spotter";
 import { SettingsPanel } from "@/components/settings-panel";
 import {
   UNIVERSAL_KEYWORDS,
@@ -18,10 +17,9 @@ import {
 import { useAutopilot } from "@/hooks/use-autopilot";
 import { useHomegrown } from "@/hooks/use-homegrown";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
-import { useVacuglide } from "@/hooks/use-vacuglide";
+import { getStoredToken, useVacuglide } from "@/hooks/use-vacuglide";
 
 const TABS = [
-  { id: "kws", label: "Keyword Spotting", align: "left" },
   { id: "autopilot", label: "Vacuglide", align: "left" },
   { id: "homegrown", label: "Homegrown", align: "left" },
   { id: "settings", label: "Settings", align: "right" },
@@ -33,7 +31,14 @@ export default function Home() {
   const vacuglide = useVacuglide();
   const autopilot = useAutopilot(vacuglide);
   const homegrown = useHomegrown(vacuglide);
-  const [tab, setTab] = useState<TabId>("kws");
+  const [tab, setTab] = useState<TabId>("autopilot");
+
+  // With no saved token there's nothing to auto-connect to, so send the user
+  // to Settings to enter one. (useVacuglide auto-connects when a token exists.)
+  useEffect(() => {
+    const stored = getStoredToken();
+    if (stored === null || stored.trim() === "") setTab("settings");
+  }, []);
 
   // Every device-driving algorithm, registered with the runner. Adding another
   // algorithm means adding a hook above and one more entry here.
@@ -73,8 +78,10 @@ export default function Home() {
     ],
     [running?.keywords],
   );
-  // KWS calls the runner directly with each detected word.
-  const kws = useKeywordSpotter(commandWords, runner.handleWord);
+  // KWS calls the runner directly with each detected word, and logs its final
+  // transcripts into the shared command log (the runner logs the executed
+  // partial hits).
+  const kws = useKeywordSpotter(commandWords, runner.handleWord, vacuglide.log);
 
   return (
     <>
@@ -103,9 +110,6 @@ export default function Home() {
           ))}
         </nav>
         <main className="py-6">
-          <div className={tab === "kws" ? undefined : "hidden"}>
-            <KeywordSpotterPanel kws={kws} />
-          </div>
           <div className={tab === "autopilot" ? undefined : "hidden"}>
             <AutopilotPanel
               vacuglide={vacuglide}

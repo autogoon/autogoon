@@ -21,20 +21,10 @@ interface ResultMessage {
   result: { text: string };
 }
 
-export interface KwsLogEntry {
-  id: number;
-  time: string;
-  text: string;
-  kind: "hit" | "final";
-}
-
-function timestamp(): string {
-  return new Date().toLocaleTimeString(undefined, { hour12: false });
-}
-
 export function useKeywordSpotter(
   commandWords: string[] = [],
   onDetect?: (word: string) => void,
+  onLog?: (text: string) => void,
 ) {
   const [modelReady, setModelReady] = useState(false);
   const [listening, setListening] = useState(false);
@@ -42,7 +32,6 @@ export function useKeywordSpotter(
   // (or the attempt fails), so the UI can disable the toggle meanwhile.
   const [starting, setStarting] = useState(false);
   const [flashing, setFlashing] = useState<ReadonlySet<string>>(new Set());
-  const [logEntries, setLogEntries] = useState<KwsLogEntry[]>([]);
 
   const modelRef = useRef<Model | null>(null);
   const recognizerRef = useRef<KaldiRecognizer | null>(null);
@@ -51,12 +40,12 @@ export function useKeywordSpotter(
   const aliasMapRef = useRef<Record<string, string>>({});
   const seenWordsRef = useRef<string[]>([]);
   const listeningRef = useRef(false);
-  const logIdRef = useRef(0);
-  // Words the algorithms want in the grammar, plus the latest detection
-  // handler (the runner's handleWord), kept in refs so the long-lived
+  // Words the algorithms want in the grammar, the detection handler (the
+  // runner's handleWord) and the log sink, kept in refs so the long-lived
   // recognizer callbacks always reach the current values.
   const commandWordsRef = useRef<string[]>(commandWords);
   const onDetectRef = useRef(onDetect);
+  const onLogRef = useRef(onLog);
 
   useEffect(() => {
     commandWordsRef.current = commandWords;
@@ -66,6 +55,10 @@ export function useKeywordSpotter(
     onDetectRef.current = onDetect;
   }, [onDetect]);
 
+  useEffect(() => {
+    onLogRef.current = onLog;
+  }, [onLog]);
+
   // The grammar is exactly the words the algorithms publish (plus the global
   // connect/start/stop). Each maps to itself so a detection resolves and fires.
   const buildAliasMap = useCallback((): Record<string, string> => {
@@ -74,34 +67,19 @@ export function useKeywordSpotter(
     return map;
   }, []);
 
-  const log = useCallback((text: string, kind: KwsLogEntry["kind"]) => {
-    logIdRef.current += 1;
-    const entry: KwsLogEntry = {
-      id: logIdRef.current,
-      time: timestamp(),
-      text,
-      kind,
-    };
-    setLogEntries((prev) => [...prev.slice(-199), entry]);
+  const fire = useCallback((spelling: string) => {
+    const word = aliasMapRef.current[spelling];
+    if (word === undefined) return;
+    onDetectRef.current?.(word);
+    setFlashing((prev) => new Set(prev).add(word));
+    setTimeout(() => {
+      setFlashing((prev) => {
+        const next = new Set(prev);
+        next.delete(word);
+        return next;
+      });
+    }, 400);
   }, []);
-
-  const fire = useCallback(
-    (spelling: string) => {
-      const word = aliasMapRef.current[spelling];
-      if (word === undefined) return;
-      onDetectRef.current?.(word);
-      log(word, "hit");
-      setFlashing((prev) => new Set(prev).add(word));
-      setTimeout(() => {
-        setFlashing((prev) => {
-          const next = new Set(prev);
-          next.delete(word);
-          return next;
-        });
-      }, 400);
-    },
-    [log],
-  );
 
   const handlePartial = useCallback(
     (partial: string) => {
@@ -127,9 +105,9 @@ export function useKeywordSpotter(
   const handleFinal = useCallback(
     (text: string) => {
       seenWordsRef.current = [];
-      if (text.trim() !== "") log(`(final: ${text})`, "final");
+      if (text.trim() !== "") onLogRef.current?.(`(final: ${text})`);
     },
-    [log],
+    [],
   );
 
   // Keep latest handlers reachable from the long-lived recognizer callbacks.
@@ -271,7 +249,6 @@ export function useKeywordSpotter(
     // what the app is listening for.
     listeningFor: commandWords,
     flashing,
-    logEntries,
   };
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 // A Card wrapping a scrolling, monospace log. Auto-scrolls to the newest
-// entry. Both the keyword-spotter and the autopilot use this so their logs
-// look and behave identically; the entry `kind` picks the line colour.
+// entry. The algorithm panels use this for their command log (device sends,
+// voice hits and final transcripts); the entry `kind` picks the line colour.
 
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/card";

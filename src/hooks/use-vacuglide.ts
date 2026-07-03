@@ -10,7 +10,14 @@ import { VacuglideDevice } from "@/lib/vacuglide";
 
 const TOKEN_STORAGE_KEY = "vacuglideToken";
 
-export type LogKind = "send" | "error" | "info";
+// The saved device token, read straight from storage — lets the app decide at
+// startup whether to route to Settings (no token) before the hook mounts.
+export function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export type LogKind = "send" | "error" | "info" | "hit";
 
 export interface CommandLogEntry {
   id: number;
@@ -42,14 +49,6 @@ export function useVacuglide() {
   const deviceRef = useRef<VacuglideDevice | null>(null);
   const logIdRef = useRef(0);
 
-  // Restore the last-used token from localStorage. Done in an effect (not a
-  // lazy initializer) so server and first client render agree — the input
-  // starts empty and fills in after hydration.
-  useEffect(() => {
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (stored !== null) setToken(stored);
-  }, []);
-
   const log = useCallback((text: string, kind: LogKind = "info") => {
     logIdRef.current += 1;
     const entry: CommandLogEntry = {
@@ -65,51 +64,75 @@ export function useVacuglide() {
   // currently-connected device across reconnects.
   const getDevice = useCallback(() => deviceRef.current, []);
 
-  const connect = useCallback(async (): Promise<boolean> => {
-    const trimmed = token.trim();
-    if (trimmed === "") {
-      setDeviceStatus("Enter a device token");
-      setDeviceStatusKind("error");
-      return false;
+  const connectWithToken = useCallback(
+    async (rawToken: string): Promise<boolean> => {
+      const trimmed = rawToken.trim();
+      if (trimmed === "") {
+        setDeviceStatus("Enter a device token");
+        setDeviceStatusKind("error");
+        return false;
+      }
+      setConnecting(true);
+      setDeviceStatus("Connecting…");
+      setDeviceStatusKind("idle");
+      try {
+        const device = new VacuglideDevice(trimmed);
+        const info = await device.connect();
+        device.onState((state) => {
+          setDeviceSpeed(state.targetSpeed);
+          setStrokePlusValve(state.strokePlusValve);
+          setStrokeMinusValve(state.strokeMinusValve);
+          setOperationalMode(state.operationalMode);
+        });
+        deviceRef.current = device;
+        localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
+        setDeviceStatus(
+          `Connected — fw ${info.firmwareVersion} (${info.firmwareBranch}), ` +
+            `cluster ${(device.cluster ?? "").replace("https://", "")}`,
+        );
+        setDeviceStatusKind("ok");
+        setConnected(true);
+        log("device connected", "send");
+        // Seed the status indicators with the device's current state.
+        device.getState().catch(() => undefined);
+        return true;
+      } catch (err) {
+        deviceRef.current = null;
+        setConnected(false);
+        setDeviceSpeed(0);
+        setStrokePlusValve(false);
+        setStrokeMinusValve(false);
+        setOperationalMode("");
+        setDeviceStatus((err as Error).message);
+        setDeviceStatusKind("error");
+        return false;
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [log],
+  );
+
+  // Connect using the token currently in the input. Auto-connect on load uses
+  // connectWithToken directly with the restored value (which state hasn't
+  // caught up to yet).
+  const connect = useCallback(
+    (): Promise<boolean> => connectWithToken(token),
+    [connectWithToken, token],
+  );
+
+  // Restore the last-used token from localStorage and, if there is one,
+  // auto-connect. Done in an effect (not a lazy initializer) so server and
+  // first client render agree — the input starts empty and fills in after
+  // hydration. connectWithToken takes the stored value directly since the
+  // token state hasn't updated yet in this tick.
+  useEffect(() => {
+    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (stored !== null) {
+      setToken(stored);
+      if (stored.trim() !== "") void connectWithToken(stored);
     }
-    setConnecting(true);
-    setDeviceStatus("Connecting…");
-    setDeviceStatusKind("idle");
-    try {
-      const device = new VacuglideDevice(trimmed);
-      const info = await device.connect();
-      device.onState((state) => {
-        setDeviceSpeed(state.targetSpeed);
-        setStrokePlusValve(state.strokePlusValve);
-        setStrokeMinusValve(state.strokeMinusValve);
-        setOperationalMode(state.operationalMode);
-      });
-      deviceRef.current = device;
-      localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
-      setDeviceStatus(
-        `Connected — fw ${info.firmwareVersion} (${info.firmwareBranch}), ` +
-          `cluster ${(device.cluster ?? "").replace("https://", "")}`,
-      );
-      setDeviceStatusKind("ok");
-      setConnected(true);
-      log("device connected", "send");
-      // Seed the status indicators with the device's current state.
-      device.getState().catch(() => undefined);
-      return true;
-    } catch (err) {
-      deviceRef.current = null;
-      setConnected(false);
-      setDeviceSpeed(0);
-      setStrokePlusValve(false);
-      setStrokeMinusValve(false);
-      setOperationalMode("");
-      setDeviceStatus((err as Error).message);
-      setDeviceStatusKind("error");
-      return false;
-    } finally {
-      setConnecting(false);
-    }
-  }, [log, token]);
+  }, [connectWithToken]);
 
   const valvePlus = useCallback(
     (state: boolean): Promise<unknown> => {

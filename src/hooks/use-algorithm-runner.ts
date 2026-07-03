@@ -127,7 +127,7 @@ export function useAlgorithmRunner(
     if (now - (lastFiredRef.current.get(word) ?? 0) < REPEAT_MS) return;
     lastFiredRef.current.set(word, now);
 
-    log(`🎙 ${word}`, "info");
+    log(`🎙 ${word}`, "hit");
     void Promise.resolve(action()).catch((err: Error) =>
       log(`error: ${err.message}`, "error"),
     );
