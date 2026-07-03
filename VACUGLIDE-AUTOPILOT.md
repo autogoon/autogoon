@@ -2,7 +2,7 @@
 
 A recreation of `fun.autoblow.com/vacuglide/autopilot`. Reverse-engineered from
 the original app's client bundle (`autopilot-Krw_IcWx.js`); the port in
-`src/lib/autopilot-engine.ts` is faithful, including constants. The whole thing
+`src/lib/vacuglide-autopilot-engine.ts` is faithful, including constants. The whole thing
 runs client-side in the browser — the "autopilot" is just a timer loop issuing
 `target-speed` (and occasionally valve) commands.
 

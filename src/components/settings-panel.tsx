@@ -4,14 +4,14 @@
 // the header bar's Connect button (which uses the token entered here), so this
 // panel only holds the token input and the connection status readout.
 
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { Card } from "@/components/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SettingsPanel({
   vacuglide,
 }: {
-  vacuglide: VacuglideController;
+  vacuglide: VacuglideDeviceController;
 }) {
   return (
     <section className="flex w-full flex-col gap-4">

@@ -3,7 +3,7 @@
 import { Gauge, Mic, MicOff, Plug, Square } from "lucide-react";
 import type { Algorithm } from "@/hooks/use-algorithm-runner";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 const chipClass =
   "flex items-center gap-1.5 rounded-lg border bg-card px-3 py-1.5 text-sm disabled:opacity-40";
@@ -29,7 +29,7 @@ export function HeaderBar({
   onStop,
 }: {
   kws: KeywordSpotterController;
-  vacuglide: VacuglideController;
+  vacuglide: VacuglideDeviceController;
   running: Algorithm | null;
   onStop: () => void;
 }) {
@@ -37,7 +37,7 @@ export function HeaderBar({
     <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
       <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-2.5">
         <div className="mr-auto flex items-center gap-3">
-          <span className="font-semibold">Vacuglide</span>
+          <span className="font-semibold">Fun</span>
           {vacuglide.connected && (
             <div className="flex items-center gap-1.5">
               <span
@@ -66,7 +66,11 @@ export function HeaderBar({
             <MicOff className="size-4" />
           )}
           <span className="hidden sm:inline">
-            {kws.starting ? "Starting…" : kws.listening ? "Listening" : "Listen"}
+            {kws.starting === true
+              ? "Starting…"
+              : kws.listening === true
+                ? "Listening"
+                : "Listen"}
           </span>
         </button>
 

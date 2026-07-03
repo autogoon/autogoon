@@ -1,18 +1,18 @@
-// Homegrown algorithm — a fresh, still-to-be-built alternative to the Vacuglide
+// Homegrown Autopilot algorithm — a fresh, still-to-be-built alternative to the Vacuglide
 // Autopilot. It drives the device purely through the getDevice accessor it is
-// handed, so it reuses the same device layer (useVacuglide) as everything else.
+// handed, so it reuses the same device layer (useVacuglideDevice) as everything else.
 // For now the "algorithm" just holds a constant speed of 10; the start/pause/
 // subscribe scaffolding is here so it can grow.
 
 import type { VacuglideDevice } from "@/lib/vacuglide";
-import type { LogKind } from "@/hooks/use-vacuglide";
+import type { LogKind } from "@/hooks/use-vacuglide-device";
 
-export interface HomegrownOptions {
+export interface HomegrownAutopilotOptions {
   getDevice: () => VacuglideDevice | null;
   log: (text: string, kind?: LogKind) => void;
 }
 
-export class Homegrown {
+export class HomegrownAutopilot {
   private readonly getDevice: () => VacuglideDevice | null;
   private readonly log: (text: string, kind?: LogKind) => void;
 
@@ -21,7 +21,7 @@ export class Homegrown {
 
   private listeners: Array<() => void> = [];
 
-  constructor(opts: HomegrownOptions) {
+  constructor(opts: HomegrownAutopilotOptions) {
     this.getDevice = opts.getDevice;
     this.log = opts.log;
   }

@@ -32,7 +32,7 @@ function timestamp(): string {
   return new Date().toLocaleTimeString(undefined, { hour12: false });
 }
 
-export function useVacuglide() {
+export function useVacuglideDevice() {
   const [token, setToken] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -178,4 +178,4 @@ export function useVacuglide() {
   };
 }
 
-export type VacuglideController = ReturnType<typeof useVacuglide>;
+export type VacuglideDeviceController = ReturnType<typeof useVacuglideDevice>;

@@ -6,7 +6,7 @@
 // another entry in the array passed in — no other wiring changes.
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 // A word revised across partial results can arrive twice; ignore a repeat of
 // the same word within this window.
@@ -33,7 +33,7 @@ export interface Algorithm {
 }
 
 export function useAlgorithmRunner(
-  vacuglide: VacuglideController,
+  vacuglide: VacuglideDeviceController,
   algorithms: Algorithm[],
 ) {
   // Derived from the engines themselves (the source of truth), so it stays

@@ -6,18 +6,18 @@ app — this one is ours to design from scratch.
 
 **Status: boilerplate.** For now the "algorithm" just holds a constant speed of
 10. `start()` sends `target-speed 10`; `pause()` sends `target-speed/stop`. The
-subscribe/notify scaffolding (`src/lib/homegrown-engine.ts`) is in place so the
+subscribe/notify scaffolding (`src/lib/homegrown-autopilot-engine.ts`) is in place so the
 algorithm can grow without reworking how it plugs into the app.
 
 It follows the same three-layer shape as the autopilot and shares the same
 device layer:
 
-- **`src/lib/homegrown-engine.ts`** — the `Homegrown` engine. It drives the
+- **`src/lib/homegrown-autopilot-engine.ts`** — the `HomegrownAutopilot` engine. It drives the
   device purely through a `getDevice()` accessor it is handed, so it reuses the
-  same `useVacuglide` device layer as everything else.
-- **`src/hooks/use-homegrown.ts`** — the React hook mirroring the engine into
+  same `useVacuglideDevice` device layer as everything else.
+- **`src/hooks/use-homegrown-autopilot.ts`** — the React hook mirroring the engine into
   render state and wiring the `pagehide` safety-stop.
-- **`src/components/homegrown-panel.tsx`** — the presentation (a Start button
+- **`src/components/homegrown-autopilot-panel.tsx`** — the presentation (a Start button
   and the shared command log).
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the engine/hook/panel layers,

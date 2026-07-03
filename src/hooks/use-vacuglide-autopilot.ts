@@ -1,25 +1,25 @@
 "use client";
 
-// The Autopilot algorithm as a React hook. Owns the engine and its knobs
+// The Vacuglide Autopilot algorithm as a React hook. Owns the engine and its knobs
 // (intensity, edge control, vacuum maintenance) — none of which exist on the
-// device API. It drives the device purely through the VacuglideController it
+// device API. It drives the device purely through the VacuglideDeviceController it
 // is given, so a different algorithm can reuse the same device layer.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Autopilot,
+  VacuglideAutopilot,
   type EdgeControlLevel,
   type IntensityLevel,
   type SuctionControlLevel,
-} from "@/lib/autopilot-engine";
+} from "@/lib/vacuglide-autopilot-engine";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 // A voice "More"/"Less" opens a valve for a beat then closes it, mimicking a
 // quick manual stroke tap.
 const STROKE_PULSE_MS = 400;
 
-export function useAutopilot(vacuglide: VacuglideController) {
+export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   const { getDevice, log, valvePlus, valveMinus } = vacuglide;
 
   // The hook owns the algorithm's levels; the engine is seeded from these on
@@ -30,8 +30,8 @@ export function useAutopilot(vacuglide: VacuglideController) {
   const [edge, setEdge] = useState<EdgeControlLevel>("moderate");
   const [suction, setSuction] = useState<SuctionControlLevel>("more");
 
-  const engineRef = useRef<Autopilot | null>(null);
-  engineRef.current ??= new Autopilot({
+  const engineRef = useRef<VacuglideAutopilot | null>(null);
+  engineRef.current ??= new VacuglideAutopilot({
     getDevice,
     log,
     intensity,
@@ -170,4 +170,4 @@ export function useAutopilot(vacuglide: VacuglideController) {
   };
 }
 
-export type AutopilotController = ReturnType<typeof useAutopilot>;
+export type VacuglideAutopilotController = ReturnType<typeof useVacuglideAutopilot>;

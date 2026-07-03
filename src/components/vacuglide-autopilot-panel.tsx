@@ -1,7 +1,7 @@
 "use client";
 
-// Vacuglide Autopilot panel — presentation only. Device commands come from the
-// VacuglideController; the algorithm knobs come from the AutopilotController.
+// Vacuglide VacuglideAutopilot panel — presentation only. Device commands come from the
+// VacuglideDeviceController; the algorithm knobs come from the VacuglideAutopilotController.
 // Both live at the top of the tree so autopilot keeps running while this panel
 // is hidden behind another tab.
 
@@ -11,9 +11,9 @@ import { HoldButton } from "@/components/hold-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
-import type { AutopilotController } from "@/hooks/use-autopilot";
+import type { VacuglideAutopilotController } from "@/hooks/use-vacuglide-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 function Segmented<T extends string>({
   options,
@@ -43,15 +43,15 @@ function Segmented<T extends string>({
   );
 }
 
-export function AutopilotPanel({
+export function VacuglideAutopilotPanel({
   vacuglide,
   autopilot,
   kws,
   onStart,
   onStop,
 }: {
-  vacuglide: VacuglideController;
-  autopilot: AutopilotController;
+  vacuglide: VacuglideDeviceController;
+  autopilot: VacuglideAutopilotController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;

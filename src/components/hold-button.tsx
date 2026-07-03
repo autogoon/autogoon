@@ -28,7 +28,7 @@ export function HoldButton({
   const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeRef = useRef(false);
 
-  // The valve command logs itself in useVacuglide; here we only surface errors.
+  // The valve command logs itself in useVacuglideDevice; here we only surface errors.
   const doValve = useCallback(
     (state: boolean) => {
       onValve(state).catch((err: Error) => onError(err.message));

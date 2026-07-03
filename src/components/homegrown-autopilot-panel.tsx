@@ -1,26 +1,26 @@
 "use client";
 
-// Homegrown algorithm panel — presentation only. The algorithm runs in
-// useHomegrown at the top of the tree so it keeps going while this panel is
+// Homegrown Autopilot algorithm panel — presentation only. The algorithm runs in
+// useHomegrownAutopilot at the top of the tree so it keeps going while this panel is
 // hidden behind another tab. Mostly boilerplate for now.
 
-import type { HomegrownController } from "@/hooks/use-homegrown";
+import type { HomegrownAutopilotController } from "@/hooks/use-homegrown-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { Card } from "@/components/card";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
 
-export function HomegrownPanel({
+export function HomegrownAutopilotPanel({
   vacuglide,
   homegrown,
   kws,
   onStart,
   onStop,
 }: {
-  vacuglide: VacuglideController;
-  homegrown: HomegrownController;
+  vacuglide: VacuglideDeviceController;
+  homegrown: HomegrownAutopilotController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -37,7 +37,7 @@ export function HomegrownPanel({
         className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
 
-      <Card title="Homegrown">
+      <Card title="HomegrownAutopilot">
         <p className="text-muted-foreground text-sm">
           A new algorithm, under construction. For now it just holds the speed
           at 10.

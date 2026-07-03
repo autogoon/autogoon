@@ -1,22 +1,22 @@
 "use client";
 
-// The Homegrown algorithm as a React hook. Mirrors useAutopilot: it owns the
-// engine and drives the device through the VacuglideController it is given, so
+// The Homegrown Autopilot algorithm as a React hook. Mirrors useVacuglideAutopilot: it owns the
+// engine and drives the device through the VacuglideDeviceController it is given, so
 // both algorithms share the same device layer. Still boilerplate for now.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Homegrown } from "@/lib/homegrown-engine";
+import { HomegrownAutopilot } from "@/lib/homegrown-autopilot-engine";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
-import type { VacuglideController } from "@/hooks/use-vacuglide";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-export function useHomegrown(vacuglide: VacuglideController) {
+export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   const { getDevice, log } = vacuglide;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
 
-  const engineRef = useRef<Homegrown | null>(null);
-  engineRef.current ??= new Homegrown({ getDevice, log });
+  const engineRef = useRef<HomegrownAutopilot | null>(null);
+  engineRef.current ??= new HomegrownAutopilot({ getDevice, log });
   const engine = engineRef.current;
 
   useEffect(() => {
@@ -60,4 +60,4 @@ export function useHomegrown(vacuglide: VacuglideController) {
   };
 }
 
-export type HomegrownController = ReturnType<typeof useHomegrown>;
+export type HomegrownAutopilotController = ReturnType<typeof useHomegrownAutopilot>;

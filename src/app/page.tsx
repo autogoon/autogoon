@@ -5,32 +5,32 @@
 // Hidden tabs stay mounted — only their visibility changes.
 
 import { useEffect, useMemo, useState } from "react";
-import { AutopilotPanel } from "@/components/autopilot-panel";
+import { VacuglideAutopilotPanel } from "@/components/vacuglide-autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
-import { HomegrownPanel } from "@/components/homegrown-panel";
+import { HomegrownAutopilotPanel } from "@/components/homegrown-autopilot-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { useAlgorithmRunner, type Algorithm } from "@/hooks/use-algorithm-runner";
-import { useAutopilot } from "@/hooks/use-autopilot";
-import { useHomegrown } from "@/hooks/use-homegrown";
+import { useVacuglideAutopilot } from "@/hooks/use-vacuglide-autopilot";
+import { useHomegrownAutopilot } from "@/hooks/use-homegrown-autopilot";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
-import { getStoredToken, useVacuglide } from "@/hooks/use-vacuglide";
+import { getStoredToken, useVacuglideDevice } from "@/hooks/use-vacuglide-device";
 
 const TABS = [
-  { id: "autopilot", label: "Vacuglide", align: "left" },
-  { id: "homegrown", label: "Homegrown", align: "left" },
+  { id: "vacuglide-autopilot", label: "Vacuglide", align: "left" },
+  { id: "homegrown-autopilot", label: "Homegrown", align: "left" },
   { id: "settings", label: "Settings", align: "right" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 export default function Home() {
-  const vacuglide = useVacuglide();
-  const autopilot = useAutopilot(vacuglide);
-  const homegrown = useHomegrown(vacuglide);
-  const [tab, setTab] = useState<TabId>("autopilot");
+  const vacuglide = useVacuglideDevice();
+  const autopilot = useVacuglideAutopilot(vacuglide);
+  const homegrown = useHomegrownAutopilot(vacuglide);
+  const [tab, setTab] = useState<TabId>("vacuglide-autopilot");
 
   // With no saved token there's nothing to auto-connect to, so send the user
-  // to Settings to enter one. (useVacuglide auto-connects when a token exists.)
+  // to Settings to enter one. (useVacuglideDevice auto-connects when a token exists.)
   useEffect(() => {
     const stored = getStoredToken();
     if (stored === null || stored.trim() === "") setTab("settings");
@@ -40,7 +40,7 @@ export default function Home() {
   // algorithm means adding a hook above and one more entry here.
   const algorithms: Algorithm[] = [
     {
-      id: "autopilot",
+      id: "vacuglide-autopilot",
       label: "Vacuglide",
       isPlaying: autopilot.isPlaying,
       currentSpeed: autopilot.currentSpeed,
@@ -49,7 +49,7 @@ export default function Home() {
       keywords: autopilot.keywords,
     },
     {
-      id: "homegrown",
+      id: "homegrown-autopilot",
       label: "Homegrown",
       isPlaying: homegrown.isPlaying,
       currentSpeed: homegrown.currentSpeed,
@@ -112,21 +112,21 @@ export default function Home() {
           ))}
         </nav>
         <main className="py-6">
-          <div className={tab === "autopilot" ? undefined : "hidden"}>
-            <AutopilotPanel
+          <div className={tab === "vacuglide-autopilot" ? undefined : "hidden"}>
+            <VacuglideAutopilotPanel
               vacuglide={vacuglide}
               autopilot={autopilot}
               kws={kws}
-              onStart={() => void runner.run("autopilot")}
+              onStart={() => void runner.run("vacuglide-autopilot")}
               onStop={runner.stop}
             />
           </div>
-          <div className={tab === "homegrown" ? undefined : "hidden"}>
-            <HomegrownPanel
+          <div className={tab === "homegrown-autopilot" ? undefined : "hidden"}>
+            <HomegrownAutopilotPanel
               vacuglide={vacuglide}
               homegrown={homegrown}
               kws={kws}
-              onStart={() => void runner.run("homegrown")}
+              onStart={() => void runner.run("homegrown-autopilot")}
               onStop={runner.stop}
             />
           </div>
