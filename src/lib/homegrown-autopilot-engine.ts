@@ -133,6 +133,7 @@ function buildTransitionScript(
 
 const CUMMING_START_SPEED = 30;
 const CUMMING_MID_SPEED = 20;
+const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 500; // 1 unit per 500ms: 30 units over 15s.
 // A one-shot, unscaled wind-down: a smooth constant-rate ramp from 30 to 0,
 // then a duplicate of the resting value (0) far in the future — the same
@@ -145,12 +146,12 @@ function buildCummingScript(startAt: number): ScriptWaypoint[] {
   for (
     let speed = CUMMING_START_SPEED;
     speed >= CUMMING_MID_SPEED;
-    speed -= 2
+    speed -= 1.5
   ) {
     script.push({ speed, at, unscaled: true });
     at += CUMMING_STEP_MS;
   }
-  for (let speed = CUMMING_MID_SPEED; speed >= 0; speed--) {
+  for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
     script.push({ speed, at, unscaled: true });
     at += CUMMING_STEP_MS;
   }
@@ -353,7 +354,7 @@ export class HomegrownAutopilot {
       }, 3000),
       setTimeout(() => {
         void dev.valveStrokeMinusSet(false).catch(() => undefined);
-      }, 8000),
+      }, 12000),
     );
   }
 
