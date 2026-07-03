@@ -9,11 +9,7 @@ import { AutopilotPanel } from "@/components/autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomegrownPanel } from "@/components/homegrown-panel";
 import { SettingsPanel } from "@/components/settings-panel";
-import {
-  UNIVERSAL_KEYWORDS,
-  useAlgorithmRunner,
-  type Algorithm,
-} from "@/hooks/use-algorithm-runner";
+import { useAlgorithmRunner, type Algorithm } from "@/hooks/use-algorithm-runner";
 import { useAutopilot } from "@/hooks/use-autopilot";
 import { useHomegrown } from "@/hooks/use-homegrown";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
@@ -64,20 +60,26 @@ export default function Home() {
   ];
   const runner = useAlgorithmRunner(vacuglide, algorithms);
 
-  // The words the KWS grammar should recognise right now: the global
-  // connect/start/stop, plus the keywords of whichever algorithm is running
-  // (none → just the globals). This is exactly what gets handed to vosk, and
-  // the spotter echoes it back as `listeningFor` for the panel to display.
+  // The words the KWS grammar should recognise right now: the currently-valid
+  // global word (connect/start/stop, per connection + running state), plus the
+  // keywords of whichever algorithm is running. This is exactly what gets
+  // handed to vosk, and the spotter echoes it back as `listeningFor`.
   const running = runner.running;
   const commandWords = useMemo(
     () => [
       ...new Set([
-        ...UNIVERSAL_KEYWORDS,
+        ...runner.globalWords,
         ...(running?.keywords ?? []).map((k) => k.word),
       ]),
     ],
-    [running?.keywords],
+    [runner.globalWords, running?.keywords],
   );
+  // Point voice "start" at whichever algorithm's tab is visible, so it works
+  // from a cold load (before anything has run).
+  useEffect(() => {
+    if (tab !== "settings") runner.setCurrent(tab);
+  }, [tab, runner.setCurrent]);
+
   // KWS calls the runner directly with each detected word, and logs its final
   // transcripts into the shared command log (the runner logs the executed
   // partial hits).

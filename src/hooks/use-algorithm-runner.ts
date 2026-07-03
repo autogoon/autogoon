@@ -5,7 +5,7 @@
 // running, and starting one stops any other. Adding a new algorithm is just
 // another entry in the array passed in — no other wiring changes.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
 // A word revised across partial results can arrive twice; ignore a repeat of
@@ -32,11 +32,6 @@ export interface Algorithm {
   keywords: KeywordAction[];
 }
 
-// App-level words the runner handles itself (rather than any one algorithm):
-// device connect and start/stop. They're part of the KWS grammar but aren't
-// shown per-panel.
-export const UNIVERSAL_KEYWORDS = ["connect", "start", "stop"];
-
 export function useAlgorithmRunner(
   vacuglide: VacuglideController,
   algorithms: Algorithm[],
@@ -44,6 +39,17 @@ export function useAlgorithmRunner(
   // Derived from the engines themselves (the source of truth), so it stays
   // correct even when an algorithm stops itself (e.g. finish, or page hide).
   const running = algorithms.find((algo) => algo.isPlaying) ?? null;
+
+  // The app-level words worth listening for right now — only the one that would
+  // actually do something in the current state. Nothing to connect to → offer
+  // "connect"; connected and idle → "start"; connected and running → "stop".
+  // (start/stop need a device, so neither is offered while disconnected.)
+  const isRunning = running !== null;
+  const globalWords = useMemo(
+    () =>
+      !vacuglide.connected ? ["connect"] : isRunning ? ["stop"] : ["start"],
+    [vacuglide.connected, isRunning],
+  );
 
   const logError = useCallback(
     (err: unknown) =>
@@ -76,12 +82,20 @@ export function useAlgorithmRunner(
 
   // The "current" algorithm: the running one, or the last that ran. A voice
   // "start" from idle (re)starts this, so voice control has a target before
-  // anything is playing.
-  const currentIdRef = useRef<string | null>(running?.id ?? null);
+  // anything is playing. Defaults to the first algorithm and follows the last
+  // one that ran; the page also points it at the visible tab via setCurrent.
+  const currentIdRef = useRef<string | null>(
+    running?.id ?? algorithms[0]?.id ?? null,
+  );
   const runningId = running?.id ?? null;
   useEffect(() => {
     if (runningId !== null) currentIdRef.current = runningId;
   }, [runningId]);
+
+  // Point "start" at a specific algorithm (e.g. the one whose tab is visible).
+  const setCurrent = useCallback((id: string) => {
+    currentIdRef.current = id;
+  }, []);
 
   // Latest values reachable from handleWord, which the KWS recognizer may call
   // at any time. Kept in a ref so handleWord itself stays stable.
@@ -133,7 +147,7 @@ export function useAlgorithmRunner(
     );
   }, []);
 
-  return { running, run, stop, handleWord };
+  return { running, run, stop, handleWord, setCurrent, globalWords };
 }
 
 export type AlgorithmRunner = ReturnType<typeof useAlgorithmRunner>;
