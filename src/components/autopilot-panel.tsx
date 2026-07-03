@@ -78,12 +78,14 @@ export function AutopilotPanel({
             disabled={!autopilot.isPlaying}
             onValve={vacuglide.valveMinus}
             onError={logError}
+            forcedActive={autopilot.strokePulsing === "minus"}
           />
           <HoldButton
             label="Stroke +"
             disabled={!autopilot.isPlaying}
             onValve={vacuglide.valvePlus}
             onError={logError}
+            forcedActive={autopilot.strokePulsing === "plus"}
           />
           <button
             onClick={autopilot.finishMe}

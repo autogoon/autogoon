@@ -102,28 +102,42 @@ export function useAutopilot(vacuglide: VacuglideController) {
     [engine, log],
   );
 
+  // Which valve a voice pulse is currently holding open, so the matching
+  // manual-override button can highlight while it happens.
+  const [strokePulsing, setStrokePulsing] = useState<"plus" | "minus" | null>(
+    null,
+  );
+
   // Open a valve, then close it after a short beat — a voice-driven stroke tap.
   const strokePulse = useCallback(
-    (valve: (state: boolean) => Promise<unknown>) => {
+    (dir: "plus" | "minus") => {
+      const valve = dir === "plus" ? valvePlus : valveMinus;
+      const clear = () =>
+        setStrokePulsing((cur) => (cur === dir ? null : cur));
+      setStrokePulsing(dir);
       valve(true)
         .then(() => {
           setTimeout(() => {
             valve(false).catch((err: Error) =>
               log(`error: ${err.message}`, "error"),
             );
+            clear();
           }, STROKE_PULSE_MS);
         })
-        .catch((err: Error) => log(`error: ${err.message}`, "error"));
+        .catch((err: Error) => {
+          log(`error: ${err.message}`, "error");
+          clear();
+        });
     },
-    [log],
+    [valvePlus, valveMinus, log],
   );
 
   // The words this algorithm understands and what each one does. start/stop are
   // universal (handled by the dispatcher via the runner) so they're not here.
   const keywords = useMemo<KeywordAction[]>(
     () => [
-      { word: "more", run: () => strokePulse(valvePlus) },
-      { word: "less", run: () => strokePulse(valveMinus) },
+      { word: "more", run: () => strokePulse("plus") },
+      { word: "less", run: () => strokePulse("minus") },
       { word: "finish", run: finishMe },
       { word: "warmup", run: () => changeIntensity("warmup") },
       { word: "low", run: () => changeIntensity("low") },
@@ -136,15 +150,7 @@ export function useAutopilot(vacuglide: VacuglideController) {
       { word: "damp", run: () => changeSuction("little") },
       { word: "wet", run: () => changeSuction("more") },
     ],
-    [
-      strokePulse,
-      valvePlus,
-      valveMinus,
-      finishMe,
-      changeIntensity,
-      changeEdge,
-      changeSuction,
-    ],
+    [strokePulse, finishMe, changeIntensity, changeEdge, changeSuction],
   );
 
   return {
@@ -159,6 +165,7 @@ export function useAutopilot(vacuglide: VacuglideController) {
     changeEdge,
     suction,
     changeSuction,
+    strokePulsing,
     keywords,
   };
 }

@@ -13,11 +13,15 @@ export function HoldButton({
   disabled,
   onValve,
   onError,
+  forcedActive = false,
 }: {
   label: string;
   disabled: boolean;
   onValve: (state: boolean) => Promise<unknown>;
   onError: (message: string) => void;
+  // Highlight the button even without a pointer press — e.g. a voice pulse
+  // driving the same valve.
+  forcedActive?: boolean;
 }) {
   const [active, setActive] = useState(false);
   const pressedAtRef = useRef(0);
@@ -72,7 +76,7 @@ export function HoldButton({
       onPointerLeave={release}
       onPointerCancel={release}
       className={`flex-1 rounded-lg border py-3 text-lg disabled:opacity-40 ${
-        active
+        active || forcedActive
           ? "scale-95 border-red-500 bg-red-500 text-white"
           : "bg-card text-cyan-600 dark:text-cyan-400"
       }`}
