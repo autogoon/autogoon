@@ -6,14 +6,13 @@
 // is hidden behind another tab.
 
 import { useCallback } from "react";
-import { Button } from "@/components/button";
 import { Card } from "@/components/card";
-import { HoldButton } from "@/components/hold-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
 import { Segmented } from "@/components/segmented";
+import { StrokeCard } from "@/components/stroke-card";
 import type { VacuglideAutopilotController } from "@/hooks/use-vacuglide-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -48,34 +47,14 @@ export function VacuglideAutopilotPanel({
         className="bg-linear-to-br from-orange-500 to-pink-500"
       />
 
-      <Card title="Manual Override">
-        <div className="flex gap-3">
-          <HoldButton
-            label="Stroke −"
-            badge="down"
-            disabled={!autopilot.isPlaying}
-            onValve={vacuglide.valveMinus}
-            onError={logError}
-            forcedActive={autopilot.strokePulsing === "minus"}
-          />
-          <HoldButton
-            label="Stroke +"
-            badge="up"
-            disabled={!autopilot.isPlaying}
-            onValve={vacuglide.valvePlus}
-            onError={logError}
-            forcedActive={autopilot.strokePulsing === "plus"}
-          />
-          <Button
-            onClick={autopilot.finishMe}
-            disabled={!autopilot.isPlaying}
-            className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
-            badge="finish"
-          >
-            Finish
-          </Button>
-        </div>
-      </Card>
+      <StrokeCard
+        disabled={!autopilot.isPlaying}
+        strokePulsing={autopilot.strokePulsing}
+        onValvePlus={vacuglide.valvePlus}
+        onValveMinus={vacuglide.valveMinus}
+        onError={logError}
+        onFinish={autopilot.finishMe}
+      />
 
       <Card title="Intensity">
         <Segmented

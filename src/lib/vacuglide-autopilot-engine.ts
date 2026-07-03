@@ -269,7 +269,7 @@ export class VacuglideAutopilot {
   }
 
   async start(): Promise<void> {
-    if (this.mysteryScript.length === 0) this.generateMysteryScript();
+    this.resetScript();
     this.isPlaying = true;
     const waypoint = this.mysteryScript[this.lastSentIndex];
     if (waypoint !== undefined) {
@@ -364,13 +364,29 @@ export class VacuglideAutopilot {
     this.notifyListeners();
   }
 
+  // Unlike stop, finish keeps playing — it should read as a crescendo, not an
+  // abrupt halt. Replace the script with a compact loop of its own: ramp to
+  // full speed almost immediately, then hold there for half an hour before the
+  // existing loop-to-start logic below wraps around and sends it again — a
+  // single near-instant blip down to 0 every 30 minutes rather than new state
+  // to suppress the wraparound. Also push the other knobs to their most
+  // intense settings: full intensity, vacuum off, and edge control "moderate"
+  // — the one level whose plateau/cooldown multipliers are both 1, so it
+  // doesn't retroactively scale any timing.
   async finishMe(): Promise<void> {
-    this.isPlaying = false;
-    this.clearTimers();
     const dev = this.device();
+    this.mysteryScript = [
+      { speed: SPEED_MAX, at: TICK_MS },
+      { speed: 0, at: 1_800_000 },
+    ];
+    this.currentScriptIndex = 0;
+    this.currentTime = 0;
+    this.lastSentIndex = 0;
+    this.intensityLevel = "high";
+    this.edgeControlLevel = "moderate";
+    this.setSuctionControl("off");
     await dev.valveStrokePlusSet(false);
     await dev.valveStrokeMinusSet(false);
-    await dev.targetSpeedSet(SPEED_MAX);
     this.notifyListeners();
   }
 

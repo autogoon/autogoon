@@ -7,10 +7,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HomegrownAutopilot } from "@/lib/homegrown-autopilot-engine";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
+import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   const { getDevice } = vacuglide;
+  const stroke = useStrokeControls(vacuglide);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
@@ -48,14 +50,19 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   const start = useCallback(() => engine.start(), [engine]);
   const stop = useCallback(() => engine.pause(), [engine]);
 
-  // Only start/stop for now (both universal), so no algorithm-specific words.
-  const keywords = useMemo<KeywordAction[]>(() => [], []);
+  // Stroke's up/down come from the shared useStrokeControls; no other
+  // algorithm-specific words yet.
+  const keywords = useMemo<KeywordAction[]>(
+    () => [...stroke.keywords],
+    [stroke.keywords],
+  );
 
   return {
     isPlaying,
     currentSpeed,
     start,
     stop,
+    strokePulsing: stroke.strokePulsing,
     keywords,
   };
 }

@@ -13,18 +13,16 @@ import {
   type SuctionControlLevel,
 } from "@/lib/vacuglide-autopilot-engine";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
+import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-
-// A voice "Up"/"Down" opens a valve for a beat then closes it, mimicking a
-// quick manual stroke tap.
-const STROKE_PULSE_MS = 400;
 
 // Intensity levels in segmented-bar order, so voice "more"/"less" can step to
 // the next/previous one.
 const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
 
 export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
-  const { getDevice, log, valvePlus, valveMinus } = vacuglide;
+  const { getDevice, log } = vacuglide;
+  const stroke = useStrokeControls(vacuglide);
 
   // The hook owns the algorithm's levels; the engine is seeded from these on
   // construction and kept in sync by the change handlers below.
@@ -73,10 +71,16 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   const start = useCallback(() => engine.start(), [engine]);
   const stop = useCallback(() => engine.stop(), [engine]);
 
+  // engine.finishMe() sets its intensity/edge/suction fields directly (not via
+  // the change* handlers below, which would regenerate the script) — mirror
+  // that here so the segmented controls reflect it.
   const finishMe = useCallback(() => {
     engine.finishMe().catch((err: Error) => {
       log(`error: ${err.message}`, "error");
     });
+    setIntensity("high");
+    setEdge("moderate");
+    setSuction("off");
   }, [engine, log]);
 
   const changeIntensity = useCallback(
@@ -119,42 +123,12 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
     [engine, log],
   );
 
-  // Which valve a voice pulse is currently holding open, so the matching
-  // manual-override button can highlight while it happens.
-  const [strokePulsing, setStrokePulsing] = useState<"plus" | "minus" | null>(
-    null,
-  );
-
-  // Open a valve, then close it after a short beat — a voice-driven stroke tap.
-  const strokePulse = useCallback(
-    (dir: "plus" | "minus") => {
-      const valve = dir === "plus" ? valvePlus : valveMinus;
-      const clear = () =>
-        setStrokePulsing((cur) => (cur === dir ? null : cur));
-      setStrokePulsing(dir);
-      valve(true)
-        .then(() => {
-          setTimeout(() => {
-            valve(false).catch((err: Error) =>
-              log(`error: ${err.message}`, "error"),
-            );
-            clear();
-          }, STROKE_PULSE_MS);
-        })
-        .catch((err: Error) => {
-          log(`error: ${err.message}`, "error");
-          clear();
-        });
-    },
-    [valvePlus, valveMinus, log],
-  );
-
   // The words this algorithm understands and what each one does. start/stop are
   // universal (handled by the dispatcher via the runner) so they're not here.
+  // Stroke's up/down come from the shared useStrokeControls.
   const keywords = useMemo<KeywordAction[]>(
     () => [
-      { word: "up", run: () => strokePulse("plus") },
-      { word: "down", run: () => strokePulse("minus") },
+      ...stroke.keywords,
       { word: "finish", run: finishMe },
       { word: "more", run: () => stepIntensity(1) },
       { word: "less", run: () => stepIntensity(-1) },
@@ -165,7 +139,7 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "light", run: () => changeSuction("little") },
       { word: "heavy", run: () => changeSuction("more") },
     ],
-    [strokePulse, finishMe, stepIntensity, changeEdge, changeSuction],
+    [stroke.keywords, finishMe, stepIntensity, changeEdge, changeSuction],
   );
 
   return {
@@ -180,7 +154,7 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
     changeEdge,
     suction,
     changeSuction,
-    strokePulsing,
+    strokePulsing: stroke.strokePulsing,
     keywords,
   };
 }
