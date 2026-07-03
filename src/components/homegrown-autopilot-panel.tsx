@@ -53,7 +53,7 @@ export function HomegrownAutopilotPanel({
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onFinish={() => {}}
+        onCumming={homegrown.cumming}
       />
 
       <Card title="Speed">

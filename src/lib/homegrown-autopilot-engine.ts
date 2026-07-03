@@ -7,19 +7,27 @@
 // down by 5 to 50, step back up by 5 to 100, then step back down by 5 to 75 —
 // then repeat. Two knobs scale this uniformly before it's sent to the device:
 //   - speedPercent (0-100): scales every raw speed.
-//   - variability (off/medium/high -> 0/40/80%): randomises how long each step
-//     takes, one random draw per ramp (the whole 75->50, or 50->100, or
-//     100->75 leg) rather than per individual step, so a ramp stays a smooth
-//     line at its own pace instead of jittering step to step.
-// Changing variability regenerates the script, but seamlessly — it finishes
-// the ramp currently in progress (from the current speed, continuing in the
-// current direction) before the newly-randomised timing takes over.
+//   - variability (off/low/medium/high -> 0/25/50/80%): randomises how long
+//     each step takes, one random draw per ramp (the whole 75->50, or
+//     50->100, or 100->75 leg) rather than per individual step, so a ramp
+//     stays a smooth line at its own pace instead of jittering step to step.
+//
+// `currentTime` and `script` are a permanent record of the whole play session
+// (for a future timeline visualisation) — neither is ever reset to zero once
+// start() begins them. Whenever we run out of generated future (normal
+// looping) we just append more, continuing the same clock. An explicit
+// command (setVariability, cumming) instead cuts off whatever hasn't been
+// sent yet — keeping every waypoint already realised as real history — and
+// appends its new waypoints starting at the next tick.
 
 import type { VacuglideDevice } from "@/lib/vacuglide-device";
 
 interface ScriptWaypoint {
   speed: number;
   at: number;
+  // If true, send `speed` as-is — bypass speedPercent scaling. Only cumming()'s
+  // waypoints set this; the normal pattern never does.
+  unscaled?: boolean;
 }
 
 export type VariabilityLevel = "off" | "low" | "medium" | "high";
@@ -32,7 +40,7 @@ const VARIABILITY_PERCENT: Record<VariabilityLevel, number> = {
 };
 
 const TICK_MS = 100;
-const STEP_MS = 5000;
+const STEP_MS = 2500;
 const STEP_SIZE = 5;
 const START_SPEED = 75;
 const FLOOR_SPEED = 50;
@@ -72,30 +80,34 @@ function buildLeg(
   return { waypoints, endAt: at };
 }
 
-// A fresh full cycle (75 -> 50 -> 100 -> 75), `at` values relative to 0.
-function buildFullScript(variabilityPercent: number): ScriptWaypoint[] {
-  const script: ScriptWaypoint[] = [{ speed: START_SPEED, at: 0 }];
-  let at = 0;
+// One full cycle (75 -> 50 -> 100 -> 75), continuing from `startAt`.
+function buildFullScript(
+  variabilityPercent: number,
+  startAt: number,
+): { waypoints: ScriptWaypoint[]; endAt: number } {
+  const script: ScriptWaypoint[] = [{ speed: START_SPEED, at: startAt }];
+  let at = startAt;
   for (const leg of LEGS) {
     const { waypoints, endAt } = buildLeg(leg.from, leg.to, variabilityPercent, at);
     script.push(...waypoints);
     at = endAt;
   }
-  return script;
+  return { waypoints: script, endAt: at };
 }
 
 // A one-time seamless transition: finish the ramp currently under way (from
 // `fromSpeed`, continuing toward that leg's existing target), play out
 // whichever ramps remain to close this cycle back at START_SPEED, then append
 // one full fresh cycle so there's always more script ahead once this plays
-// out. `at` values are relative to 0 = "now".
+// out. Continues from `startAt`.
 function buildTransitionScript(
   fromSpeed: number,
   currentLeg: number,
   variabilityPercent: number,
+  startAt: number,
 ): ScriptWaypoint[] {
   const script: ScriptWaypoint[] = [];
-  let at = 0;
+  let at = startAt;
   const remainder = buildLeg(
     fromSpeed,
     LEGS[currentLeg]!.to,
@@ -109,11 +121,26 @@ function buildTransitionScript(
     script.push(...seg.waypoints);
     at = seg.endAt;
   }
-  for (const leg of LEGS) {
-    const seg = buildLeg(leg.from, leg.to, variabilityPercent, at);
-    script.push(...seg.waypoints);
-    at = seg.endAt;
+  const { waypoints } = buildFullScript(variabilityPercent, at);
+  script.push(...waypoints);
+  return script;
+}
+
+const CUMMING_START_SPEED = 30;
+const CUMMING_STEP_MS = 500; // 1 unit per 500ms: 30 units over 15s.
+// A one-shot, unscaled wind-down: a smooth constant-rate ramp from 30 to 0,
+// then a duplicate of the resting value (0) far in the future — the same
+// "hold via a far-future waypoint the loop wraps onto" trick as Vacuglide
+// Autopilot's finishMe, so nothing needs to track "are we done cumming".
+// Continues from `startAt`.
+function buildCummingScript(startAt: number): ScriptWaypoint[] {
+  const script: ScriptWaypoint[] = [];
+  let at = startAt;
+  for (let speed = CUMMING_START_SPEED; speed >= 0; speed--) {
+    script.push({ speed, at, unscaled: true });
+    at += CUMMING_STEP_MS;
   }
+  script.push({ speed: 0, at: at + 1_800_000, unscaled: true });
   return script;
 }
 
@@ -129,7 +156,7 @@ export class HomegrownAutopilot {
   isPlaying = false;
   currentSpeed = 0;
 
-  private script: ScriptWaypoint[];
+  private script: ScriptWaypoint[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private currentTime = 0;
   private currentScriptIndex = 0;
@@ -143,12 +170,13 @@ export class HomegrownAutopilot {
   // the whole pattern uniformly.
   private speedPercent: number;
   private variabilityLevel: VariabilityLevel;
+  // One-shot valve timers scheduled by cumming(); cleared if stopped mid-pulse.
+  private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
 
   constructor(opts: HomegrownAutopilotOptions) {
     this.getDevice = opts.getDevice;
     this.speedPercent = opts.speedPercent;
     this.variabilityLevel = opts.variability;
-    this.script = buildFullScript(this.variabilityPercent);
   }
 
   private get variabilityPercent(): number {
@@ -157,6 +185,20 @@ export class HomegrownAutopilot {
 
   private scaleSpeed(raw: number): number {
     return Math.round((raw * this.speedPercent) / 100);
+  }
+
+  private outputSpeed(waypoint: ScriptWaypoint): number {
+    return waypoint.unscaled === true
+      ? waypoint.speed
+      : this.scaleSpeed(waypoint.speed);
+  }
+
+  // Cut off whatever hasn't been sent yet (the future) while keeping
+  // everything already sent as real history, then append `waypoints` starting
+  // at the next tick.
+  private spliceFromNow(build: (startAt: number) => ScriptWaypoint[]): void {
+    this.script = this.script.slice(0, this.currentScriptIndex);
+    this.script.push(...build(this.currentTime + TICK_MS));
   }
 
   // Update the scale. If currently playing, immediately resend the current
@@ -178,20 +220,21 @@ export class HomegrownAutopilot {
 
   // Update how variable the ramp timings are. While playing, seamlessly
   // finish the ramp in progress before the new randomness takes over — see
-  // buildTransitionScript.
+  // buildTransitionScript. Doesn't touch anything already sent.
   setVariability(level: VariabilityLevel): void {
     this.variabilityLevel = level;
     if (!this.isPlaying) {
       this.notify();
       return;
     }
-    this.script = buildTransitionScript(
-      this.lastSentSpeed,
-      this.currentLeg,
-      this.variabilityPercent,
+    this.spliceFromNow((startAt) =>
+      buildTransitionScript(
+        this.lastSentSpeed,
+        this.currentLeg,
+        this.variabilityPercent,
+        startAt,
+      ),
     );
-    this.currentScriptIndex = 0;
-    this.currentTime = 0;
     this.notify();
   }
 
@@ -216,19 +259,15 @@ export class HomegrownAutopilot {
     return device;
   }
 
+  // A fresh session: this is the one place currentTime/script/currentLeg
+  // reset to zero — everything from here on is that session's real history.
   async start(): Promise<void> {
-    this.script = buildFullScript(this.variabilityPercent);
+    this.clearCumTimers();
+    this.script = [];
     this.currentScriptIndex = 0;
     this.currentTime = 0;
     this.currentLeg = 0;
     this.isPlaying = true;
-    const waypoint = this.script[0];
-    if (waypoint !== undefined) {
-      const scaled = this.scaleSpeed(waypoint.speed);
-      this.currentSpeed = scaled;
-      this.lastSentSpeed = waypoint.speed;
-      await this.device().targetSpeedSet(scaled);
-    }
     this.scheduleNextTick();
     this.notify();
   }
@@ -251,19 +290,21 @@ export class HomegrownAutopilot {
   private async timerLoop(): Promise<void> {
     if (!this.isPlaying) return;
     if (this.currentScriptIndex >= this.script.length) {
-      // Completed the script (a full cycle, or a variability transition's
-      // lead-in + trailing cycle) — always land on a fresh, freshly-randomised
-      // cycle starting at START_SPEED.
-      this.script = buildFullScript(this.variabilityPercent);
-      this.currentScriptIndex = 0;
-      this.currentTime = 0;
+      // Ran out of generated future — extend the timeline with a fresh,
+      // freshly-randomised cycle, continuing (never resetting) the clock.
+      const last = this.script[this.script.length - 1];
+      const { waypoints } = buildFullScript(
+        this.variabilityPercent,
+        last?.at ?? this.currentTime,
+      );
+      this.script.push(...waypoints);
       this.currentLeg = 0;
     }
     const waypoint = this.script[this.currentScriptIndex];
     if (waypoint !== undefined && this.currentTime >= waypoint.at) {
-      const scaled = this.scaleSpeed(waypoint.speed);
-      this.currentSpeed = scaled;
-      await this.device().targetSpeedSet(scaled);
+      const output = this.outputSpeed(waypoint);
+      this.currentSpeed = output;
+      await this.device().targetSpeedSet(output);
       this.lastSentSpeed = waypoint.speed;
       this.currentScriptIndex++;
       if (waypoint.speed === LEGS[this.currentLeg]!.to) {
@@ -280,12 +321,37 @@ export class HomegrownAutopilot {
     }
   }
 
+  private clearCumTimers(): void {
+    for (const t of this.cumTimers) clearTimeout(t);
+    this.cumTimers = [];
+  }
+
+  // Writes a one-shot wind-down onto the timeline: unscaled, a smooth
+  // constant-rate ramp from 30 to 0 over 15s, holding there afterwards (see
+  // buildCummingScript). Doesn't touch anything already sent.
+  cumming(): void {
+    this.clearCumTimers();
+    this.spliceFromNow(buildCummingScript);
+    const dev = this.device();
+    this.cumTimers.push(
+      setTimeout(() => {
+        void dev.valveStrokeMinusSet(true).catch(() => undefined);
+      }, 3000),
+      setTimeout(() => {
+        void dev.valveStrokeMinusSet(false).catch(() => undefined);
+      }, 8000),
+    );
+  }
+
   async pause(): Promise<void> {
     if (!this.isPlaying) return;
     this.isPlaying = false;
     this.clearTimer();
+    this.clearCumTimers();
     this.currentSpeed = 0;
     this.notify();
-    await this.device().targetSpeedStop();
+    const dev = this.device();
+    await dev.targetSpeedStop();
+    await dev.valveStrokeMinusSet(false).catch(() => undefined);
   }
 }

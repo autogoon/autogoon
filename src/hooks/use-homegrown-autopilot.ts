@@ -14,7 +14,7 @@ import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
-  const { getDevice } = vacuglide;
+  const { getDevice, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -86,6 +86,14 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
     [engine],
   );
 
+  const cumming = useCallback(() => {
+    try {
+      engine.cumming();
+    } catch (err) {
+      log(`error: ${(err as Error).message}`, "error");
+    }
+  }, [engine, log]);
+
   // Stroke's up/down come from the shared useStrokeControls.
   const keywords = useMemo<KeywordAction[]>(
     () => [
@@ -96,8 +104,9 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "low", run: () => changeVariability("low") },
       { word: "medium", run: () => changeVariability("medium") },
       { word: "high", run: () => changeVariability("high") },
+      { word: "cumming", run: cumming },
     ],
-    [stroke.keywords, stepSpeedPercent, changeVariability],
+    [stroke.keywords, stepSpeedPercent, changeVariability, cumming],
   );
 
   return {
@@ -109,6 +118,7 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
     changeSpeedPercent,
     variability,
     changeVariability,
+    cumming,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };

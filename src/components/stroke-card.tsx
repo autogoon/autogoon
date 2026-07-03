@@ -2,10 +2,11 @@
 
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves directly (voice "up"/"down" does the same, see useStrokeControls, and
-// highlights the matching button), plus the algorithm's own Finish command.
-// Shared by every algorithm panel — the stroke buttons operate on the device
-// layer regardless of which algorithm is running; Finish is supplied per
-// algorithm since each one finishes differently.
+// highlights the matching button), plus whichever algorithm-specific
+// finish-like command applies — Vacuglide Autopilot's Finish or Homegrown's
+// Cumming. Shared by every algorithm panel — the stroke buttons operate on the
+// device layer regardless of which algorithm is running; at most one of
+// onFinish/onCumming should be provided, and its button only shows up then.
 
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -18,14 +19,15 @@ export function StrokeCard({
   onValveMinus,
   onError,
   onFinish,
+  onCumming,
 }: {
   disabled: boolean;
   strokePulsing: "plus" | "minus" | null;
   onValvePlus: (state: boolean) => Promise<unknown>;
   onValveMinus: (state: boolean) => Promise<unknown>;
   onError: (message: string) => void;
-  // Every algorithm defines its own Finish command.
-  onFinish: () => void;
+  onFinish?: () => void;
+  onCumming?: () => void;
 }) {
   return (
     <Card title="Stroke">
@@ -46,14 +48,26 @@ export function StrokeCard({
           onError={onError}
           forcedActive={strokePulsing === "plus"}
         />
-        <Button
-          onClick={onFinish}
-          disabled={disabled}
-          className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
-          badge="finish"
-        >
-          Finish
-        </Button>
+        {onFinish !== undefined && (
+          <Button
+            onClick={onFinish}
+            disabled={disabled}
+            className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
+            badge="finish"
+          >
+            Finish
+          </Button>
+        )}
+        {onCumming !== undefined && (
+          <Button
+            onClick={onCumming}
+            disabled={disabled}
+            className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
+            badge="cumming"
+          >
+            Cumming
+          </Button>
+        )}
       </div>
     </Card>
   );
