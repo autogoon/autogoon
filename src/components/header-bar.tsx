@@ -55,8 +55,7 @@ export function HeaderBar({
 
         <button
           onClick={kws.toggleListening}
-          disabled={!kws.modelReady}
-          title={kws.status}
+          disabled={!kws.modelReady || kws.starting}
           className={`${chipClass} ${
             kws.listening ? "border-emerald-500 text-emerald-500" : ""
           }`}
@@ -67,7 +66,7 @@ export function HeaderBar({
             <MicOff className="size-4" />
           )}
           <span className="hidden sm:inline">
-            {kws.listening ? "Listening" : "Listen"}
+            {kws.starting ? "Starting…" : kws.listening ? "Listening" : "Listen"}
           </span>
         </button>
 

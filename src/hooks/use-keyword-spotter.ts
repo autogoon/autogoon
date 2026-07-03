@@ -36,10 +36,11 @@ export function useKeywordSpotter(
   commandWords: string[] = [],
   onDetect?: (word: string) => void,
 ) {
-  const [status, setStatus] = useState("Loading model…");
-  const [statusIsError, setStatusIsError] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [listening, setListening] = useState(false);
+  // True from the moment we start connecting to the mic until we're listening
+  // (or the attempt fails), so the UI can disable the toggle meanwhile.
+  const [starting, setStarting] = useState(false);
   const [flashing, setFlashing] = useState<ReadonlySet<string>>(new Set());
   const [logEntries, setLogEntries] = useState<KwsLogEntry[]>([]);
 
@@ -152,11 +153,9 @@ export function useKeywordSpotter(
         }
         modelRef.current = model;
         setModelReady(true);
-        setStatus("Model loaded — click Listen and allow the microphone");
       } catch (err) {
         if (!cancelled) {
-          setStatus(`Failed to load model: ${(err as Error).message}`);
-          setStatusIsError(true);
+          console.error("Failed to load KWS model:", err);
         }
       }
     })();
@@ -202,28 +201,34 @@ export function useKeywordSpotter(
   }, [commandWords, createRecognizer]);
 
   const start = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1 },
-    });
-    mediaStreamRef.current = stream;
-    const audioContext = new AudioContext();
-    audioContextRef.current = audioContext;
-    createRecognizer();
+    setStarting(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1 },
+      });
+      mediaStreamRef.current = stream;
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      // Created without a user gesture (auto-start on load), the context can
+      // come up suspended; resume it so audio actually flows.
+      void audioContext.resume();
+      createRecognizer();
 
-    const source = audioContext.createMediaStreamSource(stream);
-    const processor = audioContext.createScriptProcessor(4096, 1, 1);
-    processor.onaudioprocess = (e) => {
-      if (recognizerRef.current !== null && listeningRef.current) {
-        recognizerRef.current.acceptWaveform(e.inputBuffer);
-      }
-    };
-    source.connect(processor);
-    processor.connect(audioContext.destination);
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processor.onaudioprocess = (e) => {
+        if (recognizerRef.current !== null && listeningRef.current) {
+          recognizerRef.current.acceptWaveform(e.inputBuffer);
+        }
+      };
+      source.connect(processor);
+      processor.connect(audioContext.destination);
 
-    listeningRef.current = true;
-    setListening(true);
-    setStatus("Listening — say a word");
-    setStatusIsError(false);
+      listeningRef.current = true;
+      setListening(true);
+    } finally {
+      setStarting(false);
+    }
   }, [createRecognizer]);
 
   const stop = useCallback(() => {
@@ -233,7 +238,6 @@ export function useKeywordSpotter(
     mediaStreamRef.current = null;
     audioContextRef.current = null;
     setListening(false);
-    setStatus("Stopped — click Listen to resume");
   }, []);
 
   const toggleListening = useCallback(() => {
@@ -241,17 +245,27 @@ export function useKeywordSpotter(
       stop();
     } else {
       start().catch((err: Error) => {
-        setStatus(`Microphone error: ${err.message}`);
-        setStatusIsError(true);
+        console.error("Microphone error:", err);
       });
     }
   }, [listening, start, stop]);
 
+  // Start listening as soon as the model is ready, so the app is live on load
+  // without a click. Guarded so it fires only once — a manual stop stays
+  // stopped.
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (!modelReady || autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    start().catch((err: Error) => {
+      console.error("Microphone error:", err);
+    });
+  }, [modelReady, start]);
+
   return {
-    status,
-    statusIsError,
     modelReady,
     listening,
+    starting,
     toggleListening,
     // Exactly the words in vosk's current grammar — the source of truth for
     // what the app is listening for.
