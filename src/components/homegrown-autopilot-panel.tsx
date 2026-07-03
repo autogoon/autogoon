@@ -13,6 +13,7 @@ import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
+import { Slider } from "@/components/slider";
 import { StrokeCard } from "@/components/stroke-card";
 
 export function HomegrownAutopilotPanel({
@@ -54,10 +55,20 @@ export function HomegrownAutopilotPanel({
         onFinish={() => {}}
       />
 
-      <Card title="Homegrown">
-        <p className="text-muted-foreground text-sm">
-          A new algorithm, under construction. For now it just holds the speed
-          at 10.
+      <Card title="Speed">
+        <div className="text-muted-foreground flex justify-between text-sm">
+          <span>Scale</span>
+          <span className="tabular-nums">{homegrown.speedPercent}%</span>
+        </div>
+        <Slider
+          value={homegrown.speedPercent}
+          min={0}
+          max={100}
+          step={10}
+          onChange={homegrown.changeSpeedPercent}
+        />
+        <p className="text-muted-foreground mt-2 text-sm">
+          Say <code>slower</code> / <code>faster</code> to step down or up.
         </p>
       </Card>
 

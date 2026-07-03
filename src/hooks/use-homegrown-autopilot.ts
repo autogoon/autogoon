@@ -16,9 +16,12 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
+  // The Speed slider: raw script speeds are scaled by this percentage before
+  // being sent to the device.
+  const [speedPercent, setSpeedPercent] = useState(10);
 
   const engineRef = useRef<HomegrownAutopilot | null>(null);
-  engineRef.current ??= new HomegrownAutopilot({ getDevice });
+  engineRef.current ??= new HomegrownAutopilot({ getDevice, speedPercent });
   const engine = engineRef.current;
 
   useEffect(() => {
@@ -50,11 +53,30 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   const start = useCallback(() => engine.start(), [engine]);
   const stop = useCallback(() => engine.pause(), [engine]);
 
-  // Stroke's up/down come from the shared useStrokeControls; no other
-  // algorithm-specific words yet.
+  const changeSpeedPercent = useCallback(
+    (percent: number) => {
+      setSpeedPercent(percent);
+      engine.setSpeedPercent(percent);
+    },
+    [engine],
+  );
+
+  // Step the Speed slider by delta percentage points, clamped to 0-100.
+  const stepSpeedPercent = useCallback(
+    (delta: number) => {
+      changeSpeedPercent(Math.max(0, Math.min(100, speedPercent + delta)));
+    },
+    [speedPercent, changeSpeedPercent],
+  );
+
+  // Stroke's up/down come from the shared useStrokeControls.
   const keywords = useMemo<KeywordAction[]>(
-    () => [...stroke.keywords],
-    [stroke.keywords],
+    () => [
+      ...stroke.keywords,
+      { word: "faster", run: () => stepSpeedPercent(10) },
+      { word: "slower", run: () => stepSpeedPercent(-10) },
+    ],
+    [stroke.keywords, stepSpeedPercent],
   );
 
   return {
@@ -62,6 +84,8 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
     currentSpeed,
     start,
     stop,
+    speedPercent,
+    changeSpeedPercent,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };
