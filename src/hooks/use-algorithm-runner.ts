@@ -32,15 +32,9 @@ export interface Algorithm {
   keywords: KeywordAction[];
 }
 
-// Words every algorithm responds to, owned here rather than by any one
-// algorithm: the dispatcher routes them through the runner (start/stop), and
-// the panels show them alongside each algorithm's own words.
+// App-level words the runner handles itself (rather than any one algorithm):
+// start/stop. They're part of the KWS grammar but aren't shown per-panel.
 export const UNIVERSAL_KEYWORDS = ["start", "stop"];
-
-// Every word an algorithm responds to: the universal ones plus its own.
-export function supportedWords(keywords: KeywordAction[]): string[] {
-  return [...UNIVERSAL_KEYWORDS, ...keywords.map((k) => k.word)];
-}
 
 export function useAlgorithmRunner(
   vacuglide: VacuglideController,

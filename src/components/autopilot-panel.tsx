@@ -11,7 +11,6 @@ import { HoldButton } from "@/components/hold-button";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
 import { VoiceCommands } from "@/components/voice-commands";
-import { supportedWords } from "@/hooks/use-algorithm-runner";
 import type { AutopilotController } from "@/hooks/use-autopilot";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
@@ -54,7 +53,7 @@ export function AutopilotPanel({
   onStart: () => void;
   onStop: () => void;
 }) {
-  const words = supportedWords(autopilot.keywords);
+  const words = autopilot.keywords.map((k) => k.word);
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
     [vacuglide],

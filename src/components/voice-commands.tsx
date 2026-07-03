@@ -6,6 +6,7 @@
 import { Card } from "@/components/card";
 
 export function VoiceCommands({ words }: { words: string[] }) {
+  if (words.length === 0) return null;
   return (
     <Card title="Voice commands">
       <div className="flex flex-wrap gap-2">
