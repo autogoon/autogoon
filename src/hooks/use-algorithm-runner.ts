@@ -33,8 +33,9 @@ export interface Algorithm {
 }
 
 // App-level words the runner handles itself (rather than any one algorithm):
-// start/stop. They're part of the KWS grammar but aren't shown per-panel.
-export const UNIVERSAL_KEYWORDS = ["start", "stop"];
+// device connect and start/stop. They're part of the KWS grammar but aren't
+// shown per-panel.
+export const UNIVERSAL_KEYWORDS = ["connect", "start", "stop"];
 
 export function useAlgorithmRunner(
   vacuglide: VacuglideController,
@@ -83,18 +84,34 @@ export function useAlgorithmRunner(
 
   // Latest values reachable from handleWord, which the KWS recognizer may call
   // at any time. Kept in a ref so handleWord itself stays stable.
-  const dispatchRef = useRef({ algorithms, run, stop, log: vacuglide.log });
-  dispatchRef.current = { algorithms, run, stop, log: vacuglide.log };
+  const dispatchRef = useRef({
+    algorithms,
+    run,
+    stop,
+    connect: vacuglide.connect,
+    log: vacuglide.log,
+  });
+  dispatchRef.current = {
+    algorithms,
+    run,
+    stop,
+    connect: vacuglide.connect,
+    log: vacuglide.log,
+  };
   const lastFiredRef = useRef<Map<string, number>>(new Map());
 
-  // Route a detected word. start/stop are app-level and go through the runner;
-  // any other word is handed to the running algorithm, which acts on it or
-  // ignores it.
+  // Route a detected word. connect/start/stop are app-level and go through the
+  // runner; any other word is handed to the running algorithm, which acts on it
+  // or ignores it.
   const handleWord = useCallback((word: string) => {
-    const { algorithms, run, stop, log } = dispatchRef.current;
+    const { algorithms, run, stop, connect, log } = dispatchRef.current;
 
     let action: (() => void | Promise<void>) | null = null;
-    if (word === "stop") {
+    if (word === "connect") {
+      action = () => {
+        void connect();
+      };
+    } else if (word === "stop") {
       action = stop;
     } else if (word === "start") {
       const id = currentIdRef.current;
