@@ -89,6 +89,10 @@ export function VacuglideAutopilotPanel({
           onChange={autopilot.changeIntensity}
           activeClass="bg-blue-600 text-white"
         />
+        <p className="text-muted-foreground mt-2 text-sm">
+          Say <code>less</code> / <code>more</code> to step to the previous or
+          next level.
+        </p>
       </Card>
 
       <Card title="Edge Control">

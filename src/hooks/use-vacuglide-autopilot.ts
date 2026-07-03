@@ -19,6 +19,10 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 // quick manual stroke tap.
 const STROKE_PULSE_MS = 400;
 
+// Intensity levels in segmented-bar order, so voice "more"/"less" can step to
+// the next/previous one.
+const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
+
 export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   const { getDevice, log, valvePlus, valveMinus } = vacuglide;
 
@@ -84,6 +88,19 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
     [engine, log],
   );
 
+  // Step intensity to the next/previous level in bar order, clamped at the ends.
+  const stepIntensity = useCallback(
+    (delta: number) => {
+      const idx = INTENSITY_LEVELS.indexOf(intensity);
+      const next =
+        INTENSITY_LEVELS[
+          Math.max(0, Math.min(INTENSITY_LEVELS.length - 1, idx + delta))
+        ];
+      if (next !== undefined) changeIntensity(next);
+    },
+    [intensity, changeIntensity],
+  );
+
   const changeEdge = useCallback(
     (level: EdgeControlLevel) => {
       setEdge(level);
@@ -139,10 +156,8 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "up", run: () => strokePulse("plus") },
       { word: "down", run: () => strokePulse("minus") },
       { word: "finish", run: finishMe },
-      { word: "warmup", run: () => changeIntensity("warmup") },
-      { word: "low", run: () => changeIntensity("low") },
-      { word: "medium", run: () => changeIntensity("medium") },
-      { word: "high", run: () => changeIntensity("high") },
+      { word: "more", run: () => stepIntensity(1) },
+      { word: "less", run: () => stepIntensity(-1) },
       { word: "gentle", run: () => changeEdge("gentle") },
       { word: "moderate", run: () => changeEdge("moderate") },
       { word: "intense", run: () => changeEdge("intense") },
@@ -150,7 +165,7 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "light", run: () => changeSuction("little") },
       { word: "heavy", run: () => changeSuction("more") },
     ],
-    [strokePulse, finishMe, changeIntensity, changeEdge, changeSuction],
+    [strokePulse, finishMe, stepIntensity, changeEdge, changeSuction],
   );
 
   return {
