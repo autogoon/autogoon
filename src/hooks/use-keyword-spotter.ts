@@ -57,7 +57,10 @@ function timestamp(): string {
   return new Date().toLocaleTimeString(undefined, { hour12: false });
 }
 
-export function useKeywordSpotter() {
+export function useKeywordSpotter(
+  commandWords: string[] = [],
+  onDetect?: (word: string) => void,
+) {
   const [status, setStatus] = useState("Loading model…");
   const [statusIsError, setStatusIsError] = useState(false);
   const [modelReady, setModelReady] = useState(false);
@@ -77,6 +80,31 @@ export function useKeywordSpotter() {
   const seenWordsRef = useRef<string[]>([]);
   const listeningRef = useRef(false);
   const logIdRef = useRef(0);
+  // Words the algorithms want in the grammar, plus the latest detection
+  // handler (the runner's handleWord), kept in refs so the long-lived
+  // recognizer callbacks always reach the current values.
+  const commandWordsRef = useRef<string[]>(commandWords);
+  const onDetectRef = useRef(onDetect);
+
+  useEffect(() => {
+    commandWordsRef.current = commandWords;
+  }, [commandWords]);
+
+  useEffect(() => {
+    onDetectRef.current = onDetect;
+  }, [onDetect]);
+
+  // Merge the algorithm command words into a parsed list's alias map so a
+  // detected command word resolves to itself (and therefore fires).
+  const buildAliasMap = useCallback(
+    (list: WordList): Record<string, string> => {
+      const merged: Record<string, string> = {};
+      for (const w of commandWordsRef.current) merged[w] = w;
+      Object.assign(merged, list.aliasMap);
+      return merged;
+    },
+    [],
+  );
 
   const log = useCallback((text: string, kind: KwsLogEntry["kind"]) => {
     logIdRef.current += 1;
@@ -93,6 +121,7 @@ export function useKeywordSpotter() {
     (spelling: string) => {
       const word = aliasMapRef.current[spelling];
       if (word === undefined) return;
+      onDetectRef.current?.(word);
       log(word, "hit");
       setFlashing((prev) => new Set(prev).add(word));
       setTimeout(() => {
@@ -177,8 +206,9 @@ export function useKeywordSpotter() {
     const model = modelRef.current;
     const audioContext = audioContextRef.current;
     if (model === null || audioContext === null) return;
-    aliasMapRef.current = list.aliasMap;
-    const grammar = [...Object.keys(list.aliasMap), "[unk]"];
+    const aliasMap = buildAliasMap(list);
+    aliasMapRef.current = aliasMap;
+    const grammar = [...new Set([...Object.keys(aliasMap), "[unk]"])];
 
     recognizerRef.current?.remove();
     const recognizer = new model.KaldiRecognizer(
@@ -195,7 +225,7 @@ export function useKeywordSpotter() {
     });
     recognizerRef.current = recognizer;
     seenWordsRef.current = [];
-  }, []);
+  }, [buildAliasMap]);
 
   const start = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -250,13 +280,13 @@ export function useKeywordSpotter() {
       createRecognizer(list);
       setStatus("Word list updated — listening");
     } else {
-      aliasMapRef.current = list.aliasMap;
+      aliasMapRef.current = buildAliasMap(list);
       setStatus(
         modelReady ? "Word list updated — click Listen" : "Loading model…",
       );
     }
     log(`(word list: ${wordsText})`, "final");
-  }, [createRecognizer, listening, log, modelReady, wordsText]);
+  }, [buildAliasMap, createRecognizer, listening, log, modelReady, wordsText]);
 
   return {
     status,

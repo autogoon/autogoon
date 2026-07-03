@@ -10,6 +10,8 @@ import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
+import { VoiceCommands } from "@/components/voice-commands";
+import { supportedWords } from "@/hooks/use-algorithm-runner";
 import type { AutopilotController } from "@/hooks/use-autopilot";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
@@ -52,6 +54,7 @@ export function AutopilotPanel({
   onStart: () => void;
   onStop: () => void;
 }) {
+  const words = supportedWords(autopilot.keywords);
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
     [vacuglide],
@@ -66,6 +69,8 @@ export function AutopilotPanel({
         onStop={onStop}
         className="bg-linear-to-br from-orange-500 to-pink-500"
       />
+
+      <VoiceCommands words={words} />
 
       <Card title="Manual Override">
         <div className="flex gap-3">

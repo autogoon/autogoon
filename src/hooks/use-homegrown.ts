@@ -4,8 +4,9 @@
 // engine and drives the device through the VacuglideController it is given, so
 // both algorithms share the same device layer. Still boilerplate for now.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Homegrown } from "@/lib/homegrown-engine";
+import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
 export function useHomegrown(vacuglide: VacuglideController) {
@@ -47,11 +48,15 @@ export function useHomegrown(vacuglide: VacuglideController) {
   const start = useCallback(() => engine.start(), [engine]);
   const stop = useCallback(() => engine.pause(), [engine]);
 
+  // Only start/stop for now (both universal), so no algorithm-specific words.
+  const keywords = useMemo<KeywordAction[]>(() => [], []);
+
   return {
     isPlaying,
     currentSpeed,
     start,
     stop,
+    keywords,
   };
 }
 

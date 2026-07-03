@@ -5,17 +5,22 @@
 // device API. It drives the device purely through the VacuglideController it
 // is given, so a different algorithm can reuse the same device layer.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Autopilot,
   type EdgeControlLevel,
   type IntensityLevel,
   type SuctionControlLevel,
 } from "@/lib/autopilot-engine";
+import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
+// A voice "More"/"Less" opens a valve for a beat then closes it, mimicking a
+// quick manual stroke tap.
+const STROKE_PULSE_MS = 400;
+
 export function useAutopilot(vacuglide: VacuglideController) {
-  const { getDevice, log } = vacuglide;
+  const { getDevice, log, valvePlus, valveMinus } = vacuglide;
 
   // The hook owns the algorithm's levels; the engine is seeded from these on
   // construction and kept in sync by the change handlers below.
@@ -97,6 +102,51 @@ export function useAutopilot(vacuglide: VacuglideController) {
     [engine, log],
   );
 
+  // Open a valve, then close it after a short beat — a voice-driven stroke tap.
+  const strokePulse = useCallback(
+    (valve: (state: boolean) => Promise<unknown>) => {
+      valve(true)
+        .then(() => {
+          setTimeout(() => {
+            valve(false).catch((err: Error) =>
+              log(`error: ${err.message}`, "error"),
+            );
+          }, STROKE_PULSE_MS);
+        })
+        .catch((err: Error) => log(`error: ${err.message}`, "error"));
+    },
+    [log],
+  );
+
+  // The words this algorithm understands and what each one does. start/stop are
+  // universal (handled by the dispatcher via the runner) so they're not here.
+  const keywords = useMemo<KeywordAction[]>(
+    () => [
+      { word: "more", run: () => strokePulse(valvePlus) },
+      { word: "less", run: () => strokePulse(valveMinus) },
+      { word: "finish", run: finishMe },
+      { word: "warmup", run: () => changeIntensity("warmup") },
+      { word: "low", run: () => changeIntensity("low") },
+      { word: "medium", run: () => changeIntensity("medium") },
+      { word: "high", run: () => changeIntensity("high") },
+      { word: "gentle", run: () => changeEdge("gentle") },
+      { word: "moderate", run: () => changeEdge("moderate") },
+      { word: "intense", run: () => changeEdge("intense") },
+      { word: "dry", run: () => changeSuction("off") },
+      { word: "damp", run: () => changeSuction("little") },
+      { word: "wet", run: () => changeSuction("more") },
+    ],
+    [
+      strokePulse,
+      valvePlus,
+      valveMinus,
+      finishMe,
+      changeIntensity,
+      changeEdge,
+      changeSuction,
+    ],
+  );
+
   return {
     isPlaying,
     currentSpeed,
@@ -109,6 +159,7 @@ export function useAutopilot(vacuglide: VacuglideController) {
     changeEdge,
     suction,
     changeSuction,
+    keywords,
   };
 }
 

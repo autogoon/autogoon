@@ -4,13 +4,14 @@
 // of which tab is visible) and lays out the header bar, tab bar and panels.
 // Hidden tabs stay mounted — only their visibility changes.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AutopilotPanel } from "@/components/autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomegrownPanel } from "@/components/homegrown-panel";
 import { KeywordSpotterPanel } from "@/components/keyword-spotter";
 import { SettingsPanel } from "@/components/settings-panel";
 import {
+  UNIVERSAL_KEYWORDS,
   useAlgorithmRunner,
   type Algorithm,
 } from "@/hooks/use-algorithm-runner";
@@ -29,7 +30,6 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function Home() {
-  const kws = useKeywordSpotter();
   const vacuglide = useVacuglide();
   const autopilot = useAutopilot(vacuglide);
   const homegrown = useHomegrown(vacuglide);
@@ -40,11 +40,12 @@ export default function Home() {
   const algorithms: Algorithm[] = [
     {
       id: "autopilot",
-      label: "Autopilot",
+      label: "Vacuglide",
       isPlaying: autopilot.isPlaying,
       currentSpeed: autopilot.currentSpeed,
       start: autopilot.start,
       stop: autopilot.stop,
+      keywords: autopilot.keywords,
     },
     {
       id: "homegrown",
@@ -53,9 +54,25 @@ export default function Home() {
       currentSpeed: homegrown.currentSpeed,
       start: homegrown.start,
       stop: homegrown.stop,
+      keywords: homegrown.keywords,
     },
   ];
   const runner = useAlgorithmRunner(vacuglide, algorithms);
+
+  // The union of every word any algorithm listens for, so the KWS grammar can
+  // actually recognise them. start/stop are universal.
+  const commandWords = useMemo(
+    () => [
+      ...new Set([
+        ...UNIVERSAL_KEYWORDS,
+        ...autopilot.keywords.map((k) => k.word),
+        ...homegrown.keywords.map((k) => k.word),
+      ]),
+    ],
+    [autopilot.keywords, homegrown.keywords],
+  );
+  // KWS calls the runner directly with each detected word.
+  const kws = useKeywordSpotter(commandWords, runner.handleWord);
 
   return (
     <>
