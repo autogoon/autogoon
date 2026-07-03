@@ -46,7 +46,8 @@ export function useAlgorithmRunner(
   const running = algorithms.find((algo) => algo.isPlaying) ?? null;
 
   const logError = useCallback(
-    (err: unknown) => vacuglide.log(`error: ${(err as Error).message}`, "error"),
+    (err: unknown) =>
+      vacuglide.log(`error: ${(err as Error).message}`, "error"),
     [vacuglide],
   );
 
