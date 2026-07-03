@@ -12,10 +12,6 @@ import type { KaldiRecognizer, Model } from "vosk-browser";
 
 const MODEL_URL = "/vosk-model-small-en-us-0.15.tar.gz";
 
-// Each entry is one keyword; alternate spellings joined with "/" are treated
-// as the same keyword (first spelling is the display name).
-const DEFAULT_WORDS = "slower faster valve up down stop woah/whoa";
-
 // vosk-browser's event payloads, structurally typed here to avoid reaching
 // into the package's internal type paths.
 interface PartialResultMessage {
@@ -25,32 +21,11 @@ interface ResultMessage {
   result: { text: string };
 }
 
-export interface WordList {
-  canonicals: string[];
-  aliasMap: Record<string, string>;
-}
-
 export interface KwsLogEntry {
   id: number;
   time: string;
   text: string;
   kind: "hit" | "final";
-}
-
-function parseWordList(text: string): WordList {
-  const aliasMap: Record<string, string> = {};
-  const canonicals: string[] = [];
-  for (const group of text.trim().split(/\s+/)) {
-    const spellings = group
-      .split("/")
-      .filter(Boolean)
-      .map((s) => s.toLowerCase());
-    const canonical = spellings[0];
-    if (canonical === undefined) continue;
-    canonicals.push(canonical);
-    for (const s of spellings) aliasMap[s] = canonical;
-  }
-  return { canonicals, aliasMap };
 }
 
 function timestamp(): string {
@@ -65,10 +40,6 @@ export function useKeywordSpotter(
   const [statusIsError, setStatusIsError] = useState(false);
   const [modelReady, setModelReady] = useState(false);
   const [listening, setListening] = useState(false);
-  const [wordsText, setWordsText] = useState(DEFAULT_WORDS);
-  const [wordList, setWordList] = useState<WordList>(() =>
-    parseWordList(DEFAULT_WORDS),
-  );
   const [flashing, setFlashing] = useState<ReadonlySet<string>>(new Set());
   const [logEntries, setLogEntries] = useState<KwsLogEntry[]>([]);
 
@@ -76,7 +47,7 @@ export function useKeywordSpotter(
   const recognizerRef = useRef<KaldiRecognizer | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const aliasMapRef = useRef<Record<string, string>>(wordList.aliasMap);
+  const aliasMapRef = useRef<Record<string, string>>({});
   const seenWordsRef = useRef<string[]>([]);
   const listeningRef = useRef(false);
   const logIdRef = useRef(0);
@@ -94,17 +65,13 @@ export function useKeywordSpotter(
     onDetectRef.current = onDetect;
   }, [onDetect]);
 
-  // Merge the algorithm command words into a parsed list's alias map so a
-  // detected command word resolves to itself (and therefore fires).
-  const buildAliasMap = useCallback(
-    (list: WordList): Record<string, string> => {
-      const merged: Record<string, string> = {};
-      for (const w of commandWordsRef.current) merged[w] = w;
-      Object.assign(merged, list.aliasMap);
-      return merged;
-    },
-    [],
-  );
+  // The grammar is exactly the words the algorithms publish (plus the global
+  // connect/start/stop). Each maps to itself so a detection resolves and fires.
+  const buildAliasMap = useCallback((): Record<string, string> => {
+    const map: Record<string, string> = {};
+    for (const w of commandWordsRef.current) map[w] = w;
+    return map;
+  }, []);
 
   const log = useCallback((text: string, kind: KwsLogEntry["kind"]) => {
     logIdRef.current += 1;
@@ -202,11 +169,11 @@ export function useKeywordSpotter(
     };
   }, []);
 
-  const createRecognizer = useCallback((list: WordList) => {
+  const createRecognizer = useCallback(() => {
     const model = modelRef.current;
     const audioContext = audioContextRef.current;
     if (model === null || audioContext === null) return;
-    const aliasMap = buildAliasMap(list);
+    const aliasMap = buildAliasMap();
     aliasMapRef.current = aliasMap;
     const grammar = [...new Set([...Object.keys(aliasMap), "[unk]"])];
 
@@ -227,6 +194,13 @@ export function useKeywordSpotter(
     seenWordsRef.current = [];
   }, [buildAliasMap]);
 
+  // Whenever the word set changes while listening (an algorithm started or
+  // stopped), rebuild the recognizer so vosk's grammar tracks it. commandWordsRef
+  // is updated by the effect above, which runs first as it's declared earlier.
+  useEffect(() => {
+    if (listeningRef.current) createRecognizer();
+  }, [commandWords, createRecognizer]);
+
   const start = useCallback(async () => {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1 },
@@ -234,7 +208,7 @@ export function useKeywordSpotter(
     mediaStreamRef.current = stream;
     const audioContext = new AudioContext();
     audioContextRef.current = audioContext;
-    createRecognizer(parseWordList(wordsText));
+    createRecognizer();
 
     const source = audioContext.createMediaStreamSource(stream);
     const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -250,7 +224,7 @@ export function useKeywordSpotter(
     setListening(true);
     setStatus("Listening — say a word");
     setStatusIsError(false);
-  }, [createRecognizer, wordsText]);
+  }, [createRecognizer]);
 
   const stop = useCallback(() => {
     listeningRef.current = false;
@@ -273,31 +247,15 @@ export function useKeywordSpotter(
     }
   }, [listening, start, stop]);
 
-  const applyWords = useCallback(() => {
-    const list = parseWordList(wordsText);
-    setWordList(list);
-    if (listening) {
-      createRecognizer(list);
-      setStatus("Word list updated — listening");
-    } else {
-      aliasMapRef.current = buildAliasMap(list);
-      setStatus(
-        modelReady ? "Word list updated — click Listen" : "Loading model…",
-      );
-    }
-    log(`(word list: ${wordsText})`, "final");
-  }, [buildAliasMap, createRecognizer, listening, log, modelReady, wordsText]);
-
   return {
     status,
     statusIsError,
     modelReady,
     listening,
     toggleListening,
-    wordsText,
-    setWordsText,
-    applyWords,
-    wordList,
+    // Exactly the words in vosk's current grammar — the source of truth for
+    // what the app is listening for.
+    listeningFor: commandWords,
     flashing,
     logEntries,
   };

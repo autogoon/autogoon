@@ -59,17 +59,19 @@ export default function Home() {
   ];
   const runner = useAlgorithmRunner(vacuglide, algorithms);
 
-  // The union of every word any algorithm listens for, so the KWS grammar can
-  // actually recognise them. start/stop are universal.
+  // The words the KWS grammar should recognise right now: the global
+  // connect/start/stop, plus the keywords of whichever algorithm is running
+  // (none → just the globals). This is exactly what gets handed to vosk, and
+  // the spotter echoes it back as `listeningFor` for the panel to display.
+  const running = runner.running;
   const commandWords = useMemo(
     () => [
       ...new Set([
         ...UNIVERSAL_KEYWORDS,
-        ...autopilot.keywords.map((k) => k.word),
-        ...homegrown.keywords.map((k) => k.word),
+        ...(running?.keywords ?? []).map((k) => k.word),
       ]),
     ],
-    [autopilot.keywords, homegrown.keywords],
+    [running?.keywords],
   );
   // KWS calls the runner directly with each detected word.
   const kws = useKeywordSpotter(commandWords, runner.handleWord);

@@ -15,27 +15,27 @@ export function KeywordSpotterPanel({
 }) {
   return (
     <section className="flex w-full flex-col gap-4">
-      <Card title="Word list">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={kws.wordsText}
-            onChange={(e) => kws.setWordsText(e.target.value)}
-            spellCheck={false}
-            className="bg-background text-foreground flex-1 rounded-lg border px-3 py-2"
-          />
-          <button
-            onClick={kws.applyWords}
-            className="bg-background rounded-lg border px-4 py-2"
-          >
-            Apply
-          </button>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Space-separated. Alternate spellings of one keyword can be grouped
-          with <code>/</code>, e.g. <code>woah/whoa</code>. Words must exist in
-          the model&apos;s vocabulary.
-        </p>
+      <Card title="Listening for">
+        {kws.listeningFor.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            No words yet — start an algorithm to publish its voice commands.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {kws.listeningFor.map((word) => (
+              <span
+                key={word}
+                className={`rounded-md border px-2 py-1 font-mono text-sm transition-colors ${
+                  kws.flashing.has(word)
+                    ? "border-foreground text-foreground"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {word}
+              </span>
+            ))}
+          </div>
+        )}
       </Card>
 
       <LogCard title="Log" entries={kws.logEntries} />
