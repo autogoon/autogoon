@@ -13,6 +13,7 @@ import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
+import { Segmented } from "@/components/segmented";
 import { Slider } from "@/components/slider";
 import { StrokeCard } from "@/components/stroke-card";
 
@@ -70,6 +71,20 @@ export function HomegrownAutopilotPanel({
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>slower</code> / <code>faster</code> to step down or up.
         </p>
+      </Card>
+
+      <Card title="Variability">
+        <Segmented
+          options={[
+            { value: "off", label: "Off", badge: "off" },
+            { value: "low", label: "Low", badge: "low" },
+            { value: "medium", label: "Medium", badge: "medium" },
+            { value: "high", label: "High", badge: "high" },
+          ]}
+          value={homegrown.variability}
+          onChange={homegrown.changeVariability}
+          activeClass="bg-purple-600 text-white"
+        />
       </Card>
 
       <LogCard

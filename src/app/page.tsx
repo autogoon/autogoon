@@ -10,15 +10,21 @@ import { VacuglideAutopilotPanel } from "@/components/vacuglide-autopilot-panel"
 import { HeaderBar } from "@/components/header-bar";
 import { HomegrownAutopilotPanel } from "@/components/homegrown-autopilot-panel";
 import { SettingsPanel } from "@/components/settings-panel";
-import { useAlgorithmRunner, type Algorithm } from "@/hooks/use-algorithm-runner";
+import {
+  useAlgorithmRunner,
+  type Algorithm,
+} from "@/hooks/use-algorithm-runner";
 import { useVacuglideAutopilot } from "@/hooks/use-vacuglide-autopilot";
 import { useHomegrownAutopilot } from "@/hooks/use-homegrown-autopilot";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
-import { getStoredToken, useVacuglideDevice } from "@/hooks/use-vacuglide-device";
+import {
+  getStoredToken,
+  useVacuglideDevice,
+} from "@/hooks/use-vacuglide-device";
 
 const TABS = [
-  { id: "vacuglide-autopilot", label: "Vacuglide", align: "left" },
   { id: "homegrown-autopilot", label: "Homegrown", align: "left" },
+  { id: "vacuglide-autopilot", label: "Vacuglide", align: "left" },
   { id: "settings", label: "Settings", align: "right" },
 ] as const;
 
@@ -28,7 +34,7 @@ export default function Home() {
   const vacuglide = useVacuglideDevice();
   const autopilot = useVacuglideAutopilot(vacuglide);
   const homegrown = useHomegrownAutopilot(vacuglide);
-  const [tab, setTab] = useState<TabId>("vacuglide-autopilot");
+  const [tab, setTab] = useState<TabId>("homegrown-autopilot");
 
   // With no saved token there's nothing to auto-connect to, so send the user
   // to Settings to enter one. (useVacuglideDevice auto-connects when a token exists.)
@@ -113,21 +119,21 @@ export default function Home() {
           ))}
         </nav>
         <main className="py-6">
-          <div className={tab === "vacuglide-autopilot" ? undefined : "hidden"}>
-            <VacuglideAutopilotPanel
-              vacuglide={vacuglide}
-              autopilot={autopilot}
-              kws={kws}
-              onStart={() => void runner.run("vacuglide-autopilot")}
-              onStop={runner.stop}
-            />
-          </div>
           <div className={tab === "homegrown-autopilot" ? undefined : "hidden"}>
             <HomegrownAutopilotPanel
               vacuglide={vacuglide}
               homegrown={homegrown}
               kws={kws}
               onStart={() => void runner.run("homegrown-autopilot")}
+              onStop={runner.stop}
+            />
+          </div>
+          <div className={tab === "vacuglide-autopilot" ? undefined : "hidden"}>
+            <VacuglideAutopilotPanel
+              vacuglide={vacuglide}
+              autopilot={autopilot}
+              kws={kws}
+              onStart={() => void runner.run("vacuglide-autopilot")}
               onStop={runner.stop}
             />
           </div>

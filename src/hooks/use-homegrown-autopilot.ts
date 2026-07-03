@@ -5,7 +5,10 @@
 // both algorithms share the same device layer. Still boilerplate for now.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HomegrownAutopilot } from "@/lib/homegrown-autopilot-engine";
+import {
+  HomegrownAutopilot,
+  type VariabilityLevel,
+} from "@/lib/homegrown-autopilot-engine";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -19,9 +22,15 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   // The Speed slider: raw script speeds are scaled by this percentage before
   // being sent to the device.
   const [speedPercent, setSpeedPercent] = useState(10);
+  // How randomised each ramp's timing is (see the engine for the percentages).
+  const [variability, setVariability] = useState<VariabilityLevel>("low");
 
   const engineRef = useRef<HomegrownAutopilot | null>(null);
-  engineRef.current ??= new HomegrownAutopilot({ getDevice, speedPercent });
+  engineRef.current ??= new HomegrownAutopilot({
+    getDevice,
+    speedPercent,
+    variability,
+  });
   const engine = engineRef.current;
 
   useEffect(() => {
@@ -69,14 +78,26 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
     [speedPercent, changeSpeedPercent],
   );
 
+  const changeVariability = useCallback(
+    (level: VariabilityLevel) => {
+      setVariability(level);
+      engine.setVariability(level);
+    },
+    [engine],
+  );
+
   // Stroke's up/down come from the shared useStrokeControls.
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
       { word: "faster", run: () => stepSpeedPercent(10) },
       { word: "slower", run: () => stepSpeedPercent(-10) },
+      { word: "off", run: () => changeVariability("off") },
+      { word: "low", run: () => changeVariability("low") },
+      { word: "medium", run: () => changeVariability("medium") },
+      { word: "high", run: () => changeVariability("high") },
     ],
-    [stroke.keywords, stepSpeedPercent],
+    [stroke.keywords, stepSpeedPercent, changeVariability],
   );
 
   return {
@@ -86,6 +107,8 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
     stop,
     speedPercent,
     changeSpeedPercent,
+    variability,
+    changeVariability,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };
