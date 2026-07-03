@@ -8,10 +8,11 @@
 import { useCallback } from "react";
 import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";
+import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
-import { VoiceCommands } from "@/components/voice-commands";
 import type { AutopilotController } from "@/hooks/use-autopilot";
+import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 
 function Segmented<T extends string>({
@@ -45,15 +46,16 @@ function Segmented<T extends string>({
 export function AutopilotPanel({
   vacuglide,
   autopilot,
+  kws,
   onStart,
   onStop,
 }: {
   vacuglide: VacuglideController;
   autopilot: AutopilotController;
+  kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
 }) {
-  const words = autopilot.keywords.map((k) => k.word);
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
     [vacuglide],
@@ -61,6 +63,8 @@ export function AutopilotPanel({
 
   return (
     <section className="flex w-full flex-col gap-4">
+      <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
+
       <RunButton
         running={autopilot.isPlaying}
         connected={vacuglide.connected}
@@ -68,8 +72,6 @@ export function AutopilotPanel({
         onStop={onStop}
         className="bg-linear-to-br from-orange-500 to-pink-500"
       />
-
-      <VoiceCommands words={words} />
 
       <Card title="Manual Override">
         <div className="flex gap-3">

@@ -15,7 +15,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`bg-card space-y-2 rounded-xl border p-5${
+      className={`bg-card space-y-2 rounded-xl border px-4 py-2 ${
         className !== undefined ? ` ${className}` : ""
       }`}
     >

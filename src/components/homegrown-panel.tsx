@@ -5,27 +5,30 @@
 // hidden behind another tab. Mostly boilerplate for now.
 
 import type { HomegrownController } from "@/hooks/use-homegrown";
+import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideController } from "@/hooks/use-vacuglide";
 import { Card } from "@/components/card";
+import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
-import { VoiceCommands } from "@/components/voice-commands";
 
 export function HomegrownPanel({
   vacuglide,
   homegrown,
+  kws,
   onStart,
   onStop,
 }: {
   vacuglide: VacuglideController;
   homegrown: HomegrownController;
+  kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
 }) {
-  const words = homegrown.keywords.map((k) => k.word);
-
   return (
     <section className="flex w-full flex-col gap-4">
+      <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
+
       <RunButton
         running={homegrown.isPlaying}
         connected={vacuglide.connected}
@@ -33,8 +36,6 @@ export function HomegrownPanel({
         onStop={onStop}
         className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
-
-      <VoiceCommands words={words} />
 
       <Card title="Homegrown">
         <p className="text-muted-foreground text-sm">

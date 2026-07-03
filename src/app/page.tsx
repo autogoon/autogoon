@@ -110,6 +110,7 @@ export default function Home() {
             <AutopilotPanel
               vacuglide={vacuglide}
               autopilot={autopilot}
+              kws={kws}
               onStart={() => void runner.run("autopilot")}
               onStop={runner.stop}
             />
@@ -118,6 +119,7 @@ export default function Home() {
             <HomegrownPanel
               vacuglide={vacuglide}
               homegrown={homegrown}
+              kws={kws}
               onStart={() => void runner.run("homegrown")}
               onStop={runner.stop}
             />
