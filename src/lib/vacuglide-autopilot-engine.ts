@@ -1,6 +1,14 @@
 // Vacuglide Autopilot engine — a faithful port of the algorithm in the original
 // fun.autoblow.com/vacuglide/autopilot client bundle, including its pattern
 // templates and constants. See README.md for a full description.
+//
+// currentTime and mysteryScript are a permanent record of the whole play
+// session (for a future timeline visualisation) — neither is reset to zero
+// except by a fresh start(). When we run out of generated future (normal
+// looping) we append another 10-template block continuing the same clock.
+// finishMe() instead cuts off whatever hasn't been sent yet — keeping every
+// waypoint already realised as real history — and appends its own waypoints
+// starting at the next tick.
 
 import type { VacuglideDevice } from "@/lib/vacuglide-device";
 
@@ -208,9 +216,12 @@ export class VacuglideAutopilot {
     return d;
   }
 
-  private generateMysteryScript(): void {
-    this.mysteryScript = [{ speed: 10, at: 0 }];
-    let at = 0;
+  // A block of 10 random templates (the "mystery script"), continuing from
+  // `startAt` rather than always restarting at 0 — so it can either seed a
+  // fresh session (startAt: 0) or extend the existing timeline forward.
+  private buildMysteryScript(startAt: number): ScriptWaypoint[] {
+    const script: ScriptWaypoint[] = [{ speed: 10, at: startAt }];
+    let at = startAt;
     for (let i = 0; i < 10; i++) {
       const template =
         PATTERN_TEMPLATES[Math.floor(Math.random() * PATTERN_TEMPLATES.length)];
@@ -219,9 +230,10 @@ export class VacuglideAutopilot {
         const speed = this.scaleSpeedToIntensity(step.speed);
         const duration = this.scaleDurationToEdge(step.speed, step.duration);
         at += duration;
-        this.mysteryScript.push({ speed, at });
+        script.push({ speed, at });
       }
     }
+    return script;
   }
 
   private scaleSpeedToIntensity(speed: number): number {
@@ -239,11 +251,19 @@ export class VacuglideAutopilot {
     return duration;
   }
 
+  // Cut off whatever hasn't been sent yet (the future) while keeping
+  // everything already sent as real history, then append `waypoints` starting
+  // at the next tick.
+  private spliceFromNow(build: (startAt: number) => ScriptWaypoint[]): void {
+    this.mysteryScript = this.mysteryScript.slice(0, this.currentScriptIndex);
+    this.mysteryScript.push(...build(this.currentTime + TICK_MS));
+  }
+
   private resetScript(): void {
     this.currentScriptIndex = 0;
     this.currentTime = 0;
     this.lastSentIndex = 0;
-    this.generateMysteryScript();
+    this.mysteryScript = this.buildMysteryScript(0);
   }
 
   setIntensity(level: IntensityLevel): void {
@@ -271,10 +291,6 @@ export class VacuglideAutopilot {
   async start(): Promise<void> {
     this.resetScript();
     this.isPlaying = true;
-    const waypoint = this.mysteryScript[this.lastSentIndex];
-    if (waypoint !== undefined) {
-      await this.device().targetSpeedSet(waypoint.speed);
-    }
     this.scheduleNextTick();
     this.notifyListeners();
   }
@@ -297,8 +313,12 @@ export class VacuglideAutopilot {
   private async timerLoop(): Promise<void> {
     if (!this.isPlaying) return;
     if (this.currentScriptIndex >= this.mysteryScript.length) {
-      this.currentScriptIndex = 0;
-      this.currentTime = 0;
+      // Ran out of generated future — extend the timeline with another
+      // 10-template block, continuing (never resetting) the clock.
+      const last = this.mysteryScript[this.mysteryScript.length - 1];
+      this.mysteryScript.push(
+        ...this.buildMysteryScript(last?.at ?? this.currentTime),
+      );
     }
     const waypoint = this.mysteryScript[this.currentScriptIndex];
     if (waypoint !== undefined && this.currentTime >= waypoint.at) {
@@ -357,31 +377,26 @@ export class VacuglideAutopilot {
 
   async stop(): Promise<void> {
     await this.pause();
-    this.currentScriptIndex = 0;
-    this.currentTime = 0;
-    this.lastSentIndex = 0;
     this.lastSuctionTime = 0;
     this.notifyListeners();
   }
 
   // Unlike stop, finish keeps playing — it should read as a crescendo, not an
-  // abrupt halt. Replace the script with a compact loop of its own: ramp to
-  // full speed almost immediately, then hold there for half an hour before the
-  // existing loop-to-start logic below wraps around and sends it again — a
-  // single near-instant blip down to 0 every 30 minutes rather than new state
-  // to suppress the wraparound. Also push the other knobs to their most
-  // intense settings: full intensity, vacuum off, and edge control "moderate"
-  // — the one level whose plateau/cooldown multipliers are both 1, so it
-  // doesn't retroactively scale any timing.
+  // abrupt halt. Cut off whatever hasn't been sent yet (keeping everything
+  // already sent as real history) and splice in: ramp to full speed at the
+  // next tick, then hold there for half an hour before the existing
+  // loop-to-start logic wraps around and sends it again — a single
+  // near-instant blip down to 0 every 30 minutes rather than new state to
+  // suppress the wraparound. Also push the other knobs to their most intense
+  // settings: full intensity, vacuum off, and edge control "moderate" — the
+  // one level whose plateau/cooldown multipliers are both 1, so it doesn't
+  // retroactively scale any timing already baked into the script.
   async finishMe(): Promise<void> {
     const dev = this.device();
-    this.mysteryScript = [
-      { speed: SPEED_MAX, at: TICK_MS },
-      { speed: 0, at: 1_800_000 },
-    ];
-    this.currentScriptIndex = 0;
-    this.currentTime = 0;
-    this.lastSentIndex = 0;
+    this.spliceFromNow((startAt) => [
+      { speed: SPEED_MAX, at: startAt },
+      { speed: 0, at: startAt + 1_800_000 },
+    ]);
     this.intensityLevel = "high";
     this.edgeControlLevel = "moderate";
     this.setSuctionControl("off");
