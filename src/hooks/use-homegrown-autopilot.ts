@@ -10,13 +10,13 @@ import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
-  const { getDevice, log } = vacuglide;
+  const { getDevice } = vacuglide;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
 
   const engineRef = useRef<HomegrownAutopilot | null>(null);
-  engineRef.current ??= new HomegrownAutopilot({ getDevice, log });
+  engineRef.current ??= new HomegrownAutopilot({ getDevice });
   const engine = engineRef.current;
 
   useEffect(() => {

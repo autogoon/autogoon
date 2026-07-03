@@ -4,17 +4,14 @@
 // For now the "algorithm" just holds a constant speed of 10; the start/pause/
 // subscribe scaffolding is here so it can grow.
 
-import type { VacuglideDevice } from "@/lib/vacuglide";
-import type { LogKind } from "@/hooks/use-vacuglide-device";
+import type { VacuglideDevice } from "@/lib/vacuglide-device";
 
 export interface HomegrownAutopilotOptions {
   getDevice: () => VacuglideDevice | null;
-  log: (text: string, kind?: LogKind) => void;
 }
 
 export class HomegrownAutopilot {
   private readonly getDevice: () => VacuglideDevice | null;
-  private readonly log: (text: string, kind?: LogKind) => void;
 
   isPlaying = false;
   currentSpeed = 0;
@@ -23,7 +20,6 @@ export class HomegrownAutopilot {
 
   constructor(opts: HomegrownAutopilotOptions) {
     this.getDevice = opts.getDevice;
-    this.log = opts.log;
   }
 
   subscribe(fn: () => void): () => void {
@@ -52,7 +48,6 @@ export class HomegrownAutopilot {
     this.isPlaying = true;
     this.currentSpeed = 10;
     this.notify();
-    this.log("speed → 10", "send");
     await this.device().targetSpeedSet(10);
   }
 

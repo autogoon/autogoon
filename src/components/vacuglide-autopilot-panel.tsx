@@ -11,6 +11,7 @@ import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
+import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
 import { Segmented } from "@/components/segmented";
 import type { VacuglideAutopilotController } from "@/hooks/use-vacuglide-autopilot";
@@ -51,6 +52,7 @@ export function VacuglideAutopilotPanel({
         <div className="flex gap-3">
           <HoldButton
             label="Stroke −"
+            badge="down"
             disabled={!autopilot.isPlaying}
             onValve={vacuglide.valveMinus}
             onError={logError}
@@ -58,6 +60,7 @@ export function VacuglideAutopilotPanel({
           />
           <HoldButton
             label="Stroke +"
+            badge="up"
             disabled={!autopilot.isPlaying}
             onValve={vacuglide.valvePlus}
             onError={logError}
@@ -114,7 +117,11 @@ export function VacuglideAutopilotPanel({
         />
       </Card>
 
-      <LogCard title="Command log" entries={vacuglide.logEntries} />
+      <LogCard
+        title="Command log"
+        header={<RateLimitMeter {...vacuglide.rateLimit} />}
+        entries={vacuglide.logEntries}
+      />
     </section>
   );
 }

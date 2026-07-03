@@ -4,7 +4,7 @@
 // entry. The algorithm panels use this for their command log (device sends,
 // voice hits and final transcripts); the entry `kind` picks the line colour.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Card } from "@/components/card";
 
 export interface LogEntry {
@@ -23,10 +23,13 @@ const KIND_CLASS: Record<string, string> = {
 export function LogCard({
   title,
   entries,
+  header,
   className,
 }: {
   title: string;
   entries: readonly LogEntry[];
+  // Optional content pinned above the scrolling log (e.g. a rate-limit meter).
+  header?: ReactNode;
   className?: string;
 }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +40,7 @@ export function LogCard({
 
   return (
     <Card title={title} className={className}>
+      {header}
       <div
         ref={boxRef}
         className="text-muted-foreground h-64 overflow-y-auto font-mono text-xs"

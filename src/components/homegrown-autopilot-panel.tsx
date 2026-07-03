@@ -10,6 +10,7 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { Card } from "@/components/card";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
+import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
 
 export function HomegrownAutopilotPanel({
@@ -44,7 +45,11 @@ export function HomegrownAutopilotPanel({
         </p>
       </Card>
 
-      <LogCard title="Command log" entries={vacuglide.logEntries} />
+      <LogCard
+        title="Command log"
+        header={<RateLimitMeter {...vacuglide.rateLimit} />}
+        entries={vacuglide.logEntries}
+      />
     </section>
   );
 }

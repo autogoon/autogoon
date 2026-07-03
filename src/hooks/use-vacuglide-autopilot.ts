@@ -15,7 +15,7 @@ import {
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-// A voice "More"/"Less" opens a valve for a beat then closes it, mimicking a
+// A voice "Up"/"Down" opens a valve for a beat then closes it, mimicking a
 // quick manual stroke tap.
 const STROKE_PULSE_MS = 400;
 
@@ -136,8 +136,8 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   // universal (handled by the dispatcher via the runner) so they're not here.
   const keywords = useMemo<KeywordAction[]>(
     () => [
-      { word: "more", run: () => strokePulse("plus") },
-      { word: "less", run: () => strokePulse("minus") },
+      { word: "up", run: () => strokePulse("plus") },
+      { word: "down", run: () => strokePulse("minus") },
       { word: "finish", run: finishMe },
       { word: "warmup", run: () => changeIntensity("warmup") },
       { word: "low", run: () => changeIntensity("low") },

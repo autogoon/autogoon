@@ -6,7 +6,11 @@
 // https://developers.autoblow.com/reference/http-api-v1-vacuglide/
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { VacuglideDevice } from "@/lib/vacuglide";
+import {
+  RATE_LIMIT,
+  VacuglideDevice,
+  type RateLimitStatus,
+} from "@/lib/vacuglide-device";
 
 const TOKEN_STORAGE_KEY = "vacuglideToken";
 
@@ -45,9 +49,27 @@ export function useVacuglideDevice() {
   const [strokeMinusValve, setStrokeMinusValve] = useState(false);
   const [operationalMode, setOperationalMode] = useState("");
   const [logEntries, setLogEntries] = useState<CommandLogEntry[]>([]);
+  const [rateLimit, setRateLimit] = useState<RateLimitStatus>({
+    used: 0,
+    remaining: RATE_LIMIT,
+    limit: RATE_LIMIT,
+  });
 
   const deviceRef = useRef<VacuglideDevice | null>(null);
   const logIdRef = useRef(0);
+
+  // The rate-limit window slides with time (old requests age out), so poll the
+  // device once a second rather than only on new requests. Skip the state
+  // update when nothing changed to avoid a re-render every tick while idle.
+  useEffect(() => {
+    const tick = () => {
+      const status = deviceRef.current?.rateLimitStatus();
+      if (status === undefined) return;
+      setRateLimit((prev) => (prev.used === status.used ? prev : status));
+    };
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const log = useCallback((text: string, kind: LogKind = "info") => {
     logIdRef.current += 1;
@@ -76,7 +98,7 @@ export function useVacuglideDevice() {
       setDeviceStatus("Connecting…");
       setDeviceStatusKind("idle");
       try {
-        const device = new VacuglideDevice(trimmed);
+        const device = new VacuglideDevice(trimmed, log);
         const info = await device.connect();
         device.onState((state) => {
           setDeviceSpeed(state.targetSpeed);
@@ -134,29 +156,22 @@ export function useVacuglideDevice() {
     }
   }, [connectWithToken]);
 
-  const valvePlus = useCallback(
-    (state: boolean): Promise<unknown> => {
-      const device = deviceRef.current;
-      if (device === null) {
-        return Promise.reject(new Error("No device connected"));
-      }
-      log(`stroke+ valve ${state ? "open" : "close"}`, "send");
-      return device.valveStrokePlusSet(state);
-    },
-    [log],
-  );
+  // The device logs its own commands, so these just forward the call.
+  const valvePlus = useCallback((state: boolean): Promise<unknown> => {
+    const device = deviceRef.current;
+    if (device === null) {
+      return Promise.reject(new Error("No device connected"));
+    }
+    return device.valveStrokePlusSet(state);
+  }, []);
 
-  const valveMinus = useCallback(
-    (state: boolean): Promise<unknown> => {
-      const device = deviceRef.current;
-      if (device === null) {
-        return Promise.reject(new Error("No device connected"));
-      }
-      log(`stroke- valve ${state ? "open" : "close"}`, "send");
-      return device.valveStrokeMinusSet(state);
-    },
-    [log],
-  );
+  const valveMinus = useCallback((state: boolean): Promise<unknown> => {
+    const device = deviceRef.current;
+    if (device === null) {
+      return Promise.reject(new Error("No device connected"));
+    }
+    return device.valveStrokeMinusSet(state);
+  }, []);
 
   return {
     token,
@@ -175,6 +190,7 @@ export function useVacuglideDevice() {
     valveMinus,
     log,
     logEntries,
+    rateLimit,
   };
 }
 

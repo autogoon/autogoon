@@ -2,7 +2,7 @@
 // fun.autoblow.com/vacuglide/autopilot client bundle, including its pattern
 // templates and constants. See README.md for a full description.
 
-import type { VacuglideDevice } from "@/lib/vacuglide";
+import type { VacuglideDevice } from "@/lib/vacuglide-device";
 
 export type IntensityLevel = "warmup" | "low" | "medium" | "high";
 export type EdgeControlLevel = "gentle" | "moderate" | "intense";
@@ -274,7 +274,6 @@ export class VacuglideAutopilot {
     const waypoint = this.mysteryScript[this.lastSentIndex];
     if (waypoint !== undefined) {
       await this.device().targetSpeedSet(waypoint.speed);
-      this.log(`speed → ${waypoint.speed}`, "send");
     }
     this.scheduleNextTick();
     this.notifyListeners();
@@ -300,7 +299,6 @@ export class VacuglideAutopilot {
     if (this.currentScriptIndex >= this.mysteryScript.length) {
       this.currentScriptIndex = 0;
       this.currentTime = 0;
-      this.log("script ended, looping", "info");
     }
     const waypoint = this.mysteryScript[this.currentScriptIndex];
     if (waypoint !== undefined && this.currentTime >= waypoint.at) {
@@ -314,7 +312,6 @@ export class VacuglideAutopilot {
         speed -= Math.round(excess * 0.5);
       }
       await this.device().targetSpeedSet(speed);
-      this.log(`speed → ${speed}`, "send");
       this.lastSentIndex = this.currentScriptIndex;
       this.currentScriptIndex++;
       void this.handleSuctionControl(speed);
@@ -332,7 +329,6 @@ export class VacuglideAutopilot {
     );
     const dev = this.device();
     await dev.valveStrokeMinusSet(true);
-    this.log(`suction pulse ${pulseMs}ms`, "send");
     this.suctionTimer = setTimeout(() => {
       dev.valveStrokeMinusSet(false).catch((err: Error) => {
         this.log(`failed to close suction valve: ${err.message}`, "error");
@@ -356,7 +352,6 @@ export class VacuglideAutopilot {
     this.isPlaying = false;
     this.clearTimers();
     await this.device().targetSpeedStop();
-    this.log("speed stop", "send");
     this.notifyListeners();
   }
 
@@ -376,7 +371,6 @@ export class VacuglideAutopilot {
     await dev.valveStrokePlusSet(false);
     await dev.valveStrokeMinusSet(false);
     await dev.targetSpeedSet(SPEED_MAX);
-    this.log(`finish me: valves closed, speed → ${SPEED_MAX}`, "send");
     this.notifyListeners();
   }
 
