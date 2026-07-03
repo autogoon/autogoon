@@ -5,6 +5,7 @@
 // a quick tap, mirroring the original's useMinPressDuration hook.
 
 import { useCallback, useRef, useState } from "react";
+import { Button } from "@/components/button";
 
 const MIN_PRESS_MS = 300;
 
@@ -69,7 +70,7 @@ export function HoldButton({
   );
 
   return (
-    <button
+    <Button
       disabled={disabled}
       onPointerDown={press}
       onPointerUp={release}
@@ -82,6 +83,6 @@ export function HoldButton({
       }`}
     >
       {label}
-    </button>
+    </Button>
   );
 }

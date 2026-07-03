@@ -5,6 +5,7 @@
 // Hidden tabs stay mounted — only their visibility changes.
 
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/button";
 import { VacuglideAutopilotPanel } from "@/components/vacuglide-autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomegrownAutopilotPanel } from "@/components/homegrown-autopilot-panel";
@@ -96,7 +97,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-2xl px-4">
         <nav className="flex gap-6 border-b">
           {TABS.map((t) => (
-            <button
+            <Button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`-mb-px border-b-2 py-3 text-sm font-medium ${
@@ -108,7 +109,7 @@ export default function Home() {
               }`}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </nav>
         <main className="py-6">

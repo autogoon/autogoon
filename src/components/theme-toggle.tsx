@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun } from "lucide-react";
+import { Button } from "@/components/button";
 
 const OPTIONS = [
   { value: "light", icon: Sun },
@@ -23,7 +24,7 @@ export function ThemeToggle() {
   return (
     <div className="bg-card flex items-center gap-1 rounded-lg border p-1">
       {OPTIONS.map(({ value, icon: Icon }) => (
-        <button
+        <Button
           key={value}
           aria-label={`Use ${value} theme`}
           onClick={() => setTheme(value)}
@@ -34,7 +35,7 @@ export function ThemeToggle() {
           }`}
         >
           <Icon className="size-4" />
-        </button>
+        </Button>
       ))}
     </div>
   );

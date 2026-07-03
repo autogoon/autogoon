@@ -1,47 +1,21 @@
 "use client";
 
-// Vacuglide VacuglideAutopilot panel — presentation only. Device commands come from the
+// Vacuglide Autopilot panel — presentation only. Device commands come from the
 // VacuglideDeviceController; the algorithm knobs come from the VacuglideAutopilotController.
 // Both live at the top of the tree so autopilot keeps running while this panel
 // is hidden behind another tab.
 
 import { useCallback } from "react";
+import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RunButton } from "@/components/run-button";
+import { Segmented } from "@/components/segmented";
 import type { VacuglideAutopilotController } from "@/hooks/use-vacuglide-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-
-function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  activeClass,
-}: {
-  options: ReadonlyArray<{ value: T; label: string }>;
-  value: T;
-  onChange: (value: T) => void;
-  activeClass: string;
-}) {
-  return (
-    <div className="flex overflow-hidden rounded-lg border">
-      {options.map((opt, i) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 py-3 ${i > 0 ? "border-l" : ""} ${
-            value === opt.value ? activeClass : "text-muted-foreground"
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function VacuglideAutopilotPanel({
   vacuglide,
@@ -89,13 +63,14 @@ export function VacuglideAutopilotPanel({
             onError={logError}
             forcedActive={autopilot.strokePulsing === "plus"}
           />
-          <button
+          <Button
             onClick={autopilot.finishMe}
             disabled={!autopilot.isPlaying}
             className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
+            badge="finish"
           >
-            🔥 Finish ME!! 🔥
-          </button>
+            Finish
+          </Button>
         </div>
       </Card>
 

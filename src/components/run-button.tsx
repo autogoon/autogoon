@@ -4,6 +4,8 @@
 // algorithm (stopping any other that's running); while running it becomes a
 // Stop button. The device must be connected first (from the header).
 
+import { Button } from "@/components/button";
+
 export function RunButton({
   running,
   connected,
@@ -18,15 +20,16 @@ export function RunButton({
   className?: string;
 }) {
   return (
-    <button
+    <Button
       onClick={running ? onStop : onStart}
       disabled={!running && !connected}
       title={!running && !connected ? "Connect the device first" : undefined}
       className={`w-full rounded-lg py-3.5 text-lg font-bold text-white disabled:opacity-40 ${
         running ? "bg-red-600" : (className ?? "bg-blue-600")
       }`}
+      badge={running ? "stop" : "start"}
     >
       {running ? "Stop" : "Start"}
-    </button>
+    </Button>
   );
 }

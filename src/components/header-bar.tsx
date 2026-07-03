@@ -1,6 +1,7 @@
 "use client";
 
 import { Gauge, Mic, MicOff, Plug, Square } from "lucide-react";
+import { Button } from "@/components/button";
 import type { Algorithm } from "@/hooks/use-algorithm-runner";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -53,7 +54,7 @@ export function HeaderBar({
           )}
         </div>
 
-        <button
+        <Button
           onClick={kws.toggleListening}
           disabled={!kws.modelReady || kws.starting}
           className={`${chipClass} ${
@@ -72,9 +73,9 @@ export function HeaderBar({
                 ? "Listening"
                 : "Listen"}
           </span>
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={() => void vacuglide.connect()}
           disabled={vacuglide.connecting || vacuglide.connected}
           title={vacuglide.deviceStatus}
@@ -90,17 +91,17 @@ export function HeaderBar({
                 ? "Connecting…"
                 : "Connect"}
           </span>
-        </button>
+        </Button>
 
         {running !== null && (
-          <button
+          <Button
             onClick={onStop}
             title={`Stop ${running.label}`}
             className={`${chipClass} border-red-500 text-red-500`}
           >
             <Square className="size-4 fill-current" />
             <span className="hidden sm:inline">Stop</span>
-          </button>
+          </Button>
         )}
       </div>
     </header>
