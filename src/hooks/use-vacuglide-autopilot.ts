@@ -146,9 +146,9 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "gentle", run: () => changeEdge("gentle") },
       { word: "moderate", run: () => changeEdge("moderate") },
       { word: "intense", run: () => changeEdge("intense") },
-      { word: "dry", run: () => changeSuction("off") },
-      { word: "damp", run: () => changeSuction("little") },
-      { word: "wet", run: () => changeSuction("more") },
+      { word: "off", run: () => changeSuction("off") },
+      { word: "light", run: () => changeSuction("little") },
+      { word: "heavy", run: () => changeSuction("more") },
     ],
     [strokePulse, finishMe, changeIntensity, changeEdge, changeSuction],
   );

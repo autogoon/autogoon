@@ -53,6 +53,7 @@ export function useVacuglideDevice() {
     used: 0,
     remaining: RATE_LIMIT,
     limit: RATE_LIMIT,
+    resetSeconds: 0,
   });
 
   const deviceRef = useRef<VacuglideDevice | null>(null);
@@ -65,7 +66,11 @@ export function useVacuglideDevice() {
     const tick = () => {
       const status = deviceRef.current?.rateLimitStatus();
       if (status === undefined) return;
-      setRateLimit((prev) => (prev.used === status.used ? prev : status));
+      setRateLimit((prev) =>
+        prev.used === status.used && prev.resetSeconds === status.resetSeconds
+          ? prev
+          : status,
+      );
     };
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);

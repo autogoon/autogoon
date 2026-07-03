@@ -3,9 +3,12 @@
 
 const LATENCY_SERVER = "https://latency.autoblowapi.com";
 
-// The API is rate limited to RATE_LIMIT requests per rolling RATE_WINDOW_MS. We
-// can't read the server's own counter (the x-ratelimit-* headers aren't exposed
-// to cross-origin JS), so we estimate it by tracking our own request times.
+// The API rate-limits with a fixed window: RATE_LIMIT requests per
+// RATE_WINDOW_MS, and the whole counter resets to 0 at once when the window
+// expires (confirmed by watching the server's own x-ratelimit-reset count down
+// while x-ratelimit-remaining ticked down by exactly 1 per request). We can't
+// read those headers ourselves (not exposed cross-origin), so we track the
+// same fixed-window shape locally.
 export const RATE_LIMIT = 160;
 const RATE_WINDOW_MS = 60_000;
 
@@ -13,6 +16,9 @@ export interface RateLimitStatus {
   used: number;
   remaining: number;
   limit: number;
+  // Seconds until the whole window resets to 0/limit. 0 when the window hasn't
+  // started (no requests yet).
+  resetSeconds: number;
 }
 
 export interface VacuglideInfo {
@@ -55,8 +61,11 @@ export class VacuglideDevice {
 
   private stateListeners: Array<(state: VacuglideState) => void> = [];
   private readonly log: CommandLog;
-  // Timestamps of recent requests, for the self-tracked rate-limit estimate.
-  private requestTimes: number[] = [];
+  // Fixed-window rate-limit tracking: when the current window started, and how
+  // many requests have counted against it. windowStart is null before the
+  // first request.
+  private windowStart: number | null = null;
+  private windowCount = 0;
 
   constructor(token: string, log: CommandLog = () => {}) {
     this.token = token;
@@ -64,18 +73,30 @@ export class VacuglideDevice {
   }
 
   private recordRequest(): void {
-    this.requestTimes.push(Date.now());
-    const cutoff = Date.now() - RATE_WINDOW_MS;
-    while (this.requestTimes.length > 0 && this.requestTimes[0]! < cutoff) {
-      this.requestTimes.shift();
+    const now = Date.now();
+    if (this.windowStart === null || now - this.windowStart >= RATE_WINDOW_MS) {
+      this.windowStart = now;
+      this.windowCount = 0;
     }
+    this.windowCount++;
   }
 
-  // How much of the rate-limit budget we've used in the trailing window.
+  // How much of the rate-limit budget we've used in the current window.
   rateLimitStatus(): RateLimitStatus {
-    const cutoff = Date.now() - RATE_WINDOW_MS;
-    const used = this.requestTimes.filter((t) => t >= cutoff).length;
-    return { used, remaining: Math.max(0, RATE_LIMIT - used), limit: RATE_LIMIT };
+    const now = Date.now();
+    const expired =
+      this.windowStart === null || now - this.windowStart >= RATE_WINDOW_MS;
+    const used = expired ? 0 : this.windowCount;
+    const resetSeconds =
+      expired || this.windowStart === null
+        ? 0
+        : Math.max(0, Math.ceil((this.windowStart + RATE_WINDOW_MS - now) / 1000));
+    return {
+      used,
+      remaining: Math.max(0, RATE_LIMIT - used),
+      limit: RATE_LIMIT,
+      resetSeconds,
+    };
   }
 
   onState(fn: (state: VacuglideState) => void): () => void {

@@ -94,9 +94,9 @@ export function VacuglideAutopilotPanel({
       <Card title="Edge Control">
         <Segmented
           options={[
-            { value: "gentle", label: "Gentle" },
-            { value: "moderate", label: "Moderate" },
-            { value: "intense", label: "Intense" },
+            { value: "gentle", label: "Gentle", badge: "gentle" },
+            { value: "moderate", label: "Moderate", badge: "moderate" },
+            { value: "intense", label: "Intense", badge: "intense" },
           ]}
           value={autopilot.edge}
           onChange={autopilot.changeEdge}
@@ -107,9 +107,9 @@ export function VacuglideAutopilotPanel({
       <Card title="Vacuum Maintenance">
         <Segmented
           options={[
-            { value: "off", label: "Off" },
-            { value: "little", label: "Low" },
-            { value: "more", label: "High" },
+            { value: "off", label: "Off", badge: "off" },
+            { value: "little", label: "Light", badge: "light" },
+            { value: "more", label: "Heavy", badge: "heavy" },
           ]}
           value={autopilot.suction}
           onChange={autopilot.changeSuction}

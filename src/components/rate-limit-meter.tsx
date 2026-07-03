@@ -6,7 +6,12 @@
 
 import type { RateLimitStatus } from "@/lib/vacuglide-device";
 
-export function RateLimitMeter({ used, remaining, limit }: RateLimitStatus) {
+export function RateLimitMeter({
+  used,
+  remaining,
+  limit,
+  resetSeconds,
+}: RateLimitStatus) {
   const frac = limit > 0 ? Math.min(1, used / limit) : 0;
   const low = remaining <= limit * 0.15;
   return (
@@ -19,7 +24,8 @@ export function RateLimitMeter({ used, remaining, limit }: RateLimitStatus) {
         />
       </div>
       <span>
-        {remaining}/{limit} left · 60s
+        {remaining}/{limit} left
+        {resetSeconds > 0 ? ` · resets in ${resetSeconds}s` : ""}
       </span>
     </div>
   );
