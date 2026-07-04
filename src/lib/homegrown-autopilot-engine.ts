@@ -176,6 +176,11 @@ export class HomegrownAutopilot {
   private currentTime = 0;
   private currentScriptIndex = 0;
   private lastSentSpeed = START_SPEED;
+  // The exact (already-scaled) value most recently sent to the device. Re-sending
+  // the speed it's already running at makes it briefly stop, so we skip the send
+  // when the new output matches this. null means "nothing sent since the last
+  // stop", so the next value always goes through.
+  private lastDeviceSpeed: number | null = null;
   // Which of the 3 LEGS we're currently progressing through (or about to
   // start, at a boundary) — the anchor a variability change resumes from.
   private currentLeg = 0;
@@ -228,6 +233,8 @@ export class HomegrownAutopilot {
     const scaled = this.scaleSpeed(this.lastSentSpeed);
     this.currentSpeed = scaled;
     this.notify();
+    if (scaled === this.lastDeviceSpeed) return;
+    this.lastDeviceSpeed = scaled;
     void this.device()
       .targetSpeedSet(scaled)
       .catch(() => undefined);
@@ -282,6 +289,7 @@ export class HomegrownAutopilot {
     this.currentScriptIndex = 0;
     this.currentTime = 0;
     this.currentLeg = 0;
+    this.lastDeviceSpeed = null;
     this.isPlaying = true;
     this.scheduleNextTick();
     this.notify();
@@ -319,7 +327,10 @@ export class HomegrownAutopilot {
     if (waypoint !== undefined && this.currentTime >= waypoint.at) {
       const output = this.outputSpeed(waypoint);
       this.currentSpeed = output;
-      await this.device().targetSpeedSet(output);
+      if (output !== this.lastDeviceSpeed) {
+        await this.device().targetSpeedSet(output);
+        this.lastDeviceSpeed = output;
+      }
       this.lastSentSpeed = waypoint.speed;
       this.currentScriptIndex++;
       if (waypoint.speed === LEGS[this.currentLeg]!.to) {
@@ -364,6 +375,7 @@ export class HomegrownAutopilot {
     this.clearTimer();
     this.clearCumTimers();
     this.currentSpeed = 0;
+    this.lastDeviceSpeed = null;
     this.notify();
     const dev = this.device();
     await dev.targetSpeedStop();
