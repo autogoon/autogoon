@@ -1,8 +1,9 @@
 "use client";
 
 // Keyword spotting via vosk-browser with a grammar constrained to a word
-// list. Detections fire from partial results (streamed while you speak)
-// rather than final results, which only arrive after ~0.5-1s of silence.
+// list. Detections fire from final results — the decoder's settled decision
+// for an utterance, which arrives after ~0.5-1s of silence — rather than the
+// partials it streams and revises while you speak.
 //
 // This hook owns all KWS state and audio plumbing so it can live at the top
 // of the component tree and keep running while the UI tabs around it change.
@@ -14,9 +15,6 @@ const MODEL_URL = "/vosk-model-small-en-us-0.15.tar.gz";
 
 // vosk-browser's event payloads, structurally typed here to avoid reaching
 // into the package's internal type paths.
-interface PartialResultMessage {
-  result: { partial: string };
-}
 interface ResultMessage {
   result: { text: string };
 }
@@ -38,7 +36,6 @@ export function useKeywordSpotter(
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const aliasMapRef = useRef<Record<string, string>>({});
-  const seenWordsRef = useRef<string[]>([]);
   const listeningRef = useRef(false);
   // Words the algorithms want in the grammar, the detection handler (the
   // runner's handleWord) and the log sink, kept in refs so the long-lived
@@ -81,42 +78,25 @@ export function useKeywordSpotter(
     }, 400);
   }, []);
 
-  const handlePartial = useCallback(
-    (partial: string) => {
-      const words = partial
+  // Fire on the decoder's settled decision for an utterance. Each word in the
+  // final text is a command detection; partials are ignored.
+  const handleFinal = useCallback(
+    (text: string) => {
+      const words = text
         .trim()
         .split(/\s+/)
         .filter((w) => w !== "" && w !== "[unk]");
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        if (word === undefined) continue;
-        if (i >= seenWordsRef.current.length) {
-          fire(word);
-        } else if (seenWordsRef.current[i] !== word && i === words.length - 1) {
-          // the decoder revised its last word; report the correction
-          fire(word);
-        }
-      }
-      seenWordsRef.current = words;
+      for (const word of words) fire(word);
+      if (text.trim() !== "") onLogRef.current?.(`(final: ${text})`);
     },
     [fire],
   );
 
-  const handleFinal = useCallback(
-    (text: string) => {
-      seenWordsRef.current = [];
-      if (text.trim() !== "") onLogRef.current?.(`(final: ${text})`);
-    },
-    [],
-  );
-
-  // Keep latest handlers reachable from the long-lived recognizer callbacks.
-  const handlePartialRef = useRef(handlePartial);
+  // Keep the latest handler reachable from the long-lived recognizer callback.
   const handleFinalRef = useRef(handleFinal);
   useEffect(() => {
-    handlePartialRef.current = handlePartial;
     handleFinalRef.current = handleFinal;
-  }, [handlePartial, handleFinal]);
+  }, [handleFinal]);
 
   // Load the model once on mount.
   useEffect(() => {
@@ -159,16 +139,10 @@ export function useKeywordSpotter(
       audioContext.sampleRate,
       JSON.stringify(grammar),
     );
-    recognizer.on("partialresult", (m) => {
-      handlePartialRef.current(
-        (m as unknown as PartialResultMessage).result.partial,
-      );
-    });
     recognizer.on("result", (m) => {
       handleFinalRef.current((m as unknown as ResultMessage).result.text);
     });
     recognizerRef.current = recognizer;
-    seenWordsRef.current = [];
   }, [buildAliasMap]);
 
   // Whenever the word set changes while listening (an algorithm started or
@@ -192,15 +166,21 @@ export function useKeywordSpotter(
       void audioContext.resume();
       createRecognizer();
 
+      await audioContext.audioWorklet.addModule("/kws-audio-worklet.js");
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processor.onaudioprocess = (e) => {
+      const capture = new AudioWorkletNode(audioContext, "kws-capture");
+      capture.port.onmessage = (e: MessageEvent<Float32Array>) => {
         if (recognizerRef.current !== null && listeningRef.current) {
-          recognizerRef.current.acceptWaveform(e.inputBuffer);
+          recognizerRef.current.acceptWaveformFloat(
+            e.data,
+            audioContext.sampleRate,
+          );
         }
       };
-      source.connect(processor);
-      processor.connect(audioContext.destination);
+      source.connect(capture);
+      // The worklet emits silence, but it must reach the destination to be
+      // pulled by the audio graph.
+      capture.connect(audioContext.destination);
 
       listeningRef.current = true;
       setListening(true);
