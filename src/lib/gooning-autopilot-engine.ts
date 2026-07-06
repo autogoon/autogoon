@@ -43,8 +43,8 @@ const PROGRAM_MS = 30 * 60_000;
 // The auto "build" — Homegrown's speedPercent — eases from BUILD_START to
 // BUILD_PEAK across the program. BUILD_EXP > 1 makes it ease-IN: a patient start
 // that accelerates toward the finish (1 would be a straight line). BUILD_START is
-// 15 (not 0) so the very start still swings up to ~15% at full intensity.
-const BUILD_START = 15;
+// 25 (not 0) so the very start still swings up to ~25% at full intensity.
+const BUILD_START = 25;
 const BUILD_PEAK = 100;
 const BUILD_EXP = 1.3;
 

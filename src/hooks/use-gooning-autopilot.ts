@@ -13,7 +13,7 @@ import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-const DEFAULT_INTENSITY = 60;
+const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
 
 export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {

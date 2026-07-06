@@ -16,11 +16,11 @@ runs 0 → 30 min (real time advances it 1:1), and each appended dip cycle sampl
 two curves at its own start position (so the ramp stays smooth and correct even
 after a jump):
 
-- **Speed** (Homegrown's `speedPercent`) — eases from **15 → 100** over the 30
+- **Speed** (Homegrown's `speedPercent`) — eases from **25 → 100** over the 30
   minutes (`BUILD_EXP` makes it ease-in: a patient start that accelerates toward
   the finish). Because the dip is raw `100 → floor` and `scaleSpeed` pulls the low
   point toward 0 the lower the speed, the early low-speed dips still swing over a
-  **wide** device range (≈15 down to ≈1 at full intensity) with **long** legs
+  **wide** device range (≈25 down to ≈3 at full intensity) with **long** legs
   (~12.5 s), rather than a narrow band near the top.
 - **Variability** — the raw dip floor rises from **50 → 100** (a deep `100 → 50`
   tease dip shrinking to no dip) and the timing jitter falls from **80% → 0**. So
@@ -33,7 +33,7 @@ engine stays standalone.
 
 ## Intensity
 
-**Intensity** (0–100, default **60**) is a flat final multiplier applied on top
+**Intensity** (0–100, default **50**) is a flat final multiplier applied on top
 of the scaled output — the build/variability shape is generated independently and
 intensity just scales what's actually sent. So on a more-sensitive day you set it
 to 50 and the whole profile tops out at 50% device speed. It applies at output
