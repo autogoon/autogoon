@@ -12,11 +12,11 @@ Each device-driving feature is split into three layers:
 
 - an **engine** — a plain-TS class that owns the device commands and a
   subscribe/notify loop (`src/lib/vacuglide-autopilot-engine.ts`,
-  `src/lib/homegrown-autopilot-engine.ts`);
+  `src/lib/homegrown-autopilot-engine.ts`, `src/lib/gooning-autopilot-engine.ts`);
 - a **hook** — a React wrapper that mirrors the engine into render state and
-  owns the UI defaults (`src/hooks/use-vacuglide-autopilot.ts`, `use-homegrown-autopilot.ts`); and
+  owns the UI defaults (`src/hooks/use-vacuglide-autopilot.ts`, `use-homegrown-autopilot.ts`, `use-gooning-autopilot.ts`); and
 - a **panel** — presentation only (`src/components/vacuglide-autopilot-panel.tsx`,
-  `homegrown-autopilot-panel.tsx`).
+  `homegrown-autopilot-panel.tsx`, `gooning-autopilot-panel.tsx`).
 
 The engine knows nothing about the UI's default settings; the hook is the
 source of truth for those and passes them in when it constructs the engine.
