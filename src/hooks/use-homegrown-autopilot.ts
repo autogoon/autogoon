@@ -105,8 +105,8 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
-      { word: "faster", run: () => stepSpeedPercent(10) },
-      { word: "slower", run: () => stepSpeedPercent(-10) },
+      { word: "faster", run: () => stepSpeedPercent(5) },
+      { word: "slower", run: () => stepSpeedPercent(-5) },
       { word: "off", run: () => changeVariability("off") },
       { word: "low", run: () => changeVariability("low") },
       { word: "medium", run: () => changeVariability("medium") },

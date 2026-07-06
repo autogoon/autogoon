@@ -74,7 +74,7 @@ export function HomegrownAutopilotPanel({
           value={homegrown.speedPercent}
           min={0}
           max={100}
-          step={10}
+          step={5}
           onChange={homegrown.changeSpeedPercent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
