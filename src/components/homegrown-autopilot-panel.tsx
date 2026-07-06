@@ -15,6 +15,7 @@ import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
 import { Segmented } from "@/components/segmented";
 import { Slider } from "@/components/slider";
+import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 
 export function HomegrownAutopilotPanel({
@@ -55,6 +56,14 @@ export function HomegrownAutopilotPanel({
         onError={logError}
         onCumming={homegrown.cumming}
       />
+
+      <Card title="Up next">
+        <Sparkline points={homegrown.upcoming} />
+        <div className="text-muted-foreground flex justify-between text-xs">
+          <span>now</span>
+          <span>+60s</span>
+        </div>
+      </Card>
 
       <Card title="Speed">
         <div className="text-muted-foreground flex justify-between text-sm">

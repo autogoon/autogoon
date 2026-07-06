@@ -413,6 +413,38 @@ export class VacuglideAutopilot {
     };
   }
 
+  // The speeds coming up over the next `windowMs`, as {t, speed} points with t
+  // in ms from now (0..windowMs). Begins with the speed currently in effect so a
+  // sparkline can step straight from the present value, and always ends at
+  // windowMs. Speeds are already the final (intensity-scaled) device values. Flat
+  // at 0 while paused. Scans only from the playback cursor, never the whole
+  // history.
+  getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
+    if (!this.isPlaying) {
+      return [
+        { t: 0, speed: 0 },
+        { t: windowMs, speed: 0 },
+      ];
+    }
+    const now = this.currentTime;
+    const end = now + windowMs;
+    let inEffect = this.mysteryScript[this.currentScriptIndex - 1]?.speed ?? 0;
+    const points: Array<{ t: number; speed: number }> = [];
+    for (let i = this.currentScriptIndex; i < this.mysteryScript.length; i++) {
+      const wp = this.mysteryScript[i]!;
+      if (wp.at > end) break;
+      if (wp.at <= now) {
+        inEffect = wp.speed;
+        continue;
+      }
+      points.push({ t: wp.at - now, speed: wp.speed });
+    }
+    const curve = [{ t: 0, speed: inEffect }, ...points];
+    const last = curve[curve.length - 1]!;
+    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
+    return curve;
+  }
+
   subscribe(fn: () => void): () => void {
     this.listeners.push(fn);
     return () => {

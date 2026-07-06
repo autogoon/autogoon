@@ -9,6 +9,10 @@ import {
   HomegrownAutopilot,
   type VariabilityLevel,
 } from "@/lib/homegrown-autopilot-engine";
+import {
+  UPCOMING_WINDOW_MS,
+  type CurvePoint,
+} from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -19,6 +23,8 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
+  // The next minute of script, refreshed every tick for the sparkline preview.
+  const [upcoming, setUpcoming] = useState<CurvePoint[]>([]);
   // The Speed slider: raw script speeds are scaled by this percentage before
   // being sent to the device.
   const [speedPercent, setSpeedPercent] = useState(10);
@@ -38,6 +44,7 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
       const state = engine.getState();
       setIsPlaying(state.isPlaying);
       setCurrentSpeed(state.currentSpeed);
+      setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
     });
     return unsubscribe;
   }, [engine]);
@@ -112,6 +119,7 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   return {
     isPlaying,
     currentSpeed,
+    upcoming,
     start,
     stop,
     speedPercent,

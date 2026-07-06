@@ -12,6 +12,10 @@ import {
   type IntensityLevel,
   type SuctionControlLevel,
 } from "@/lib/vacuglide-autopilot-engine";
+import {
+  UPCOMING_WINDOW_MS,
+  type CurvePoint,
+} from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -28,6 +32,8 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   // construction and kept in sync by the change handlers below.
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
+  // The next minute of script, refreshed every tick for the sparkline preview.
+  const [upcoming, setUpcoming] = useState<CurvePoint[]>([]);
   const [intensity, setIntensity] = useState<IntensityLevel>("warmup");
   const [edge, setEdge] = useState<EdgeControlLevel>("moderate");
   const [suction, setSuction] = useState<SuctionControlLevel>("more");
@@ -47,6 +53,7 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
       const state = engine.getState();
       setIsPlaying(state.isPlaying);
       setCurrentSpeed(state.currentSpeed);
+      setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
     });
     return unsubscribe;
   }, [engine]);
@@ -145,6 +152,7 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   return {
     isPlaying,
     currentSpeed,
+    upcoming,
     start,
     stop,
     finishMe,

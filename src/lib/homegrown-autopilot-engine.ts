@@ -3,14 +3,18 @@
 // accessor it is handed, so it reuses the same device layer
 // (useVacuglideDevice) as everything else.
 //
-// Runs a fixed speed pattern (the speed VALUES never vary): start at 75, step
-// down by 5 to 50, step back up by 5 to 100, then step back down by 5 to 75 —
-// then repeat. Two knobs scale this uniformly before it's sent to the device:
-//   - speedPercent (0-100): scales every raw speed.
-//   - variability (off/low/medium/high -> 0/25/50/80%): randomises how long
-//     each step takes, one random draw per ramp (the whole 75->50, or
-//     50->100, or 100->75 leg) rather than per individual step, so a ramp
-//     stays a smooth line at its own pace instead of jittering step to step.
+// Runs a repeating dip pattern: 100 -> floor -> 100, stepping by 5. Two knobs
+// shape it before it's sent to the device:
+//   - speedPercent (0-100): scales the pattern onto the device. The peak tracks
+//     it linearly (raw 100 -> speedPercent), but the ramp's low point is pulled
+//     further toward 0 the lower the speed, so slow settings still get a usefully
+//     wide range instead of a narrow band near the top (see scaleSpeed).
+//   - variability (off/low/medium/high): a single control driving BOTH the dip
+//     depth and the timing randomisation:
+//       floor  100 / 85 / 65 / 50   (off never dips — it holds at 100)
+//       jitter  each ramp can run up to 0 / 25 / 50 / 80% faster but at most
+//               40% slower (asymmetric, so high can't drag out) — one draw per
+//               ramp (not per step), so a ramp stays a smooth line at its pace.
 //
 // `currentTime` and `script` are a permanent record of the whole play session
 // (for a future timeline visualisation) — neither is ever reset to zero once
@@ -18,7 +22,9 @@
 // looping) we just append more, continuing the same clock. An explicit
 // command (setVariability, cumming) instead cuts off whatever hasn't been
 // sent yet — keeping every waypoint already realised as real history — and
-// appends its new waypoints starting at the next tick.
+// appends its new waypoints starting at the next tick. A variability change
+// first ramps back up to 100 (at a fixed 10 units/sec) so the switch to the
+// new dip depth is never jarring.
 
 import type { VacuglideDevice } from "@/lib/vacuglide-device";
 
@@ -32,6 +38,18 @@ interface ScriptWaypoint {
 
 export type VariabilityLevel = "off" | "low" | "medium" | "high";
 
+// How deep each level dips below the 100 peak. off never dips (floor === peak),
+// so it just holds at 100. All floors are multiples of STEP_SIZE.
+const VARIABILITY_FLOOR: Record<VariabilityLevel, number> = {
+  off: 100,
+  low: 85,
+  medium: 65,
+  high: 50,
+};
+
+// How much each ramp's timing is randomised (one draw per ramp). This is the
+// amount a ramp can speed UP by; the slow side is capped separately by
+// SLOW_JITTER_CAP so high variability can't drag a leg out.
 const VARIABILITY_PERCENT: Record<VariabilityLevel, number> = {
   off: 0,
   low: 25,
@@ -39,37 +57,61 @@ const VARIABILITY_PERCENT: Record<VariabilityLevel, number> = {
   high: 80,
 };
 
+// The jitter is asymmetric: a ramp can get up to VARIABILITY_PERCENT faster, but
+// only up to this much slower. So high runs -80%..+40% rather than ±80%.
+const SLOW_JITTER_CAP = 40;
+
 const TICK_MS = 100;
-const STEP_MS = 2500;
+const STEP_MS = 1250;
 const STEP_SIZE = 5;
-const START_SPEED = 75;
-const FLOOR_SPEED = 50;
 const PEAK_SPEED = 100;
 
-// The pattern's three ramps, in order. Only the last one returns to
-// START_SPEED, which is what lets a seamless transition know when it's
-// completed a full cycle (see buildTransitionScript).
-const LEGS: ReadonlyArray<{ from: number; to: number }> = [
-  { from: START_SPEED, to: FLOOR_SPEED },
-  { from: FLOOR_SPEED, to: PEAK_SPEED },
-  { from: PEAK_SPEED, to: START_SPEED },
-];
+// The Speed slider doesn't scale the pattern flatly. The peak tracks it linearly
+// (raw 100 -> speedPercent), but the ramp's low point is pulled toward 0 as the
+// speed drops — otherwise a low speed leaves a uselessly narrow band near the top
+// (e.g. 5-10 at 10%). scaleSpeed raises raw/100 to an exponent that grows as the
+// speed falls; this controls how aggressively. 0 would be a flat linear scale.
+const LOW_END_GAMMA = 2.5;
 
-// One ramp's waypoints, from just after `from` up to and including `to`,
-// starting at time `startAt`. All its steps share a single random duration
-// (skipped entirely, i.e. the standard 5s, when variabilityPercent is 0) so the
-// randomness reads as "this ramp is quicker/slower", not step-to-step jitter.
+// How far ahead of the current time we keep the script built. Once the generated
+// future drops below this, we append fresh cycles until it's covered again.
+const SCRIPT_LOOKAHEAD_MS = 60_000;
+
+// A variability change ramps back up to the peak at a fixed rate before the new
+// dip begins: 5 units every 500ms === 10 units/sec.
+const RECOVERY_STEP = STEP_SIZE;
+const RECOVERY_STEP_MS = 500;
+
+// The two ramps of one cycle: 100 -> floor -> 100. Peak and floor are both
+// multiples of STEP_SIZE, so each ramp divides into whole steps. When floor is
+// 100 ("off") both ramps are zero-length and the pattern just holds at 100.
+function legsForFloor(floor: number): ReadonlyArray<{ from: number; to: number }> {
+  return [
+    { from: PEAK_SPEED, to: floor },
+    { from: floor, to: PEAK_SPEED },
+  ];
+}
+
+// One ramp's waypoints: a leading waypoint at `from` (so the start of every leg
+// is recorded — this is what makes an "off" hold at 100 fall out naturally) then
+// a step every `stepMs` up/down to `to`. All steps share a single random
+// duration (the standard STEP_MS when variabilityPercent is 0) so the randomness
+// reads as "this ramp is quicker/slower", not step-to-step jitter.
 function buildLeg(
   from: number,
   to: number,
   variabilityPercent: number,
   startAt: number,
 ): { waypoints: ScriptWaypoint[]; endAt: number } {
-  const jitter = (Math.random() * 2 - 1) * (variabilityPercent / 100);
+  // Asymmetric jitter, uniform in [-down, +up]: a ramp can speed up by the full
+  // variabilityPercent but slow down by at most SLOW_JITTER_CAP.
+  const down = variabilityPercent / 100;
+  const up = Math.min(variabilityPercent, SLOW_JITTER_CAP) / 100;
+  const jitter = -down + Math.random() * (down + up);
   const stepMs = Math.max(1, Math.round(STEP_MS * (1 + jitter)));
   const direction = to > from ? STEP_SIZE : -STEP_SIZE;
   const steps = Math.abs(to - from) / STEP_SIZE;
-  const waypoints: ScriptWaypoint[] = [];
+  const waypoints: ScriptWaypoint[] = [{ speed: from, at: startAt }];
   let at = startAt;
   let speed = from;
   for (let i = 0; i < steps; i++) {
@@ -77,17 +119,21 @@ function buildLeg(
     at += stepMs;
     waypoints.push({ speed, at });
   }
+  // A zero-length leg (floor === 100) still consumes a step so the clock
+  // advances and the hold at 100 doesn't churn a waypoint every tick.
+  if (steps === 0) at += stepMs;
   return { waypoints, endAt: at };
 }
 
-// One full cycle (75 -> 50 -> 100 -> 75), continuing from `startAt`.
+// One full cycle (100 -> floor -> 100), continuing from `startAt`.
 function buildFullScript(
+  floor: number,
   variabilityPercent: number,
   startAt: number,
 ): { waypoints: ScriptWaypoint[]; endAt: number } {
-  const script: ScriptWaypoint[] = [{ speed: START_SPEED, at: startAt }];
+  const script: ScriptWaypoint[] = [];
   let at = startAt;
-  for (const leg of LEGS) {
+  for (const leg of legsForFloor(floor)) {
     const { waypoints, endAt } = buildLeg(
       leg.from,
       leg.to,
@@ -100,33 +146,28 @@ function buildFullScript(
   return { waypoints: script, endAt: at };
 }
 
-// A one-time seamless transition: finish the ramp currently under way (from
-// `fromSpeed`, continuing toward that leg's existing target), play out
-// whichever ramps remain to close this cycle back at START_SPEED, then append
-// one full fresh cycle so there's always more script ahead once this plays
-// out. Continues from `startAt`.
-function buildTransitionScript(
+// A one-time recovery when variability changes: ramp from wherever we are
+// (`fromSpeed`) back up to the 100 peak at a fixed 10 units/sec — regardless of
+// where in the dip we were, so the change is never jarring — then append one
+// full fresh cycle at the new floor so there's always more script ahead.
+// Continues from `startAt`.
+function buildRecoveryScript(
   fromSpeed: number,
-  currentLeg: number,
+  floor: number,
   variabilityPercent: number,
   startAt: number,
 ): ScriptWaypoint[] {
   const script: ScriptWaypoint[] = [];
   let at = startAt;
-  const remainder = buildLeg(
-    fromSpeed,
-    LEGS[currentLeg]!.to,
-    variabilityPercent,
-    at,
-  );
-  script.push(...remainder.waypoints);
-  at = remainder.endAt;
-  for (const leg of LEGS.slice(currentLeg + 1)) {
-    const seg = buildLeg(leg.from, leg.to, variabilityPercent, at);
-    script.push(...seg.waypoints);
-    at = seg.endAt;
+  for (
+    let speed = fromSpeed + RECOVERY_STEP;
+    speed <= PEAK_SPEED;
+    speed += RECOVERY_STEP
+  ) {
+    at += RECOVERY_STEP_MS;
+    script.push({ speed, at });
   }
-  const { waypoints } = buildFullScript(variabilityPercent, at);
+  const { waypoints } = buildFullScript(floor, variabilityPercent, at);
   script.push(...waypoints);
   return script;
 }
@@ -175,15 +216,12 @@ export class HomegrownAutopilot {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private currentTime = 0;
   private currentScriptIndex = 0;
-  private lastSentSpeed = START_SPEED;
+  private lastSentSpeed = PEAK_SPEED;
   // The exact (already-scaled) value most recently sent to the device. Re-sending
   // the speed it's already running at makes it briefly stop, so we skip the send
   // when the new output matches this. null means "nothing sent since the last
   // stop", so the next value always goes through.
   private lastDeviceSpeed: number | null = null;
-  // Which of the 3 LEGS we're currently progressing through (or about to
-  // start, at a boundary) — the anchor a variability change resumes from.
-  private currentLeg = 0;
   private listeners: Array<() => void> = [];
   // The script's speeds are "raw" — everything actually sent to the device is
   // this percentage of that raw value, so the Speed slider can tame or amplify
@@ -203,8 +241,20 @@ export class HomegrownAutopilot {
     return VARIABILITY_PERCENT[this.variabilityLevel];
   }
 
+  private get floor(): number {
+    return VARIABILITY_FLOOR[this.variabilityLevel];
+  }
+
+  // Map a raw pattern speed (floor..100) to what's actually sent to the device.
+  // The peak (raw 100) scales linearly to speedPercent; lower raw speeds are
+  // pulled down harder as the speed falls, via an exponent that grows from 1 (at
+  // full speed, a plain linear scale) upward as speedPercent drops. Pure in
+  // (raw, speedPercent) — no dependence on the current floor — so it stays
+  // consistent across variability changes.
   private scaleSpeed(raw: number): number {
-    return Math.round((raw * this.speedPercent) / 100);
+    if (this.speedPercent <= 0) return 0;
+    const exponent = 1 + LOW_END_GAMMA * (1 - this.speedPercent / 100);
+    return Math.round(this.speedPercent * Math.pow(raw / PEAK_SPEED, exponent));
   }
 
   private outputSpeed(waypoint: ScriptWaypoint): number {
@@ -240,9 +290,9 @@ export class HomegrownAutopilot {
       .catch(() => undefined);
   }
 
-  // Update how variable the ramp timings are. While playing, seamlessly
-  // finish the ramp in progress before the new randomness takes over — see
-  // buildTransitionScript. Doesn't touch anything already sent.
+  // Update the dip depth and timing randomisation. While playing, ramp back up
+  // to the peak before the new dip begins — see buildRecoveryScript. Doesn't
+  // touch anything already sent.
   setVariability(level: VariabilityLevel): void {
     this.variabilityLevel = level;
     if (!this.isPlaying) {
@@ -250,9 +300,9 @@ export class HomegrownAutopilot {
       return;
     }
     this.spliceFromNow((startAt) =>
-      buildTransitionScript(
+      buildRecoveryScript(
         this.lastSentSpeed,
-        this.currentLeg,
+        this.floor,
         this.variabilityPercent,
         startAt,
       ),
@@ -275,20 +325,53 @@ export class HomegrownAutopilot {
     return { isPlaying: this.isPlaying, currentSpeed: this.currentSpeed };
   }
 
+  // The speeds coming up over the next `windowMs`, as {t, speed} points with t
+  // in ms from now (0..windowMs). Begins with the speed currently in effect so a
+  // sparkline can step straight from the present value, and always ends at
+  // windowMs. Speeds are the actual device output — raw script speeds run through
+  // outputSpeed (so speedPercent scaling is applied, matching what's sent and
+  // what Vacuglide Autopilot's already-scaled script reports). Flat at 0 while
+  // paused. Scans only from the playback cursor, never the whole history.
+  getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
+    if (!this.isPlaying) {
+      return [
+        { t: 0, speed: 0 },
+        { t: windowMs, speed: 0 },
+      ];
+    }
+    const now = this.currentTime;
+    const end = now + windowMs;
+    const current = this.script[this.currentScriptIndex - 1];
+    let inEffect = current !== undefined ? this.outputSpeed(current) : 0;
+    const points: Array<{ t: number; speed: number }> = [];
+    for (let i = this.currentScriptIndex; i < this.script.length; i++) {
+      const wp = this.script[i]!;
+      if (wp.at > end) break;
+      if (wp.at <= now) {
+        inEffect = this.outputSpeed(wp);
+        continue;
+      }
+      points.push({ t: wp.at - now, speed: this.outputSpeed(wp) });
+    }
+    const curve = [{ t: 0, speed: inEffect }, ...points];
+    const last = curve[curve.length - 1]!;
+    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
+    return curve;
+  }
+
   private device(): VacuglideDevice {
     const device = this.getDevice();
     if (device === null) throw new Error("No device connected");
     return device;
   }
 
-  // A fresh session: this is the one place currentTime/script/currentLeg
-  // reset to zero — everything from here on is that session's real history.
+  // A fresh session: this is the one place currentTime/script reset to zero —
+  // everything from here on is that session's real history.
   async start(): Promise<void> {
     this.clearCumTimers();
     this.script = [];
     this.currentScriptIndex = 0;
     this.currentTime = 0;
-    this.currentLeg = 0;
     this.lastDeviceSpeed = null;
     this.isPlaying = true;
     this.scheduleNextTick();
@@ -312,16 +395,19 @@ export class HomegrownAutopilot {
 
   private async timerLoop(): Promise<void> {
     if (!this.isPlaying) return;
-    if (this.currentScriptIndex >= this.script.length) {
-      // Ran out of generated future — extend the timeline with a fresh,
-      // freshly-randomised cycle, continuing (never resetting) the clock.
+    // Keep at least SCRIPT_LOOKAHEAD_MS of future built ahead of now. Append
+    // fresh, freshly-randomised cycles (continuing, never resetting, the clock)
+    // until the horizon is covered. cumming()'s far-future hold sits well past
+    // the horizon, so this leaves it untouched.
+    const horizon = this.currentTime + SCRIPT_LOOKAHEAD_MS;
+    while ((this.script[this.script.length - 1]?.at ?? this.currentTime) < horizon) {
       const last = this.script[this.script.length - 1];
       const { waypoints } = buildFullScript(
+        this.floor,
         this.variabilityPercent,
         last?.at ?? this.currentTime,
       );
       this.script.push(...waypoints);
-      this.currentLeg = 0;
     }
     const waypoint = this.script[this.currentScriptIndex];
     if (waypoint !== undefined && this.currentTime >= waypoint.at) {
@@ -333,9 +419,6 @@ export class HomegrownAutopilot {
       }
       this.lastSentSpeed = waypoint.speed;
       this.currentScriptIndex++;
-      if (waypoint.speed === LEGS[this.currentLeg]!.to) {
-        this.currentLeg = (this.currentLeg + 1) % LEGS.length;
-      }
     }
     this.currentTime += TICK_MS;
   }

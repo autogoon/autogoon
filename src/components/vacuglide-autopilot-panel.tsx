@@ -12,6 +12,7 @@ import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { RunButton } from "@/components/run-button";
 import { Segmented } from "@/components/segmented";
+import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 import type { VacuglideAutopilotController } from "@/hooks/use-vacuglide-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
@@ -55,6 +56,14 @@ export function VacuglideAutopilotPanel({
         onError={logError}
         onFinish={autopilot.finishMe}
       />
+
+      <Card title="Up next">
+        <Sparkline points={autopilot.upcoming} />
+        <div className="text-muted-foreground flex justify-between text-xs">
+          <span>now</span>
+          <span>+60s</span>
+        </div>
+      </Card>
 
       <Card title="Intensity">
         <Segmented
