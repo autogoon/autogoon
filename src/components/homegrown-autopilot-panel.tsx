@@ -48,6 +48,14 @@ export function HomegrownAutopilotPanel({
         className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
 
+      <Card>
+        <Sparkline points={homegrown.upcoming} />
+        <div className="text-muted-foreground flex justify-between text-xs">
+          <span>now</span>
+          <span>+60s</span>
+        </div>
+      </Card>
+
       <StrokeCard
         disabled={!homegrown.isPlaying}
         strokePulsing={homegrown.strokePulsing}
@@ -56,14 +64,6 @@ export function HomegrownAutopilotPanel({
         onError={logError}
         onCumming={homegrown.cumming}
       />
-
-      <Card title="Up next">
-        <Sparkline points={homegrown.upcoming} />
-        <div className="text-muted-foreground flex justify-between text-xs">
-          <span>now</span>
-          <span>+60s</span>
-        </div>
-      </Card>
 
       <Card title="Speed">
         <div className="text-muted-foreground flex justify-between text-sm">

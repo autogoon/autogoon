@@ -48,6 +48,14 @@ export function VacuglideAutopilotPanel({
         className="bg-linear-to-br from-orange-500 to-pink-500"
       />
 
+      <Card>
+        <Sparkline points={autopilot.upcoming} />
+        <div className="text-muted-foreground flex justify-between text-xs">
+          <span>now</span>
+          <span>+60s</span>
+        </div>
+      </Card>
+
       <StrokeCard
         disabled={!autopilot.isPlaying}
         strokePulsing={autopilot.strokePulsing}
@@ -56,14 +64,6 @@ export function VacuglideAutopilotPanel({
         onError={logError}
         onFinish={autopilot.finishMe}
       />
-
-      <Card title="Up next">
-        <Sparkline points={autopilot.upcoming} />
-        <div className="text-muted-foreground flex justify-between text-xs">
-          <span>now</span>
-          <span>+60s</span>
-        </div>
-      </Card>
 
       <Card title="Intensity">
         <Segmented
