@@ -164,3 +164,317 @@ function buildCummingScript(startAt: number): ScriptWaypoint[] {
   script.push({ speed: 0, at: at + 1_800_000, unscaled: true });
   return script;
 }
+
+export interface GooningAutopilotOptions {
+  getDevice: () => VacuglideDevice | null;
+  intensity: number;
+}
+
+export class GooningAutopilot {
+  private readonly getDevice: () => VacuglideDevice | null;
+
+  isPlaying = false;
+  currentSpeed = 0;
+
+  private script: ScriptWaypoint[] = [];
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private currentTime = 0;
+  private currentScriptIndex = 0;
+  private lastSentSpeed = 0;
+  // The exact (already-scaled) value most recently sent; re-sending the same
+  // value briefly stops the device, so we skip a duplicate send. null = nothing
+  // sent since the last stop.
+  private lastDeviceSpeed: number | null = null;
+  private listeners: Array<() => void> = [];
+  // Final output multiplier (0-100). The Intensity slider owns this.
+  private intensity: number;
+  // Added to currentTime to get the program position; forward/back/finish move
+  // it. Position is clamp(currentTime + positionOffset, 0, PROGRAM_MS).
+  private positionOffset = 0;
+  // Highest 5-min tease boundary already fired, so we pulse once per crossing.
+  private lastTeaseIndex = 0;
+  // One-shot valve timers (cumming pulse, tease pulse); cleared on stop.
+  private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
+
+  constructor(opts: GooningAutopilotOptions) {
+    this.getDevice = opts.getDevice;
+    this.intensity = opts.intensity;
+  }
+
+  private get positionMs(): number {
+    return Math.max(0, Math.min(PROGRAM_MS, this.currentTime + this.positionOffset));
+  }
+
+  // Position of a future script time (ms on the same clock), for sampling curves
+  // when appending cycles ahead of now.
+  private positionAt(scriptTime: number): number {
+    return Math.max(0, Math.min(PROGRAM_MS, scriptTime + this.positionOffset));
+  }
+
+  private device(): VacuglideDevice {
+    const device = this.getDevice();
+    if (device === null) throw new Error("No device connected");
+    return device;
+  }
+
+  subscribe(fn: () => void): () => void {
+    this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== fn);
+    };
+  }
+
+  private notify(): void {
+    for (const fn of this.listeners) fn();
+  }
+
+  getState(): {
+    isPlaying: boolean;
+    currentSpeed: number;
+    positionMs: number;
+    programMs: number;
+  } {
+    return {
+      isPlaying: this.isPlaying,
+      currentSpeed: this.currentSpeed,
+      positionMs: this.positionMs,
+      programMs: PROGRAM_MS,
+    };
+  }
+
+  // Map a raw script speed to device output: intensity is a flat final multiplier
+  // (ramp targets raw 100 internally; intensity scales what's sent). cumming's
+  // unscaled waypoints pass through untouched.
+  private outputSpeed(waypoint: ScriptWaypoint): number {
+    if (waypoint.unscaled === true) return waypoint.speed;
+    return Math.round((waypoint.speed * this.intensity) / 100);
+  }
+
+  // Cut off unsent future (keeping sent waypoints as history) and append the
+  // built waypoints starting at the next tick.
+  private spliceFromNow(build: (startAt: number) => ScriptWaypoint[]): void {
+    this.script = this.script.slice(0, this.currentScriptIndex);
+    this.script.push(...build(this.currentTime + TICK_MS));
+  }
+
+  // The device output coming up over the next windowMs as {t, speed} points (t in
+  // ms from now). Begins at the current in-effect speed; flat at 0 while paused.
+  getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
+    if (!this.isPlaying) {
+      return [
+        { t: 0, speed: 0 },
+        { t: windowMs, speed: 0 },
+      ];
+    }
+    const now = this.currentTime;
+    const end = now + windowMs;
+    const current = this.script[this.currentScriptIndex - 1];
+    let inEffect = current !== undefined ? this.outputSpeed(current) : 0;
+    const points: Array<{ t: number; speed: number }> = [];
+    for (let i = this.currentScriptIndex; i < this.script.length; i++) {
+      const wp = this.script[i]!;
+      if (wp.at > end) break;
+      if (wp.at <= now) {
+        inEffect = this.outputSpeed(wp);
+        continue;
+      }
+      points.push({ t: wp.at - now, speed: this.outputSpeed(wp) });
+    }
+    const curve = [{ t: 0, speed: inEffect }, ...points];
+    const last = curve[curve.length - 1]!;
+    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
+    return curve;
+  }
+
+  // A fresh session: the one place the clock/script/offset reset.
+  async start(): Promise<void> {
+    this.clearCumTimers();
+    this.script = [];
+    this.currentScriptIndex = 0;
+    this.currentTime = 0;
+    this.positionOffset = 0;
+    this.lastTeaseIndex = 0;
+    this.lastSentSpeed = 0;
+    this.lastDeviceSpeed = null;
+    this.isPlaying = true;
+    this.scheduleNextTick();
+    this.notify();
+  }
+
+  private scheduleNextTick(): void {
+    if (!this.isPlaying) return;
+    this.timer = setTimeout(() => {
+      void (async () => {
+        try {
+          await this.timerLoop();
+        } catch {
+          // ignore a transient device error; keep ticking
+        }
+        this.notify();
+        this.scheduleNextTick();
+      })();
+    }, TICK_MS);
+  }
+
+  // Fire a one-shot 50ms stroke+ tease when the position crosses a new 5-min
+  // boundary — but never in the final segment (last TEASE_INTERVAL_MS), so
+  // nothing interrupts the approach.
+  private maybeTease(): void {
+    const pos = this.positionMs;
+    const index = Math.floor(pos / TEASE_INTERVAL_MS);
+    if (index <= this.lastTeaseIndex) return;
+    this.lastTeaseIndex = index;
+    if (index < 1) return;
+    if (pos >= PROGRAM_MS - TEASE_INTERVAL_MS) return;
+    const dev = this.getDevice();
+    if (dev === null) return;
+    void dev.valveStrokePlusSet(true).catch(() => undefined);
+    this.cumTimers.push(
+      setTimeout(() => {
+        void dev.valveStrokePlusSet(false).catch(() => undefined);
+      }, TEASE_PULSE_MS),
+    );
+  }
+
+  private async timerLoop(): Promise<void> {
+    if (!this.isPlaying) return;
+    // Keep SCRIPT_LOOKAHEAD_MS of future built. Each appended cycle samples the
+    // curves at its own start position. Once the position at the append point has
+    // reached the end, park with a single far-future hold at the top instead of
+    // churning zero-length cycles (cumming's far-future hold sits past the horizon
+    // and is left untouched).
+    const horizon = this.currentTime + SCRIPT_LOOKAHEAD_MS;
+    while ((this.script[this.script.length - 1]?.at ?? this.currentTime) < horizon) {
+      const startAt = this.script[this.script.length - 1]?.at ?? this.currentTime;
+      if (this.positionAt(startAt) >= PROGRAM_MS) {
+        this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
+        break;
+      }
+      const { waypoints } = buildGooningCycle(this.positionAt(startAt), startAt);
+      this.script.push(...waypoints);
+    }
+
+    this.maybeTease();
+
+    const waypoint = this.script[this.currentScriptIndex];
+    if (waypoint !== undefined && this.currentTime >= waypoint.at) {
+      const output = this.outputSpeed(waypoint);
+      this.currentSpeed = output;
+      if (output !== this.lastDeviceSpeed) {
+        await this.device().targetSpeedSet(output);
+        this.lastDeviceSpeed = output;
+      }
+      this.lastSentSpeed = waypoint.speed;
+      this.currentScriptIndex++;
+    }
+    this.currentTime += TICK_MS;
+  }
+
+  // Rebuild the future from the current position after a jump: drop unsent
+  // waypoints and append one fresh cycle now, so the sparkline and device react
+  // at once (the timer loop keeps extending the horizon afterwards).
+  private rebuildFuture(): void {
+    this.script = this.script.slice(0, this.currentScriptIndex);
+    const startAt = this.currentTime + TICK_MS;
+    if (this.positionAt(startAt) >= PROGRAM_MS) {
+      this.script.push({ speed: PEAK_SPEED, at: startAt });
+      this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
+    } else {
+      const { waypoints } = buildGooningCycle(this.positionAt(startAt), startAt);
+      this.script.push(...waypoints);
+    }
+  }
+
+  // Re-baseline the tease boundary after a jump so a forward re-crossing fires
+  // again but the current boundary doesn't double-fire.
+  private resyncTease(): void {
+    this.lastTeaseIndex = Math.floor(this.positionMs / TEASE_INTERVAL_MS);
+  }
+
+  // Update the final multiplier. While playing, immediately resend the current
+  // waypoint at the new intensity so the device reacts live.
+  setIntensity(percent: number): void {
+    this.intensity = Math.max(0, Math.min(100, percent));
+    if (!this.isPlaying) {
+      this.notify();
+      return;
+    }
+    const current = this.script[this.currentScriptIndex - 1];
+    const scaled =
+      current !== undefined ? this.outputSpeed(current) : this.currentSpeed;
+    this.currentSpeed = scaled;
+    this.notify();
+    if (scaled === this.lastDeviceSpeed) return;
+    this.lastDeviceSpeed = scaled;
+    void this.device()
+      .targetSpeedSet(scaled)
+      .catch(() => undefined);
+  }
+
+  forward(): void {
+    if (!this.isPlaying) return;
+    this.positionOffset += JUMP_MS;
+    this.resyncTease();
+    this.rebuildFuture();
+    this.notify();
+  }
+
+  back(): void {
+    if (!this.isPlaying) return;
+    this.positionOffset -= JUMP_MS;
+    this.resyncTease();
+    this.rebuildFuture();
+    this.notify();
+  }
+
+  finish(): void {
+    if (!this.isPlaying) return;
+    // Snap the position to the end; clamp keeps it there as the clock advances.
+    this.positionOffset = PROGRAM_MS - this.currentTime;
+    this.resyncTease();
+    this.rebuildFuture();
+    this.notify();
+  }
+
+  // Homegrown's wind-down, duplicated: unscaled ramp 30 -> 0 over 15s, holding at
+  // 0, plus a stroke-minus valve pulse. Doesn't touch sent history.
+  cumming(): void {
+    this.clearCumTimers();
+    this.spliceFromNow(buildCummingScript);
+    const dev = this.device();
+    this.cumTimers.push(
+      setTimeout(() => {
+        void dev.valveStrokeMinusSet(true).catch(() => undefined);
+      }, 3000),
+      setTimeout(() => {
+        void dev.valveStrokeMinusSet(false).catch(() => undefined);
+      }, 12000),
+    );
+  }
+
+  private clearTimer(): void {
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+
+  private clearCumTimers(): void {
+    for (const t of this.cumTimers) clearTimeout(t);
+    this.cumTimers = [];
+  }
+
+  async pause(): Promise<void> {
+    if (!this.isPlaying) return;
+    this.isPlaying = false;
+    this.clearTimer();
+    this.clearCumTimers();
+    this.currentSpeed = 0;
+    this.lastDeviceSpeed = null;
+    this.notify();
+    const dev = this.device();
+    await dev.targetSpeedStop();
+    await dev.valveStrokePlusSet(false).catch(() => undefined);
+    await dev.valveStrokeMinusSet(false).catch(() => undefined);
+  }
+}
