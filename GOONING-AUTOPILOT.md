@@ -41,9 +41,16 @@ time, so it reacts live.
 
 ## Teases
 
-Each time the position crosses a 5-minute boundary (5/10/15/20 min) a **50 ms
-stroke+ pulse** fires. It is suppressed in the final segment (after 25 min) so
-nothing interrupts the approach.
+Automatic teasing runs in two phases:
+
+- **First 10 minutes** — a **1-second stroke− pulse every minute** (at 1–9 min).
+- **From 10 minutes on** — a **50 ms stroke+ pulse every 5 minutes** (at 10, 15,
+  20 min), suppressed in the final segment (after 25 min) so nothing interrupts
+  the approach.
+
+Both are jump-aware: `forward`/`back`/`finish` re-baseline the boundaries, so a
+re-crossing fires again without double-firing. This is separate from the manual
+Stroke ± / `up`/`down` controls.
 
 ## The finish and cumming
 

@@ -70,9 +70,16 @@ const LOW_END_GAMMA = 2.5;
 // How far ahead we keep the script built before appending more.
 const SCRIPT_LOOKAHEAD_MS = 60_000;
 
-// forward/back jump this much program time; the tease fires each time position
-// crosses a TEASE_INTERVAL_MS boundary (except in the final segment).
+// forward/back jump this much program time.
 const JUMP_MS = 60_000;
+
+// Auto teasing has two phases. Before STROKE_PLUS_START_MS it fires a 1s stroke-
+// pulse every STROKE_MINUS_INTERVAL_MS (a minute); from then on it fires a 50ms
+// stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the final
+// segment (last TEASE_INTERVAL_MS) so nothing interrupts the approach.
+const STROKE_PLUS_START_MS = 10 * 60_000;
+const STROKE_MINUS_INTERVAL_MS = 60_000;
+const STROKE_MINUS_PULSE_MS = 1000;
 const TEASE_INTERVAL_MS = 5 * 60_000;
 const TEASE_PULSE_MS = 50;
 
@@ -221,8 +228,10 @@ export class GooningAutopilot {
   // Added to currentTime to get the program position; forward/back/finish move
   // it. Position is clamp(currentTime + positionOffset, 0, PROGRAM_MS).
   private positionOffset = 0;
-  // Highest 5-min tease boundary already fired, so we pulse once per crossing.
-  private lastTeaseIndex = 0;
+  // Highest boundary already fired for each tease phase, so each pulses once per
+  // crossing: the 1-min stroke- phase and the 5-min stroke+ phase.
+  private lastMinusIndex = 0;
+  private lastPlusIndex = 0;
   // One-shot valve timers (cumming pulse, tease pulse); cleared on stop.
   private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
 
@@ -323,7 +332,8 @@ export class GooningAutopilot {
     this.currentScriptIndex = 0;
     this.currentTime = 0;
     this.positionOffset = 0;
-    this.lastTeaseIndex = 0;
+    this.lastMinusIndex = 0;
+    this.lastPlusIndex = 0;
     this.lastDeviceSpeed = null;
     this.isPlaying = true;
     this.scheduleNextTick();
@@ -345,24 +355,44 @@ export class GooningAutopilot {
     }, TICK_MS);
   }
 
-  // Fire a one-shot 50ms stroke+ tease when the position crosses a new 5-min
-  // boundary — but never in the final segment (last TEASE_INTERVAL_MS), so
-  // nothing interrupts the approach.
+  // Two-phase auto teasing, jump-aware — each phase's index advances even when the
+  // pulse is suppressed, so a crossing never double-fires:
+  //   - before STROKE_PLUS_START_MS (first 10 min): a 1s stroke- pulse every minute;
+  //   - from STROKE_PLUS_START_MS on: a 50ms stroke+ pulse every 5 min, except in
+  //     the final segment (last TEASE_INTERVAL_MS).
   private maybeTease(): void {
     const pos = this.positionMs;
-    const index = Math.floor(pos / TEASE_INTERVAL_MS);
-    if (index <= this.lastTeaseIndex) return;
-    this.lastTeaseIndex = index;
-    if (index < 1) return;
-    if (pos >= PROGRAM_MS - TEASE_INTERVAL_MS) return;
     const dev = this.getDevice();
-    if (dev === null) return;
-    void dev.valveStrokePlusSet(true).catch(() => undefined);
-    this.cumTimers.push(
-      setTimeout(() => {
-        void dev.valveStrokePlusSet(false).catch(() => undefined);
-      }, TEASE_PULSE_MS),
-    );
+
+    const minusIndex = Math.floor(pos / STROKE_MINUS_INTERVAL_MS);
+    if (minusIndex > this.lastMinusIndex) {
+      this.lastMinusIndex = minusIndex;
+      if (minusIndex >= 1 && pos < STROKE_PLUS_START_MS && dev !== null) {
+        void dev.valveStrokeMinusSet(true).catch(() => undefined);
+        this.cumTimers.push(
+          setTimeout(() => {
+            void dev.valveStrokeMinusSet(false).catch(() => undefined);
+          }, STROKE_MINUS_PULSE_MS),
+        );
+      }
+    }
+
+    const plusIndex = Math.floor(pos / TEASE_INTERVAL_MS);
+    if (plusIndex > this.lastPlusIndex) {
+      this.lastPlusIndex = plusIndex;
+      if (
+        pos >= STROKE_PLUS_START_MS &&
+        pos < PROGRAM_MS - TEASE_INTERVAL_MS &&
+        dev !== null
+      ) {
+        void dev.valveStrokePlusSet(true).catch(() => undefined);
+        this.cumTimers.push(
+          setTimeout(() => {
+            void dev.valveStrokePlusSet(false).catch(() => undefined);
+          }, TEASE_PULSE_MS),
+        );
+      }
+    }
   }
 
   private async timerLoop(): Promise<void> {
@@ -413,10 +443,12 @@ export class GooningAutopilot {
     }
   }
 
-  // Re-baseline the tease boundary after a jump so a forward re-crossing fires
+  // Re-baseline both tease boundaries after a jump so a forward re-crossing fires
   // again but the current boundary doesn't double-fire.
   private resyncTease(): void {
-    this.lastTeaseIndex = Math.floor(this.positionMs / TEASE_INTERVAL_MS);
+    const pos = this.positionMs;
+    this.lastMinusIndex = Math.floor(pos / STROKE_MINUS_INTERVAL_MS);
+    this.lastPlusIndex = Math.floor(pos / TEASE_INTERVAL_MS);
   }
 
   // Update the final multiplier. While playing, immediately resend the current
