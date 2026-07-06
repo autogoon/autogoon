@@ -4,14 +4,14 @@
 //   - the dip is always the raw pattern 100 -> floor -> 100 (Homegrown's shape),
 //     mapped to the device through Homegrown's curved-low-end scaleSpeed. Depth
 //     lives in RAW units, so it is wide and the legs are long early on.
-//   - the auto SPEED (Homegrown's speedPercent) eases up from 15 -> 100 over the
+//   - the auto SPEED (Homegrown's speedPercent) eases up from 25 -> 100 over the
 //     30 minutes — this is the "build".
 //   - the auto VARIABILITY decreases: the raw dip floor rises 50 -> 100 (deep
 //     teasing dips -> no dip) and the timing jitter falls 80 -> 0, so it starts
 //     with long, deep, slow, randomised dips and finishes as a steady hold.
 // Because the dip is raw 100->floor and scaleSpeed pulls the low end toward 0 the
 // lower the speed, the early low-speed dips still swing over a wide device range
-// (e.g. ~15 down to ~1) rather than a narrow band near the top.
+// (e.g. ~25 down to ~3) rather than a narrow band near the top.
 // Intensity (0-100, manual, default set by the hook) is a FINAL multiplier on the
 // scaled output — so "build to 50%" just means intensity 50. Real time advances
 // the position 1:1; forward/back offset it by a minute; finish snaps it to the end
@@ -99,7 +99,7 @@ function progress(positionMs: number): number {
   return clamp01(positionMs / PROGRAM_MS);
 }
 
-// The auto build (Homegrown's speedPercent) at a position — eased 15 -> 100.
+// The auto build (Homegrown's speedPercent) at a position — eased 25 -> 100.
 function buildSpeedPercent(positionMs: number): number {
   const eased = Math.pow(progress(positionMs), BUILD_EXP);
   return lerp(BUILD_START, BUILD_PEAK, eased);
@@ -342,6 +342,7 @@ export class GooningAutopilot {
 
   // A fresh session: the one place the clock/script/offset reset.
   async start(): Promise<void> {
+    this.clearTimer();
     this.clearCumTimers();
     this.script = [];
     this.currentScriptIndex = 0;

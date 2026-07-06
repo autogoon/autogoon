@@ -4,7 +4,7 @@
 // engine, mirrors it into render state, wires the voice keywords and the pagehide
 // safety-stop, and drives the device through the shared VacuglideDeviceController.
 // Speed and Variability are automatic (engine-driven); the only manual knob is
-// Intensity (default 60), plus the timeline jump commands.
+// Intensity (default 50), plus the timeline jump commands.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GooningAutopilot } from "@/lib/gooning-autopilot-engine";
@@ -36,7 +36,7 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
   const engine = engineRef.current;
 
   useEffect(() => {
-    const unsubscribe = engine.subscribe(() => {
+    const sync = () => {
       const state = engine.getState();
       setIsPlaying(state.isPlaying);
       setCurrentSpeed(state.currentSpeed);
@@ -44,7 +44,9 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
       setProgramMs(state.programMs);
       setTimeScale(state.timeScale);
       setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
-    });
+    };
+    const unsubscribe = engine.subscribe(sync);
+    sync(); // seed static state (programMs, timeScale) before the first run
     return unsubscribe;
   }, [engine]);
 
