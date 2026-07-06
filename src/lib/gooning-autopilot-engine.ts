@@ -73,13 +73,13 @@ const SCRIPT_LOOKAHEAD_MS = 60_000;
 // forward/back jump this much program time.
 const JUMP_MS = 60_000;
 
-// Auto teasing has two phases. Before STROKE_PLUS_START_MS it fires a 1s stroke-
-// pulse every STROKE_MINUS_INTERVAL_MS (a minute); from then on it fires a 50ms
-// stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the final
-// segment (last TEASE_INTERVAL_MS) so nothing interrupts the approach.
+// Auto teasing has two phases. Before STROKE_PLUS_START_MS it fires a 5s stroke-
+// pulse every STROKE_MINUS_INTERVAL_MS (a minute), starting at 0; from then on it
+// fires a 50ms stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the
+// final segment (last TEASE_INTERVAL_MS) so nothing interrupts the approach.
 const STROKE_PLUS_START_MS = 10 * 60_000;
 const STROKE_MINUS_INTERVAL_MS = 60_000;
-const STROKE_MINUS_PULSE_MS = 1000;
+const STROKE_MINUS_PULSE_MS = 5000;
 const TEASE_INTERVAL_MS = 5 * 60_000;
 const TEASE_PULSE_MS = 50;
 
@@ -229,8 +229,9 @@ export class GooningAutopilot {
   // it. Position is clamp(currentTime + positionOffset, 0, PROGRAM_MS).
   private positionOffset = 0;
   // Highest boundary already fired for each tease phase, so each pulses once per
-  // crossing: the 1-min stroke- phase and the 5-min stroke+ phase.
-  private lastMinusIndex = 0;
+  // crossing: the 1-min stroke- phase and the 5-min stroke+ phase. Minus starts at
+  // -1 so the 0-min boundary fires a stroke- right at session start.
+  private lastMinusIndex = -1;
   private lastPlusIndex = 0;
   // One-shot valve timers (cumming pulse, tease pulse); cleared on stop.
   private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
@@ -332,7 +333,7 @@ export class GooningAutopilot {
     this.currentScriptIndex = 0;
     this.currentTime = 0;
     this.positionOffset = 0;
-    this.lastMinusIndex = 0;
+    this.lastMinusIndex = -1;
     this.lastPlusIndex = 0;
     this.lastDeviceSpeed = null;
     this.isPlaying = true;
@@ -357,7 +358,8 @@ export class GooningAutopilot {
 
   // Two-phase auto teasing, jump-aware — each phase's index advances even when the
   // pulse is suppressed, so a crossing never double-fires:
-  //   - before STROKE_PLUS_START_MS (first 10 min): a 1s stroke- pulse every minute;
+  //   - before STROKE_PLUS_START_MS (first 10 min): a 5s stroke- pulse every minute,
+  //     starting at 0;
   //   - from STROKE_PLUS_START_MS on: a 50ms stroke+ pulse every 5 min, except in
   //     the final segment (last TEASE_INTERVAL_MS).
   private maybeTease(): void {
@@ -367,7 +369,7 @@ export class GooningAutopilot {
     const minusIndex = Math.floor(pos / STROKE_MINUS_INTERVAL_MS);
     if (minusIndex > this.lastMinusIndex) {
       this.lastMinusIndex = minusIndex;
-      if (minusIndex >= 1 && pos < STROKE_PLUS_START_MS && dev !== null) {
+      if (pos < STROKE_PLUS_START_MS && dev !== null) {
         void dev.valveStrokeMinusSet(true).catch(() => undefined);
         this.cumTimers.push(
           setTimeout(() => {

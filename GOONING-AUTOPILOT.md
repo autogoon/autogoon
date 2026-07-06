@@ -43,7 +43,8 @@ time, so it reacts live.
 
 Automatic teasing runs in two phases:
 
-- **First 10 minutes** — a **1-second stroke− pulse every minute** (at 1–9 min).
+- **First 10 minutes** — a **5-second stroke− pulse every minute** (at 0–9 min,
+  starting right at session start).
 - **From 10 minutes on** — a **50 ms stroke+ pulse every 5 minutes** (at 10, 15,
   20 min), suppressed in the final segment (after 25 min) so nothing interrupts
   the approach.
