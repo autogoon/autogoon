@@ -25,6 +25,7 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
   const [upcoming, setUpcoming] = useState<CurvePoint[]>([]);
   const [positionMs, setPositionMs] = useState(0);
   const [programMs, setProgramMs] = useState(0);
+  const [timeScale, setTimeScale] = useState(1);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
 
   const engineRef = useRef<GooningAutopilot | null>(null);
@@ -41,6 +42,7 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
       setCurrentSpeed(state.currentSpeed);
       setPositionMs(state.positionMs);
       setProgramMs(state.programMs);
+      setTimeScale(state.timeScale);
       setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
     });
     return unsubscribe;
@@ -82,6 +84,8 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
   const forward = useCallback(() => engine.forward(), [engine]);
   const back = useCallback(() => engine.back(), [engine]);
   const finish = useCallback(() => engine.finish(), [engine]);
+  const faster = useCallback(() => engine.faster(), [engine]);
+  const slower = useCallback(() => engine.slower(), [engine]);
 
   const cumming = useCallback(() => {
     try {
@@ -99,9 +103,11 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
       { word: "forward", run: forward },
       { word: "back", run: back },
       { word: "finish", run: finish },
+      { word: "faster", run: faster },
+      { word: "slower", run: slower },
       { word: "cumming", run: cumming },
     ],
-    [stroke.keywords, stepIntensity, forward, back, finish, cumming],
+    [stroke.keywords, stepIntensity, forward, back, finish, faster, slower, cumming],
   );
 
   return {
@@ -110,6 +116,7 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
     upcoming,
     positionMs,
     programMs,
+    timeScale,
     start,
     stop,
     intensity,
@@ -117,6 +124,8 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
     forward,
     back,
     finish,
+    faster,
+    slower,
     cumming,
     strokePulsing: stroke.strokePulsing,
     keywords,

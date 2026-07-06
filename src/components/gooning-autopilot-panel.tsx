@@ -64,6 +64,14 @@ export function GooningAutopilotPanel({
         className="bg-gradient-to-br from-fuchsia-600 to-rose-500"
       />
 
+      <Card>
+        <Sparkline points={gooning.upcoming} />
+        <div className="text-muted-foreground flex justify-between text-xs">
+          <span>now</span>
+          <span>+60s</span>
+        </div>
+      </Card>
+
       <StrokeCard
         disabled={!gooning.isPlaying}
         strokePulsing={gooning.strokePulsing}
@@ -77,7 +85,7 @@ export function GooningAutopilotPanel({
         <div className="text-muted-foreground flex justify-between text-sm">
           <span className="tabular-nums">{formatMs(gooning.positionMs)}</span>
           <span className="tabular-nums">
-            {formatMs(gooning.programMs)} · {pct}%
+            {formatMs(gooning.programMs)} · {pct}% · {gooning.timeScale.toFixed(2)}×
           </span>
         </div>
         <div className="bg-secondary mt-2 h-2 w-full overflow-hidden rounded-full">
@@ -112,13 +120,23 @@ export function GooningAutopilotPanel({
             Finish
           </Button>
         </div>
-      </Card>
-
-      <Card title="Up next">
-        <Sparkline points={gooning.upcoming} />
-        <div className="text-muted-foreground flex justify-between text-xs">
-          <span>now</span>
-          <span>+60s</span>
+        <div className="mt-3 flex gap-3">
+          <Button
+            onClick={gooning.slower}
+            disabled={!gooning.isPlaying}
+            className={jumpClass}
+            badge="slower"
+          >
+            Slower
+          </Button>
+          <Button
+            onClick={gooning.faster}
+            disabled={!gooning.isPlaying}
+            className={jumpClass}
+            badge="faster"
+          >
+            Faster
+          </Button>
         </div>
       </Card>
 

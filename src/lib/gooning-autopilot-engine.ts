@@ -73,6 +73,13 @@ const SCRIPT_LOOKAHEAD_MS = 60_000;
 // forward/back jump this much program time.
 const JUMP_MS = 60_000;
 
+// faster/slower dilate time: the program position advances TICK_MS * timeScale per
+// tick. Each press multiplies/divides the scale by RATE_STEP (~5% faster/slower
+// from that point on), clamped to [MIN_TIME_SCALE, MAX_TIME_SCALE].
+const RATE_STEP = 1.05;
+const MIN_TIME_SCALE = 0.25;
+const MAX_TIME_SCALE = 4;
+
 // Auto teasing has two phases. Before STROKE_PLUS_START_MS it fires a 5s stroke-
 // pulse every STROKE_MINUS_INTERVAL_MS (a minute), starting at 0; from then on it
 // fires a 50ms stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the
@@ -225,9 +232,12 @@ export class GooningAutopilot {
   private listeners: Array<() => void> = [];
   // Final output multiplier (0-100). The Intensity slider owns this.
   private intensity: number;
-  // Added to currentTime to get the program position; forward/back/finish move
-  // it. Position is clamp(currentTime + positionOffset, 0, PROGRAM_MS).
-  private positionOffset = 0;
+  // The program position (ms into the 0..PROGRAM_MS build), decoupled from the
+  // real script clock so time can be dilated. It advances TICK_MS * timeScale each
+  // tick; forward/back/finish move it directly.
+  private programPos = 0;
+  // Time-dilation factor: 1 = real time, >1 faster, <1 slower. faster()/slower().
+  private timeScale = 1;
   // Highest boundary already fired for each tease phase, so each pulses once per
   // crossing: the 1-min stroke- phase and the 5-min stroke+ phase. Minus starts at
   // -1 so the 0-min boundary fires a stroke- right at session start.
@@ -242,13 +252,15 @@ export class GooningAutopilot {
   }
 
   private get positionMs(): number {
-    return Math.max(0, Math.min(PROGRAM_MS, this.currentTime + this.positionOffset));
+    return Math.max(0, Math.min(PROGRAM_MS, this.programPos));
   }
 
-  // Position of a future script time (ms on the same clock), for sampling curves
-  // when appending cycles ahead of now.
+  // Program position at a future script time, for sampling curves when appending
+  // cycles ahead of now — it advances from the current programPos at the current
+  // timeScale (a splice/rebuild re-bases this whenever the scale changes).
   private positionAt(scriptTime: number): number {
-    return Math.max(0, Math.min(PROGRAM_MS, scriptTime + this.positionOffset));
+    const ahead = (scriptTime - this.currentTime) * this.timeScale;
+    return Math.max(0, Math.min(PROGRAM_MS, this.programPos + ahead));
   }
 
   private device(): VacuglideDevice {
@@ -273,12 +285,14 @@ export class GooningAutopilot {
     currentSpeed: number;
     positionMs: number;
     programMs: number;
+    timeScale: number;
   } {
     return {
       isPlaying: this.isPlaying,
       currentSpeed: this.currentSpeed,
       positionMs: this.positionMs,
       programMs: PROGRAM_MS,
+      timeScale: this.timeScale,
     };
   }
 
@@ -332,7 +346,8 @@ export class GooningAutopilot {
     this.script = [];
     this.currentScriptIndex = 0;
     this.currentTime = 0;
-    this.positionOffset = 0;
+    this.programPos = 0;
+    this.timeScale = 1;
     this.lastMinusIndex = -1;
     this.lastPlusIndex = 0;
     this.lastDeviceSpeed = null;
@@ -428,6 +443,10 @@ export class GooningAutopilot {
       this.currentScriptIndex++;
     }
     this.currentTime += TICK_MS;
+    this.programPos = Math.max(
+      0,
+      Math.min(PROGRAM_MS, this.programPos + TICK_MS * this.timeScale),
+    );
   }
 
   // Rebuild the future from the current position after a jump: drop unsent
@@ -473,9 +492,13 @@ export class GooningAutopilot {
       .catch(() => undefined);
   }
 
+  private clampPos(pos: number): number {
+    return Math.max(0, Math.min(PROGRAM_MS, pos));
+  }
+
   forward(): void {
     if (!this.isPlaying) return;
-    this.positionOffset += JUMP_MS;
+    this.programPos = this.clampPos(this.programPos + JUMP_MS);
     this.resyncTease();
     this.rebuildFuture();
     this.notify();
@@ -483,7 +506,7 @@ export class GooningAutopilot {
 
   back(): void {
     if (!this.isPlaying) return;
-    this.positionOffset -= JUMP_MS;
+    this.programPos = this.clampPos(this.programPos - JUMP_MS);
     this.resyncTease();
     this.rebuildFuture();
     this.notify();
@@ -491,11 +514,30 @@ export class GooningAutopilot {
 
   finish(): void {
     if (!this.isPlaying) return;
-    // Snap the position to the end; clamp keeps it there as the clock advances.
-    this.positionOffset = PROGRAM_MS - this.currentTime;
+    // Snap the position to the end; it stays there as the clock advances.
+    this.programPos = PROGRAM_MS;
     this.resyncTease();
     this.rebuildFuture();
     this.notify();
+  }
+
+  // Dilate time from this point on: faster multiplies the scale by RATE_STEP,
+  // slower divides by it (each ~5%), clamped. The position doesn't jump — only its
+  // rate of advance changes — but we rebuild the future so upcoming cycles (and the
+  // sparkline) re-sample at the new scale immediately.
+  private setTimeScale(scale: number): void {
+    if (!this.isPlaying) return;
+    this.timeScale = Math.max(MIN_TIME_SCALE, Math.min(MAX_TIME_SCALE, scale));
+    this.rebuildFuture();
+    this.notify();
+  }
+
+  faster(): void {
+    this.setTimeScale(this.timeScale * RATE_STEP);
+  }
+
+  slower(): void {
+    this.setTimeScale(this.timeScale / RATE_STEP);
   }
 
   // Homegrown's wind-down, duplicated: unscaled ramp 30 -> 0 over 15s, holding at

@@ -61,10 +61,20 @@ far-future waypoint, the same trick as `cumming`) until you finish.
 `cumming()` is Homegrown's wind-down, duplicated: a smooth unscaled ramp from 30
 to 0 over ~15 s that then holds at 0, plus a suction-valve pulse.
 
+## Time dilation
+
+**`faster` / `slower`** dilate time from that point on. The program position
+advances `TICK × timeScale` per tick; `faster` multiplies `timeScale` by ~5%,
+`slower` divides by it (clamped to 0.25×–4×). So it doesn't jump the position — it
+changes how fast you move through the build (and the tease schedule) from here.
+The device stroke rhythm stays real-time; only the build/variability curve
+compresses or stretches. The Timeline card shows the current factor (e.g. `1.20×`).
+
 ## Voice control
 
 - `forward` / `back` — jump the position ±1 minute.
 - `finish` — jump to the 30-minute hold.
+- `faster` / `slower` — dilate time ±5% from this point on.
 - `more` / `less` — step Intensity up/down by 10.
 - `cumming` — trigger the wind-down.
 - plus the shared stroke `up` / `down` words (manual vacuum control).
