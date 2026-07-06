@@ -9,27 +9,35 @@ top. It models a long, unhurried arousal ramp to a controlled climax — a
 
 ## The build
 
-A **program position** runs 0 → 30 min. Real time advances it 1:1. At each
-position two curves are sampled (per appended dip cycle, so the ramp stays smooth
-and correct even after a jump):
+It **is** the Homegrown algorithm with its two manual knobs driven automatically.
+The dip is always Homegrown's raw pattern **100 → floor → 100**, mapped to the
+device through Homegrown's curved-low-end `scaleSpeed`. A **program position**
+runs 0 → 30 min (real time advances it 1:1), and each appended dip cycle samples
+two curves at its own start position (so the ramp stays smooth and correct even
+after a jump):
 
-- **Build top** — the peak of each dip eases from **10 → 100** raw units
-  (`EASE_EXPONENT` makes it ease-in: a patient start that accelerates toward the
-  finish).
-- **Variability** — the dip floor rises from **50% → 100%** of the top and the
-  timing jitter falls from **80% → 0**. So it starts with deep, randomised
-  teasing dips and ends as a flat hold at the top.
+- **Speed** (Homegrown's `speedPercent`) — eases from **15 → 100** over the 30
+  minutes (`BUILD_EXP` makes it ease-in: a patient start that accelerates toward
+  the finish). Because the dip is raw `100 → floor` and `scaleSpeed` pulls the low
+  point toward 0 the lower the speed, the early low-speed dips still swing over a
+  **wide** device range (≈15 down to ≈1 at full intensity) with **long** legs
+  (~12.5 s), rather than a narrow band near the top.
+- **Variability** — the raw dip floor rises from **50 → 100** (a deep `100 → 50`
+  tease dip shrinking to no dip) and the timing jitter falls from **80% → 0**. So
+  it starts with long, deep, slow, randomised dips and ends as a flat hold at the
+  top; the legs naturally shorten as the dips get shallower.
 
 The underlying dip mechanics (stepping by 5 every ~1.25 s, one asymmetric jitter
-draw per ramp) are the same as Homegrown's, duplicated so the engine stays
-standalone.
+draw per ramp, and `scaleSpeed`) are the same as Homegrown's, duplicated so the
+engine stays standalone.
 
 ## Intensity
 
-**Intensity** (0–100, default **60**) is a flat final multiplier on device
-output — the ramp always targets raw 100 internally; intensity scales what's
-actually sent. So on a more-sensitive day you set it to 50 and the whole profile
-tops out at 50% device speed. It applies at output time, so it reacts live.
+**Intensity** (0–100, default **60**) is a flat final multiplier applied on top
+of the scaled output — the build/variability shape is generated independently and
+intensity just scales what's actually sent. So on a more-sensitive day you set it
+to 50 and the whole profile tops out at 50% device speed. It applies at output
+time, so it reacts live.
 
 ## Teases
 

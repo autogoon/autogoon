@@ -1,16 +1,23 @@
-// Gooning Autopilot — an automatic, timeline-driven slow build. Unlike Homegrown
-// (where Speed and Variability are manual knobs), here they are sampled from
-// curves at a "program position" that runs 0 -> 30 min:
-//   - the dip TOP eases up from 10 -> 100 (raw units) over the 30 minutes;
-//   - Variability decreases: the dip floor rises from 50% -> 100% of the top and
-//     the timing jitter falls from 80% -> 0, so it starts teasing and finishes
-//     as a steady hold at the top.
-// Intensity (0-100, manual, default set by the hook) is a FINAL multiplier on
-// device output — the direct analogue of Homegrown's speedPercent — so "build to
-// 50%" just means intensity 50. Real time advances the position 1:1; forward/back
-// offset it by a minute; finish snaps it to the end (where it holds forever via a
-// far-future waypoint, the same park trick as cumming). cumming() is Homegrown's
-// wind-down, duplicated so this engine stays self-contained.
+// Gooning Autopilot — an automatic, timeline-driven slow build. It IS the manual
+// Homegrown algorithm with its two knobs driven automatically over a "program
+// position" that runs 0 -> 30 min, so it reuses Homegrown's exact dip machinery:
+//   - the dip is always the raw pattern 100 -> floor -> 100 (Homegrown's shape),
+//     mapped to the device through Homegrown's curved-low-end scaleSpeed. Depth
+//     lives in RAW units, so it is wide and the legs are long early on.
+//   - the auto SPEED (Homegrown's speedPercent) eases up from 15 -> 100 over the
+//     30 minutes — this is the "build".
+//   - the auto VARIABILITY decreases: the raw dip floor rises 50 -> 100 (deep
+//     teasing dips -> no dip) and the timing jitter falls 80 -> 0, so it starts
+//     with long, deep, slow, randomised dips and finishes as a steady hold.
+// Because the dip is raw 100->floor and scaleSpeed pulls the low end toward 0 the
+// lower the speed, the early low-speed dips still swing over a wide device range
+// (e.g. ~15 down to ~1) rather than a narrow band near the top.
+// Intensity (0-100, manual, default set by the hook) is a FINAL multiplier on the
+// scaled output — so "build to 50%" just means intensity 50. Real time advances
+// the position 1:1; forward/back offset it by a minute; finish snaps it to the end
+// (where it holds forever via a far-future waypoint, the same park trick as
+// cumming). cumming() is Homegrown's wind-down, duplicated so this engine stays
+// self-contained.
 //
 // `currentTime`/`script` are a permanent record of the session (never reset except
 // on start()). We keep ~a minute of future built ahead, appending fresh cycles
@@ -33,18 +40,20 @@ interface ScriptWaypoint {
 // past the end the pattern holds at the top forever.
 const PROGRAM_MS = 30 * 60_000;
 
-// The dip top eases from START_BUILD to PEAK_BUILD (raw device units) across the
-// program. EASE_EXPONENT > 1 makes it ease-IN: a patient start that accelerates
-// toward the finish (1 would be a straight line).
-const START_BUILD = 10;
-const PEAK_BUILD = 100;
-const EASE_EXPONENT = 1.6;
+// The auto "build" — Homegrown's speedPercent — eases from BUILD_START to
+// BUILD_PEAK across the program. BUILD_EXP > 1 makes it ease-IN: a patient start
+// that accelerates toward the finish (1 would be a straight line). BUILD_START is
+// 15 (not 0) so the very start still swings up to ~15% at full intensity.
+const BUILD_START = 15;
+const BUILD_PEAK = 100;
+const BUILD_EXP = 1.3;
 
-// Variability endpoints. At position 0 the floor sits at DEEP_FLOOR_FRACTION of
-// the top (deep dips) with HIGH_JITTER timing randomisation; both interpolate
-// linearly to "no dip, no jitter" at the end.
-const DEEP_FLOOR_FRACTION = 0.5;
-const HIGH_JITTER = 80;
+// Variability endpoints, in RAW units like Homegrown. At position 0 the dip floor
+// is VAR_FLOOR_DEEP (a deep 100->50 dip) with VAR_JITTER_HIGH timing randomisation;
+// both interpolate linearly to "no dip (floor 100), no jitter" at the end.
+const VAR_FLOOR_DEEP = 50;
+const VAR_FLOOR_SHALLOW = 100;
+const VAR_JITTER_HIGH = 80;
 
 // Shared dip mechanics (same values as Homegrown, duplicated to stay standalone).
 const TICK_MS = 100;
@@ -52,6 +61,11 @@ const STEP_MS = 1250;
 const STEP_SIZE = 5;
 const SLOW_JITTER_CAP = 40;
 const PEAK_SPEED = 100;
+
+// scaleSpeed's low-end curve (Homegrown's LOW_END_GAMMA): the exponent grows as
+// the speed falls, pulling the dip's low point toward 0 so slow settings still
+// get a wide range instead of a narrow band near the top. 0 would be flat linear.
+const LOW_END_GAMMA = 2.5;
 
 // How far ahead we keep the script built before appending more.
 const SCRIPT_LOOKAHEAD_MS = 60_000;
@@ -71,21 +85,34 @@ function progress(positionMs: number): number {
   return clamp01(positionMs / PROGRAM_MS);
 }
 
-// The dip top (raw units) at a position — eased 10 -> 100, snapped to a whole
-// STEP_SIZE so legs divide into whole steps.
-function buildTop(positionMs: number): number {
-  const eased = Math.pow(progress(positionMs), EASE_EXPONENT);
-  return roundToStep(lerp(START_BUILD, PEAK_BUILD, eased));
+// The auto build (Homegrown's speedPercent) at a position — eased 15 -> 100.
+function buildSpeedPercent(positionMs: number): number {
+  const eased = Math.pow(progress(positionMs), BUILD_EXP);
+  return lerp(BUILD_START, BUILD_PEAK, eased);
 }
 
-// The dip floor as a fraction of the top: DEEP_FLOOR_FRACTION -> 1 (no dip).
-function floorFraction(positionMs: number): number {
-  return lerp(DEEP_FLOOR_FRACTION, 1, progress(positionMs));
+// The raw dip floor (Homegrown's variability floor) at a position: VAR_FLOOR_DEEP
+// -> VAR_FLOOR_SHALLOW, snapped to a whole STEP_SIZE so the 100->floor legs divide
+// into whole steps. At the end floor === 100, so the dip collapses to a hold.
+function variabilityFloor(positionMs: number): number {
+  return roundToStep(
+    lerp(VAR_FLOOR_DEEP, VAR_FLOOR_SHALLOW, progress(positionMs)),
+  );
 }
 
-// Timing jitter percent: HIGH_JITTER -> 0.
-function jitterPercent(positionMs: number): number {
-  return lerp(HIGH_JITTER, 0, progress(positionMs));
+// Timing jitter percent at a position: VAR_JITTER_HIGH -> 0.
+function variabilityJitter(positionMs: number): number {
+  return lerp(VAR_JITTER_HIGH, 0, progress(positionMs));
+}
+
+// Homegrown's scaleSpeed, verbatim: map a raw pattern speed (floor..100) to the
+// pre-intensity device value. The peak (raw 100) scales linearly to speedPercent;
+// lower raw speeds are pulled toward 0 harder as the speed falls, via an exponent
+// that grows from 1 (at full speed) upward as speedPercent drops.
+function scaleSpeed(raw: number, speedPercent: number): number {
+  if (speedPercent <= 0) return 0;
+  const exponent = 1 + LOW_END_GAMMA * (1 - speedPercent / 100);
+  return Math.round(speedPercent * Math.pow(raw / PEAK_SPEED, exponent));
 }
 
 // One ramp's waypoints: a leading waypoint at `from` then a step every stepMs to
@@ -117,26 +144,30 @@ function buildLeg(
   return { waypoints, endAt: at };
 }
 
-// One dip cycle (top -> floor -> top), with top/floor/jitter sampled from the
-// curves at `positionMs`. Both endpoints are whole STEP_SIZE multiples. When the
-// floor rounds up to the top (late in the program) both legs are zero-length, so
-// it becomes a hold at the top — exactly how "no variability" falls out.
+// One dip cycle: the raw Homegrown pattern PEAK_SPEED -> floor -> PEAK_SPEED
+// (floor and jitter sampled from the variability curves at `positionMs`), with
+// every raw waypoint mapped through scaleSpeed at this position's build level. The
+// stored speeds are therefore the pre-intensity device values (outputSpeed applies
+// intensity on top). When the floor reaches PEAK_SPEED (end of program) both legs
+// are zero-length, so it becomes a hold at the top — how "no variability" falls out.
 function buildGooningCycle(
   positionMs: number,
   startAt: number,
 ): { waypoints: ScriptWaypoint[]; endAt: number } {
-  const top = buildTop(positionMs);
-  const floor = Math.min(top, roundToStep(top * floorFraction(positionMs)));
-  const jitter = jitterPercent(positionMs);
+  const speedPercent = buildSpeedPercent(positionMs);
+  const floor = variabilityFloor(positionMs);
+  const jitter = variabilityJitter(positionMs);
   const legs: ReadonlyArray<{ from: number; to: number }> = [
-    { from: top, to: floor },
-    { from: floor, to: top },
+    { from: PEAK_SPEED, to: floor },
+    { from: floor, to: PEAK_SPEED },
   ];
   const waypoints: ScriptWaypoint[] = [];
   let at = startAt;
   for (const leg of legs) {
     const built = buildLeg(leg.from, leg.to, jitter, at);
-    waypoints.push(...built.waypoints);
+    for (const wp of built.waypoints) {
+      waypoints.push({ speed: scaleSpeed(wp.speed, speedPercent), at: wp.at });
+    }
     at = built.endAt;
   }
   return { waypoints, endAt: at };
@@ -180,7 +211,6 @@ export class GooningAutopilot {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private currentTime = 0;
   private currentScriptIndex = 0;
-  private lastSentSpeed = 0;
   // The exact (already-scaled) value most recently sent; re-sending the same
   // value briefly stops the device, so we skip a duplicate send. null = nothing
   // sent since the last stop.
@@ -294,7 +324,6 @@ export class GooningAutopilot {
     this.currentTime = 0;
     this.positionOffset = 0;
     this.lastTeaseIndex = 0;
-    this.lastSentSpeed = 0;
     this.lastDeviceSpeed = null;
     this.isPlaying = true;
     this.scheduleNextTick();
@@ -364,7 +393,6 @@ export class GooningAutopilot {
         await this.device().targetSpeedSet(output);
         this.lastDeviceSpeed = output;
       }
-      this.lastSentSpeed = waypoint.speed;
       this.currentScriptIndex++;
     }
     this.currentTime += TICK_MS;
