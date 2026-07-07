@@ -88,9 +88,11 @@ switch words itself, and dispatches any other word to the running algorithm's
 matching action.
 
 Each algorithm carries a `switchWord` — the spoken word that selects it while
-idle (kept separate from `label` because it must be in the recognizer model's
-vocabulary; e.g. Goon uses `goon` and Autopilot uses `autopilot`, since the labels'
-own words `gooning`/`vacuglide` are out-of-vocabulary).
+idle, kept separate from `label` because a label could be display text that isn't
+a single in-vocabulary word (e.g. "Gooning" or "Vacuglide" wouldn't be recognized).
+Today every switch word is just the lowercased label (`goon`, `autopilot`,
+`homegrown`), but the split lets a future algorithm name something unspeakable
+while still exposing a recognizable switch word.
 Selecting an algorithm points voice `start` at it and brings its tab into view.
 Switching is disabled while an algorithm runs: the switch words leave the grammar,
 and `page.tsx` disables the other algorithm tabs (the running one's own tab and
