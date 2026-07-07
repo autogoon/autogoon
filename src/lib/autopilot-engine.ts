@@ -1,36 +1,35 @@
-// Autopilot engine — a faithful port of the algorithm in the original
-// fun.autoblow.com/vacuglide/autopilot client bundle, including its pattern
-// templates and constants. See README.md for a full description.
-//
-// currentTime and mysteryScript are a permanent record of the whole play
-// session (for a future timeline visualisation) — neither is reset to zero
-// except by a fresh start(). When we run out of generated future (normal
-// looping) we append another 10-template block continuing the same clock.
-// finishMe() instead cuts off whatever hasn't been sent yet — keeping every
-// waypoint already realised as real history — and appends its own waypoints
-// starting at the next tick.
+// Autopilot as an AlgorithmEngine — a faithful port of the algorithm in the
+// original fun.autoblow.com/vacuglide/autopilot client bundle (its pattern
+// templates and constants), translated onto the shared Player's event model. The
+// Player owns the clock, lookahead, sends and valve timing; this only *generates*
+// events and *scales* them. Generation helpers are private to this file —
+// algorithms do not share generation code.
 
-import type { VacuglideDevice } from "@/lib/vacuglide-device";
+import {
+  type PlayerContext,
+  type ProgramEvent,
+  type AlgorithmEngine,
+  type SpeedEvent,
+} from "@/lib/program";
 
 export type IntensityLevel = "warmup" | "low" | "medium" | "high";
 export type EdgeControlLevel = "gentle" | "moderate" | "intense";
 export type SuctionControlLevel = "off" | "little" | "more";
-
-export type LogKind = "send" | "error" | "info";
 
 interface TemplateStep {
   speed: number;
   duration: number;
 }
 
-interface ScriptWaypoint {
-  speed: number;
-  at: number;
-}
-
 const SPEED_MAX = 100;
 const SPEED_TEMPLATE_MIN = 5;
-const TICK_MS = 100;
+// finishMe parks 0 half an hour out, so a single near-instant blip to 0 happens
+// every 30 minutes rather than needing extra state to suppress a wraparound.
+const FINISH_HOLD_MS = 1_800_000;
+// Number of random templates laid down per generated block.
+const TEMPLATES_PER_BLOCK = 10;
+// The speed a fresh block leads in with (a literal device value, NOT scaled).
+const BLOCK_LEAD_IN_SPEED = 10;
 
 // The original's eight pattern templates, verbatim. Speeds are template-space
 // (5-100) and get rescaled to the intensity range; durations are ms and get
@@ -133,326 +132,261 @@ const PATTERN_TEMPLATES: TemplateStep[][] = [
   ],
 ];
 
+const intensityRanges: Record<IntensityLevel, { min: number; max: number }> = {
+  warmup: { min: 5, max: 20 },
+  low: { min: 5, max: 30 },
+  medium: { min: 15, max: 70 },
+  high: { min: 30, max: 100 },
+};
+
+const edgeControlParams: Record<
+  EdgeControlLevel,
+  { plateauTime: number; cooldownTime: number }
+> = {
+  gentle: { plateauTime: 0.5, cooldownTime: 2 },
+  moderate: { plateauTime: 1, cooldownTime: 1 },
+  intense: { plateauTime: 1.5, cooldownTime: 0.5 },
+};
+
+const suctionControlParams: Record<
+  SuctionControlLevel,
+  {
+    enabled: boolean;
+    baseDuration: number;
+    speedMultiplier: number;
+    interval: number;
+  }
+> = {
+  off: { enabled: false, baseDuration: 0, speedMultiplier: 0, interval: 0 },
+  little: {
+    enabled: true,
+    baseDuration: 200,
+    speedMultiplier: 0.8,
+    interval: 3000,
+  },
+  more: {
+    enabled: true,
+    baseDuration: 400,
+    speedMultiplier: 0.6,
+    interval: 2000,
+  },
+};
+
+// The helpers below are deliberately module-level functions, not private methods
+// of the class: they are pure, stateless transforms, kept file-private (never
+// exported). Matching the sibling engines (see goon-engine.ts), keeping them as
+// functions avoids handing stateless code a `this` it does not use.
+
+function scaleSpeedToIntensity(speed: number, level: IntensityLevel): number {
+  const { min, max } = intensityRanges[level];
+  const norm = (speed - SPEED_TEMPLATE_MIN) / (SPEED_MAX - SPEED_TEMPLATE_MIN);
+  const scaled = Math.round(min + norm * (max - min));
+  return Math.max(min, Math.min(max, scaled));
+}
+
+function scaleDurationToEdge(
+  templateSpeed: number,
+  duration: number,
+  edge: EdgeControlLevel,
+): number {
+  const p = edgeControlParams[edge];
+  if (templateSpeed > 70) return Math.round(duration * p.plateauTime);
+  if (templateSpeed < 30) return Math.round(duration * p.cooldownTime);
+  return duration;
+}
+
+// The per-send plateau jitter the old timerLoop applied once per waypoint right
+// before sending. It MUST be baked into the SpeedEvent at generation: the Player
+// re-scales every tick, so doing it in scale() would re-randomise it every 100ms.
+// Applied to the already-intensity-scaled speed, so it only ever bites at "high"
+// intensity plateaus (the only range whose max exceeds 70).
+function applyPlateauJitter(speed: number, edge: EdgeControlLevel): number {
+  if (edge === "intense" && speed > 70) {
+    const headroom = Math.min(SPEED_MAX - speed, 15);
+    return speed + Math.round(headroom * Math.random());
+  }
+  if (edge === "gentle" && speed > 70) {
+    const excess = Math.min(speed - 50, 20);
+    return speed - Math.round(excess * 0.5);
+  }
+  return speed;
+}
+
+// One block of TEMPLATES_PER_BLOCK random templates, laid down as SpeedEvents
+// starting at `startAt`. Mirrors the original buildMysteryScript: a literal
+// lead-in speed, then each template step's intensity-scaled (and plateau-
+// jittered) speed placed at the END of its edge-warped duration. Returns the
+// events plus the time the block ends (a clean boundary for the next block).
+function buildBlock(
+  startAt: number,
+  intensity: IntensityLevel,
+  edge: EdgeControlLevel,
+): { events: SpeedEvent[]; endAt: number } {
+  const events: SpeedEvent[] = [
+    { kind: "speed", at: startAt, speed: BLOCK_LEAD_IN_SPEED },
+  ];
+  let at = startAt;
+  for (let i = 0; i < TEMPLATES_PER_BLOCK; i++) {
+    const template =
+      PATTERN_TEMPLATES[Math.floor(Math.random() * PATTERN_TEMPLATES.length)];
+    if (template === undefined) continue;
+    for (const step of template) {
+      const scaled = scaleSpeedToIntensity(step.speed, intensity);
+      const speed = applyPlateauJitter(scaled, edge);
+      const duration = scaleDurationToEdge(step.speed, step.duration, edge);
+      at += duration;
+      events.push({ kind: "speed", at, speed });
+    }
+  }
+  return { events, endAt: at };
+}
+
+// The device speed in effect at time `t` given the batch's speed events (sorted
+// ascending). Used to size a suction pulse from the speed it fires under.
+function speedInEffectAt(
+  events: SpeedEvent[],
+  t: number,
+  fallback: number,
+): number {
+  let speed = fallback;
+  for (const ev of events) {
+    if (ev.at > t) break;
+    speed = ev.speed;
+  }
+  return speed;
+}
+
 export interface AutopilotOptions {
-  getDevice: () => VacuglideDevice | null;
-  log: (text: string, kind?: LogKind) => void;
   intensity: IntensityLevel;
   edgeControl: EdgeControlLevel;
   suctionControl: SuctionControlLevel;
 }
 
-export class Autopilot {
-  private readonly getDevice: () => VacuglideDevice | null;
-  private readonly log: (text: string, kind?: LogKind) => void;
-
-  isPlaying = false;
-  intensityLevel: IntensityLevel;
-  edgeControlLevel: EdgeControlLevel;
-  suctionControlLevel: SuctionControlLevel;
-
-  private timer: ReturnType<typeof setTimeout> | null = null;
-  private currentTime = 0;
-  private currentScriptIndex = 0;
-  private lastSentIndex = 0;
-  private mysteryScript: ScriptWaypoint[] = [];
-  private listeners: Array<() => void> = [];
+export class Autopilot implements AlgorithmEngine {
+  private intensityLevel: IntensityLevel;
+  private edgeControlLevel: EdgeControlLevel;
+  private suctionControlLevel: SuctionControlLevel;
+  // Program-time of the last suction pulse placed; carried across generate calls
+  // so the pulse cadence is continuous. Reset by reset() (a fresh session).
   private lastSuctionTime = 0;
-  private suctionTimer: ReturnType<typeof setTimeout> | null = null;
-
-  private readonly intensityRanges: Record<
-    IntensityLevel,
-    { min: number; max: number }
-  > = {
-    warmup: { min: 5, max: 20 },
-    low: { min: 5, max: 30 },
-    medium: { min: 15, max: 70 },
-    high: { min: 30, max: 100 },
-  };
-
-  private readonly edgeControlParams: Record<
-    EdgeControlLevel,
-    { plateauTime: number; cooldownTime: number }
-  > = {
-    gentle: { plateauTime: 0.5, cooldownTime: 2 },
-    moderate: { plateauTime: 1, cooldownTime: 1 },
-    intense: { plateauTime: 1.5, cooldownTime: 0.5 },
-  };
-
-  private readonly suctionControlParams: Record<
-    SuctionControlLevel,
-    {
-      enabled: boolean;
-      baseDuration: number;
-      speedMultiplier: number;
-      interval: number;
-    }
-  > = {
-    off: { enabled: false, baseDuration: 0, speedMultiplier: 0, interval: 0 },
-    little: {
-      enabled: true,
-      baseDuration: 200,
-      speedMultiplier: 0.8,
-      interval: 3000,
-    },
-    more: {
-      enabled: true,
-      baseDuration: 400,
-      speedMultiplier: 0.6,
-      interval: 2000,
-    },
-  };
+  private finishing = false;
+  private finishEmitted = false;
 
   constructor(opts: AutopilotOptions) {
-    this.getDevice = opts.getDevice;
-    this.log = opts.log;
     this.intensityLevel = opts.intensity;
     this.edgeControlLevel = opts.edgeControl;
     this.suctionControlLevel = opts.suctionControl;
   }
 
-  private device(): VacuglideDevice {
-    const d = this.getDevice();
-    if (d === null) throw new Error("No device connected");
-    return d;
+  reset(): void {
+    this.finishing = false;
+    this.finishEmitted = false;
+    this.lastSuctionTime = 0;
   }
 
-  // A block of 10 random templates (the "mystery script"), continuing from
-  // `startAt` rather than always restarting at 0 — so it can either seed a
-  // fresh session (startAt: 0) or extend the existing timeline forward.
-  private buildMysteryScript(startAt: number): ScriptWaypoint[] {
-    const script: ScriptWaypoint[] = [{ speed: 10, at: startAt }];
-    let at = startAt;
-    for (let i = 0; i < 10; i++) {
-      const template =
-        PATTERN_TEMPLATES[Math.floor(Math.random() * PATTERN_TEMPLATES.length)];
-      if (template === undefined) continue;
-      for (const step of template) {
-        const speed = this.scaleSpeedToIntensity(step.speed);
-        const duration = this.scaleDurationToEdge(step.speed, step.duration);
-        at += duration;
-        script.push({ speed, at });
-      }
-    }
-    return script;
-  }
-
-  private scaleSpeedToIntensity(speed: number): number {
-    const { min, max } = this.intensityRanges[this.intensityLevel];
-    const norm =
-      (speed - SPEED_TEMPLATE_MIN) / (SPEED_MAX - SPEED_TEMPLATE_MIN);
-    const scaled = Math.round(min + norm * (max - min));
-    return Math.max(min, Math.min(max, scaled));
-  }
-
-  private scaleDurationToEdge(templateSpeed: number, duration: number): number {
-    const p = this.edgeControlParams[this.edgeControlLevel];
-    if (templateSpeed > 70) return Math.round(duration * p.plateauTime);
-    if (templateSpeed < 30) return Math.round(duration * p.cooldownTime);
-    return duration;
-  }
-
-  // Cut off whatever hasn't been sent yet (the future) while keeping
-  // everything already sent as real history, then append `waypoints` starting
-  // at the next tick.
-  private spliceFromNow(build: (startAt: number) => ScriptWaypoint[]): void {
-    this.mysteryScript = this.mysteryScript.slice(0, this.currentScriptIndex);
-    this.mysteryScript.push(...build(this.currentTime + TICK_MS));
-  }
-
-  private resetScript(): void {
-    this.currentScriptIndex = 0;
-    this.currentTime = 0;
-    this.lastSentIndex = 0;
-    this.mysteryScript = this.buildMysteryScript(0);
-  }
-
+  // Shape knob: changes the SPEED pattern. The hook calls invalidateFuture()
+  // after this while playing so generate() re-lays blocks at the new intensity.
   setIntensity(level: IntensityLevel): void {
     this.intensityLevel = level;
-    this.resetScript();
-    this.notifyListeners();
   }
 
+  // Shape knob: changes speed plateau/cooldown warping (and plateau jitter).
+  // The hook invalidates after this while playing.
   setEdgeControl(level: EdgeControlLevel): void {
     this.edgeControlLevel = level;
-    this.resetScript();
-    this.notifyListeners();
   }
 
+  // Suction knob: changes ONLY the suction pulses. The hook does NOT invalidate,
+  // so already-scheduled pulses (up to the lookahead) keep their old cadence and
+  // the new level only takes effect as the lookahead extends. lastSuctionTime is
+  // left untouched so the cadence stays phase-continuous.
   setSuctionControl(level: SuctionControlLevel): void {
     this.suctionControlLevel = level;
-    this.lastSuctionTime = 0;
-    if (this.suctionTimer !== null) {
-      clearTimeout(this.suctionTimer);
-      this.suctionTimer = null;
-    }
-    this.notifyListeners();
   }
 
-  async start(): Promise<void> {
-    this.resetScript();
-    this.isPlaying = true;
-    this.scheduleNextTick();
-    this.notifyListeners();
-  }
-
-  private scheduleNextTick(): void {
-    if (!this.isPlaying) return;
-    this.timer = setTimeout(() => {
-      void (async () => {
-        try {
-          await this.timerLoop();
-        } catch (err) {
-          this.log(`error: ${(err as Error).message}`, "error");
-        }
-        this.notifyListeners();
-        this.scheduleNextTick();
-      })();
-    }, TICK_MS);
-  }
-
-  private async timerLoop(): Promise<void> {
-    if (!this.isPlaying) return;
-    if (this.currentScriptIndex >= this.mysteryScript.length) {
-      // Ran out of generated future — extend the timeline with another
-      // 10-template block, continuing (never resetting) the clock.
-      const last = this.mysteryScript[this.mysteryScript.length - 1];
-      this.mysteryScript.push(
-        ...this.buildMysteryScript(last?.at ?? this.currentTime),
-      );
-    }
-    const waypoint = this.mysteryScript[this.currentScriptIndex];
-    if (waypoint !== undefined && this.currentTime >= waypoint.at) {
-      let speed = waypoint.speed;
-      // per-send jitter on plateaus
-      if (this.edgeControlLevel === "intense" && speed > 70) {
-        const headroom = Math.min(SPEED_MAX - speed, 15);
-        speed += Math.round(headroom * Math.random());
-      } else if (this.edgeControlLevel === "gentle" && speed > 70) {
-        const excess = Math.min(speed - 50, 20);
-        speed -= Math.round(excess * 0.5);
-      }
-      await this.device().targetSpeedSet(speed);
-      this.lastSentIndex = this.currentScriptIndex;
-      this.currentScriptIndex++;
-      void this.handleSuctionControl(speed);
-    }
-    this.currentTime += TICK_MS;
-  }
-
-  private async handleSuctionControl(speed: number): Promise<void> {
-    const p = this.suctionControlParams[this.suctionControlLevel];
-    if (!p.enabled) return;
-    if (this.currentTime - this.lastSuctionTime < p.interval) return;
-    const speedFactor = speed / SPEED_MAX;
-    const pulseMs = Math.round(
-      (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
-    );
-    const dev = this.device();
-    await dev.valveStrokeMinusSet(true);
-    this.suctionTimer = setTimeout(() => {
-      dev.valveStrokeMinusSet(false).catch((err: Error) => {
-        this.log(`failed to close suction valve: ${err.message}`, "error");
-      });
-    }, pulseMs);
-    this.lastSuctionTime = this.currentTime;
-  }
-
-  private clearTimers(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    if (this.suctionTimer !== null) {
-      clearTimeout(this.suctionTimer);
-      this.suctionTimer = null;
-    }
-  }
-
-  async pause(): Promise<void> {
-    this.isPlaying = false;
-    this.clearTimers();
-    await this.device().targetSpeedStop();
-    this.notifyListeners();
-  }
-
-  async stop(): Promise<void> {
-    await this.pause();
-    this.lastSuctionTime = 0;
-    this.notifyListeners();
-  }
-
-  // Unlike stop, finish keeps playing — it should read as a crescendo, not an
-  // abrupt halt. Cut off whatever hasn't been sent yet (keeping everything
-  // already sent as real history) and splice in: ramp to full speed at the
-  // next tick, then hold there for half an hour before the existing
-  // loop-to-start logic wraps around and sends it again — a single
-  // near-instant blip down to 0 every 30 minutes rather than new state to
-  // suppress the wraparound. Also push the other knobs to their most intense
-  // settings: full intensity, vacuum off, and edge control "moderate" — the
-  // one level whose plateau/cooldown multipliers are both 1, so it doesn't
-  // retroactively scale any timing already baked into the script.
-  async finishMe(): Promise<void> {
-    const dev = this.device();
-    this.spliceFromNow((startAt) => [
-      { speed: SPEED_MAX, at: startAt },
-      { speed: 0, at: startAt + 1_800_000 },
-    ]);
+  // Finish: a crescendo, not a halt. generate() jumps to full speed now and
+  // parks 0 half an hour out; intensity/edge/suction are forced to their finish
+  // values (full intensity, edge "moderate" — the one level whose warp
+  // multipliers are both 1 — and vacuum off). The hook invalidates after this.
+  beginFinish(): void {
+    this.finishing = true;
+    this.finishEmitted = false;
     this.intensityLevel = "high";
     this.edgeControlLevel = "moderate";
-    this.setSuctionControl("off");
-    await dev.valveStrokePlusSet(false);
-    await dev.valveStrokeMinusSet(false);
-    this.notifyListeners();
+    this.suctionControlLevel = "off";
   }
 
-  getState(): { isPlaying: boolean; currentSpeed: number } {
-    const current = this.mysteryScript[this.lastSentIndex];
-    return {
-      isPlaying: this.isPlaying,
-      currentSpeed: this.isPlaying && current !== undefined ? current.speed : 0,
-    };
-  }
-
-  // The speeds coming up over the next `windowMs`, as {t, speed} points with t
-  // in ms from now (0..windowMs). Begins with the speed currently in effect so a
-  // sparkline can step straight from the present value, and always ends at
-  // windowMs. Speeds are already the final (intensity-scaled) device values. Flat
-  // at 0 while paused. Scans only from the playback cursor, never the whole
-  // history.
-  getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
-    if (!this.isPlaying) {
+  generate(
+    fromTime: number,
+    untilTime: number,
+    ctx: PlayerContext,
+  ): ProgramEvent[] {
+    if (this.finishing) {
+      if (this.finishEmitted) return [];
+      this.finishEmitted = true;
+      // Jump to full speed now, park 0 far out, and close both stroke valves so
+      // any suction pulse caught mid-open (its close event just dropped by the
+      // invalidate) does not stay stuck open — mirrors the old finishMe.
       return [
-        { t: 0, speed: 0 },
-        { t: windowMs, speed: 0 },
+        { kind: "speed", at: fromTime, speed: SPEED_MAX, unscaled: true },
+        { kind: "valve", at: fromTime, valve: "minus", open: false },
+        { kind: "valve", at: fromTime, valve: "plus", open: false },
+        {
+          kind: "speed",
+          at: fromTime + FINISH_HOLD_MS,
+          speed: 0,
+          unscaled: true,
+        },
       ];
     }
-    const now = this.currentTime;
-    const end = now + windowMs;
-    let inEffect = this.mysteryScript[this.currentScriptIndex - 1]?.speed ?? 0;
-    const points: Array<{ t: number; speed: number }> = [];
-    for (let i = this.currentScriptIndex; i < this.mysteryScript.length; i++) {
-      const wp = this.mysteryScript[i]!;
-      if (wp.at > end) break;
-      if (wp.at <= now) {
-        inEffect = wp.speed;
-        continue;
-      }
-      points.push({ t: wp.at - now, speed: wp.speed });
+
+    // Lay down whole blocks until the lookahead horizon is covered. Each block is
+    // long (many minutes), so this is usually a single block per call.
+    const speedEvents: SpeedEvent[] = [];
+    let at = fromTime;
+    while (at < untilTime) {
+      const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
+      speedEvents.push(...block.events);
+      at = block.endAt;
     }
-    const curve = [{ t: 0, speed: inEffect }, ...points];
-    const last = curve[curve.length - 1]!;
-    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
-    return curve;
+    const batchEnd = at;
+
+    const events: ProgramEvent[] = [...speedEvents];
+
+    // Suction ("Vacuum Maintenance"): a pulse every `interval` of program-time,
+    // each an open/close ValveEvent pair on the minus valve. Placed across the
+    // full speed extent [fromTime, batchEnd) so suction coverage tracks speed
+    // coverage exactly.
+    const p = suctionControlParams[this.suctionControlLevel];
+    if (p.enabled) {
+      // Advance the cadence up to the generation frontier without emitting pulses
+      // that would land before `fromTime` (they are already in the past for the
+      // Player, and would break the sorted-events contract). This matters when
+      // suction was off for a while and is re-enabled.
+      while (this.lastSuctionTime + p.interval < fromTime) {
+        this.lastSuctionTime += p.interval;
+      }
+      let t = this.lastSuctionTime + p.interval;
+      while (t < batchEnd) {
+        const speedFactor = speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
+        const pulseMs = Math.round(
+          (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
+        );
+        events.push({ kind: "valve", at: t, valve: "minus", open: true });
+        events.push({ kind: "valve", at: t + pulseMs, valve: "minus", open: false });
+        this.lastSuctionTime = t;
+        t += p.interval;
+      }
+    }
+
+    events.sort((a, b) => a.at - b.at);
+    return events;
   }
 
-  subscribe(fn: () => void): () => void {
-    this.listeners.push(fn);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== fn);
-    };
-  }
-
-  private notifyListeners(): void {
-    this.listeners.forEach((fn) => fn());
+  // Speeds are fully baked at generation (intensity scaling, edge duration-warp
+  // and the per-send plateau jitter), so scale() is identity — honouring the
+  // `unscaled` finish events the same way.
+  scale(event: SpeedEvent): number {
+    return event.speed;
   }
 }

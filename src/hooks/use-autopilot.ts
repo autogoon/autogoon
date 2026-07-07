@@ -1,9 +1,10 @@
 "use client";
 
-// The Autopilot algorithm as a React hook. Owns the engine and its knobs
-// (intensity, edge control, vacuum maintenance) — none of which exist on the
-// device API. It drives the device purely through the VacuglideDeviceController it
-// is given, so a different algorithm can reuse the same device layer.
+// The Autopilot algorithm as a React hook. It no longer owns a play loop — it
+// drives the shared Player (in the device hook) with an Autopilot engine, and
+// mirrors the player into render state while Autopilot is the active source. It
+// still owns the algorithm's knobs (intensity, edge control, vacuum
+// maintenance), which live only here and on the engine, not on the device API.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -12,10 +13,7 @@ import {
   type IntensityLevel,
   type SuctionControlLevel,
 } from "@/lib/autopilot-engine";
-import {
-  UPCOMING_WINDOW_MS,
-  type CurvePoint,
-} from "@/components/sparkline";
+import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -24,79 +22,76 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 // the next/previous one.
 const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
 
+const FLAT: CurvePoint[] = [
+  { t: 0, speed: 0 },
+  { t: UPCOMING_WINDOW_MS, speed: 0 },
+];
+
 export function useAutopilot(vacuglide: VacuglideDeviceController) {
-  const { getDevice, log } = vacuglide;
+  const { player, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
   // The hook owns the algorithm's levels; the engine is seeded from these on
   // construction and kept in sync by the change handlers below.
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
-  // The next minute of script, refreshed every tick for the sparkline preview.
-  const [upcoming, setUpcoming] = useState<CurvePoint[]>([]);
+  const [upcoming, setUpcoming] = useState<CurvePoint[]>(FLAT);
   const [intensity, setIntensity] = useState<IntensityLevel>("warmup");
   const [edge, setEdge] = useState<EdgeControlLevel>("moderate");
   const [suction, setSuction] = useState<SuctionControlLevel>("more");
 
-  const engineRef = useRef<Autopilot | null>(null);
-  engineRef.current ??= new Autopilot({
-    getDevice,
-    log,
-    intensity,
-    edgeControl: edge,
-    suctionControl: suction,
+  const sourceRef = useRef<Autopilot | null>(null);
+  sourceRef.current ??= new Autopilot({
+    intensity: "warmup",
+    edgeControl: "moderate",
+    suctionControl: "more",
   });
-  const engine = engineRef.current;
+  const source = sourceRef.current;
 
+  // Mirror the player into render state, but only while Autopilot is the active
+  // source (the shared player may be idle or running another algorithm).
   useEffect(() => {
-    const unsubscribe = engine.subscribe(() => {
-      const state = engine.getState();
-      setIsPlaying(state.isPlaying);
-      setCurrentSpeed(state.currentSpeed);
-      setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
-    });
-    return unsubscribe;
-  }, [engine]);
-
-  // Safety: if the page is closed while autopilot is running, ask the device
-  // to stop rather than leaving it at the last commanded speed.
-  useEffect(() => {
-    const onPageHide = () => {
-      const device = getDevice();
-      if (device !== null && device.cluster !== null && engine.isPlaying) {
-        void fetch(`${device.cluster}/vacuglide/target-speed/stop`, {
-          method: "PUT",
-          headers: { "x-device-token": device.token },
-          keepalive: true,
-        }).catch(() => undefined);
-      }
+    const sync = () => {
+      const active = player.source === source && player.isPlaying;
+      setIsPlaying(active);
+      setCurrentSpeed(active ? player.getState().currentSpeed : 0);
+      setUpcoming(active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT);
     };
-    window.addEventListener("pagehide", onPageHide);
-    return () => window.removeEventListener("pagehide", onPageHide);
-  }, [engine, getDevice]);
+    const unsubscribe = player.subscribe(sync);
+    sync();
+    return unsubscribe;
+  }, [player, source]);
 
-  const start = useCallback(() => engine.start(), [engine]);
-  const stop = useCallback(() => engine.stop(), [engine]);
+  const start = useCallback(async () => {
+    player.setSource(source);
+    player.play();
+  }, [player, source]);
 
-  // engine.finishMe() sets its intensity/edge/suction fields directly (not via
-  // the change* handlers below, which would regenerate the script) — mirror
-  // that here so the segmented controls reflect it.
+  const stop = useCallback(() => player.pause(), [player]);
+
+  // engine.beginFinish() forces the engine's intensity/edge/suction fields (not
+  // via the change* handlers below, which would double-invalidate) — mirror that
+  // here so the segmented controls reflect it.
   const finishMe = useCallback(() => {
-    engine.finishMe().catch((err: Error) => {
-      log(`error: ${err.message}`, "error");
-    });
+    try {
+      source.beginFinish();
+      if (player.source === source && player.isPlaying) player.invalidateFuture();
+    } catch (err) {
+      log(`error: ${(err as Error).message}`, "error");
+    }
     setIntensity("high");
     setEdge("moderate");
     setSuction("off");
-  }, [engine, log]);
+  }, [player, source, log]);
 
   const changeIntensity = useCallback(
     (level: IntensityLevel) => {
       setIntensity(level);
-      engine.setIntensity(level);
+      source.setIntensity(level);
+      if (player.source === source && player.isPlaying) player.invalidateFuture();
       log(`intensity → ${level}`);
     },
-    [engine, log],
+    [player, source, log],
   );
 
   // Step intensity to the next/previous level in bar order, clamped at the ends.
@@ -115,19 +110,22 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   const changeEdge = useCallback(
     (level: EdgeControlLevel) => {
       setEdge(level);
-      engine.setEdgeControl(level);
+      source.setEdgeControl(level);
+      if (player.source === source && player.isPlaying) player.invalidateFuture();
       log(`edge control → ${level}`);
     },
-    [engine, log],
+    [player, source, log],
   );
 
+  // Suction changes only the vacuum pulses, which the engine bakes into the
+  // program as it extends — no invalidate, so already-scheduled pulses persist.
   const changeSuction = useCallback(
     (level: SuctionControlLevel) => {
       setSuction(level);
-      engine.setSuctionControl(level);
+      source.setSuctionControl(level);
       log(`vacuum maintenance → ${level}`);
     },
-    [engine, log],
+    [source, log],
   );
 
   // The words this algorithm understands and what each one does. start/stop are
