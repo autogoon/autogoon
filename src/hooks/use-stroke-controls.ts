@@ -11,7 +11,8 @@ import { useCallback, useMemo, useState } from "react";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-const STROKE_PULSE_MS = 400;
+const STROKE_PULSE_MINUS_MS = 4000;
+const STROKE_PULSE_PLUS_MS = 400;
 
 export function useStrokeControls(vacuglide: VacuglideDeviceController) {
   const { valvePlus, valveMinus, log } = vacuglide;
@@ -25,17 +26,19 @@ export function useStrokeControls(vacuglide: VacuglideDeviceController) {
   const strokePulse = useCallback(
     (dir: "plus" | "minus") => {
       const valve = dir === "plus" ? valvePlus : valveMinus;
-      const clear = () =>
-        setStrokePulsing((cur) => (cur === dir ? null : cur));
+      const clear = () => setStrokePulsing((cur) => (cur === dir ? null : cur));
       setStrokePulsing(dir);
       valve(true)
         .then(() => {
-          setTimeout(() => {
-            valve(false).catch((err: Error) =>
-              log(`error: ${err.message}`, "error"),
-            );
-            clear();
-          }, STROKE_PULSE_MS);
+          setTimeout(
+            () => {
+              valve(false).catch((err: Error) =>
+                log(`error: ${err.message}`, "error"),
+              );
+              clear();
+            },
+            dir == "minus" ? STROKE_PULSE_MINUS_MS : STROKE_PULSE_PLUS_MS,
+          );
         })
         .catch((err: Error) => {
           log(`error: ${err.message}`, "error");

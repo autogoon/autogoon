@@ -103,7 +103,7 @@ export default function Home() {
   // from a cold load (before anything has run).
   useEffect(() => {
     if (tab !== "settings") runner.setCurrent(tab);
-  }, [tab, runner.setCurrent]);
+  }, [tab, runner, runner.setCurrent]);
 
   // KWS calls the runner directly with each detected word, and logs its final
   // transcripts into the shared command log (the runner logs each executed word
@@ -112,12 +112,7 @@ export default function Home() {
 
   return (
     <>
-      <HeaderBar
-        kws={kws}
-        vacuglide={vacuglide}
-        running={runner.running}
-        onStop={runner.stop}
-      />
+      <HeaderBar kws={kws} vacuglide={vacuglide} />
       <div className="mx-auto w-full max-w-2xl px-4">
         <nav className="flex gap-6 border-b">
           {TABS.map((t) => {
