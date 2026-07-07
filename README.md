@@ -94,8 +94,8 @@ throttle background or screen-locked tabs, which stops both.
 ## Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together: the
-  engine/hook/panel split, the shared device layer, the algorithm runner, the
-  keyword spotter, and the Vacuglide HTTP API.
+  program/player model, the engine/hook/panel split, the shared device layer and
+  algorithm runner, the keyword spotter, and the Vacuglide HTTP API.
 - [ALGORITHM-GOON.md](./ALGORITHM-GOON.md) — the automatic slow-build algorithm.
 - [ALGORITHM-HOMEGROWN.md](./ALGORITHM-HOMEGROWN.md) — the hand-built dip algorithm.
 - [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md) — the reverse-engineered
