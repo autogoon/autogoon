@@ -1,12 +1,19 @@
-# Autogoon
+# Autogoon — voice-controlled gooning
 
-Autogoon is a browser-based controller for the
-[Autoblow Vacuglide](https://developers.autoblow.com/reference/http-api-v1-vacuglide/)
-stroker. It drives the device with a choice of movement "algorithms" and lets you
-run the whole session **hands-free by voice**.
+Autogoon drives an Autoblow
+[Vacuglide or Vacuglide 2](https://developers.autoblow.com/reference/http-api-v1-vacuglide/)
+stroker from your browser, **entirely by voice**. Run a whole session hands-free —
+just speak (`start`, `faster`, `slower`, `more`, `less`, `finish`, `cumming`) and
+it works the device for you. Pick a movement "algorithm" to ride — including an
+automatic 30-minute slow build — and never touch the screen.
 
 ## What it does
 
+- **Hands-free voice control.** In-browser speech recognition listens for short
+  spoken commands — `start`/`stop`, `faster`/`slower`, `more`/`less`,
+  `forward`/`back`, `finish`, `cumming`, `up`/`down` — and drives whichever
+  algorithm is running, so the whole session is hands-free. No app, no wearable,
+  no clicking around: just talk.
 - **Gooning — an automatic slow build.** A 30-minute program that starts slow and
   teasing and ramps up to a controlled finish. An **intensity** dial sets how far
   it builds (turn it down when you're more sensitive), and **time dilation**
@@ -16,13 +23,13 @@ run the whole session **hands-free by voice**.
   two controls: **Speed** and **Variability**.
 - **Vacuglide — the official autopilot.** A faithful recreation of Autoblow's own
   vacuglide autopilot.
-- **Hands-free voice control.** In-browser speech recognition listens for short
-  spoken commands — `start`/`stop`, `faster`/`slower`, `more`/`less`,
-  `forward`/`back`, `finish`, `cumming`, `up`/`down` — and drives whichever
-  algorithm is running, so you never have to touch the screen.
+
+## Privacy
 
 Everything runs in your browser; the only thing that leaves your machine is the
-control traffic to Autoblow's cloud API for the device itself.
+control traffic to Autoblow's cloud API for the device itself. Speech recognition
+runs entirely locally (WASM in the page), so your microphone audio never leaves
+your machine.
 
 ## The app
 
@@ -55,6 +62,24 @@ Also: `npm run build`, `npm run lint`, `npm run typecheck`, `npm run format`.
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
 offline.
+
+## Running hands-free (mobile caveats)
+
+The controlling tab has to stay **foregrounded and awake** — it runs the timing
+loop and the microphone continuously, and mobile browsers suspend or heavily
+throttle background or screen-locked tabs, which stops both.
+
+- **iOS Safari** — strict: the moment the tab is backgrounded or the screen locks,
+  the algorithm and the mic stop. In practice you need a **second device**
+  dedicated to Autogoon (screen on, tab in front) while you use the toy. This is
+  the only tested configuration.
+- **iOS Chrome / Firefox / any iOS browser** *(untested)* — expected to behave
+  exactly like iOS Safari: Apple requires every iOS browser to use the system
+  WebKit engine, so they inherit the same background-tab and media limits.
+- **Android Chrome** *(untested)* — likely more forgiving in the foreground with
+  the screen on (different engine), but background/locked tabs are still throttled.
+  A single device *may* work if you keep the tab in front and the screen awake
+  (e.g. Screen Wake Lock) — unverified.
 
 ## Documentation
 
