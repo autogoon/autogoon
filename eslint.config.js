@@ -24,7 +24,7 @@ const baseConfig = [
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.mjs", "*.js"],
+          allowDefaultProject: ["*.mjs", "*.js", "public/*.js"],
         },
       },
     },
@@ -41,6 +41,16 @@ const baseConfig = [
           allowNullableEnum: true,
         },
       ],
+    },
+  },
+  {
+    // Audio worklet: runs in AudioWorkletGlobalScope, not the browser window.
+    files: ["public/*.js"],
+    languageOptions: {
+      globals: {
+        AudioWorkletProcessor: "readonly",
+        registerProcessor: "readonly",
+      },
     },
   },
   {

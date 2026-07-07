@@ -15,7 +15,7 @@ class KwsCaptureProcessor extends AudioWorkletProcessor {
   process(inputs) {
     // First input, first channel — getUserMedia is requested as mono.
     const channel = inputs[0]?.[0];
-    if (channel) {
+    if (channel != null) {
       for (let i = 0; i < channel.length; i++) {
         this.buffer[this.offset++] = channel[i];
         if (this.offset === CHUNK) {
