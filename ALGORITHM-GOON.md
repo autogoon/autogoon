@@ -26,11 +26,11 @@ the two curves are sampled at that position:
 
 ## Intensity
 
-**Intensity** (0–100, default **50**) is a flat final multiplier on the built
-profile — the build/variability shape is generated independently and intensity
-just scales what's actually sent. So on a more-sensitive day you set it to 50 and
-the whole profile tops out at 50% device speed. It applies at send time, so it
-reacts live.
+**Intensity** (0–100, default **50**) is a final ceiling on the whole thing — the
+build/variability shape is fixed and intensity just scales what actually reaches
+the device. At the default **50**, the 25 → 100 build plays out as roughly
+**12 → 50%** on the device; turn it down further when you're more sensitive. It
+takes effect live, so a change lands at once.
 
 ## Teases
 
@@ -46,9 +46,15 @@ These are separate from the manual Stroke ± / `up`/`down` controls.
 
 ## The finish and cumming
 
-At 30 minutes the build reaches the top and **holds there** until you finish.
-`finish` jumps straight to that hold. `cumming` triggers a smooth wind-down — a
-ramp down to rest over ~15 s, then a hold — plus a suction-valve pulse.
+At 30 minutes the build reaches the top and **holds there** until you end it.
+`finish` jumps straight to that hold — the top of the build, waiting for you.
+
+`cumming` is the actual send-off: the device eases off in a slow, deliberate glide
+from a moderate pace down to a standstill over about fifteen seconds, drawing and
+holding the vacuum to carry you through, then rests. It's an unhurried, drawn-out
+finish rather than a frantic pump. Fair warning: this is simply how the author
+likes to come, and it won't be to everyone's taste — read it as one opinion of how
+to end a session, not the only way.
 
 ## Time dilation
 

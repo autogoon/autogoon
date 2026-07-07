@@ -1,35 +1,41 @@
 # The Autopilot algorithm
 
-A recreation of `fun.autoblow.com/vacuglide/autopilot`, reverse-engineered from the
-original app's client bundle (`autopilot-Krw_IcWx.js`); the recreation is faithful,
-including its constants. Everything runs client-side in the browser.
+A faithful recreation of Autoblow's own Vacuglide autopilot — the official
+"hands-off" mode. Reverse-engineered from the original app's client bundle
+(`autopilot-Krw_IcWx.js`) and rebuilt to run entirely in your browser, faithful
+down to its constants. Start it and let it drive.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it plugs into the app (the
-engine/player split and the shared device layer).
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it plugs into the app.
 
 ## The mystery script
 
-Autopilot generates a **mystery script**: a long random sequence of speed
-waypoints.
+Autopilot plays a **mystery script** — it stitches together a long, unpredictable
+run from **8 hand-crafted patterns**, picking 10 of them at random (repeats
+allowed) and looping, so you never quite know what's coming. The patterns:
 
-- There are **8 hand-authored pattern templates**: staircases up/down, gentle low
-  waves, square waves between low and max, rising peaks with rest dips, repeated
-  max plateaus with shrinking valleys, and a sustained high plateau. Template
-  speeds span 5–100 with durations of 2–10 s per step.
-- Generation picks **10 templates uniformly at random** (repeats allowed) and
-  concatenates them, so a run is roughly 10–60 minutes of waypoints, then loops.
-- Each template step is transformed by the two settings below.
+1. **Slow full staircase** — climbs step by step from a crawl up to full and back
+   down, lingering ~5 s on each step.
+2. **Gentle half staircase** — the same shape but only up to about half speed, and
+   slower still.
+3. **Medium / max / low** — holds at medium, jumps to full, drops to a near-stop,
+   over and over.
+4. **Square wave** — a hard on/off between a crawl and full speed, nothing in
+   between.
+5. **Rising peaks** — a low dip before each of a rising series of peaks (roughly
+   50 → 60 → 70 → 80 → 90 → 100).
+6. **Gentle low waves** — small rolling waves that stay down in the slow range.
+7. **Max plateaus, shrinking rests** — repeated bursts to full speed with the rest
+   valleys between them getting ever shorter.
+8. **Quick ramp to a high hold** — a fast climb to near-full, then a sustained high
+   plateau.
 
-So "when does it go faster/slower and by how much" is: **the shape comes from the
-randomly-chosen templates; the settings only rescale speeds and stretch or shrink
-duration.** Changing intensity or edge control regenerates the upcoming script
-(a fresh random selection); changing the suction setting takes effect without
-disturbing the speed script.
+A run is roughly 10–60 minutes before it loops. Two settings shape it.
 
-## Intensity → how fast
+## Intensity → how hard
 
-Each template speed is linearly remapped from template space (5–100) into the
-intensity range, then clamped:
+How hard it works you, from a gentle **Warmup** through **Low** and **Medium** to a
+full-on **High**. Each template speed is remapped from its 5–100 range into the
+level's range:
 
 | Intensity | min | max |
 | --------- | --: | --: |
@@ -42,9 +48,13 @@ intensity range, then clamped:
 
 E.g. a template step of 100 becomes 20 on Warmup, 70 on Medium, 100 on High.
 
-## Edge control → how long
+## Edge control → how it paces the peaks
 
-Duration multipliers applied per step, keyed off the **template** speed:
+How long it lingers at the extremes. **Gentle** eases off the top quickly and
+stretches out the recovery valleys; **Intense** holds you at the peaks — with
+little random surges above them — and cuts the recovery short; **Moderate** sits in
+between. Under the hood it's a duration multiplier on each step, keyed off the
+**template** speed:
 
 | Edge     | plateau (speed > 70) | cooldown (speed < 30) |
 | -------- | -------------------: | --------------------: |
@@ -52,22 +62,15 @@ Duration multipliers applied per step, keyed off the **template** speed:
 | Moderate |                   ×1 |                    ×1 |
 | Intense  |                 ×1.5 |                  ×0.5 |
 
-Steps between 30 and 70 are never warped. So "gentle" halves time spent at high
-speed and doubles the recovery valleys; "intense" does the opposite.
-
-Edge control also adds **jitter** to plateau speeds (again only when the scaled
-speed is above 70):
-
-- **Intense:** `speed += random(0 .. min(100 − speed, 15))` — random surges above
-  the scripted plateau.
-- **Gentle:** `speed −= round(min(speed − 50, 20) × 0.5)` — a fixed shave of up to
-  10 off the plateau.
-- **Moderate:** no jitter.
+Steps between 30 and 70 are never warped. Intense also adds random surges above the
+plateau (`speed += random(0 .. min(100 − speed, 15))`); Gentle shaves up to 10 off
+it (`speed −= round(min(speed − 50, 20) × 0.5)`); Moderate leaves it alone.
 
 ## Vacuum maintenance (suction control)
 
-Independently of the speed pattern, autopilot periodically pulses the
-**stroke-minus valve** to top up suction, at the level's interval:
+Independently of the strokes, autopilot periodically pulses the **stroke-minus
+valve** to top up the suction so the seal stays firm — **Off**, **Light**, or
+**Heavy**:
 
 | Setting      | baseDuration | speedMultiplier | interval |
 | ------------ | -----------: | --------------: | -------: |
@@ -77,8 +80,7 @@ Independently of the speed pattern, autopilot periodically pulses the
 
 Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))` —
 inversely proportional to the speed at that moment, so slow strokes get long top-up
-pulses (Low at speed 10: 800 ms; at speed 100: 145 ms) and fast strokes get short
-ones. The valve opens, then closes after the computed duration.
+pulses (Light at speed 10: 800 ms) and fast strokes short ones.
 
 ## Manual override
 
