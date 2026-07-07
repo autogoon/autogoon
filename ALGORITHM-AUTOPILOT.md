@@ -70,9 +70,12 @@ it (`speed −= round(min(speed − 50, 20) × 0.5)`); Moderate leaves it alone.
 
 ## Vacuum maintenance (suction control)
 
-Autoblow's own name for the setting. Independently of the speed script, autopilot
-periodically fires a brief **stroke-minus** pulse (a momentary shortening) —
-**Off**, **Light**, or **Heavy**:
+Autoblow's own name, and an apt one: the device can lose a little suction over a
+session, so this periodically fires a brief **stroke-minus** pulse to re-apply the
+vacuum and keep the toy firmly seated — **Off**, **Light**, or **Heavy**. Because
+stroke-minus also shortens the stroke each time, keeping it topped up trends toward
+short strokes with strong suction — rarely strictly necessary, but a feel some
+enjoy:
 
 | Setting      | baseDuration | speedMultiplier | interval |
 | ------------ | -----------: | --------------: | -------: |
