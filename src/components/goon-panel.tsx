@@ -1,12 +1,12 @@
 "use client";
 
-// Gooning algorithm panel — presentation only. The algorithm runs in
-// useGooningAutopilot at the top of the tree so it keeps going while this panel is
+// Goon algorithm panel — presentation only. The algorithm runs in
+// useGoon at the top of the tree so it keeps going while this panel is
 // hidden. Speed/Variability are automatic; the manual controls are the timeline
 // jumps (forward/back/finish), the Intensity slider, and the shared Stroke +
 // Cumming card.
 
-import type { GooningAutopilotController } from "@/hooks/use-gooning-autopilot";
+import type { GoonController } from "@/hooks/use-goon";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useCallback } from "react";
@@ -27,15 +27,15 @@ function formatMs(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function GooningAutopilotPanel({
+export function GoonPanel({
   vacuglide,
-  gooning,
+  goon,
   kws,
   onStart,
   onStop,
 }: {
   vacuglide: VacuglideDeviceController;
-  gooning: GooningAutopilotController;
+  goon: GoonController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -46,8 +46,8 @@ export function GooningAutopilotPanel({
   );
 
   const pct =
-    gooning.programMs > 0
-      ? Math.round((gooning.positionMs / gooning.programMs) * 100)
+    goon.programMs > 0
+      ? Math.round((goon.positionMs / goon.programMs) * 100)
       : 0;
   const jumpClass =
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-40";
@@ -57,7 +57,7 @@ export function GooningAutopilotPanel({
       <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
 
       <RunButton
-        running={gooning.isPlaying}
+        running={goon.isPlaying}
         connected={vacuglide.connected}
         onStart={onStart}
         onStop={onStop}
@@ -65,7 +65,7 @@ export function GooningAutopilotPanel({
       />
 
       <Card>
-        <Sparkline points={gooning.upcoming} />
+        <Sparkline points={goon.upcoming} />
         <div className="text-muted-foreground flex justify-between text-xs">
           <span>now</span>
           <span>+60s</span>
@@ -73,19 +73,19 @@ export function GooningAutopilotPanel({
       </Card>
 
       <StrokeCard
-        disabled={!gooning.isPlaying}
-        strokePulsing={gooning.strokePulsing}
+        disabled={!goon.isPlaying}
+        strokePulsing={goon.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onCumming={gooning.cumming}
+        onCumming={goon.cumming}
       />
 
       <Card title="Timeline">
         <div className="text-muted-foreground flex justify-between text-sm">
-          <span className="tabular-nums">{formatMs(gooning.positionMs)}</span>
+          <span className="tabular-nums">{formatMs(goon.positionMs)}</span>
           <span className="tabular-nums">
-            {formatMs(gooning.programMs)} · {pct}% · {gooning.timeScale.toFixed(2)}×
+            {formatMs(goon.programMs)} · {pct}% · {goon.timeScale.toFixed(2)}×
           </span>
         </div>
         <div className="bg-secondary mt-2 h-2 w-full overflow-hidden rounded-full">
@@ -96,24 +96,24 @@ export function GooningAutopilotPanel({
         </div>
         <div className="mt-3 flex gap-3">
           <Button
-            onClick={gooning.back}
-            disabled={!gooning.isPlaying}
+            onClick={goon.back}
+            disabled={!goon.isPlaying}
             className={jumpClass}
             badge="back"
           >
             − 1 min
           </Button>
           <Button
-            onClick={gooning.forward}
-            disabled={!gooning.isPlaying}
+            onClick={goon.forward}
+            disabled={!goon.isPlaying}
             className={jumpClass}
             badge="forward"
           >
             + 1 min
           </Button>
           <Button
-            onClick={gooning.finish}
-            disabled={!gooning.isPlaying}
+            onClick={goon.finish}
+            disabled={!goon.isPlaying}
             className={jumpClass}
             badge="finish"
           >
@@ -122,16 +122,16 @@ export function GooningAutopilotPanel({
         </div>
         <div className="mt-3 flex gap-3">
           <Button
-            onClick={gooning.slower}
-            disabled={!gooning.isPlaying}
+            onClick={goon.slower}
+            disabled={!goon.isPlaying}
             className={jumpClass}
             badge="slower"
           >
             Slower
           </Button>
           <Button
-            onClick={gooning.faster}
-            disabled={!gooning.isPlaying}
+            onClick={goon.faster}
+            disabled={!goon.isPlaying}
             className={jumpClass}
             badge="faster"
           >
@@ -143,14 +143,14 @@ export function GooningAutopilotPanel({
       <Card title="Intensity">
         <div className="text-muted-foreground flex justify-between text-sm">
           <span>Ceiling</span>
-          <span className="tabular-nums">{gooning.intensity}%</span>
+          <span className="tabular-nums">{goon.intensity}%</span>
         </div>
         <Slider
-          value={gooning.intensity}
+          value={goon.intensity}
           min={0}
           max={100}
           step={5}
-          onChange={gooning.changeIntensity}
+          onChange={goon.changeIntensity}
         />
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>less</code> / <code>more</code> to step down or up.

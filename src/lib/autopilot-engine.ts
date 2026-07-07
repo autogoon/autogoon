@@ -1,4 +1,4 @@
-// Vacuglide Autopilot engine — a faithful port of the algorithm in the original
+// Autopilot engine — a faithful port of the algorithm in the original
 // fun.autoblow.com/vacuglide/autopilot client bundle, including its pattern
 // templates and constants. See README.md for a full description.
 //
@@ -133,7 +133,7 @@ const PATTERN_TEMPLATES: TemplateStep[][] = [
   ],
 ];
 
-export interface VacuglideAutopilotOptions {
+export interface AutopilotOptions {
   getDevice: () => VacuglideDevice | null;
   log: (text: string, kind?: LogKind) => void;
   intensity: IntensityLevel;
@@ -141,7 +141,7 @@ export interface VacuglideAutopilotOptions {
   suctionControl: SuctionControlLevel;
 }
 
-export class VacuglideAutopilot {
+export class Autopilot {
   private readonly getDevice: () => VacuglideDevice | null;
   private readonly log: (text: string, kind?: LogKind) => void;
 
@@ -202,7 +202,7 @@ export class VacuglideAutopilot {
     },
   };
 
-  constructor(opts: VacuglideAutopilotOptions) {
+  constructor(opts: AutopilotOptions) {
     this.getDevice = opts.getDevice;
     this.log = opts.log;
     this.intensityLevel = opts.intensity;

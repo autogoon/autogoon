@@ -1,14 +1,14 @@
 "use client";
 
-// The Homegrown Autopilot algorithm as a React hook. Mirrors useVacuglideAutopilot: it owns the
+// The Homegrown algorithm as a React hook. Mirrors useAutopilot: it owns the
 // engine and drives the device through the VacuglideDeviceController it is given, so
 // both algorithms share the same device layer. Still boilerplate for now.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  HomegrownAutopilot,
+  Homegrown,
   type VariabilityLevel,
-} from "@/lib/homegrown-autopilot-engine";
+} from "@/lib/homegrown-engine";
 import {
   UPCOMING_WINDOW_MS,
   type CurvePoint,
@@ -17,7 +17,7 @@ import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
+export function useHomegrown(vacuglide: VacuglideDeviceController) {
   const { getDevice, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
@@ -31,8 +31,8 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   // How randomised each ramp's timing is (see the engine for the percentages).
   const [variability, setVariability] = useState<VariabilityLevel>("low");
 
-  const engineRef = useRef<HomegrownAutopilot | null>(null);
-  engineRef.current ??= new HomegrownAutopilot({
+  const engineRef = useRef<Homegrown | null>(null);
+  engineRef.current ??= new Homegrown({
     getDevice,
     speedPercent,
     variability,
@@ -132,4 +132,4 @@ export function useHomegrownAutopilot(vacuglide: VacuglideDeviceController) {
   };
 }
 
-export type HomegrownAutopilotController = ReturnType<typeof useHomegrownAutopilot>;
+export type HomegrownController = ReturnType<typeof useHomegrown>;

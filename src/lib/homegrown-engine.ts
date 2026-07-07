@@ -1,5 +1,5 @@
-// Homegrown Autopilot algorithm — a fresh, still-to-be-built alternative to the
-// Vacuglide Autopilot. It drives the device purely through the getDevice
+// Homegrown algorithm — a fresh, still-to-be-built alternative to the
+// Autopilot. It drives the device purely through the getDevice
 // accessor it is handed, so it reuses the same device layer
 // (useVacuglideDevice) as everything else.
 //
@@ -200,13 +200,13 @@ function buildCummingScript(startAt: number): ScriptWaypoint[] {
   return script;
 }
 
-export interface HomegrownAutopilotOptions {
+export interface HomegrownOptions {
   getDevice: () => VacuglideDevice | null;
   speedPercent: number;
   variability: VariabilityLevel;
 }
 
-export class HomegrownAutopilot {
+export class Homegrown {
   private readonly getDevice: () => VacuglideDevice | null;
 
   isPlaying = false;
@@ -231,7 +231,7 @@ export class HomegrownAutopilot {
   // One-shot valve timers scheduled by cumming(); cleared if stopped mid-pulse.
   private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
 
-  constructor(opts: HomegrownAutopilotOptions) {
+  constructor(opts: HomegrownOptions) {
     this.getDevice = opts.getDevice;
     this.speedPercent = opts.speedPercent;
     this.variabilityLevel = opts.variability;
@@ -330,7 +330,7 @@ export class HomegrownAutopilot {
   // sparkline can step straight from the present value, and always ends at
   // windowMs. Speeds are the actual device output — raw script speeds run through
   // outputSpeed (so speedPercent scaling is applied, matching what's sent and
-  // what Vacuglide Autopilot's already-scaled script reports). Flat at 0 while
+  // what Autopilot's already-scaled script reports). Flat at 0 while
   // paused. Scans only from the playback cursor, never the whole history.
   getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
     if (!this.isPlaying) {

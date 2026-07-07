@@ -8,8 +8,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-// A word revised across partial results can arrive twice; ignore a repeat of
-// the same word within this window.
+// The same word can land twice in quick succession (e.g. repeated within one
+// utterance, or across back-to-back results); ignore a repeat within this window.
 const REPEAT_MS = 700;
 
 // One spoken word and the algorithm method it invokes. Each algorithm publishes
@@ -25,6 +25,11 @@ export interface KeywordAction {
 export interface Algorithm {
   id: string;
   label: string;
+  // The spoken word that selects this algorithm while idle. Kept separate from
+  // `label` because it must be a word vosk's model actually knows: the algorithms'
+  // own names ("gooning", "vacuglide") are out-of-vocabulary and never recognised,
+  // so this uses plain in-dictionary words like "goon" and "autopilot".
+  switchWord: string;
   isPlaying: boolean;
   currentSpeed: number;
   start: () => Promise<void>;
@@ -35,21 +40,28 @@ export interface Algorithm {
 export function useAlgorithmRunner(
   vacuglide: VacuglideDeviceController,
   algorithms: Algorithm[],
+  // Called when a spoken algorithm name selects that algorithm while idle, so
+  // the page can bring its tab into view. Switching is locked while running.
+  onSwitch?: (id: string) => void,
 ) {
   // Derived from the engines themselves (the source of truth), so it stays
   // correct even when an algorithm stops itself (e.g. finish, or page hide).
   const running = algorithms.find((algo) => algo.isPlaying) ?? null;
 
-  // The app-level words worth listening for right now — only the one that would
-  // actually do something in the current state. Nothing to connect to → offer
-  // "connect"; connected and idle → "start"; connected and running → "stop".
-  // (start/stop need a device, so neither is offered while disconnected.)
+  // The app-level words worth listening for right now — only the ones that would
+  // actually do something in the current state. Running → just "stop" (switching
+  // is locked). Idle → the state-appropriate global word ("connect" when there's
+  // nothing connected, else "start") plus each algorithm's switch word, so you
+  // can name an algorithm to select it.
   const isRunning = running !== null;
-  const globalWords = useMemo(
-    () =>
-      !vacuglide.connected ? ["connect"] : isRunning ? ["stop"] : ["start"],
-    [vacuglide.connected, isRunning],
-  );
+  // A stable key over the switch words, so globalWords keeps a stable identity
+  // across renders (the recognizer rebuilds whenever its word list changes).
+  const switchWordsKey = algorithms.map((algo) => algo.switchWord).join("\n");
+  const globalWords = useMemo(() => {
+    if (isRunning) return ["stop"];
+    const switchWords = switchWordsKey === "" ? [] : switchWordsKey.split("\n");
+    return [vacuglide.connected ? "start" : "connect", ...switchWords];
+  }, [vacuglide.connected, isRunning, switchWordsKey]);
 
   const logError = useCallback(
     (err: unknown) =>
@@ -105,6 +117,7 @@ export function useAlgorithmRunner(
     stop,
     connect: vacuglide.connect,
     log: vacuglide.log,
+    onSwitch,
   });
   dispatchRef.current = {
     algorithms,
@@ -112,6 +125,7 @@ export function useAlgorithmRunner(
     stop,
     connect: vacuglide.connect,
     log: vacuglide.log,
+    onSwitch,
   };
   const lastFiredRef = useRef<Map<string, number>>(new Map());
 
@@ -119,7 +133,8 @@ export function useAlgorithmRunner(
   // runner; any other word is handed to the running algorithm, which acts on it
   // or ignores it.
   const handleWord = useCallback((word: string) => {
-    const { algorithms, run, stop, connect, log } = dispatchRef.current;
+    const { algorithms, run, stop, connect, log, onSwitch } =
+      dispatchRef.current;
 
     let action: (() => void | Promise<void>) | null = null;
     if (word === "connect") {
@@ -133,7 +148,21 @@ export function useAlgorithmRunner(
       if (id !== null) action = () => run(id);
     } else {
       const target = algorithms.find((algo) => algo.isPlaying) ?? null;
-      action = target?.keywords.find((k) => k.word === word)?.run ?? null;
+      if (target !== null) {
+        // Something's running: only its own keywords apply. Switching is locked.
+        action = target.keywords.find((k) => k.word === word)?.run ?? null;
+      } else {
+        // Idle: an algorithm's switch word selects that algorithm — points
+        // "start" at it and asks the page to bring its tab into view.
+        const chosen =
+          algorithms.find((algo) => algo.switchWord === word) ?? null;
+        if (chosen !== null) {
+          action = () => {
+            currentIdRef.current = chosen.id;
+            onSwitch?.(chosen.id);
+          };
+        }
+      }
     }
     if (action === null) return;
 

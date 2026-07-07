@@ -1,4 +1,4 @@
-// Gooning Autopilot — an automatic, timeline-driven slow build. It IS the manual
+// Goon — an automatic, timeline-driven slow build. It IS the manual
 // Homegrown algorithm with its two knobs driven automatically over a "program
 // position" that runs 0 -> 30 min, so it reuses Homegrown's exact dip machinery:
 //   - the dip is always the raw pattern 100 -> floor -> 100 (Homegrown's shape),
@@ -164,7 +164,7 @@ function buildLeg(
 // stored speeds are therefore the pre-intensity device values (outputSpeed applies
 // intensity on top). When the floor reaches PEAK_SPEED (end of program) both legs
 // are zero-length, so it becomes a hold at the top — how "no variability" falls out.
-function buildGooningCycle(
+function buildGoonCycle(
   positionMs: number,
   startAt: number,
 ): { waypoints: ScriptWaypoint[]; endAt: number } {
@@ -210,12 +210,12 @@ function buildCummingScript(startAt: number): ScriptWaypoint[] {
   return script;
 }
 
-export interface GooningAutopilotOptions {
+export interface GoonOptions {
   getDevice: () => VacuglideDevice | null;
   intensity: number;
 }
 
-export class GooningAutopilot {
+export class Goon {
   private readonly getDevice: () => VacuglideDevice | null;
 
   isPlaying = false;
@@ -246,7 +246,7 @@ export class GooningAutopilot {
   // One-shot valve timers (cumming pulse, tease pulse); cleared on stop.
   private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
 
-  constructor(opts: GooningAutopilotOptions) {
+  constructor(opts: GoonOptions) {
     this.getDevice = opts.getDevice;
     this.intensity = opts.intensity;
   }
@@ -427,7 +427,7 @@ export class GooningAutopilot {
         this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
         break;
       }
-      const { waypoints } = buildGooningCycle(this.positionAt(startAt), startAt);
+      const { waypoints } = buildGoonCycle(this.positionAt(startAt), startAt);
       this.script.push(...waypoints);
     }
 
@@ -460,7 +460,7 @@ export class GooningAutopilot {
       this.script.push({ speed: PEAK_SPEED, at: startAt });
       this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
     } else {
-      const { waypoints } = buildGooningCycle(this.positionAt(startAt), startAt);
+      const { waypoints } = buildGoonCycle(this.positionAt(startAt), startAt);
       this.script.push(...waypoints);
     }
   }

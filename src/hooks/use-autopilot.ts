@@ -1,17 +1,17 @@
 "use client";
 
-// The Vacuglide Autopilot algorithm as a React hook. Owns the engine and its knobs
+// The Autopilot algorithm as a React hook. Owns the engine and its knobs
 // (intensity, edge control, vacuum maintenance) — none of which exist on the
 // device API. It drives the device purely through the VacuglideDeviceController it
 // is given, so a different algorithm can reuse the same device layer.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  VacuglideAutopilot,
+  Autopilot,
   type EdgeControlLevel,
   type IntensityLevel,
   type SuctionControlLevel,
-} from "@/lib/vacuglide-autopilot-engine";
+} from "@/lib/autopilot-engine";
 import {
   UPCOMING_WINDOW_MS,
   type CurvePoint,
@@ -24,7 +24,7 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 // the next/previous one.
 const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
 
-export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
+export function useAutopilot(vacuglide: VacuglideDeviceController) {
   const { getDevice, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
@@ -38,8 +38,8 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   const [edge, setEdge] = useState<EdgeControlLevel>("moderate");
   const [suction, setSuction] = useState<SuctionControlLevel>("more");
 
-  const engineRef = useRef<VacuglideAutopilot | null>(null);
-  engineRef.current ??= new VacuglideAutopilot({
+  const engineRef = useRef<Autopilot | null>(null);
+  engineRef.current ??= new Autopilot({
     getDevice,
     log,
     intensity,
@@ -167,4 +167,4 @@ export function useVacuglideAutopilot(vacuglide: VacuglideDeviceController) {
   };
 }
 
-export type VacuglideAutopilotController = ReturnType<typeof useVacuglideAutopilot>;
+export type AutopilotController = ReturnType<typeof useAutopilot>;

@@ -6,18 +6,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/button";
-import { VacuglideAutopilotPanel } from "@/components/vacuglide-autopilot-panel";
+import { AutopilotPanel } from "@/components/autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
-import { HomegrownAutopilotPanel } from "@/components/homegrown-autopilot-panel";
-import { GooningAutopilotPanel } from "@/components/gooning-autopilot-panel";
+import { HomegrownPanel } from "@/components/homegrown-panel";
+import { GoonPanel } from "@/components/goon-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import {
   useAlgorithmRunner,
   type Algorithm,
 } from "@/hooks/use-algorithm-runner";
-import { useVacuglideAutopilot } from "@/hooks/use-vacuglide-autopilot";
-import { useHomegrownAutopilot } from "@/hooks/use-homegrown-autopilot";
-import { useGooningAutopilot } from "@/hooks/use-gooning-autopilot";
+import { useAutopilot } from "@/hooks/use-autopilot";
+import { useHomegrown } from "@/hooks/use-homegrown";
+import { useGoon } from "@/hooks/use-goon";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
 import {
   getStoredToken,
@@ -25,9 +25,9 @@ import {
 } from "@/hooks/use-vacuglide-device";
 
 const TABS = [
-  { id: "gooning-autopilot", label: "Gooning", align: "left" },
-  { id: "homegrown-autopilot", label: "Homegrown", align: "left" },
-  { id: "vacuglide-autopilot", label: "Vacuglide", align: "left" },
+  { id: "goon", label: "Goon", align: "left" },
+  { id: "homegrown", label: "Homegrown", align: "left" },
+  { id: "autopilot", label: "Autopilot", align: "left" },
   { id: "settings", label: "Settings", align: "right" },
 ] as const;
 
@@ -35,10 +35,10 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function Home() {
   const vacuglide = useVacuglideDevice();
-  const autopilot = useVacuglideAutopilot(vacuglide);
-  const homegrown = useHomegrownAutopilot(vacuglide);
-  const gooning = useGooningAutopilot(vacuglide);
-  const [tab, setTab] = useState<TabId>("gooning-autopilot");
+  const autopilot = useAutopilot(vacuglide);
+  const homegrown = useHomegrown(vacuglide);
+  const goon = useGoon(vacuglide);
+  const [tab, setTab] = useState<TabId>("goon");
 
   // With no saved token there's nothing to auto-connect to, so send the user
   // to Settings to enter one. (useVacuglideDevice auto-connects when a token exists.)
@@ -51,17 +51,19 @@ export default function Home() {
   // algorithm means adding a hook above and one more entry here.
   const algorithms: Algorithm[] = [
     {
-      id: "gooning-autopilot",
-      label: "Gooning",
-      isPlaying: gooning.isPlaying,
-      currentSpeed: gooning.currentSpeed,
-      start: gooning.start,
-      stop: gooning.stop,
-      keywords: gooning.keywords,
+      id: "goon",
+      label: "Goon",
+      switchWord: "goon",
+      isPlaying: goon.isPlaying,
+      currentSpeed: goon.currentSpeed,
+      start: goon.start,
+      stop: goon.stop,
+      keywords: goon.keywords,
     },
     {
-      id: "vacuglide-autopilot",
-      label: "Vacuglide",
+      id: "autopilot",
+      label: "Autopilot",
+      switchWord: "autopilot",
       isPlaying: autopilot.isPlaying,
       currentSpeed: autopilot.currentSpeed,
       start: autopilot.start,
@@ -69,8 +71,9 @@ export default function Home() {
       keywords: autopilot.keywords,
     },
     {
-      id: "homegrown-autopilot",
+      id: "homegrown",
       label: "Homegrown",
+      switchWord: "homegrown",
       isPlaying: homegrown.isPlaying,
       currentSpeed: homegrown.currentSpeed,
       start: homegrown.start,
@@ -78,7 +81,9 @@ export default function Home() {
       keywords: homegrown.keywords,
     },
   ];
-  const runner = useAlgorithmRunner(vacuglide, algorithms);
+  const runner = useAlgorithmRunner(vacuglide, algorithms, (id) =>
+    setTab(id as TabId),
+  );
 
   // The words the KWS grammar should recognise right now: the currently-valid
   // global word (connect/start/stop, per connection + running state), plus the
@@ -101,8 +106,8 @@ export default function Home() {
   }, [tab, runner.setCurrent]);
 
   // KWS calls the runner directly with each detected word, and logs its final
-  // transcripts into the shared command log (the runner logs the executed
-  // partial hits).
+  // transcripts into the shared command log (the runner logs each executed word
+  // it acts on).
   const kws = useKeywordSpotter(commandWords, runner.handleWord, vacuglide.log);
 
   return (
@@ -115,47 +120,57 @@ export default function Home() {
       />
       <div className="mx-auto w-full max-w-2xl px-4">
         <nav className="flex gap-6 border-b">
-          {TABS.map((t) => (
-            <Button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                t.align === "right" ? "ml-auto" : ""
-              } ${
-                tab === t.id
-                  ? "border-foreground text-foreground"
-                  : "text-muted-foreground hover:text-foreground border-transparent"
-              }`}
-            >
-              {t.label}
-            </Button>
-          ))}
+          {TABS.map((t) => {
+            // While an algorithm runs, lock the other algorithm tabs — you can't
+            // switch algorithms mid-session. The running one's own tab (to view
+            // it) and Settings stay reachable.
+            const locked =
+              runner.running !== null &&
+              t.id !== "settings" &&
+              t.id !== runner.running.id;
+            return (
+              <Button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                disabled={locked}
+                className={`-mb-px border-b-2 py-3 text-sm font-medium disabled:pointer-events-none disabled:opacity-40 ${
+                  t.align === "right" ? "ml-auto" : ""
+                } ${
+                  tab === t.id
+                    ? "border-foreground text-foreground"
+                    : "text-muted-foreground hover:text-foreground border-transparent"
+                }`}
+              >
+                {t.label}
+              </Button>
+            );
+          })}
         </nav>
         <main className="py-6">
-          <div className={tab === "gooning-autopilot" ? undefined : "hidden"}>
-            <GooningAutopilotPanel
+          <div className={tab === "goon" ? undefined : "hidden"}>
+            <GoonPanel
               vacuglide={vacuglide}
-              gooning={gooning}
+              goon={goon}
               kws={kws}
-              onStart={() => void runner.run("gooning-autopilot")}
+              onStart={() => void runner.run("goon")}
               onStop={runner.stop}
             />
           </div>
-          <div className={tab === "homegrown-autopilot" ? undefined : "hidden"}>
-            <HomegrownAutopilotPanel
+          <div className={tab === "homegrown" ? undefined : "hidden"}>
+            <HomegrownPanel
               vacuglide={vacuglide}
               homegrown={homegrown}
               kws={kws}
-              onStart={() => void runner.run("homegrown-autopilot")}
+              onStart={() => void runner.run("homegrown")}
               onStop={runner.stop}
             />
           </div>
-          <div className={tab === "vacuglide-autopilot" ? undefined : "hidden"}>
-            <VacuglideAutopilotPanel
+          <div className={tab === "autopilot" ? undefined : "hidden"}>
+            <AutopilotPanel
               vacuglide={vacuglide}
               autopilot={autopilot}
               kws={kws}
-              onStart={() => void runner.run("vacuglide-autopilot")}
+              onStart={() => void runner.run("autopilot")}
               onStop={runner.stop}
             />
           </div>

@@ -38,7 +38,10 @@ export function HeaderBar({
     <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
       <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-2.5">
         <div className="mr-auto flex items-center gap-3">
-          <span className="font-semibold">Fun</span>
+          <span className="hidden font-semibold lg:inline">
+            Autogoon - voice-controlled gooning
+          </span>
+          <span className="font-semibold lg:hidden">Autogoon</span>
           {vacuglide.connected && (
             <div className="flex items-center gap-1.5">
               <span

@@ -3,7 +3,7 @@
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves directly (voice "up"/"down" does the same, see useStrokeControls, and
 // highlights the matching button), plus whichever algorithm-specific
-// finish-like command applies — Vacuglide Autopilot's Finish or Homegrown's
+// finish-like command applies — Autopilot's Finish or Homegrown's
 // Cumming. Shared by every algorithm panel — the stroke buttons operate on the
 // device layer regardless of which algorithm is running; at most one of
 // onFinish/onCumming should be provided, and its button only shows up then.

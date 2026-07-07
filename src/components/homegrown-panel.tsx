@@ -1,10 +1,10 @@
 "use client";
 
-// Homegrown Autopilot algorithm panel — presentation only. The algorithm runs in
-// useHomegrownAutopilot at the top of the tree so it keeps going while this panel is
+// Homegrown algorithm panel — presentation only. The algorithm runs in
+// useHomegrown at the top of the tree so it keeps going while this panel is
 // hidden behind another tab. Mostly boilerplate for now.
 
-import type { HomegrownAutopilotController } from "@/hooks/use-homegrown-autopilot";
+import type { HomegrownController } from "@/hooks/use-homegrown";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useCallback } from "react";
@@ -18,7 +18,7 @@ import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 
-export function HomegrownAutopilotPanel({
+export function HomegrownPanel({
   vacuglide,
   homegrown,
   kws,
@@ -26,7 +26,7 @@ export function HomegrownAutopilotPanel({
   onStop,
 }: {
   vacuglide: VacuglideDeviceController;
-  homegrown: HomegrownAutopilotController;
+  homegrown: HomegrownController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;

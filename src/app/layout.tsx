@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Keyword Spotting — Vacuglide",
-  description: "Voice keyword spotting and Vacuglide Autopilot",
+  description: "Voice keyword spotting and Vacuglide's Autopilot",
 };
 
 export default function RootLayout({

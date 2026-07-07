@@ -1,13 +1,13 @@
 "use client";
 
-// The Gooning algorithm as a React hook. Mirrors useHomegrownAutopilot: owns the
+// The Goon algorithm as a React hook. Mirrors useHomegrown: owns the
 // engine, mirrors it into render state, wires the voice keywords and the pagehide
 // safety-stop, and drives the device through the shared VacuglideDeviceController.
 // Speed and Variability are automatic (engine-driven); the only manual knob is
 // Intensity (default 50), plus the timeline jump commands.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { GooningAutopilot } from "@/lib/gooning-autopilot-engine";
+import { Goon } from "@/lib/goon-engine";
 import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
@@ -16,7 +16,7 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
 
-export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
+export function useGoon(vacuglide: VacuglideDeviceController) {
   const { getDevice, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
@@ -28,8 +28,8 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
   const [timeScale, setTimeScale] = useState(1);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
 
-  const engineRef = useRef<GooningAutopilot | null>(null);
-  engineRef.current ??= new GooningAutopilot({
+  const engineRef = useRef<Goon | null>(null);
+  engineRef.current ??= new Goon({
     getDevice,
     intensity: DEFAULT_INTENSITY,
   });
@@ -134,4 +134,4 @@ export function useGooningAutopilot(vacuglide: VacuglideDeviceController) {
   };
 }
 
-export type GooningAutopilotController = ReturnType<typeof useGooningAutopilot>;
+export type GoonController = ReturnType<typeof useGoon>;

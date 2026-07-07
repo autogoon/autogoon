@@ -1,6 +1,6 @@
 # The Homegrown algorithm
 
-A fresh, home-grown alternative to the [Vacuglide Autopilot](./VACUGLIDE-AUTOPILOT.md).
+A fresh, home-grown alternative to the [Autopilot](./ALGORITHM-AUTOPILOT.md).
 Unlike the autopilot — which is a faithful reverse-engineering of the original
 app — this one is ours to design from scratch.
 
@@ -84,14 +84,14 @@ hands-free:
 It follows the same three-layer shape as the autopilot and shares the same
 device layer:
 
-- **`src/lib/homegrown-autopilot-engine.ts`** — the `HomegrownAutopilot` engine.
+- **`src/lib/homegrown-engine.ts`** — the `Homegrown` engine.
   It drives the device purely through a `getDevice()` accessor it is handed, so
   it reuses the same `useVacuglideDevice` device layer as everything else.
   `getUpcomingCurve()` exposes the next minute of script for the sparkline.
-- **`src/hooks/use-homegrown-autopilot.ts`** — the React hook mirroring the
+- **`src/hooks/use-homegrown.ts`** — the React hook mirroring the
   engine into render state (including the live `upcoming` curve), wiring the
   voice keywords and the `pagehide` safety-stop.
-- **`src/components/homegrown-autopilot-panel.tsx`** — the presentation: run
+- **`src/components/homegrown-panel.tsx`** — the presentation: run
   button, stroke card, the **Up next** sparkline, the Speed slider, the
   Variability control, and the shared command log.
 

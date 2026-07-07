@@ -1,8 +1,8 @@
-# The Gooning algorithm
+# The Goon algorithm
 
-An automatic, timeline-driven counterpart to the [Homegrown](./HOMEGROWN-AUTOPILOT.md)
+An automatic, timeline-driven counterpart to the [Homegrown](./ALGORITHM-HOMEGROWN.md)
 algorithm. Where Homegrown hands you Speed and Variability as manual knobs,
-Gooning drives them for you over a fixed **30-minute program** (`PROGRAM_MS`): a
+Goon drives them for you over a fixed **30-minute program** (`PROGRAM_MS`): a
 slow build that starts gentle and teasing and finishes as a steady hold at the
 top. It models a long, unhurried arousal ramp to a controlled climax — a
 "gooning" session, not deny-and-repeat edging.
@@ -83,10 +83,10 @@ compresses or stretches. The Timeline card shows the current factor (e.g. `1.20�
 
 Same three-layer shape as the other algorithms, sharing the device layer:
 
-- **`src/lib/gooning-autopilot-engine.ts`** — the `GooningAutopilot` engine.
-- **`src/hooks/use-gooning-autopilot.ts`** — the React hook mirroring the engine,
+- **`src/lib/goon-engine.ts`** — the `Goon` engine.
+- **`src/hooks/use-goon.ts`** — the React hook mirroring the engine,
   owning the Intensity default and wiring the voice keywords + pagehide stop.
-- **`src/components/gooning-autopilot-panel.tsx`** — the presentation: run button,
+- **`src/components/goon-panel.tsx`** — the presentation: run button,
   stroke card, the Timeline card (position + forward/back/finish), the **Up next**
   sparkline, the Intensity slider, and the shared command log.
 
