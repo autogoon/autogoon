@@ -16,6 +16,7 @@ import {
   type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
+  type ValveEvent,
 } from "@/lib/program";
 
 export interface PlayerOptions {
@@ -261,6 +262,25 @@ export class Player {
     if (this.source === null) return;
     this.events = this.events.slice(0, this.cursor);
     this.ensureLookahead();
+    this.notify();
+  }
+
+  // Splice a one-off event into the LIVE program at clock + deltaT, keeping the
+  // event array sorted — without regenerating. deltaT = 0 lands it at the current
+  // clock so the next tick fires it. For ad-hoc events (e.g. a manual stroke
+  // pulse) that should ride the existing program rather than re-roll it. No-op
+  // while not playing (nothing is ticking) — the caller should drive the device
+  // directly in that case.
+  insertEvent(
+    event: Omit<SpeedEvent, "at"> | Omit<ValveEvent, "at">,
+    deltaT = 0,
+  ): void {
+    if (!this.isPlaying) return;
+    const at = this.clock + deltaT;
+    const ev = { ...event, at } as ProgramEvent;
+    let i = this.cursor;
+    while (i < this.events.length && this.events[i]!.at < at) i++;
+    this.events.splice(i, 0, ev);
     this.notify();
   }
 
