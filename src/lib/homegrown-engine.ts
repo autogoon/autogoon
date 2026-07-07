@@ -235,12 +235,9 @@ export class Homegrown implements AlgorithmEngine {
       at += CUMMING_STEP_MS;
     }
     events.push({ kind: "speed", at: at + 1_800_000, speed: 0, unscaled: true });
-    events.push({
-      kind: "valve",
-      at: startAt + 3000,
-      valve: "minus",
-      durationMs: 9000,
-    });
+    // Stroke-minus pulse: open at +3s, close at +12s (a 9s hold), as two events.
+    events.push({ kind: "valve", at: startAt + 3000, valve: "minus", open: true });
+    events.push({ kind: "valve", at: startAt + 12000, valve: "minus", open: false });
     return events.sort((a, b) => a.at - b.at);
   }
 }

@@ -20,13 +20,15 @@ export interface SpeedEvent {
   unscaled?: boolean;
 }
 
-// A one-shot valve pulse: the Player opens the valve at `at`, closes it after
-// `durationMs`.
+// A single valve state change: the Player sets the valve open or closed at `at`.
+// A pulse is TWO events — an open and a later close — so a variable-length hold
+// (the manual Stroke buttons) and a fixed pulse (tease/suction/cumming) share one
+// representation.
 export interface ValveEvent {
   kind: "valve";
   at: number;
   valve: "plus" | "minus";
-  durationMs: number;
+  open: boolean;
 }
 
 export type ProgramEvent = SpeedEvent | ValveEvent;

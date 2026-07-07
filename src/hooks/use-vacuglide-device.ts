@@ -188,22 +188,40 @@ export function useVacuglideDevice() {
     }
   }, [connectWithToken]);
 
-  // The device logs its own commands, so these just forward the call.
-  const valvePlus = useCallback((state: boolean): Promise<unknown> => {
-    const device = deviceRef.current;
-    if (device === null) {
-      return Promise.reject(new Error("No device connected"));
-    }
-    return device.valveStrokePlusSet(state);
-  }, []);
+  // Manual valve control. While a program is playing, ride it: insert an
+  // open/close valve event so the action is part of the program (ordered with
+  // the generated events, closed on stop). `state` true opens, false closes —
+  // so a hold is two events (open on press, close on release). With no program
+  // running there is no clock to schedule against, so drive the device directly.
+  const valvePlus = useCallback(
+    (state: boolean): Promise<unknown> => {
+      if (player.isPlaying) {
+        player.insertEvent({ kind: "valve", valve: "plus", open: state });
+        return Promise.resolve();
+      }
+      const device = deviceRef.current;
+      if (device === null) {
+        return Promise.reject(new Error("No device connected"));
+      }
+      return device.valveStrokePlusSet(state);
+    },
+    [player],
+  );
 
-  const valveMinus = useCallback((state: boolean): Promise<unknown> => {
-    const device = deviceRef.current;
-    if (device === null) {
-      return Promise.reject(new Error("No device connected"));
-    }
-    return device.valveStrokeMinusSet(state);
-  }, []);
+  const valveMinus = useCallback(
+    (state: boolean): Promise<unknown> => {
+      if (player.isPlaying) {
+        player.insertEvent({ kind: "valve", valve: "minus", open: state });
+        return Promise.resolve();
+      }
+      const device = deviceRef.current;
+      if (device === null) {
+        return Promise.reject(new Error("No device connected"));
+      }
+      return device.valveStrokeMinusSet(state);
+    },
+    [player],
+  );
 
   return {
     token,

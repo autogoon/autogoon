@@ -27,8 +27,8 @@ export interface PlayerOptions {
 export interface UpcomingWindow {
   // Step points for the sparkline; t is ms from now (0..windowMs).
   speed: Array<{ t: number; speed: number }>;
-  // Valve pulses coming up in the window (rendered later; ignored for now).
-  valves: Array<{ t: number; valve: "plus" | "minus"; durationMs: number }>;
+  // Valve state changes coming up in the window (rendered later; ignored for now).
+  valves: Array<{ t: number; valve: "plus" | "minus"; open: boolean }>;
 }
 
 export class Player {
@@ -45,7 +45,6 @@ export class Player {
   protected cursor = 0; // index of the next unfired event
   private lastDeviceSpeed: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
-  private valveTimers: Array<ReturnType<typeof setTimeout>> = [];
   private listeners: Array<() => void> = [];
 
   constructor(opts: PlayerOptions) {
@@ -159,13 +158,13 @@ export class Player {
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
-    // cursor (the in-effect speed is derived); valve events pulse immediately.
+    // cursor (the in-effect speed is derived); valve events set the valve state.
     while (
       this.cursor < this.events.length &&
       this.events[this.cursor]!.at <= this.clock
     ) {
       const ev = this.events[this.cursor]!;
-      if (ev.kind === "valve") this.pulseValve(ev.valve, ev.durationMs);
+      if (ev.kind === "valve") this.setValve(ev.valve, ev.open);
       this.cursor++;
     }
 
@@ -183,19 +182,14 @@ export class Player {
     this.clock += TICK_MS * this.rate;
   }
 
-  private pulseValve(valve: "plus" | "minus", durationMs: number): void {
+  private setValve(valve: "plus" | "minus", open: boolean): void {
     const dev = this.getDevice();
     if (dev === null) return;
-    const set = (state: boolean): Promise<unknown> =>
+    const result =
       valve === "plus"
-        ? dev.valveStrokePlusSet(state)
-        : dev.valveStrokeMinusSet(state);
-    void set(true).catch(() => undefined);
-    this.valveTimers.push(
-      setTimeout(() => {
-        void set(false).catch(() => undefined);
-      }, durationMs),
-    );
+        ? dev.valveStrokePlusSet(open)
+        : dev.valveStrokeMinusSet(open);
+    void result.catch(() => undefined);
   }
 
   async pause(): Promise<void> {
@@ -205,8 +199,6 @@ export class Player {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    for (const t of this.valveTimers) clearTimeout(t);
-    this.valveTimers = [];
     this.currentSpeed = 0;
     this.lastDeviceSpeed = null;
     this.notify();
@@ -314,7 +306,7 @@ export class Player {
         valves.push({
           t: Math.max(0, ev.at - now),
           valve: ev.valve,
-          durationMs: ev.durationMs,
+          open: ev.open,
         });
         continue;
       }
