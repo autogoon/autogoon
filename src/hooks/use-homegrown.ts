@@ -1,83 +1,71 @@
 "use client";
 
-// The Homegrown algorithm as a React hook. Mirrors useAutopilot: it owns the
-// engine and drives the device through the VacuglideDeviceController it is given, so
-// both algorithms share the same device layer. Still boilerplate for now.
+// The Homegrown algorithm as a React hook. It no longer owns a play loop —
+// it drives the shared Player (in the device hook) with a Homegrown, and
+// mirrors the player into render state while Homegrown is the active source.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Homegrown,
   type VariabilityLevel,
 } from "@/lib/homegrown-engine";
-import {
-  UPCOMING_WINDOW_MS,
-  type CurvePoint,
-} from "@/components/sparkline";
+import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
+const FLAT: CurvePoint[] = [
+  { t: 0, speed: 0 },
+  { t: UPCOMING_WINDOW_MS, speed: 0 },
+];
+
 export function useHomegrown(vacuglide: VacuglideDeviceController) {
-  const { getDevice, log } = vacuglide;
+  const { player, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
-  // The next minute of script, refreshed every tick for the sparkline preview.
-  const [upcoming, setUpcoming] = useState<CurvePoint[]>([]);
-  // The Speed slider: raw script speeds are scaled by this percentage before
-  // being sent to the device.
+  const [upcoming, setUpcoming] = useState<CurvePoint[]>(FLAT);
   const [speedPercent, setSpeedPercent] = useState(10);
-  // How randomised each ramp's timing is (see the engine for the percentages).
   const [variability, setVariability] = useState<VariabilityLevel>("low");
 
-  const engineRef = useRef<Homegrown | null>(null);
-  engineRef.current ??= new Homegrown({
-    getDevice,
-    speedPercent,
-    variability,
+  const sourceRef = useRef<Homegrown | null>(null);
+  sourceRef.current ??= new Homegrown({
+    speedPercent: 10,
+    variability: "low",
   });
-  const engine = engineRef.current;
+  const source = sourceRef.current;
 
+  // Mirror the player into render state, but only while Homegrown is the active
+  // source (the shared player may be idle or, later, running another algorithm).
   useEffect(() => {
-    const unsubscribe = engine.subscribe(() => {
-      const state = engine.getState();
-      setIsPlaying(state.isPlaying);
-      setCurrentSpeed(state.currentSpeed);
-      setUpcoming(engine.getUpcomingCurve(UPCOMING_WINDOW_MS));
-    });
-    return unsubscribe;
-  }, [engine]);
-
-  // Safety: if the page is closed while running, ask the device to stop rather
-  // than leaving it at the last commanded speed.
-  useEffect(() => {
-    const onPageHide = () => {
-      const device = getDevice();
-      if (device !== null && device.cluster !== null && engine.isPlaying) {
-        void fetch(`${device.cluster}/vacuglide/target-speed/stop`, {
-          method: "PUT",
-          headers: { "x-device-token": device.token },
-          keepalive: true,
-        }).catch(() => undefined);
-      }
+    const sync = () => {
+      const active = player.source === source && player.isPlaying;
+      setIsPlaying(active);
+      setCurrentSpeed(active ? player.getState().currentSpeed : 0);
+      setUpcoming(active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT);
     };
-    window.addEventListener("pagehide", onPageHide);
-    return () => window.removeEventListener("pagehide", onPageHide);
-  }, [engine, getDevice]);
+    const unsubscribe = player.subscribe(sync);
+    sync();
+    return unsubscribe;
+  }, [player, source]);
 
-  const start = useCallback(() => engine.start(), [engine]);
-  const stop = useCallback(() => engine.pause(), [engine]);
+  const start = useCallback(async () => {
+    player.setSource(source);
+    player.play();
+  }, [player, source]);
+
+  const stop = useCallback(() => player.pause(), [player]);
 
   const changeSpeedPercent = useCallback(
     (percent: number) => {
-      setSpeedPercent(percent);
-      engine.setSpeedPercent(percent);
+      const clamped = Math.max(0, Math.min(100, percent));
+      setSpeedPercent(clamped);
+      source.setSpeedPercent(clamped);
     },
-    [engine],
+    [source],
   );
 
-  // Step the Speed slider by delta percentage points, clamped to 0-100.
   const stepSpeedPercent = useCallback(
     (delta: number) => {
       changeSpeedPercent(Math.max(0, Math.min(100, speedPercent + delta)));
@@ -88,20 +76,21 @@ export function useHomegrown(vacuglide: VacuglideDeviceController) {
   const changeVariability = useCallback(
     (level: VariabilityLevel) => {
       setVariability(level);
-      engine.setVariability(level);
+      source.setVariability(level);
+      if (player.source === source && player.isPlaying) player.invalidateFuture();
     },
-    [engine],
+    [player, source],
   );
 
   const cumming = useCallback(() => {
     try {
-      engine.cumming();
+      source.beginCumming();
+      if (player.source === source && player.isPlaying) player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }
-  }, [engine, log]);
+  }, [player, source, log]);
 
-  // Stroke's up/down come from the shared useStrokeControls.
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
