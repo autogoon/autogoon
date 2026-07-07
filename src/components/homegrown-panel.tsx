@@ -57,7 +57,7 @@ export function HomegrownPanel({
       </Card>
 
       <StrokeCard
-        disabled={!homegrown.isPlaying}
+        disabled={homegrown.isPlaying === false}
         strokePulsing={homegrown.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}

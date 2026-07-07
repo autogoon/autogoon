@@ -1,8 +1,5 @@
-"use client";
-
-import { Gauge, Mic, MicOff, Plug, Square } from "lucide-react";
+import { Gauge, Mic, MicOff, Plug } from "lucide-react";
 import { Button } from "@/components/button";
-import type { Algorithm } from "@/hooks/use-algorithm-runner";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
@@ -26,22 +23,15 @@ function ValvePill({ label, open }: { label: string; open: boolean }) {
 export function HeaderBar({
   kws,
   vacuglide,
-  running,
-  onStop,
 }: {
   kws: KeywordSpotterController;
   vacuglide: VacuglideDeviceController;
-  running: Algorithm | null;
-  onStop: () => void;
 }) {
   return (
     <header className="bg-background/80 sticky top-0 z-10 border-b backdrop-blur">
       <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 py-2.5">
         <div className="mr-auto flex items-center gap-3">
-          <span className="hidden font-semibold lg:inline">
-            Autogoon - voice-controlled gooning
-          </span>
-          <span className="font-semibold lg:hidden">Autogoon</span>
+          <span className="font-semibold">Autogoon</span>
           {vacuglide.connected && (
             <div className="flex items-center gap-1.5">
               <span
@@ -95,17 +85,6 @@ export function HeaderBar({
                 : "Connect"}
           </span>
         </Button>
-
-        {running !== null && (
-          <Button
-            onClick={onStop}
-            title={`Stop ${running.label}`}
-            className={`${chipClass} border-red-500 text-red-500`}
-          >
-            <Square className="size-4 fill-current" />
-            <span className="hidden sm:inline">Stop</span>
-          </Button>
-        )}
       </div>
     </header>
   );
