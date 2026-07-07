@@ -11,6 +11,7 @@ import {
   VacuglideDevice,
   type RateLimitStatus,
 } from "@/lib/vacuglide-device";
+import { Player } from "@/lib/player";
 
 const TOKEN_STORAGE_KEY = "vacuglideToken";
 
@@ -59,6 +60,15 @@ export function useVacuglideDevice() {
   const deviceRef = useRef<VacuglideDevice | null>(null);
   const logIdRef = useRef(0);
 
+  // The one shared program Player (owns the clock + tick loop + device sends).
+  // Algorithms register a AlgorithmEngine with it; only one plays at a time.
+  const playerRef = useRef<Player | null>(null);
+  playerRef.current ??= new Player({
+    getDevice: () => deviceRef.current,
+    onError: (message) => log(`error: ${message}`, "error"),
+  });
+  const player = playerRef.current;
+
   // The rate-limit window slides with time (old requests age out), so poll the
   // device once a second rather than only on new requests. Skip the state
   // update when nothing changed to avoid a re-render every tick while idle.
@@ -86,6 +96,23 @@ export function useVacuglideDevice() {
     };
     setLogEntries((prev) => [...prev.slice(-199), entry]);
   }, []);
+
+  // Safety: if the page is closed while the player is running, ask the device to
+  // stop rather than leaving it at the last commanded speed.
+  useEffect(() => {
+    const onPageHide = () => {
+      const device = deviceRef.current;
+      if (device !== null && device.cluster !== null && player.isPlaying) {
+        void fetch(`${device.cluster}/vacuglide/target-speed/stop`, {
+          method: "PUT",
+          headers: { "x-device-token": device.token },
+          keepalive: true,
+        }).catch(() => undefined);
+      }
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [player]);
 
   // Stable accessor so consumers (e.g. the autopilot engine) always reach the
   // currently-connected device across reconnects.
@@ -187,6 +214,7 @@ export function useVacuglideDevice() {
     deviceStatusKind,
     connect,
     getDevice,
+    player,
     deviceSpeed,
     strokePlusValve,
     strokeMinusValve,
