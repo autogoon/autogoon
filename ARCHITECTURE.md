@@ -1,7 +1,7 @@
 # Architecture
 
-A single-page app with a sticky header bar and four tabs (Keyword Spotting,
-Autopilot, Homegrown, Settings). `src/app/page.tsx` owns the layout and mounts
+A single-page app with a sticky header bar and four tabs (Gooning, Homegrown,
+Vacuglide, Settings). `src/app/page.tsx` owns the layout and mounts
 every controller hook at the top of the tree, so the KWS recognizer and the
 algorithms keep running regardless of which tab is visible — hidden tabs stay
 mounted, only their visibility changes.
@@ -69,9 +69,12 @@ remembered in `localStorage`.
 
 In-browser speech keyword detection using
 [vosk-browser](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) with a
-grammar constrained to a small, page-editable word list. Detections fire from
+grammar constrained to the words the running algorithm publishes (plus the global
+connect/start/stop), rebuilt whenever that word set changes. Detections fire from
 streaming _partial_ results for low latency. The ~40MB recognizer model
 (`public/vosk-model-small-en-us-0.15.tar.gz`) is fetched on load and cached by
 the browser. It lives in `useKeywordSpotter` / `keyword-spotter.tsx` and, like
 the algorithms, is mounted at the top of the tree so it keeps listening across
-tab switches. It is not yet wired to drive the device.
+tab switches. Each detected word is handed to the algorithm runner
+(`useAlgorithmRunner`), which routes `connect`/`start`/`stop` itself and dispatches
+any other word to the running algorithm's matching action.
