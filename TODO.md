@@ -41,6 +41,13 @@ the tab you're looking at — not only while an algorithm is running.
       immediately and you can scrub/adjust before playing; Start then just begins
       consuming the already-built program.
 
+## Visualisation
+
+- [ ] **Indicate scheduled valve operations on the timeline.** The visualisation
+      shows the upcoming speed curve but not the scheduled stroke − / stroke +
+      (valve) events. Mark them on the timeline so the stroke changes are visible
+      coming up, not just the speed.
+
 ## Algorithm settings
 
 - [ ] **Goon: expose session length.** Goon's run length is the hard-coded
