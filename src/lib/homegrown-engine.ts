@@ -37,6 +37,11 @@ const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 500;
 
+// The helpers below are deliberately module-level functions, not private methods
+// of the class: they are pure, stateless transforms, kept file-private (never
+// exported). Matching the sibling engines (see goon-engine.ts), keeping them as
+// functions avoids handing stateless code a `this` it does not use.
+
 interface Ramp {
   waypoints: Array<{ speed: number; at: number }>;
   endAt: number;
