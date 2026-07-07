@@ -359,6 +359,14 @@ export class Autopilot implements AlgorithmEngine {
     // coverage exactly.
     const p = suctionControlParams[this.suctionControlLevel];
     if (p.enabled) {
+      // After a re-pull (invalidateFuture drops the future), lastSuctionTime can
+      // sit a whole block ahead of the new frontier — it tracked pulses that were
+      // just discarded. Clamp it back so suction resumes at `fromTime` instead of
+      // going silent until the old frontier. On a normal extension lastSuctionTime
+      // is always < fromTime, so this is a no-op there.
+      if (this.lastSuctionTime >= fromTime) {
+        this.lastSuctionTime = fromTime - p.interval;
+      }
       // Advance the cadence up to the generation frontier without emitting pulses
       // that would land before `fromTime` (they are already in the past for the
       // Player, and would break the sorted-events contract). This matters when
