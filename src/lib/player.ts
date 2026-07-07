@@ -220,6 +220,13 @@ export class Player {
     this.seek(Math.max(0, this.clock - JUMP_MS));
   }
 
+  // Jump the clock to an absolute program-time — an algorithm-specific transport
+  // (e.g. Goon's "finish" jumping to the end of its build). Clamped to >= 0; the
+  // source decides what a position past its content means (Goon parks at the top).
+  seekTo(to: number): void {
+    this.seek(Math.max(0, to));
+  }
+
   private seek(to: number): void {
     this.clock = to;
     // Events are stamped in program-time, so a jump keeps them — just re-place
