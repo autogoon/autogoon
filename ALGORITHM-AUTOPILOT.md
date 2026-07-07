@@ -2,8 +2,10 @@
 
 A faithful recreation of Autoblow's own Vacuglide autopilot — the official
 "hands-off" mode. Reverse-engineered from the original app's client bundle
-(`autopilot-Krw_IcWx.js`) and rebuilt to run entirely in your browser, faithful
-down to its constants. Start it and let it drive.
+(`autopilot-Krw_IcWx.js`, **July 2026**) and rebuilt to run entirely in your
+browser, faithful down to its constants. It mirrors that build; Autoblow's own
+implementation isn't independently documented and may drift from this over time.
+Start it and let it drive.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it plugs into the app.
 
