@@ -1,6 +1,16 @@
-// Goon — an automatic, timeline-driven slow build. It IS the manual
-// Homegrown algorithm with its two knobs driven automatically over a "program
-// position" that runs 0 -> 30 min, so it reuses Homegrown's exact dip machinery:
+// Goon as an AlgorithmEngine — an automatic, timeline-driven slow build. It IS
+// the manual Homegrown dip pattern with its two knobs driven automatically over a
+// "program position" that runs 0 -> 30 min, translated onto the shared Player's
+// event model. The Player owns the clock, rate (time dilation), lookahead, sends
+// and valve timing; this only *generates* events and *scales* them.
+//
+// The core simplification: **position === the Player's clock**. Goon's build runs
+// over program-position 0..PROGRAM_MS; in this model the Player's clock IS that
+// position and the Player's rate IS the old time dilation. So each generated cycle
+// samples the curves at ITS OWN position (== its program-time), which keeps the
+// ramp smooth and correct even after a jump — forward/back/finish/faster/slower are
+// all just the Player moving/consuming the clock, with no engine-side transport.
+//
 //   - the dip is always the raw pattern 100 -> floor -> 100 (Homegrown's shape),
 //     mapped to the device through Homegrown's curved-low-end scaleSpeed. Depth
 //     lives in RAW units, so it is wide and the legs are long early on.
@@ -12,33 +22,26 @@
 // Because the dip is raw 100->floor and scaleSpeed pulls the low end toward 0 the
 // lower the speed, the early low-speed dips still swing over a wide device range
 // (e.g. ~25 down to ~3) rather than a narrow band near the top.
-// Intensity (0-100, manual, default set by the hook) is a FINAL multiplier on the
-// scaled output — so "build to 50%" just means intensity 50. Real time advances
-// the position 1:1; forward/back offset it by a minute; finish snaps it to the end
-// (where it holds forever via a far-future waypoint, the same park trick as
-// cumming). cumming() is Homegrown's wind-down, duplicated so this engine stays
-// self-contained.
 //
-// `currentTime`/`script` are a permanent record of the session (never reset except
-// on start()). We keep ~a minute of future built ahead, appending fresh cycles
-// each tick; each appended cycle samples the curves at ITS OWN start position, so
-// the ramp is smooth and correct even after a jump. An explicit command
-// (forward/back/finish/cumming) splices from now — keeping sent waypoints as real
-// history and rebuilding only the future.
+// Intensity (0-100, manual, default set by the hook) is a FINAL multiplier on the
+// scaled output — so "build to 50%" just means intensity 50; scale() applies it
+// every tick so a knob change takes effect on the next tick without regeneration.
+// Auto teasing is emitted as open/close valve pulse PAIRS placed deterministically
+// at their program positions. cumming() is Homegrown's wind-down, duplicated so
+// this engine stays self-contained; the hook invalidates the future after it.
 
-import type { VacuglideDevice } from "@/lib/vacuglide-device";
-
-interface ScriptWaypoint {
-  speed: number;
-  at: number;
-  // If true, send `speed` as-is — bypass intensity scaling. Only cumming()'s
-  // waypoints set this; the normal pattern never does.
-  unscaled?: boolean;
-}
+import {
+  type PlayerContext,
+  type ProgramEvent,
+  type AlgorithmEngine,
+  type SpeedEvent,
+  type ValveEvent,
+} from "@/lib/program";
 
 // The whole build runs over this long. Position is clamped to [0, PROGRAM_MS];
-// past the end the pattern holds at the top forever.
-const PROGRAM_MS = 30 * 60_000;
+// past the end the pattern parks at the top forever. Exported for the hook, which
+// uses it for the position readout and for "finish" (seekTo the end).
+export const PROGRAM_MS = 30 * 60_000;
 
 // The auto "build" — Homegrown's speedPercent — eases from BUILD_START to
 // BUILD_PEAK across the program. BUILD_EXP > 1 makes it ease-IN: a patient start
@@ -56,7 +59,6 @@ const VAR_FLOOR_SHALLOW = 100;
 const VAR_JITTER_HIGH = 80;
 
 // Shared dip mechanics (same values as Homegrown, duplicated to stay standalone).
-const TICK_MS = 100;
 const STEP_MS = 1250;
 const STEP_SIZE = 5;
 const SLOW_JITTER_CAP = 40;
@@ -67,32 +69,40 @@ const PEAK_SPEED = 100;
 // get a wide range instead of a narrow band near the top. 0 would be flat linear.
 const LOW_END_GAMMA = 2.5;
 
-// How far ahead we keep the script built before appending more.
-const SCRIPT_LOOKAHEAD_MS = 60_000;
-
-// forward/back jump this much program time.
-const JUMP_MS = 60_000;
-
-// faster/slower dilate time: the program position advances TICK_MS * timeScale per
-// tick. Each press multiplies/divides the scale by RATE_STEP (~5% faster/slower
-// from that point on), clamped to [MIN_TIME_SCALE, MAX_TIME_SCALE].
-const RATE_STEP = 1.05;
-const MIN_TIME_SCALE = 0.25;
-const MAX_TIME_SCALE = 4;
-
 // Auto teasing has two phases. Before STROKE_PLUS_START_MS it fires a 5s stroke-
-// pulse every STROKE_MINUS_INTERVAL_MS (a minute), starting at 0; from then on it
-// fires a 50ms stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the
+// minus pulse every STROKE_MINUS_INTERVAL_MS (a minute), starting at 0; from then
+// on it fires a stroke+ pulse every TEASE_INTERVAL_MS (five minutes), except in the
 // final segment (last TEASE_INTERVAL_MS) so nothing interrupts the approach.
 const STROKE_PLUS_START_MS = 10 * 60_000;
 const STROKE_MINUS_INTERVAL_MS = 60_000;
 const STROKE_MINUS_PULSE_MS = 5000;
 const TEASE_INTERVAL_MS = 5 * 60_000;
-const TEASE_PULSE_MS = 50;
+const TEASE_PULSE_MS = 100;
+
+// cumming()'s wind-down ramp, verbatim from the old engine.
+const CUMMING_START_SPEED = 30;
+const CUMMING_MID_SPEED = 20;
+const CUMMING_END_SPEED = 5;
+const CUMMING_STEP_MS = 500; // 1 unit per 500ms: 30 units over 15s.
+
+// The far-future hold used for the end-of-program park and the cumming rest: the
+// event array wraps onto it and holds, so nothing needs to track "are we done".
+const PARK_HOLD_MS = 1_800_000;
+
+// The helpers below are deliberately module-level functions, not private methods
+// of the class: they are pure, stateless transforms, kept file-private (never
+// exported). Matching the sibling engines (see homegrown-engine.ts), keeping them
+// as functions avoids handing stateless code a `this` it does not use.
+
+interface Waypoint {
+  speed: number;
+  at: number;
+}
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
-const roundToStep = (v: number): number => Math.round(v / STEP_SIZE) * STEP_SIZE;
+const roundToStep = (v: number): number =>
+  Math.round(v / STEP_SIZE) * STEP_SIZE;
 
 // Normalised progress 0..1 at a program position (ms).
 function progress(positionMs: number): number {
@@ -139,14 +149,14 @@ function buildLeg(
   to: number,
   variabilityPercent: number,
   startAt: number,
-): { waypoints: ScriptWaypoint[]; endAt: number } {
+): { waypoints: Waypoint[]; endAt: number } {
   const down = variabilityPercent / 100;
   const up = Math.min(variabilityPercent, SLOW_JITTER_CAP) / 100;
   const jitter = -down + Math.random() * (down + up);
   const stepMs = Math.max(1, Math.round(STEP_MS * (1 + jitter)));
   const direction = to > from ? STEP_SIZE : -STEP_SIZE;
   const steps = Math.abs(to - from) / STEP_SIZE;
-  const waypoints: ScriptWaypoint[] = [{ speed: from, at: startAt }];
+  const waypoints: Waypoint[] = [{ speed: from, at: startAt }];
   let at = startAt;
   let speed = from;
   for (let i = 0; i < steps; i++) {
@@ -161,13 +171,13 @@ function buildLeg(
 // One dip cycle: the raw Homegrown pattern PEAK_SPEED -> floor -> PEAK_SPEED
 // (floor and jitter sampled from the variability curves at `positionMs`), with
 // every raw waypoint mapped through scaleSpeed at this position's build level. The
-// stored speeds are therefore the pre-intensity device values (outputSpeed applies
+// stored speeds are therefore the pre-intensity device values (scale() applies
 // intensity on top). When the floor reaches PEAK_SPEED (end of program) both legs
 // are zero-length, so it becomes a hold at the top — how "no variability" falls out.
 function buildGoonCycle(
   positionMs: number,
   startAt: number,
-): { waypoints: ScriptWaypoint[]; endAt: number } {
+): { waypoints: Waypoint[]; endAt: number } {
   const speedPercent = buildSpeedPercent(positionMs);
   const floor = variabilityFloor(positionMs);
   const jitter = variabilityJitter(positionMs);
@@ -175,7 +185,7 @@ function buildGoonCycle(
     { from: PEAK_SPEED, to: floor },
     { from: floor, to: PEAK_SPEED },
   ];
-  const waypoints: ScriptWaypoint[] = [];
+  const waypoints: Waypoint[] = [];
   let at = startAt;
   for (const leg of legs) {
     const built = buildLeg(leg.from, leg.to, jitter, at);
@@ -187,399 +197,175 @@ function buildGoonCycle(
   return { waypoints, endAt: at };
 }
 
-const CUMMING_START_SPEED = 30;
-const CUMMING_MID_SPEED = 20;
-const CUMMING_END_SPEED = 5;
-const CUMMING_STEP_MS = 500; // 1 unit per 500ms: 30 units over 15s.
-
-// A one-shot, unscaled wind-down: a smooth constant-rate ramp from 30 to 0, then
-// a duplicate of the resting value (0) far in the future — the loop wraps onto
-// that far-future waypoint and holds, so nothing needs to track "are we done".
-function buildCummingScript(startAt: number): ScriptWaypoint[] {
-  const script: ScriptWaypoint[] = [];
+// A one-shot, unscaled wind-down: a smooth constant-rate ramp from 30 to 5 (1.5/
+// step down to 20, then 1/step to 5), then a duplicate of the resting value (0)
+// far in the future — the loop wraps onto that far-future waypoint and holds.
+function buildCummingScript(startAt: number): SpeedEvent[] {
+  const events: SpeedEvent[] = [];
   let at = startAt;
-  for (let speed = CUMMING_START_SPEED; speed >= CUMMING_MID_SPEED; speed -= 1.5) {
-    script.push({ speed, at, unscaled: true });
+  for (
+    let speed = CUMMING_START_SPEED;
+    speed >= CUMMING_MID_SPEED;
+    speed -= 1.5
+  ) {
+    events.push({ kind: "speed", at, speed, unscaled: true });
     at += CUMMING_STEP_MS;
   }
   for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
-    script.push({ speed, at, unscaled: true });
+    events.push({ kind: "speed", at, speed, unscaled: true });
     at += CUMMING_STEP_MS;
   }
-  script.push({ speed: 0, at: at + 1_800_000, unscaled: true });
-  return script;
+  events.push({ kind: "speed", at: at + PARK_HOLD_MS, speed: 0, unscaled: true });
+  return events;
+}
+
+// The stroke-minus / stroke-plus tease pulses as open/close ValveEvent pairs,
+// placed deterministically at their program positions in [from, until). This
+// replaces the old maybeTease's per-tick lastMinusIndex/lastPlusIndex crossing
+// logic: because position is deterministic, the same boundaries fall out of a
+// position-keyed placement with no per-phase state.
+//   - stroke-minus: at each k*STROKE_MINUS_INTERVAL_MS with pos < STROKE_PLUS_START_MS
+//     (fires at 0,1,…,9 min) — a STROKE_MINUS_PULSE_MS pulse.
+//   - stroke-plus: at each k*TEASE_INTERVAL_MS with pos >= STROKE_PLUS_START_MS AND
+//     pos < PROGRAM_MS - TEASE_INTERVAL_MS (fires at 10,15,20 min) — a TEASE_PULSE_MS
+//     pulse. Matches the old maybeTease guards' exact boundaries.
+// `until` is the batch's cycle extent (not the raw lookahead horizon): the Player
+// pulls generate() with `from` advancing to the previous batch's last event, so
+// keying on the actual cycle extent keeps tease coverage contiguous with the
+// speed cycles — no gaps, no re-emission across calls or after jumps.
+function teaseEvents(from: number, until: number): ValveEvent[] {
+  const events: ValveEvent[] = [];
+
+  const minusStart = Math.max(0, Math.floor(from / STROKE_MINUS_INTERVAL_MS));
+  for (let k = minusStart; ; k++) {
+    const pos = k * STROKE_MINUS_INTERVAL_MS;
+    if (pos >= until) break;
+    if (pos >= STROKE_PLUS_START_MS) break; // guard; pos only grows from here
+    if (pos < from) continue;
+    events.push({ kind: "valve", at: pos, valve: "minus", open: true });
+    events.push({
+      kind: "valve",
+      at: pos + STROKE_MINUS_PULSE_MS,
+      valve: "minus",
+      open: false,
+    });
+  }
+
+  const plusStart = Math.max(0, Math.floor(from / TEASE_INTERVAL_MS));
+  for (let k = plusStart; ; k++) {
+    const pos = k * TEASE_INTERVAL_MS;
+    if (pos >= until) break;
+    if (pos >= PROGRAM_MS - TEASE_INTERVAL_MS) break; // guard; pos only grows
+    if (pos < from || pos < STROKE_PLUS_START_MS) continue;
+    events.push({ kind: "valve", at: pos, valve: "plus", open: true });
+    events.push({
+      kind: "valve",
+      at: pos + TEASE_PULSE_MS,
+      valve: "plus",
+      open: false,
+    });
+  }
+
+  return events;
 }
 
 export interface GoonOptions {
-  getDevice: () => VacuglideDevice | null;
   intensity: number;
 }
 
-export class Goon {
-  private readonly getDevice: () => VacuglideDevice | null;
-
-  isPlaying = false;
-  currentSpeed = 0;
-
-  private script: ScriptWaypoint[] = [];
-  private timer: ReturnType<typeof setTimeout> | null = null;
-  private currentTime = 0;
-  private currentScriptIndex = 0;
-  // The exact (already-scaled) value most recently sent; re-sending the same
-  // value briefly stops the device, so we skip a duplicate send. null = nothing
-  // sent since the last stop.
-  private lastDeviceSpeed: number | null = null;
-  private listeners: Array<() => void> = [];
+export class Goon implements AlgorithmEngine {
   // Final output multiplier (0-100). The Intensity slider owns this.
   private intensity: number;
-  // The program position (ms into the 0..PROGRAM_MS build), decoupled from the
-  // real script clock so time can be dilated. It advances TICK_MS * timeScale each
-  // tick; forward/back/finish move it directly.
-  private programPos = 0;
-  // Time-dilation factor: 1 = real time, >1 faster, <1 slower. faster()/slower().
-  private timeScale = 1;
-  // Highest boundary already fired for each tease phase, so each pulses once per
-  // crossing: the 1-min stroke- phase and the 5-min stroke+ phase. Minus starts at
-  // -1 so the 0-min boundary fires a stroke- right at session start.
-  private lastMinusIndex = -1;
-  private lastPlusIndex = 0;
-  // One-shot valve timers (cumming pulse, tease pulse); cleared on stop.
-  private cumTimers: Array<ReturnType<typeof setTimeout>> = [];
+  private cumming = false;
+  private cummingEmitted = false;
 
   constructor(opts: GoonOptions) {
-    this.getDevice = opts.getDevice;
     this.intensity = opts.intensity;
   }
 
-  private get positionMs(): number {
-    return Math.max(0, Math.min(PROGRAM_MS, this.programPos));
+  reset(): void {
+    this.cumming = false;
+    this.cummingEmitted = false;
   }
 
-  // Program position at a future script time, for sampling curves when appending
-  // cycles ahead of now — it advances from the current programPos at the current
-  // timeScale (a splice/rebuild re-bases this whenever the scale changes).
-  private positionAt(scriptTime: number): number {
-    const ahead = (scriptTime - this.currentTime) * this.timeScale;
-    return Math.max(0, Math.min(PROGRAM_MS, this.programPos + ahead));
-  }
-
-  private device(): VacuglideDevice {
-    const device = this.getDevice();
-    if (device === null) throw new Error("No device connected");
-    return device;
-  }
-
-  subscribe(fn: () => void): () => void {
-    this.listeners.push(fn);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== fn);
-    };
-  }
-
-  private notify(): void {
-    for (const fn of this.listeners) fn();
-  }
-
-  getState(): {
-    isPlaying: boolean;
-    currentSpeed: number;
-    positionMs: number;
-    programMs: number;
-    timeScale: number;
-  } {
-    return {
-      isPlaying: this.isPlaying,
-      currentSpeed: this.currentSpeed,
-      positionMs: this.positionMs,
-      programMs: PROGRAM_MS,
-      timeScale: this.timeScale,
-    };
-  }
-
-  // Map a raw script speed to device output: intensity is a flat final multiplier
-  // (ramp targets raw 100 internally; intensity scales what's sent). cumming's
-  // unscaled waypoints pass through untouched.
-  private outputSpeed(waypoint: ScriptWaypoint): number {
-    if (waypoint.unscaled === true) return waypoint.speed;
-    return Math.round((waypoint.speed * this.intensity) / 100);
-  }
-
-  // Cut off unsent future (keeping sent waypoints as history) and append the
-  // built waypoints starting at the next tick.
-  private spliceFromNow(build: (startAt: number) => ScriptWaypoint[]): void {
-    this.script = this.script.slice(0, this.currentScriptIndex);
-    this.script.push(...build(this.currentTime + TICK_MS));
-  }
-
-  // The device output coming up over the next windowMs as {t, speed} points (t in
-  // ms from now). Begins at the current in-effect speed; flat at 0 while paused.
-  getUpcomingCurve(windowMs: number): Array<{ t: number; speed: number }> {
-    if (!this.isPlaying) {
-      return [
-        { t: 0, speed: 0 },
-        { t: windowMs, speed: 0 },
-      ];
-    }
-    const now = this.currentTime;
-    const end = now + windowMs;
-    const current = this.script[this.currentScriptIndex - 1];
-    let inEffect = current !== undefined ? this.outputSpeed(current) : 0;
-    const points: Array<{ t: number; speed: number }> = [];
-    for (let i = this.currentScriptIndex; i < this.script.length; i++) {
-      const wp = this.script[i]!;
-      if (wp.at > end) break;
-      if (wp.at <= now) {
-        inEffect = this.outputSpeed(wp);
-        continue;
-      }
-      points.push({ t: wp.at - now, speed: this.outputSpeed(wp) });
-    }
-    const curve = [{ t: 0, speed: inEffect }, ...points];
-    const last = curve[curve.length - 1]!;
-    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
-    return curve;
-  }
-
-  // A fresh session: the one place the clock/script/offset reset.
-  async start(): Promise<void> {
-    this.clearTimer();
-    this.clearCumTimers();
-    this.script = [];
-    this.currentScriptIndex = 0;
-    this.currentTime = 0;
-    this.programPos = 0;
-    this.timeScale = 1;
-    this.lastMinusIndex = -1;
-    this.lastPlusIndex = 0;
-    this.lastDeviceSpeed = null;
-    this.isPlaying = true;
-    this.scheduleNextTick();
-    this.notify();
-  }
-
-  private scheduleNextTick(): void {
-    if (!this.isPlaying) return;
-    this.timer = setTimeout(() => {
-      void (async () => {
-        try {
-          await this.timerLoop();
-        } catch {
-          // ignore a transient device error; keep ticking
-        }
-        this.notify();
-        this.scheduleNextTick();
-      })();
-    }, TICK_MS);
-  }
-
-  // Two-phase auto teasing, jump-aware — each phase's index advances even when the
-  // pulse is suppressed, so a crossing never double-fires:
-  //   - before STROKE_PLUS_START_MS (first 10 min): a 5s stroke- pulse every minute,
-  //     starting at 0;
-  //   - from STROKE_PLUS_START_MS on: a 50ms stroke+ pulse every 5 min, except in
-  //     the final segment (last TEASE_INTERVAL_MS).
-  private maybeTease(): void {
-    const pos = this.positionMs;
-    const dev = this.getDevice();
-
-    const minusIndex = Math.floor(pos / STROKE_MINUS_INTERVAL_MS);
-    if (minusIndex > this.lastMinusIndex) {
-      this.lastMinusIndex = minusIndex;
-      if (pos < STROKE_PLUS_START_MS && dev !== null) {
-        void dev.valveStrokeMinusSet(true).catch(() => undefined);
-        this.cumTimers.push(
-          setTimeout(() => {
-            void dev.valveStrokeMinusSet(false).catch(() => undefined);
-          }, STROKE_MINUS_PULSE_MS),
-        );
-      }
-    }
-
-    const plusIndex = Math.floor(pos / TEASE_INTERVAL_MS);
-    if (plusIndex > this.lastPlusIndex) {
-      this.lastPlusIndex = plusIndex;
-      if (
-        pos >= STROKE_PLUS_START_MS &&
-        pos < PROGRAM_MS - TEASE_INTERVAL_MS &&
-        dev !== null
-      ) {
-        void dev.valveStrokePlusSet(true).catch(() => undefined);
-        this.cumTimers.push(
-          setTimeout(() => {
-            void dev.valveStrokePlusSet(false).catch(() => undefined);
-          }, TEASE_PULSE_MS),
-        );
-      }
-    }
-  }
-
-  private async timerLoop(): Promise<void> {
-    if (!this.isPlaying) return;
-    // Keep SCRIPT_LOOKAHEAD_MS of future built. Each appended cycle samples the
-    // curves at its own start position. Once the position at the append point has
-    // reached the end, park with a single far-future hold at the top instead of
-    // churning zero-length cycles (cumming's far-future hold sits past the horizon
-    // and is left untouched).
-    const horizon = this.currentTime + SCRIPT_LOOKAHEAD_MS;
-    while ((this.script[this.script.length - 1]?.at ?? this.currentTime) < horizon) {
-      const startAt = this.script[this.script.length - 1]?.at ?? this.currentTime;
-      if (this.positionAt(startAt) >= PROGRAM_MS) {
-        this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
-        break;
-      }
-      const { waypoints } = buildGoonCycle(this.positionAt(startAt), startAt);
-      this.script.push(...waypoints);
-    }
-
-    this.maybeTease();
-
-    const waypoint = this.script[this.currentScriptIndex];
-    if (waypoint !== undefined && this.currentTime >= waypoint.at) {
-      const output = this.outputSpeed(waypoint);
-      this.currentSpeed = output;
-      if (output !== this.lastDeviceSpeed) {
-        await this.device().targetSpeedSet(output);
-        this.lastDeviceSpeed = output;
-      }
-      this.currentScriptIndex++;
-    }
-    this.currentTime += TICK_MS;
-    this.programPos = Math.max(
-      0,
-      Math.min(PROGRAM_MS, this.programPos + TICK_MS * this.timeScale),
-    );
-  }
-
-  // Rebuild the future from the current position after a jump: drop unsent
-  // waypoints and append one fresh cycle now, so the sparkline and device react
-  // at once (the timer loop keeps extending the horizon afterwards).
-  private rebuildFuture(): void {
-    this.script = this.script.slice(0, this.currentScriptIndex);
-    const startAt = this.currentTime + TICK_MS;
-    if (this.positionAt(startAt) >= PROGRAM_MS) {
-      this.script.push({ speed: PEAK_SPEED, at: startAt });
-      this.script.push({ speed: PEAK_SPEED, at: startAt + 1_800_000 });
-    } else {
-      const { waypoints } = buildGoonCycle(this.positionAt(startAt), startAt);
-      this.script.push(...waypoints);
-    }
-  }
-
-  // Re-baseline both tease boundaries after a jump so a forward re-crossing fires
-  // again but the current boundary doesn't double-fire.
-  private resyncTease(): void {
-    const pos = this.positionMs;
-    this.lastMinusIndex = Math.floor(pos / STROKE_MINUS_INTERVAL_MS);
-    this.lastPlusIndex = Math.floor(pos / TEASE_INTERVAL_MS);
-  }
-
-  // Update the final multiplier. While playing, immediately resend the current
-  // waypoint at the new intensity so the device reacts live.
+  // Update the final multiplier. No invalidate — scale() reads it every tick, so
+  // the change takes effect on the next tick without regeneration.
   setIntensity(percent: number): void {
     this.intensity = Math.max(0, Math.min(100, percent));
-    if (!this.isPlaying) {
-      this.notify();
-      return;
+  }
+
+  // Homegrown's wind-down. The hook calls invalidateFuture() after this while
+  // playing, so generate() emits the ramp + stroke-minus pulse once.
+  beginCumming(): void {
+    this.cumming = true;
+    this.cummingEmitted = false;
+  }
+
+  generate(
+    fromTime: number,
+    untilTime: number,
+    _ctx: PlayerContext,
+  ): ProgramEvent[] {
+    if (this.cumming) {
+      if (this.cummingEmitted) return [];
+      this.cummingEmitted = true;
+      return this.cummingEvents(fromTime);
     }
-    const current = this.script[this.currentScriptIndex - 1];
-    const scaled =
-      current !== undefined ? this.outputSpeed(current) : this.currentSpeed;
-    this.currentSpeed = scaled;
-    this.notify();
-    if (scaled === this.lastDeviceSpeed) return;
-    this.lastDeviceSpeed = scaled;
-    void this.device()
-      .targetSpeedSet(scaled)
-      .catch(() => undefined);
-  }
 
-  private clampPos(pos: number): number {
-    return Math.max(0, Math.min(PROGRAM_MS, pos));
-  }
-
-  forward(): void {
-    if (!this.isPlaying) return;
-    this.programPos = this.clampPos(this.programPos + JUMP_MS);
-    this.resyncTease();
-    this.rebuildFuture();
-    this.notify();
-  }
-
-  back(): void {
-    if (!this.isPlaying) return;
-    this.programPos = this.clampPos(this.programPos - JUMP_MS);
-    this.resyncTease();
-    this.rebuildFuture();
-    this.notify();
-  }
-
-  finish(): void {
-    if (!this.isPlaying) return;
-    // Snap the position to the end; it stays there as the clock advances.
-    this.programPos = PROGRAM_MS;
-    this.resyncTease();
-    this.rebuildFuture();
-    this.notify();
-  }
-
-  // Dilate time from this point on: faster multiplies the scale by RATE_STEP,
-  // slower divides by it (each ~5%), clamped. The position doesn't jump — only its
-  // rate of advance changes — but we rebuild the future so upcoming cycles (and the
-  // sparkline) re-sample at the new scale immediately.
-  private setTimeScale(scale: number): void {
-    if (!this.isPlaying) return;
-    this.timeScale = Math.max(MIN_TIME_SCALE, Math.min(MAX_TIME_SCALE, scale));
-    this.rebuildFuture();
-    this.notify();
-  }
-
-  faster(): void {
-    this.setTimeScale(this.timeScale * RATE_STEP);
-  }
-
-  slower(): void {
-    this.setTimeScale(this.timeScale / RATE_STEP);
-  }
-
-  // Homegrown's wind-down, duplicated: unscaled ramp 30 -> 0 over 15s, holding at
-  // 0, plus a stroke-minus valve pulse. Doesn't touch sent history.
-  cumming(): void {
-    this.clearCumTimers();
-    this.spliceFromNow(buildCummingScript);
-    const dev = this.device();
-    this.cumTimers.push(
-      setTimeout(() => {
-        void dev.valveStrokeMinusSet(true).catch(() => undefined);
-      }, 3000),
-      setTimeout(() => {
-        void dev.valveStrokeMinusSet(false).catch(() => undefined);
-      }, 12000),
-    );
-  }
-
-  private clearTimer(): void {
-    if (this.timer !== null) {
-      clearTimeout(this.timer);
-      this.timer = null;
+    const events: ProgramEvent[] = [];
+    let at = fromTime;
+    let parked = false;
+    let parkAt = fromTime;
+    while (at < untilTime) {
+      // Past the end of the build, park: a hold at the top now and a duplicate
+      // far in the future, so the loop wraps onto it and holds forever (mirrors
+      // the old end-of-program park; cumming's far-future hold sits past this and
+      // is never regenerated because this parks first).
+      if (at >= PROGRAM_MS) {
+        events.push({ kind: "speed", at, speed: PEAK_SPEED });
+        events.push({ kind: "speed", at: at + PARK_HOLD_MS, speed: PEAK_SPEED });
+        parked = true;
+        parkAt = at;
+        break;
+      }
+      // Each cycle samples the curves at its OWN start position (== program-time),
+      // so the ramp is smooth and correct even after a jump.
+      const { waypoints, endAt } = buildGoonCycle(at, at);
+      for (const wp of waypoints) {
+        events.push({ kind: "speed", at: wp.at, speed: wp.speed });
+      }
+      at = endAt;
     }
+
+    // Tease over the batch's actual cycle extent, so pulses stay contiguous with
+    // the speed cycles and never re-emit across calls (see teaseEvents).
+    const teaseUntil = parked ? parkAt : at;
+    events.push(...teaseEvents(fromTime, teaseUntil));
+
+    events.sort((a, b) => a.at - b.at);
+    return events;
   }
 
-  private clearCumTimers(): void {
-    for (const t of this.cumTimers) clearTimeout(t);
-    this.cumTimers = [];
+  // Intensity is a flat final multiplier (the pattern targets raw 100 internally;
+  // intensity scales what's sent). cumming's unscaled waypoints pass through.
+  scale(event: SpeedEvent): number {
+    return event.unscaled === true
+      ? event.speed
+      : Math.round((event.speed * this.intensity) / 100);
   }
 
-  async pause(): Promise<void> {
-    if (!this.isPlaying) return;
-    this.isPlaying = false;
-    this.clearTimer();
-    this.clearCumTimers();
-    this.currentSpeed = 0;
-    this.lastDeviceSpeed = null;
-    this.notify();
-    const dev = this.device();
-    await dev.targetSpeedStop();
-    await dev.valveStrokePlusSet(false).catch(() => undefined);
-    await dev.valveStrokeMinusSet(false).catch(() => undefined);
+  // Homegrown's wind-down, duplicated: unscaled ramp 30 -> ... -> 5, park at 0 far
+  // in the future, plus a stroke-minus pulse from +3s to +12s (a 9s pulse). Sorted
+  // by `at` because the valve pulse interleaves with the ramp.
+  private cummingEvents(startAt: number): ProgramEvent[] {
+    const events: ProgramEvent[] = [...buildCummingScript(startAt)];
+    events.push({ kind: "valve", at: startAt + 3000, valve: "minus", open: true });
+    events.push({
+      kind: "valve",
+      at: startAt + 12000,
+      valve: "minus",
+      open: false,
+    });
+    return events.sort((a, b) => a.at - b.at);
   }
 }
