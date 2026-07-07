@@ -6,7 +6,11 @@
 
 import type { VacuglideDevice } from "@/lib/vacuglide-device";
 import {
+  JUMP_MS,
   LOOKAHEAD_MS,
+  MAX_RATE,
+  MIN_RATE,
+  RATE_STEP,
   TICK_MS,
   type PlayerContext,
   type ProgramEvent,
@@ -17,6 +21,13 @@ import {
 export interface PlayerOptions {
   getDevice: () => VacuglideDevice | null;
   onError?: (message: string) => void;
+}
+
+export interface UpcomingWindow {
+  // Step points for the sparkline; t is ms from now (0..windowMs).
+  speed: Array<{ t: number; speed: number }>;
+  // Valve pulses coming up in the window (rendered later; ignored for now).
+  valves: Array<{ t: number; valve: "plus" | "minus"; durationMs: number }>;
 }
 
 export class Player {
@@ -204,5 +215,98 @@ export class Player {
       await dev.valveStrokePlusSet(false).catch(() => undefined);
       await dev.valveStrokeMinusSet(false).catch(() => undefined);
     }
+  }
+
+  // ---- Transport (generic; a panel chooses whether to surface each) ----
+
+  forward(): void {
+    this.seek(this.clock + JUMP_MS);
+  }
+
+  back(): void {
+    this.seek(Math.max(0, this.clock - JUMP_MS));
+  }
+
+  private seek(to: number): void {
+    this.clock = to;
+    // Events are stamped in program-time, so a jump keeps them — just re-place
+    // the cursor at the first event after the new clock, and top up the future.
+    let idx = this.events.findIndex((e) => e.at > this.clock);
+    if (idx === -1) idx = this.events.length;
+    this.cursor = idx;
+    this.ensureLookahead();
+    this.notify();
+  }
+
+  faster(): void {
+    this.setRate(this.rate * RATE_STEP);
+  }
+
+  slower(): void {
+    this.setRate(this.rate / RATE_STEP);
+  }
+
+  private setRate(r: number): void {
+    // Rate only changes how fast the clock consumes program-time — no
+    // regeneration: events keep their program-time `at`.
+    this.rate = Math.max(MIN_RATE, Math.min(MAX_RATE, r));
+    this.notify();
+  }
+
+  // ---- Regeneration (the "push" a source triggers on a knob/finish/cumming) ----
+
+  // Drop everything after the cursor (keep the past + the in-effect event) and
+  // re-pull generate from now. The source reflects its new state on the re-pull.
+  invalidateFuture(): void {
+    if (this.source === null) return;
+    this.events = this.events.slice(0, this.cursor);
+    this.ensureLookahead();
+    this.notify();
+  }
+
+  // ---- Sparkline source ----
+
+  // The device output over the next windowMs. Flat at 0 while paused (matches
+  // the engines' getUpcomingCurve today; the idle preview is a later change).
+  upcomingWindow(windowMs: number): UpcomingWindow {
+    if (!this.isPlaying || this.source === null) {
+      return {
+        speed: [
+          { t: 0, speed: 0 },
+          { t: windowMs, speed: 0 },
+        ],
+        valves: [],
+      };
+    }
+    const source = this.source;
+    const ctx = this.context();
+    const outputAt = (ev: SpeedEvent): number => source.scale(ev, ctx);
+    const now = this.clock;
+    const end = now + windowMs;
+    const current = this.currentSpeedEvent();
+    let inEffect = current === null ? 0 : outputAt(current);
+    const speed: Array<{ t: number; speed: number }> = [];
+    const valves: UpcomingWindow["valves"] = [];
+    for (let i = this.cursor; i < this.events.length; i++) {
+      const ev = this.events[i]!;
+      if (ev.at > end) break;
+      if (ev.kind === "valve") {
+        valves.push({
+          t: Math.max(0, ev.at - now),
+          valve: ev.valve,
+          durationMs: ev.durationMs,
+        });
+        continue;
+      }
+      if (ev.at <= now) {
+        inEffect = outputAt(ev);
+        continue;
+      }
+      speed.push({ t: ev.at - now, speed: outputAt(ev) });
+    }
+    const curve = [{ t: 0, speed: inEffect }, ...speed];
+    const last = curve[curve.length - 1]!;
+    if (last.t < windowMs) curve.push({ t: windowMs, speed: last.speed });
+    return { speed: curve, valves };
   }
 }
