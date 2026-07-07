@@ -23,16 +23,17 @@ flutter near the top — the slower you set it, the further the dips reach down.
 ## Cumming
 
 Say **cumming** for the send-off: the device eases down in a slow glide from a
-moderate pace to a standstill over about fifteen seconds, drawing and holding the
-vacuum to carry you through, then rests. It's a gentle, drawn-out finish — which is
-simply how the author likes to come, and won't be to everyone's taste; take it as
-one way to end, not the only one.
+moderate pace to a standstill over about fifteen seconds — the strokes shortening
+as it goes — then rests. It's a gentle, drawn-out finish — which is simply how the
+author likes to cum, and won't be to everyone's taste; take it as one way to end,
+not the only one.
 
 ## Voice control
 
 - **faster** / **slower** — Speed up or down.
 - **off** / **low** / **medium** / **high** — set Variability.
 - **cumming** — the wind-down.
-- plus the shared **up** / **down** stroke words for manual vacuum control.
+- plus the shared **up** / **down** stroke words — lengthen (**up**) or shorten
+  (**down**) the stroke by hand.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it's built.

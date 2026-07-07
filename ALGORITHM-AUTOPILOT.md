@@ -70,9 +70,9 @@ it (`speed −= round(min(speed − 50, 20) × 0.5)`); Moderate leaves it alone.
 
 ## Vacuum maintenance (suction control)
 
-Independently of the strokes, autopilot periodically pulses the **stroke-minus
-valve** to top up the suction so the seal stays firm — **Off**, **Light**, or
-**Heavy**:
+Autoblow's own name for the setting. Independently of the speed script, autopilot
+periodically fires a brief **stroke-minus** pulse (a momentary shortening) —
+**Off**, **Light**, or **Heavy**:
 
 | Setting      | baseDuration | speedMultiplier | interval |
 | ------------ | -----------: | --------------: | -------: |
@@ -81,13 +81,13 @@ valve** to top up the suction so the seal stays firm — **Off**, **Light**, or
 | High (more)  |        400ms |             0.6 |   2000ms |
 
 Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))` —
-inversely proportional to the speed at that moment, so slow strokes get long top-up
-pulses (Light at speed 10: 800 ms) and fast strokes short ones.
+inversely proportional to the speed at that moment, so slow strokes get long pulses
+(Light at speed 10: 800 ms) and fast strokes short ones.
 
 ## Manual override
 
-- **Stroke − / Stroke +**: press-and-hold buttons. Press opens the corresponding
-  valve, release closes it, with a **minimum open time of 300 ms** so a quick tap
-  still gives a real pulse.
+- **Stroke − / Stroke +**: press-and-hold buttons that shorten (−) or lengthen (+)
+  the stroke. Press opens the valve, release closes it, with a **minimum open time
+  of 300 ms** so a quick tap still registers.
 - **Finish**: pushes to full speed and the most intense settings, then holds there
   until you stop.

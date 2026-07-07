@@ -50,11 +50,11 @@ At 30 minutes the build reaches the top and **holds there** until you end it.
 `finish` jumps straight to that hold — the top of the build, waiting for you.
 
 `cumming` is the actual send-off: the device eases off in a slow, deliberate glide
-from a moderate pace down to a standstill over about fifteen seconds, drawing and
-holding the vacuum to carry you through, then rests. It's an unhurried, drawn-out
-finish rather than a frantic pump. Fair warning: this is simply how the author
-likes to come, and it won't be to everyone's taste — read it as one opinion of how
-to end a session, not the only way.
+from a moderate pace down to a standstill over about fifteen seconds — the strokes
+shortening as it winds down — then rests. It's an unhurried, drawn-out finish
+rather than a frantic pump. Fair warning: this is simply how the author likes to
+cum, and it won't be to everyone's taste — read it as one opinion of how to end a
+session, not the only way.
 
 ## Time dilation
 
@@ -71,7 +71,8 @@ stretches. The Timeline card shows the current factor (e.g. `1.20×`).
 - `faster` / `slower` — dilate time ±5% from this point on.
 - `more` / `less` — step Intensity up/down.
 - `cumming` — trigger the wind-down.
-- plus the shared stroke `up` / `down` words (manual vacuum control).
+- plus the shared stroke `up` / `down` words — lengthen (`up`) or shorten
+  (`down`) the stroke by hand.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the algorithm is built — the
 engine/player split, the event model, and how Goon's position maps to the Player's
