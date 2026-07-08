@@ -10,6 +10,10 @@ export const RATE_STEP = 1.05; // faster/slower multiply/divide the rate by this
 export const MIN_RATE = 0.25;
 export const MAX_RATE = 4;
 
+// The look-ahead window the upcoming-speed preview covers (what the sparkline
+// draws). A preview concept, so it lives with the player contract, not the SVG.
+export const UPCOMING_WINDOW_MS = 60_000;
+
 // A target-speed change. `speed` is raw (pattern space); the Player runs it
 // through AlgorithmEngine.scale() at send time. `unscaled` bypasses scale() —
 // only wind-down (cumming/finish) ramps set it.
@@ -32,6 +36,17 @@ export interface ValveEvent {
 }
 
 export type ProgramEvent = SpeedEvent | ValveEvent;
+
+// The upcoming-speed preview the Player derives for the sparkline. A step point
+// (`t` is ms from now, 0..UPCOMING_WINDOW_MS) and a scheduled valve change; both
+// are algorithm-agnostic — the Player produces them, the Sparkline draws them.
+export type CurvePoint = { t: number; speed: number };
+export type ValveMarker = { t: number; valve: "plus" | "minus"; open: boolean };
+
+export interface UpcomingWindow {
+  speed: CurvePoint[];
+  valves: ValveMarker[];
+}
 
 // The Player's transport state — the single source of truth the hooks, runner
 // and panels all read. "armed" = a program is built and previewed but the tick

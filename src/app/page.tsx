@@ -19,6 +19,7 @@ import { useAutopilot } from "@/hooks/use-autopilot";
 import { useGroove } from "@/hooks/use-groove";
 import { useGoon } from "@/hooks/use-goon";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
+import { usePlayer } from "@/hooks/use-player";
 import {
   getStoredToken,
   useVacuglideDevice,
@@ -35,9 +36,13 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function Home() {
   const vacuglide = useVacuglideDevice();
-  const autopilot = useAutopilot(vacuglide);
-  const groove = useGroove(vacuglide);
-  const goon = useGoon(vacuglide);
+  // The one shared player, mirrored into React state once. Every panel's
+  // sparkline / current-speed / timeline reads this; the algorithm hooks derive
+  // their active-source flag from it.
+  const player = usePlayer(vacuglide.player);
+  const autopilot = useAutopilot(vacuglide, player);
+  const groove = useGroove(vacuglide, player);
+  const goon = useGoon(vacuglide, player);
   const [tab, setTab] = useState<TabId>("goon");
 
   // With no saved token there's nothing to auto-connect to, so send the user
@@ -159,6 +164,7 @@ export default function Home() {
             <GoonPanel
               vacuglide={vacuglide}
               goon={goon}
+              player={player}
               kws={kws}
               onStart={() => void runner.run("goon")}
               onStop={runner.stop}
@@ -169,6 +175,7 @@ export default function Home() {
             <GroovePanel
               vacuglide={vacuglide}
               groove={groove}
+              player={player}
               kws={kws}
               onStart={() => void runner.run("groove")}
               onStop={runner.stop}
@@ -179,6 +186,7 @@ export default function Home() {
             <AutopilotPanel
               vacuglide={vacuglide}
               autopilot={autopilot}
+              player={player}
               kws={kws}
               onStart={() => void runner.run("autopilot")}
               onStop={runner.stop}

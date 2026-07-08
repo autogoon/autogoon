@@ -17,19 +17,15 @@ import {
   type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
+  type UpcomingWindow,
   type ValveEvent,
 } from "@/lib/program";
+
+export type { UpcomingWindow };
 
 export interface PlayerOptions {
   getDevice: () => VacuglideDevice | null;
   onError?: (message: string) => void;
-}
-
-export interface UpcomingWindow {
-  // Step points for the sparkline; t is ms from now (0..windowMs).
-  speed: Array<{ t: number; speed: number }>;
-  // Valve state changes coming up in the window (rendered later; ignored for now).
-  valves: Array<{ t: number; valve: "plus" | "minus"; open: boolean }>;
 }
 
 export class Player {
