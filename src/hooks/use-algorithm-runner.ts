@@ -68,7 +68,10 @@ export function useAlgorithmRunner(
     if (runState === "playing") return ["stop"];
     if (runState === "paused") return ["start", "reset"];
     const switchWords = switchWordsKey === "" ? [] : switchWordsKey.split("\n");
-    if (!vacuglide.connected) return ["connect", ...switchWords];
+    // Reset needs no device (it only restores knobs + regenerates the program),
+    // and the Reset button is available while disconnected — so keep the voice
+    // word available too. Only "start" is gated on a connection.
+    if (!vacuglide.connected) return ["connect", "reset", ...switchWords];
     return ["start", "reset", ...switchWords];
   }, [vacuglide.connected, runState, switchWordsKey]);
 
@@ -181,13 +184,18 @@ export function useAlgorithmRunner(
       const id = currentIdRef.current;
       if (id !== null) action = () => run(id);
     } else {
-      const target = algorithms.find((algo) => algo.state !== "armed") ?? null;
-      if (target !== null) {
-        // Something's running: only its own keywords apply. Switching is locked.
-        action = target.keywords.find((k) => k.word === word)?.run ?? null;
+      const inProgress =
+        algorithms.find((algo) => algo.state !== "armed") ?? null;
+      if (inProgress !== null) {
+        // Something's running/paused: only its own keywords apply. Switching is
+        // locked.
+        action = inProgress.keywords.find((k) => k.word === word)?.run ?? null;
       } else {
-        // Idle: an algorithm's switch word selects that algorithm — points
-        // "start" at it and asks the page to bring its tab into view.
+        // Armed: an algorithm's switch word selects that algorithm (points
+        // "start" at it and brings its tab into view); otherwise the word is the
+        // current tab's own keyword, so knobs/scrub work before Start. Switch
+        // words (goon/groove/autopilot) never collide with an algorithm's
+        // keywords, so trying the switch word first is unambiguous.
         const chosen =
           algorithms.find((algo) => algo.switchWord === word) ?? null;
         if (chosen !== null) {
@@ -195,6 +203,10 @@ export function useAlgorithmRunner(
             currentIdRef.current = chosen.id;
             onSwitch?.(chosen.id);
           };
+        } else {
+          const current =
+            algorithms.find((algo) => algo.id === currentIdRef.current) ?? null;
+          action = current?.keywords.find((k) => k.word === word)?.run ?? null;
         }
       }
     }
