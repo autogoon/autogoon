@@ -28,7 +28,7 @@ after it are the future, in the same array.
 **The Player** (`src/lib/player.ts`) plays a program and is the only thing that
 touches the device's motion commands. It owns the program-clock, the playback
 **rate** (time dilation), the ~100 ms tick loop, sending target speeds (with
-duplicate-send suppression), executing valve events, keeping ~2 minutes of future
+duplicate-send suppression), executing valve events, keeping ~5 minutes of future
 built ahead, transport (`play`/`pause`, `forward`/`back` = ±1 min, `faster`/
 `slower`, `seekTo`), the `pagehide` safety-stop, and the upcoming-speed window the
 sparkline draws. It knows nothing about any specific algorithm. There is **one**
