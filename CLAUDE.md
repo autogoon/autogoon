@@ -16,13 +16,22 @@ There is **no test framework** here (no vitest/jest) — don't look for or write
 
 `npm run lint` runs with `--max-warnings 0`, and the repo is kept at **zero warnings**. This is a zero-warning outfit: always fix every lint and typecheck warning or error before you finish — including ones your direct changes didn't cause. Never leave a warning behind or treat one as "pre-existing, not mine." Gate on both `npm run lint` and `npm run typecheck` being completely clean (no output).
 
+Before committing — or at the latest before a finished PR is reviewed — run `npm run typecheck`, `npm run lint`, and `npm run format`. If `format` changes files, commit those changes as part of the work; don't leave them or revert them.
+
 ## Changelog
 
 Keep [CHANGELOG.md](./CHANGELOG.md) current. Update it **after each logical set of changes** as part of the work itself — not tied to a commit or PR (a change can span several commits, and commits land after a PR is opened). If you finished something a user would notice, it gets an entry before you consider the work done.
 
 - **Format:** one line per change, newest first, grouped under the date it landed (`## YYYY-MM-DD`). Tag each line `feature`, `enhancement`, or `bug`, and within a day order the entries in exactly that sequence — all features, then all enhancements, then all bugs. Link the PR: `([#N](https://github.com/autogoon/autogoon/pull/N))`.
 - **Write for the user, not the developer:** describe what someone using the app notices. A pure refactor with no user-visible effect gets no entry.
-- **Only tag a `bug` if it shipped on `main`.** A regression introduced *and* fixed within the same PR is not a changelog bug — leave it out; the net user-facing feature/enhancement line already covers the behaviour.
+- **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_ fixed within the same PR is not a changelog bug — leave it out; the net user-facing feature/enhancement line already covers the behaviour.
+
+## Git workflow
+
+- Work on a branch off `main`; never commit to `main` directly.
+- Merge PRs with a **merge commit** (not squash or rebase) and **delete the
+  branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
+- Committing, pushing and merging are separate actions: only do each when asked.
 
 ## Architecture
 
