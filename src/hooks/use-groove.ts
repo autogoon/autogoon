@@ -105,8 +105,10 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
   const cumming = useCallback(() => {
     try {
       source.beginCumming();
-      if (player.source === source && player.isPlaying)
-        player.invalidateFuture();
+      // Splice the wind-down now whenever Groove is the current source —
+      // including while paused, so voice "cumming" mid-pause takes effect on
+      // resume rather than being deferred behind the already-built lookahead.
+      if (player.source === source) player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }

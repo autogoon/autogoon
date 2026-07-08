@@ -315,8 +315,9 @@ export class Player {
 
   // ---- Sparkline source ----
 
-  // The device output over the next windowMs. Flat at 0 while paused (matches
-  // the engines' getUpcomingCurve today; the idle preview is a later change).
+  // The device output over the next windowMs. Renders the live preview whenever
+  // a source is set (armed, playing, or paused); flat only when there is no
+  // source.
   upcomingWindow(windowMs: number): UpcomingWindow {
     if (this.source === null) {
       return {

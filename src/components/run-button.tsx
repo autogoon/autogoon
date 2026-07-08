@@ -49,7 +49,7 @@ export function RunButton({
       </Button>
       <Button
         onClick={onReset}
-        className="bg-secondary rounded-lg px-6 py-3.5 text-lg font-bold disabled:opacity-40"
+        className="bg-secondary rounded-lg px-6 py-3.5 text-lg font-bold"
         badge="reset"
       >
         Reset

@@ -99,8 +99,10 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   const finishMe = useCallback(() => {
     try {
       source.beginFinish();
-      if (player.source === source && player.isPlaying)
-        player.invalidateFuture();
+      // Splice the finish now whenever Autopilot is the current source —
+      // including while paused, so voice "finish" mid-pause takes effect on
+      // resume rather than being deferred behind the already-built lookahead.
+      if (player.source === source) player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }
