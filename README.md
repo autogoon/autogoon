@@ -16,7 +16,7 @@ install; just open it, enter your device token, and go.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine; only
   device-control traffic leaves it.
-- **Three movement modes**, each steered live by voice:
+- **Three modes**, each steered live by voice:
   - **Goon** — an automatic 30-minute slow build, with an intensity dial and
     faster/slower time-stretch.
   - **Groove** — a manual stroke pattern you shape live (speed + variability).

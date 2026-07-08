@@ -100,8 +100,10 @@ Each device-driving algorithm is two files:
 
 There is no per-algorithm hook and no central runner: the panel drives the Player
 directly, and mutual exclusion falls out of the Player holding one engine at a
-time. Adding an algorithm is a new engine + panel plus one `<Panel>` and one tab
-in `page.tsx` — nothing else wires up.
+time. Adding an algorithm is a new engine + panel, then registering it in
+`page.tsx` (a `TABS` entry and its panel rendered) — the tab list is the single
+source of truth, so the voice switch word and the tab lock follow automatically.
+The step-by-step lives in [DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
 
 **Commands are declared once.** Each action is a `Command` — `{ word, enabled,
 run }` — so the on-screen button and the spoken keyword call the same `run` and
