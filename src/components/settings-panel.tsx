@@ -6,7 +6,9 @@
 // with a short onboarding intro so a first-run user knows what the app is and
 // how to get connected.
 
+import { Plug } from "lucide-react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -92,15 +94,32 @@ export function SettingsPanel({
           Enter your Vacuglide device token, then use Connect in the header bar
           to connect via the Autoblow cloud API.
         </p>
-        <input
-          type="text"
-          value={vacuglide.token}
-          onChange={(e) => vacuglide.setToken(e.target.value)}
-          placeholder="Device token"
-          spellCheck={false}
-          autoComplete="off"
-          className="bg-background w-full rounded-lg border px-3 py-2"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={vacuglide.token}
+            onChange={(e) => vacuglide.setToken(e.target.value)}
+            placeholder="Device token"
+            spellCheck={false}
+            autoComplete="off"
+            className="bg-background min-w-0 flex-1 rounded-lg border px-3 py-2"
+          />
+          <Button
+            onClick={() => void vacuglide.connect()}
+            disabled={vacuglide.connecting || vacuglide.connected}
+            title={vacuglide.deviceStatus}
+            className={`bg-card flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm disabled:opacity-40 ${
+              vacuglide.connected ? "border-emerald-500 text-emerald-500" : ""
+            } ${vacuglide.deviceStatusKind === "error" ? "border-destructive text-destructive" : ""}`}
+          >
+            <Plug className="size-4" />
+            {vacuglide.connected
+              ? "Connected"
+              : vacuglide.connecting
+                ? "Connecting…"
+                : "Connect"}
+          </Button>
+        </div>
         <p
           className={`text-sm ${
             vacuglide.deviceStatusKind === "ok"
