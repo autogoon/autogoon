@@ -18,25 +18,29 @@ const ACTIVE_RING =
 
 export function Button({
   badge,
+  flash = true,
   className,
   children,
   ...props
-}: ComponentProps<"button"> & { badge?: string }) {
+}: ComponentProps<"button"> & { badge?: string; flash?: boolean }) {
   const flashing = useKeywordFlash();
+  // Some controls carry their own "activated" signal (the tabs restyle the
+  // selected tab), so they opt out of the press/voice flash with flash={false}.
+  const activeRing = flash ? ACTIVE_RING : "";
 
   if (badge === undefined) {
     return (
-      <button {...props} className={`${className ?? ""} ${ACTIVE_RING}`}>
+      <button {...props} className={`${className ?? ""} ${activeRing}`}>
         {children}
       </button>
     );
   }
 
-  const voiceFlash = flashing.has(badge) ? RING : "";
+  const voiceFlash = flash && flashing.has(badge) ? RING : "";
   return (
     <button
       {...props}
-      className={`relative ${className ?? ""} ${ACTIVE_RING} ${voiceFlash}`}
+      className={`relative ${className ?? ""} ${activeRing} ${voiceFlash}`}
     >
       {children}
       <span className="text-muted-foreground bg-background pointer-events-none absolute top-1 right-1 rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
