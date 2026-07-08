@@ -33,6 +33,11 @@ export interface ValveEvent {
 
 export type ProgramEvent = SpeedEvent | ValveEvent;
 
+// The Player's transport state — the single source of truth the hooks, runner
+// and panels all read. "armed" = a program is built and previewed but the tick
+// loop is not running; "paused" = halted with position held (Start resumes).
+export type PlayerState = "armed" | "playing" | "paused";
+
 // Read-only view of Player state handed to the engine on each call.
 export interface PlayerContext {
   clock: number; // current program-time (ms)
