@@ -85,3 +85,7 @@ throttle background or screen-locked tabs, which stops both.
 - [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md) — the hand-built dip algorithm.
 - [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md) — the reverse-engineered
   autopilot algorithm (mystery script, intensity, edge control, suction).
+
+## License
+
+[MIT](./LICENSE).
