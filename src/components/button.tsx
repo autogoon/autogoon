@@ -15,7 +15,8 @@ import { useKeywordFlash } from "@/components/keyword-spotter";
 // box-shadow, so it paints in DOM order — in a segmented row a later sibling would
 // cover the ring's overlapping edge. z-10 (with relative for a stacking context)
 // lifts the flashing button above its neighbours so the ring shows in full.
-const RING = "relative z-10 ring-2 ring-foreground ring-offset-2 ring-offset-background";
+const RING =
+  "relative z-10 ring-2 ring-foreground ring-offset-2 ring-offset-background";
 const ACTIVE_RING =
   "active:relative active:z-10 active:ring-2 active:ring-foreground active:ring-offset-2 active:ring-offset-background";
 
