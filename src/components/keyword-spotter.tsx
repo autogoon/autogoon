@@ -1,14 +1,31 @@
 "use client";
 
-// Keyword spotting via vosk-browser with a grammar constrained to a word
-// list. Detections fire from final results — the decoder's settled decision
-// for an utterance, which arrives after ~0.5-1s of silence — rather than the
-// partials it streams and revises while you speak.
+// The shared keyword spotter, as a provider around the single vosk recognizer.
+// There is exactly ONE recognizer (one mic stream, one model, one grammar), so
+// it lives here and panels talk to it rather than each owning their own.
 //
-// This hook owns all KWS state and audio plumbing so it can live at the top
-// of the component tree and keep running while the UI tabs around it change.
+// The grammar is the union of two slots:
+//   - GLOBAL words (connect/start/stop/reset) — owned by the page.
+//   - the ALGORITHM words — owned by whichever panel is currently active; it
+//     calls setAlgorithmKeywords with its enabled words and clears them when it
+//     stops being active, so only one algorithm's words are ever live.
+// Detections are broadcast to every registered keywordListener; a listener acts
+// on the words it owns and ignores the rest.
+//
+// The audio/model plumbing is ported verbatim from the old useKeywordSpotter
+// hook — only the way words and handlers get in has changed (registration API
+// instead of props).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { KaldiRecognizer, Model } from "vosk-browser";
 
 const MODEL_URL = "/vosk-model-small-en-us-0.15.tar.gz";
@@ -19,11 +36,26 @@ interface ResultMessage {
   result: { text: string };
 }
 
-export function useKeywordSpotter(
-  commandWords: string[] = [],
-  onDetect?: (word: string) => void,
-  onLog?: (text: string) => void,
-) {
+export interface KeywordSpotter {
+  modelReady: boolean;
+  listening: boolean;
+  starting: boolean;
+  toggleListening: () => void;
+  // Exactly the words in vosk's current grammar — the source of truth for what
+  // the app is listening for.
+  listeningFor: string[];
+  flashing: ReadonlySet<string>;
+  // The page sets the global transport words (connect/start/stop/reset).
+  setGlobalWords: (words: string[]) => void;
+  // The active panel sets its algorithm words (and clears them on deactivate).
+  setAlgorithmKeywords: (words: string[]) => void;
+  // Subscribe to detections; returns an unsubscribe. Register inside an effect.
+  keywordListener: (fn: (word: string) => void) => () => void;
+}
+
+const Context = createContext<KeywordSpotter | null>(null);
+
+export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
   const [modelReady, setModelReady] = useState(false);
   const [listening, setListening] = useState(false);
   // True from the moment we start connecting to the mic until we're listening
@@ -31,43 +63,64 @@ export function useKeywordSpotter(
   const [starting, setStarting] = useState(false);
   const [flashing, setFlashing] = useState<ReadonlySet<string>>(new Set());
 
+  // The two grammar slots as state, so listeningFor stays reactive and a change
+  // rebuilds the recognizer.
+  const [globalWords, setGlobalWordsState] = useState<string[]>([]);
+  const [algorithmWords, setAlgorithmWordsState] = useState<string[]>([]);
+  const words = useMemo(
+    () => [...new Set([...globalWords, ...algorithmWords])],
+    [globalWords, algorithmWords],
+  );
+
   const modelRef = useRef<Model | null>(null);
   const recognizerRef = useRef<KaldiRecognizer | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const aliasMapRef = useRef<Record<string, string>>({});
   const listeningRef = useRef(false);
-  // Words the algorithms want in the grammar, the detection handler (the
-  // runner's handleWord) and the log sink, kept in refs so the long-lived
-  // recognizer callbacks always reach the current values.
-  const commandWordsRef = useRef<string[]>(commandWords);
-  const onDetectRef = useRef(onDetect);
-  const onLogRef = useRef(onLog);
-
+  // Current grammar words, kept in a ref so the long-lived recognizer callbacks
+  // reach the current value.
+  const wordsRef = useRef<string[]>(words);
   useEffect(() => {
-    commandWordsRef.current = commandWords;
-  }, [commandWords]);
+    wordsRef.current = words;
+  }, [words]);
 
-  useEffect(() => {
-    onDetectRef.current = onDetect;
-  }, [onDetect]);
+  // Detection listeners (the active panel's + the page's global handler).
+  const listenersRef = useRef<Set<(word: string) => void>>(new Set());
+  const keywordListener = useCallback((fn: (word: string) => void) => {
+    listenersRef.current.add(fn);
+    return () => {
+      listenersRef.current.delete(fn);
+    };
+  }, []);
 
-  useEffect(() => {
-    onLogRef.current = onLog;
-  }, [onLog]);
+  const setGlobalWords = useCallback((next: string[]) => {
+    setGlobalWordsState((prev) =>
+      prev.length === next.length && prev.every((w, i) => w === next[i])
+        ? prev
+        : next,
+    );
+  }, []);
+  const setAlgorithmKeywords = useCallback((next: string[]) => {
+    setAlgorithmWordsState((prev) =>
+      prev.length === next.length && prev.every((w, i) => w === next[i])
+        ? prev
+        : next,
+    );
+  }, []);
 
-  // The grammar is exactly the words the algorithms publish (plus the global
-  // connect/start/stop). Each maps to itself so a detection resolves and fires.
+  // The grammar is exactly the union words. Each maps to itself so a detection
+  // resolves and fires.
   const buildAliasMap = useCallback((): Record<string, string> => {
     const map: Record<string, string> = {};
-    for (const w of commandWordsRef.current) map[w] = w;
+    for (const w of wordsRef.current) map[w] = w;
     return map;
   }, []);
 
   const fire = useCallback((spelling: string) => {
     const word = aliasMapRef.current[spelling];
     if (word === undefined) return;
-    onDetectRef.current?.(word);
+    for (const fn of listenersRef.current) fn(word);
     setFlashing((prev) => new Set(prev).add(word));
     setTimeout(() => {
       setFlashing((prev) => {
@@ -82,17 +135,14 @@ export function useKeywordSpotter(
   // final text is a command detection; partials are ignored.
   const handleFinal = useCallback(
     (text: string) => {
-      const words = text
+      const detected = text
         .trim()
         .split(/\s+/)
         .filter((w) => w !== "" && w !== "[unk]");
-      for (const word of words) fire(word);
-      if (text.trim() !== "") onLogRef.current?.(`(final: ${text})`);
+      for (const word of detected) fire(word);
     },
     [fire],
   );
-
-  // Keep the latest handler reachable from the long-lived recognizer callback.
   const handleFinalRef = useRef(handleFinal);
   useEffect(() => {
     handleFinalRef.current = handleFinal;
@@ -145,12 +195,10 @@ export function useKeywordSpotter(
     recognizerRef.current = recognizer;
   }, [buildAliasMap]);
 
-  // Whenever the word set changes while listening (an algorithm started or
-  // stopped), rebuild the recognizer so vosk's grammar tracks it. commandWordsRef
-  // is updated by the effect above, which runs first as it's declared earlier.
+  // Rebuild the recognizer whenever the grammar changes while listening.
   useEffect(() => {
     if (listeningRef.current) createRecognizer();
-  }, [commandWords, createRecognizer]);
+  }, [words, createRecognizer]);
 
   const start = useCallback(async () => {
     setStarting(true);
@@ -209,8 +257,7 @@ export function useKeywordSpotter(
   }, [listening, start, stop]);
 
   // Start listening as soon as the model is ready, so the app is live on load
-  // without a click. Guarded so it fires only once — a manual stop stays
-  // stopped.
+  // without a click. Guarded so it fires only once — a manual stop stays stopped.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (!modelReady || autoStartedRef.current) return;
@@ -220,16 +267,48 @@ export function useKeywordSpotter(
     });
   }, [modelReady, start]);
 
-  return {
-    modelReady,
-    listening,
-    starting,
-    toggleListening,
-    // Exactly the words in vosk's current grammar — the source of truth for
-    // what the app is listening for.
-    listeningFor: commandWords,
-    flashing,
-  };
+  const value = useMemo<KeywordSpotter>(
+    () => ({
+      modelReady,
+      listening,
+      starting,
+      toggleListening,
+      listeningFor: words,
+      flashing,
+      setGlobalWords,
+      setAlgorithmKeywords,
+      keywordListener,
+    }),
+    [
+      modelReady,
+      listening,
+      starting,
+      toggleListening,
+      words,
+      flashing,
+      setGlobalWords,
+      setAlgorithmKeywords,
+      keywordListener,
+    ],
+  );
+
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
-export type KeywordSpotterController = ReturnType<typeof useKeywordSpotter>;
+export function useKeywordSpotter(): KeywordSpotter {
+  const ctx = useContext(Context);
+  if (ctx === null) {
+    throw new Error(
+      "useKeywordSpotter must be used within KeywordSpotterProvider",
+    );
+  }
+  return ctx;
+}
+
+// The set of words flashing right now, for controls that light up when their
+// voice word is recognised (the Button badge). Tolerates being called outside a
+// provider (returns empty) so Button stays usable anywhere.
+const NO_FLASH: ReadonlySet<string> = new Set();
+export function useKeywordFlash(): ReadonlySet<string> {
+  return useContext(Context)?.flashing ?? NO_FLASH;
+}

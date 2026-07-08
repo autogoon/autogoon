@@ -1,6 +1,6 @@
 import { Gauge, Mic, MicOff, Plug } from "lucide-react";
 import { Button } from "@/components/button";
-import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
+import type { KeywordSpotter } from "@/components/keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 const chipClass =
@@ -24,7 +24,7 @@ export function HeaderBar({
   kws,
   vacuglide,
 }: {
-  kws: KeywordSpotterController;
+  kws: KeywordSpotter;
   vacuglide: VacuglideDeviceController;
 }) {
   return (

@@ -79,8 +79,8 @@ throttle background or screen-locked tabs, which stops both.
 
 - [DEVELOPERS.md](./DEVELOPERS.md) — running Autogoon locally and contributing.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together: the
-  program/player model, the engine/hook/panel split, the shared device layer and
-  algorithm runner, the keyword spotter, and the Vacuglide HTTP API.
+  program/player model, the engine/panel split, the shared device layer and single
+  Player, the keyword spotter, and the Vacuglide HTTP API.
 - [ALGORITHM-GOON.md](./ALGORITHM-GOON.md) — the automatic slow-build algorithm.
 - [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md) — the hand-built dip algorithm.
 - [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md) — the reverse-engineered
