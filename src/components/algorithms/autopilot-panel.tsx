@@ -6,10 +6,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
+import { FinishButton } from "@/components/finish-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { RunButton } from "@/components/run-button";
+import { SessionControls } from "@/components/session-controls";
 import { Segmented } from "@/components/segmented";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
@@ -167,7 +168,7 @@ export function AutopilotPanel({
     <section className="flex w-full flex-col gap-4">
       <ListeningFor words={spotter.listeningFor} flashing={spotter.flashing} />
 
-      <RunButton
+      <SessionControls
         state={state}
         connected={connected}
         onStart={start}
@@ -187,14 +188,14 @@ export function AutopilotPanel({
         </div>
       </Card>
 
+      <FinishButton onClick={finishMe} disabled={!canEnd} />
+
       <StrokeCard
         strokeDisabled={!stroke.canStroke}
-        actionDisabled={!canEnd}
         strokePulsing={stroke.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onFinish={finishMe}
       />
 
       <Card title="Intensity">
