@@ -136,8 +136,9 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
   }, [player, source, log]);
 
   // Knobs and timeline transport are valid whenever Goon is the current source
-  // (armed, playing or paused); cumming (the ending) only during a session.
-  const canEnd = state !== "armed";
+  // (armed, playing or paused); cumming (the ending) whenever a device is
+  // connected — in play or not.
+  const canEnd = isCurrent && vacuglide.connected;
 
   const keywords = useMemo<KeywordAction[]>(
     () => [

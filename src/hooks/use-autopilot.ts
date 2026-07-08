@@ -159,8 +159,9 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   // universal (handled by the dispatcher via the runner) so they're not here.
   // Stroke's up/down come from the shared useStrokeControls.
   // Knobs are valid whenever Autopilot is the current source (armed, playing or
-  // paused); finish (the crescendo ending) only during a session.
-  const canEnd = state !== "armed";
+  // paused); finish (the crescendo ending) whenever a device is connected — in
+  // play or not.
+  const canEnd = isCurrent && vacuglide.connected;
 
   const keywords = useMemo<KeywordAction[]>(
     () => [

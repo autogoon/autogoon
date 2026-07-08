@@ -4,20 +4,6 @@ Direction and design thinking — ideas that still need to be **thought through 
 spec'd more firmly** before they become concrete tasks. Once one is settled, it
 graduates to [TODO.md](./TODO.md).
 
-## Stop vs Pause vs Reset — resolved
-
-Settled: **Start / Stop / Reset**, where Stop holds position (Start resumes) and
-Reset (only when stopped) restores defaults + regenerates. The program is built
-on tab mount so the preview is live before Start. Downstream options below can
-assume this transport. See the design in
-`docs/superpowers/specs/2026-07-08-transport-start-stop-reset-design.md`.
-
-Note that **pause is mechanically the same as edge** — both halt the device and
-hold the clock/position, then resume — so they'd likely share one implementation.
-What differs is the _semantics and use case_ (a deliberate user "I need to take a
-phone call" vs. the edging loop's timed tease), which is really what this
-discussion is about, not the mechanism.
-
 ## Algorithm options
 
 Behaviours that layer on top of any algorithm, grouped by _when_ they happen:
@@ -42,6 +28,9 @@ depends on the phase:
 
 - **Edge** — say **"edge"** → short cool-down → build back up. The classic edging
   loop, on your voice. Prototype against **Goon** (the favourite) first.
+  Mechanically edge is the same as **Stop** (halt the device, hold the
+  clock/position, then resume), so it can reuse that machinery — what differs is
+  the _timed auto-resume_ and the tease shape, not the halt/hold/resume itself.
   - **Edge length** — how long the pause lasts before it ramps back: short teases
     vs. long denials.
   - **Point of no return** — a % chance it **ignores your "edge"** and just keeps
