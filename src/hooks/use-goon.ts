@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Goon, PROGRAM_MS } from "@/lib/goon-engine";
+import type { PlayerState } from "@/lib/program";
 import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
@@ -27,6 +28,8 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
   const stroke = useStrokeControls(vacuglide);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [state, setState] = useState<PlayerState>("armed");
+  const [isCurrent, setIsCurrent] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
   const [upcoming, setUpcoming] = useState<CurvePoint[]>(FLAT);
   const [positionMs, setPositionMs] = useState(0);
@@ -42,35 +45,48 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
   // player's clock (clamped to the build length) and time dilation is its rate.
   useEffect(() => {
     const sync = () => {
-      const active = player.source === source && player.isPlaying;
-      const state = player.getState();
-      setIsPlaying(active);
-      setCurrentSpeed(active ? state.currentSpeed : 0);
+      const current = player.source === source;
+      const st = player.getState();
+      const playing = current && st.state === "playing";
+      setIsCurrent(current);
+      setState(current ? st.state : "armed");
+      setIsPlaying(playing);
+      setCurrentSpeed(playing ? st.currentSpeed : 0);
       setUpcoming(
-        active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
+        current ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
       );
-      setPositionMs(active ? Math.min(state.clock, PROGRAM_MS) : 0);
-      setTimeScale(active ? state.rate : 1);
+      setPositionMs(current ? Math.min(st.clock, PROGRAM_MS) : 0);
+      setTimeScale(current ? st.rate : 1);
     };
     const unsubscribe = player.subscribe(sync);
     sync();
     return unsubscribe;
   }, [player, source]);
 
+  // Arm this source if it isn't already the Player's (fresh session), then play.
+  // If we're already armed/paused on this source, play() just begins/resumes —
+  // it never calls setSource, so a held position survives.
   const start = useCallback(async () => {
-    player.setSource(source);
+    if (player.source !== source) player.arm(source);
     player.play();
   }, [player, source]);
 
   const stop = useCallback(() => player.pause(), [player]);
+
+  // Build/preview this source without playing — called by the page when this
+  // tab becomes visible while nothing is in progress.
+  const arm = useCallback(() => {
+    if (player.source !== source) player.arm(source);
+  }, [player, source]);
 
   const changeIntensity = useCallback(
     (percent: number) => {
       const clamped = Math.max(0, Math.min(100, percent));
       setIntensity(clamped);
       source.setIntensity(clamped);
+      if (player.source === source) player.refresh();
     },
-    [source],
+    [player, source],
   );
 
   const stepIntensity = useCallback(
@@ -78,24 +94,33 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
     [intensity, changeIntensity],
   );
 
+  // Restore Intensity to its default and regenerate a fresh program. Only valid
+  // when stopped (the Reset control is hidden while playing). changeIntensity
+  // updates the knob + engine; player.reset() re-arms (engine.reset() clears the
+  // cumming latch and generation restarts at position 0).
+  const reset = useCallback(() => {
+    changeIntensity(DEFAULT_INTENSITY);
+    if (player.source === source) player.reset();
+  }, [player, source, changeIntensity]);
+
   // Transport is the Player's — each is a no-op unless Goon is the active playing
   // source. faster/slower/forward/back/finish don't regenerate: events are stamped
   // in program-time, so the Player just moves/consumes the cursor and the
   // deterministic build/tease at each position keep it correct.
   const forward = useCallback(() => {
-    if (player.source === source && player.isPlaying) player.forward();
+    if (player.source === source) player.forward();
   }, [player, source]);
   const back = useCallback(() => {
-    if (player.source === source && player.isPlaying) player.back();
+    if (player.source === source) player.back();
   }, [player, source]);
   const finish = useCallback(() => {
-    if (player.source === source && player.isPlaying) player.seekTo(PROGRAM_MS);
+    if (player.source === source) player.seekTo(PROGRAM_MS);
   }, [player, source]);
   const faster = useCallback(() => {
-    if (player.source === source && player.isPlaying) player.faster();
+    if (player.source === source) player.faster();
   }, [player, source]);
   const slower = useCallback(() => {
-    if (player.source === source && player.isPlaying) player.slower();
+    if (player.source === source) player.slower();
   }, [player, source]);
 
   const cumming = useCallback(() => {
@@ -134,6 +159,8 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
 
   return {
     isPlaying,
+    state,
+    isCurrent,
     currentSpeed,
     upcoming,
     positionMs,
@@ -141,6 +168,8 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
     timeScale,
     start,
     stop,
+    arm,
+    reset,
     intensity,
     changeIntensity,
     forward,

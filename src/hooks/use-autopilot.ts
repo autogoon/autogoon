@@ -14,6 +14,7 @@ import {
   type SuctionControlLevel,
 } from "@/lib/autopilot-engine";
 import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
+import type { PlayerState } from "@/lib/program";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -34,6 +35,8 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   // The hook owns the algorithm's levels; the engine is seeded from these on
   // construction and kept in sync by the change handlers below.
   const [isPlaying, setIsPlaying] = useState(false);
+  const [state, setState] = useState<PlayerState>("armed");
+  const [isCurrent, setIsCurrent] = useState(false);
   const [currentSpeed, setCurrentSpeed] = useState(0);
   const [upcoming, setUpcoming] = useState<CurvePoint[]>(FLAT);
   const [intensity, setIntensity] = useState<IntensityLevel>("warmup");
@@ -52,11 +55,15 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   // source (the shared player may be idle or running another algorithm).
   useEffect(() => {
     const sync = () => {
-      const active = player.source === source && player.isPlaying;
-      setIsPlaying(active);
-      setCurrentSpeed(active ? player.getState().currentSpeed : 0);
+      const current = player.source === source;
+      const st = player.getState();
+      const playing = current && st.state === "playing";
+      setIsCurrent(current);
+      setState(current ? st.state : "armed");
+      setIsPlaying(playing);
+      setCurrentSpeed(playing ? st.currentSpeed : 0);
       setUpcoming(
-        active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
+        current ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
       );
     };
     const unsubscribe = player.subscribe(sync);
@@ -65,11 +72,26 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   }, [player, source]);
 
   const start = useCallback(async () => {
-    player.setSource(source);
+    if (player.source !== source) player.arm(source);
     player.play();
   }, [player, source]);
 
   const stop = useCallback(() => player.pause(), [player]);
+
+  const arm = useCallback(() => {
+    if (player.source !== source) player.arm(source);
+  }, [player, source]);
+
+  // Restore Intensity / Edge / Vacuum to their defaults and regenerate.
+  const reset = useCallback(() => {
+    setIntensity("warmup");
+    source.setIntensity("warmup");
+    setEdge("moderate");
+    source.setEdgeControl("moderate");
+    setSuction("more");
+    source.setSuctionControl("more");
+    if (player.source === source) player.reset();
+  }, [player, source]);
 
   // engine.beginFinish() forces the engine's intensity/edge/suction fields (not
   // via the change* handlers below, which would double-invalidate) — mirror that
@@ -91,8 +113,7 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
     (level: IntensityLevel) => {
       setIntensity(level);
       source.setIntensity(level);
-      if (player.source === source && player.isPlaying)
-        player.invalidateFuture();
+      if (player.source === source) player.invalidateFuture();
       log(`intensity → ${level}`);
     },
     [player, source, log],
@@ -115,8 +136,7 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
     (level: EdgeControlLevel) => {
       setEdge(level);
       source.setEdgeControl(level);
-      if (player.source === source && player.isPlaying)
-        player.invalidateFuture();
+      if (player.source === source) player.invalidateFuture();
       log(`edge control → ${level}`);
     },
     [player, source, log],
@@ -154,10 +174,14 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
 
   return {
     isPlaying,
+    state,
+    isCurrent,
     currentSpeed,
     upcoming,
     start,
     stop,
+    arm,
+    reset,
     finishMe,
     intensity,
     changeIntensity,
