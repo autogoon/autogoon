@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-09
+
+- feature: Settings now has an Info card showing what's live — the deployed commit (linked to its page on GitHub) and when the build was made, in the user's local time. ([#5](https://github.com/autogoon/autogoon/pull/5))
+
 ## 2026-07-08
 
 - feature: The timeline preview now shows upcoming stroke and suction pulses, not just speed. ([#2](https://github.com/autogoon/autogoon/pull/2))
