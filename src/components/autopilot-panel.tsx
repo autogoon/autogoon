@@ -16,11 +16,13 @@ import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 import type { AutopilotController } from "@/hooks/use-autopilot";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
+import type { PlayerView } from "@/hooks/use-player";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 export function AutopilotPanel({
   vacuglide,
   autopilot,
+  player,
   kws,
   onStart,
   onStop,
@@ -28,6 +30,7 @@ export function AutopilotPanel({
 }: {
   vacuglide: VacuglideDeviceController;
   autopilot: AutopilotController;
+  player: PlayerView;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -52,7 +55,10 @@ export function AutopilotPanel({
       />
 
       <Card>
-        <Sparkline points={autopilot.upcoming} />
+        <Sparkline
+          points={player.upcoming.speed}
+          valves={player.upcoming.valves}
+        />
         <div className="text-muted-foreground flex justify-between text-xs">
           <span>now</span>
           <span>+60s</span>

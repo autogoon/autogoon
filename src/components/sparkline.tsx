@@ -9,11 +9,7 @@
 // speed is always the same colour regardless of the pattern's range.
 
 import { useId } from "react";
-
-export type CurvePoint = { t: number; speed: number };
-
-// The look-ahead window the sparkline covers (and the engines build to).
-export const UPCOMING_WINDOW_MS = 60_000;
+import type { CurvePoint, ValveMarker } from "@/lib/program";
 
 // viewBox units. preserveAspectRatio="none" stretches these to the container; the
 // stroke stays crisp via vector-effect and the gradient is vertical so the
@@ -21,12 +17,21 @@ export const UPCOMING_WINDOW_MS = 60_000;
 const VIEW_W = 100;
 const VIEW_H = 100;
 
+// Valve markers sit in a thin lane along the bottom of the viewBox: stroke − in
+// red, stroke + in green. Heights are viewBox units (the SVG is 100 tall stretched
+// to h-16 ≈ 64px, so ~0.64px per unit). Prototype values — tweak freely.
+const VALVE_LANE_H = 6;
+const VALVE_MIN_W = 0.6; // keep very short pulses visible after horizontal squash
+const VALVE_COLOUR = { minus: "#ef4444", plus: "#22c55e" } as const;
+
 export function Sparkline({
   points,
+  valves = [],
   max = 100,
   className,
 }: {
   points: CurvePoint[];
+  valves?: ValveMarker[];
   max?: number;
   className?: string;
 }) {
@@ -35,6 +40,27 @@ export function Sparkline({
   const x = (t: number) => (t / domainT) * VIEW_W;
   const y = (speed: number) =>
     VIEW_H - (Math.max(0, Math.min(max, speed)) / max) * VIEW_H;
+
+  // Pair each valve's open → close into a drawable span. A dangling open (close
+  // is beyond the window) runs to the window end; a close with no open in-window
+  // means the valve was already open at t=0, so the span starts there.
+  const spans: Array<{ from: number; to: number; valve: "plus" | "minus" }> = [];
+  const openAt: { plus: number | null; minus: number | null } = {
+    plus: null,
+    minus: null,
+  };
+  for (const v of valves) {
+    if (v.open) {
+      openAt[v.valve] = v.t;
+    } else {
+      spans.push({ from: openAt[v.valve] ?? 0, to: v.t, valve: v.valve });
+      openAt[v.valve] = null;
+    }
+  }
+  for (const valve of ["plus", "minus"] as const) {
+    const from = openAt[valve];
+    if (from !== null) spans.push({ from, to: domainT, valve });
+  }
 
   // Step path: hold each speed until the next point's time, then jump.
   let line = "";
@@ -93,6 +119,19 @@ export function Sparkline({
         strokeLinejoin="round"
         style={{ vectorEffect: "non-scaling-stroke" }}
       />
+      {spans.map((s) => {
+        const rx = x(s.from);
+        return (
+          <rect
+            key={`${s.valve}-${s.from}-${s.to}`}
+            x={rx}
+            y={VIEW_H - VALVE_LANE_H}
+            width={Math.max(VALVE_MIN_W, x(s.to) - rx)}
+            height={VALVE_LANE_H}
+            fill={VALVE_COLOUR[s.valve]}
+          />
+        );
+      })}
     </svg>
   );
 }

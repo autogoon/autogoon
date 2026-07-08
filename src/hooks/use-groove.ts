@@ -1,31 +1,25 @@
 "use client";
 
-// The Groove algorithm as a React hook. It no longer owns a play loop —
-// it drives the shared Player (in the device hook) with a Groove, and
-// mirrors the player into render state while Groove is the active source.
+// The Groove algorithm as a React hook. It owns only Groove's knobs (Speed +
+// Variability) and keyword vocabulary; it reads the shared player view (from
+// usePlayer) to know whether it is the active source, and no longer mirrors
+// player state itself.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Groove, type VariabilityLevel } from "@/lib/groove-engine";
-import type { PlayerState } from "@/lib/program";
-import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
+import { useAlgorithmSource } from "@/hooks/use-algorithm-source";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
+import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
-const FLAT: CurvePoint[] = [
-  { t: 0, speed: 0 },
-  { t: UPCOMING_WINDOW_MS, speed: 0 },
-];
-
-export function useGroove(vacuglide: VacuglideDeviceController) {
+export function useGroove(
+  vacuglide: VacuglideDeviceController,
+  view: PlayerView,
+) {
   const { player, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [state, setState] = useState<PlayerState>("armed");
-  const [isCurrent, setIsCurrent] = useState(false);
-  const [currentSpeed, setCurrentSpeed] = useState(0);
-  const [upcoming, setUpcoming] = useState<CurvePoint[]>(FLAT);
   const [speedPercent, setSpeedPercent] = useState(10);
   const [variability, setVariability] = useState<VariabilityLevel>("low");
 
@@ -36,36 +30,8 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
   });
   const source = sourceRef.current;
 
-  // Mirror the player into render state, but only while Groove is the active
-  // source (the shared player may be idle or, later, running another algorithm).
-  useEffect(() => {
-    const sync = () => {
-      const current = player.source === source;
-      const st = player.getState();
-      const playing = current && st.state === "playing";
-      setIsCurrent(current);
-      setState(current ? st.state : "armed");
-      setIsPlaying(playing);
-      setCurrentSpeed(playing ? st.currentSpeed : 0);
-      setUpcoming(
-        current ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
-      );
-    };
-    const unsubscribe = player.subscribe(sync);
-    sync();
-    return unsubscribe;
-  }, [player, source]);
-
-  const start = useCallback(async () => {
-    if (player.source !== source) player.arm(source);
-    player.play();
-  }, [player, source]);
-
-  const stop = useCallback(() => player.pause(), [player]);
-
-  const arm = useCallback(() => {
-    if (player.source !== source) player.arm(source);
-  }, [player, source]);
+  const { isCurrent, state, currentSpeed, start, stop, arm, whenCurrent } =
+    useAlgorithmSource(vacuglide, source, view);
 
   // Restore Speed + Variability to their defaults and regenerate.
   const reset = useCallback(() => {
@@ -73,17 +39,17 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
     source.setSpeedPercent(10);
     setVariability("low");
     source.setVariability("low");
-    if (player.source === source) player.reset();
-  }, [player, source]);
+    whenCurrent(() => player.reset());
+  }, [player, source, whenCurrent]);
 
   const changeSpeedPercent = useCallback(
     (percent: number) => {
       const clamped = Math.max(0, Math.min(100, percent));
       setSpeedPercent(clamped);
       source.setSpeedPercent(clamped);
-      if (player.source === source) player.refresh();
+      whenCurrent(() => player.refresh());
     },
-    [player, source],
+    [player, source, whenCurrent],
   );
 
   const stepSpeedPercent = useCallback(
@@ -97,9 +63,9 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
     (level: VariabilityLevel) => {
       setVariability(level);
       source.setVariability(level);
-      if (player.source === source) player.invalidateFuture();
+      whenCurrent(() => player.invalidateFuture());
     },
-    [player, source],
+    [player, source, whenCurrent],
   );
 
   const cumming = useCallback(() => {
@@ -108,11 +74,11 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
       // Splice the wind-down now whenever Groove is the current source —
       // including while paused, so voice "cumming" mid-pause takes effect on
       // resume rather than being deferred behind the already-built lookahead.
-      if (player.source === source) player.invalidateFuture();
+      whenCurrent(() => player.invalidateFuture());
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }
-  }, [player, source, log]);
+  }, [player, source, log, whenCurrent]);
 
   // Speed/variability knobs are valid whenever Groove is the current source
   // (armed, playing or paused); cumming (the ending) whenever a device is
@@ -134,11 +100,9 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
   );
 
   return {
-    isPlaying,
     state,
     isCurrent,
     currentSpeed,
-    upcoming,
     start,
     stop,
     arm,

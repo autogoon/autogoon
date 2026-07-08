@@ -8,6 +8,7 @@
 
 import type { GoonController } from "@/hooks/use-goon";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
+import type { PlayerView } from "@/hooks/use-player";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useCallback } from "react";
 import { Button } from "@/components/button";
@@ -30,6 +31,7 @@ function formatMs(ms: number): string {
 export function GoonPanel({
   vacuglide,
   goon,
+  player,
   kws,
   onStart,
   onStop,
@@ -37,6 +39,7 @@ export function GoonPanel({
 }: {
   vacuglide: VacuglideDeviceController;
   goon: GoonController;
+  player: PlayerView;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -47,10 +50,14 @@ export function GoonPanel({
     [vacuglide],
   );
 
+  // Timeline position/rate come from the shared player; blank them out unless
+  // Goon is the active source, and clamp the position to Goon's build length.
+  const positionMs = goon.isCurrent
+    ? Math.min(player.positionMs, goon.programMs)
+    : 0;
+  const timeScale = goon.isCurrent ? player.timeScale : 1;
   const pct =
-    goon.programMs > 0
-      ? Math.round((goon.positionMs / goon.programMs) * 100)
-      : 0;
+    goon.programMs > 0 ? Math.round((positionMs / goon.programMs) * 100) : 0;
   const jumpClass =
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-40";
 
@@ -68,7 +75,7 @@ export function GoonPanel({
       />
 
       <Card>
-        <Sparkline points={goon.upcoming} />
+        <Sparkline points={player.upcoming.speed} valves={player.upcoming.valves} />
         <div className="text-muted-foreground flex justify-between text-xs">
           <span>now</span>
           <span>+60s</span>
@@ -87,9 +94,9 @@ export function GoonPanel({
 
       <Card title="Timeline">
         <div className="text-muted-foreground flex justify-between text-sm">
-          <span className="tabular-nums">{formatMs(goon.positionMs)}</span>
+          <span className="tabular-nums">{formatMs(positionMs)}</span>
           <span className="tabular-nums">
-            {formatMs(goon.programMs)} · {pct}% · {goon.timeScale.toFixed(2)}×
+            {formatMs(goon.programMs)} · {pct}% · {timeScale.toFixed(2)}×
           </span>
         </div>
         <div className="bg-secondary mt-2 h-2 w-full overflow-hidden rounded-full">
@@ -100,7 +107,7 @@ export function GoonPanel({
         </div>
         <div className="mt-3 flex gap-3">
           <Button
-            onClick={goon.back}
+            onClick={() => vacuglide.player.back()}
             disabled={!goon.isCurrent}
             className={jumpClass}
             badge="back"
@@ -108,7 +115,7 @@ export function GoonPanel({
             − 1 min
           </Button>
           <Button
-            onClick={goon.forward}
+            onClick={() => vacuglide.player.forward()}
             disabled={!goon.isCurrent}
             className={jumpClass}
             badge="forward"
@@ -116,7 +123,7 @@ export function GoonPanel({
             + 1 min
           </Button>
           <Button
-            onClick={goon.finish}
+            onClick={() => vacuglide.player.seekTo(goon.programMs)}
             disabled={!goon.isCurrent}
             className={jumpClass}
             badge="finish"
@@ -126,7 +133,7 @@ export function GoonPanel({
         </div>
         <div className="mt-3 flex gap-3">
           <Button
-            onClick={goon.slower}
+            onClick={() => vacuglide.player.slower()}
             disabled={!goon.isCurrent}
             className={jumpClass}
             badge="slower"
@@ -134,7 +141,7 @@ export function GoonPanel({
             Slower
           </Button>
           <Button
-            onClick={goon.faster}
+            onClick={() => vacuglide.player.faster()}
             disabled={!goon.isCurrent}
             className={jumpClass}
             badge="faster"

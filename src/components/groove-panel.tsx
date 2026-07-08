@@ -6,6 +6,7 @@
 
 import type { GrooveController } from "@/hooks/use-groove";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
+import type { PlayerView } from "@/hooks/use-player";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useCallback } from "react";
 import { Card } from "@/components/card";
@@ -21,6 +22,7 @@ import { StrokeCard } from "@/components/stroke-card";
 export function GroovePanel({
   vacuglide,
   groove,
+  player,
   kws,
   onStart,
   onStop,
@@ -28,6 +30,7 @@ export function GroovePanel({
 }: {
   vacuglide: VacuglideDeviceController;
   groove: GrooveController;
+  player: PlayerView;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -52,7 +55,7 @@ export function GroovePanel({
       />
 
       <Card>
-        <Sparkline points={groove.upcoming} />
+        <Sparkline points={player.upcoming.speed} valves={player.upcoming.valves} />
         <div className="text-muted-foreground flex justify-between text-xs">
           <span>now</span>
           <span>+60s</span>
