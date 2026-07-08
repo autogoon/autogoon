@@ -1,41 +1,39 @@
 # Autogoon — voice-controlled gooning
 
+<p align="center">
+  <img src="./docs/screenshot.png" alt="Autogoon running the Goon mode — voice command list, transport, stroke controls, timeline, and intensity dial" width="420">
+</p>
+
 Autogoon drives an Autoblow
 [Vacuglide or Vacuglide 2](https://developers.autoblow.com/reference/http-api-v1-vacuglide/)
-stroker from your browser, **entirely by voice**. Run a whole session hands-free —
-`connect`, `start`, and `stop` work anywhere, you switch algorithm by saying its
-name, and each algorithm adds its own spoken commands (`faster`, `slower`, `finish`,
-and so on). Pick a movement "algorithm" to ride — including an automatic 30-minute
-slow build — and let voice do the rest.
+stroker from your browser, **entirely by voice**.
 
-## What it does
+**▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing to
+install; just open it, enter your device token, and go.
 
-- **Hands-free voice control.** In-browser speech recognition listens for short
-  spoken commands and drives whichever algorithm is running. `connect`, `start`,
-  and `stop` work anywhere, and while stopped you switch algorithm by saying its
-  switch word (`goon`, `homegrown`, `autopilot`); each algorithm also adds its own
-  commands (`faster`/`slower`, `more`/`less`, `finish`, `cumming`, and so on),
-  listed on its tab. Once a session is running the algorithm is locked in — only
-  its own commands and `stop` respond, so you can't switch mid-session. Tap
-  **Listen** once and it's voice the rest of the way: no app, no wearable.
-- **Goon — an automatic slow build.** A 30-minute program that starts slow and
-  teasing and ramps up to a controlled finish. An **intensity** dial sets how far
-  it builds (turn it down when you're more sensitive), and **time dilation**
-  (faster/slower) stretches or compresses the journey on the fly. It teases
-  automatically along the way and holds at the top until you finish.
-- **Homegrown — a manual pattern.** A repeating stroke pattern you shape live with
-  two controls: **Speed** and **Variability**.
-- **Autopilot — the official one.** A faithful recreation of Autoblow's own
-  Vacuglide autopilot.
+- **Hands-free from start to finish** — just say what you want to happen, any
+  time. Tap **Listen** once and run the whole session without touching a thing.
+- **No app, no wearable** — it all runs in this one browser tab.
+- **Private by default** — speech recognition runs entirely on your machine; only
+  device-control traffic leaves it.
+- **Three movement modes**, each steered live by voice:
+  - **Goon** — an automatic 30-minute slow build, with an intensity dial and
+    faster/slower time-stretch.
+  - **Homegrown** — a manual stroke pattern you shape live (speed + variability).
+  - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.
+- **Switch by voice** — say a mode's name to change while stopped; once running,
+  the mode locks in.
 
 ## Privacy
 
 Everything runs in your browser; the only thing that leaves your machine is the
 control traffic to Autoblow's cloud API for the device itself. Speech recognition
-runs entirely locally (WASM in the page), so your microphone audio never leaves
-your machine.
+runs entirely locally in your browser, so your microphone audio never leaves your
+machine.
 
 ## The app
+
+*Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md).*
 
 A Next.js app (App Router, TypeScript, Tailwind v4): a single page with a sticky
 header bar — a mic **Listen** toggle (keyword spotting), device **Connect**, live
@@ -44,9 +42,8 @@ algorithm plus settings:
 
 1. **Goon** (the default tab) — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md).
 2. **Homegrown** — see [ALGORITHM-HOMEGROWN.md](./ALGORITHM-HOMEGROWN.md).
-3. **Autopilot** — a faithful recreation of Autoblow's own autopilot, driving the
-   [Vacuglide HTTP API](https://developers.autoblow.com/reference/http-api-v1-vacuglide/);
-   see [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md).
+3. **Autopilot** — a faithful recreation of Autoblow's own autopilot; see
+   [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md).
 4. **Settings** — an intro to the app, device token entry, and appearance (theme).
 
 While an algorithm is running the other algorithm tabs are disabled (and their
@@ -59,19 +56,6 @@ Keyword spotting uses [vosk-browser](https://github.com/ccoreilly/vosk-browser)
 published commands plus the global words valid right now (`connect`/`start`/`stop`,
 and while stopped a switch word per algorithm), and detections fire from vosk's
 settled per-utterance result (the `result` event; streaming partials are ignored).
-
-## Running
-
-```sh
-npm install
-npm run dev      # Next dev server on http://localhost:8931 (bound to 0.0.0.0)
-```
-
-Also: `npm run build`, `npm run lint`, `npm run typecheck`, `npm run format`.
-
-The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
-fetched by the page on load and cached by the browser; nothing else is needed
-offline.
 
 ## Running hands-free (mobile caveats)
 
@@ -93,6 +77,7 @@ throttle background or screen-locked tabs, which stops both.
 
 ## Documentation
 
+- [DEVELOPERS.md](./DEVELOPERS.md) — running Autogoon locally and contributing.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together: the
   program/player model, the engine/hook/panel split, the shared device layer and
   algorithm runner, the keyword spotter, and the Vacuglide HTTP API.
