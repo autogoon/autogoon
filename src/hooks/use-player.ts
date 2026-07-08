@@ -38,7 +38,10 @@ function read(player: Player): PlayerView {
     currentSpeed: st.currentSpeed,
     positionMs: st.clock,
     timeScale: st.rate,
-    upcoming: player.upcomingWindow(UPCOMING_WINDOW_MS),
+    // Preview a constant *real*-time horizon: at playback rate R, R× as much
+    // program-time elapses per real second, so widen the program-time window by R.
+    // The "+60s" label stays true and the sparkline reflects the time dilation.
+    upcoming: player.upcomingWindow(UPCOMING_WINDOW_MS * st.rate),
   };
 }
 
