@@ -13,6 +13,7 @@ import {
   RATE_STEP,
   TICK_MS,
   type PlayerContext,
+  type PlayerState,
   type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
@@ -32,7 +33,10 @@ export interface UpcomingWindow {
 }
 
 export class Player {
-  isPlaying = false;
+  state: PlayerState = "armed";
+  get isPlaying(): boolean {
+    return this.state === "playing";
+  }
   currentSpeed = 0;
   source: AlgorithmEngine | null = null;
 
@@ -64,12 +68,14 @@ export class Player {
   }
 
   getState(): {
+    state: PlayerState;
     isPlaying: boolean;
     currentSpeed: number;
     clock: number;
     rate: number;
   } {
     return {
+      state: this.state,
       isPlaying: this.isPlaying,
       currentSpeed: this.currentSpeed,
       clock: this.clock,
@@ -113,15 +119,38 @@ export class Player {
     source?.reset();
   }
 
+  // Build the preview lookahead for a source WITHOUT starting the tick loop.
+  // This is "the Player minus the tick loop and device sends": upcomingWindow()
+  // and seek() work off it, so a panel can preview/scrub before Start.
+  arm(source: AlgorithmEngine | null): void {
+    this.setSource(source);
+    this.ensureLookahead();
+    this.state = "armed";
+    this.notify();
+  }
+
+  // Re-arm the current source from scratch (fresh program at position 0). The
+  // hook layer also restores its knobs to defaults; this handles the program.
+  reset(): void {
+    this.arm(this.source);
+  }
+
   play(): void {
-    if (this.isPlaying || this.source === null) return;
-    this.isPlaying = true;
+    if (this.state === "playing" || this.source === null) return;
+    this.state = "playing";
     this.scheduleNextTick();
     this.notify();
   }
 
+  // Re-emit to subscribers without touching the program — for scale-live knob
+  // changes (e.g. intensity) that alter the preview's magnitude but not its
+  // events, so the mirrored upcomingWindow recomputes while armed/paused.
+  refresh(): void {
+    this.notify();
+  }
+
   private scheduleNextTick(): void {
-    if (!this.isPlaying) return;
+    if (this.state !== "playing") return;
     this.timer = setTimeout(() => {
       void (async () => {
         try {
@@ -154,7 +183,7 @@ export class Player {
   }
 
   private async tick(): Promise<void> {
-    if (!this.isPlaying || this.source === null) return;
+    if (this.state !== "playing" || this.source === null) return;
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
@@ -194,8 +223,8 @@ export class Player {
   }
 
   async pause(): Promise<void> {
-    if (!this.isPlaying) return;
-    this.isPlaying = false;
+    if (this.state !== "playing") return;
+    this.state = "paused";
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -286,10 +315,11 @@ export class Player {
 
   // ---- Sparkline source ----
 
-  // The device output over the next windowMs. Flat at 0 while paused (matches
-  // the engines' getUpcomingCurve today; the idle preview is a later change).
+  // The device output over the next windowMs. Renders the live preview whenever
+  // a source is set (armed, playing, or paused); flat only when there is no
+  // source.
   upcomingWindow(windowMs: number): UpcomingWindow {
-    if (!this.isPlaying || this.source === null) {
+    if (this.source === null) {
       return {
         speed: [
           { t: 0, speed: 0 },

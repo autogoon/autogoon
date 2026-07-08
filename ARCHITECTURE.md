@@ -33,6 +33,12 @@ built ahead, transport (`play`/`pause`, `forward`/`back` = ±1 min, `faster`/
 sparkline draws. It knows nothing about any specific algorithm. There is **one**
 Player, owned by the device hook; it plays whichever algorithm is active.
 
+The Player carries a `state` — `armed` / `playing` / `paused`. The visible
+algorithm tab **arms** the Player (`arm`), building a live preview before Start;
+Start (`play`) then **resumes** from the held position rather than restarting,
+Stop (`pause`) holds position, and `reset` restores the algorithm's default knobs
+and regenerates from the beginning.
+
 **An AlgorithmEngine** (`src/lib/*-engine.ts`) is what each algorithm _is_ here: a
 generation-only object with three methods —
 

@@ -13,7 +13,8 @@ import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";
 
 export function StrokeCard({
-  disabled,
+  strokeDisabled,
+  actionDisabled,
   strokePulsing,
   onValvePlus,
   onValveMinus,
@@ -21,7 +22,11 @@ export function StrokeCard({
   onFinish,
   onCumming,
 }: {
-  disabled: boolean;
+  // Manual stroke is valid whenever a device is connected; the finish/cumming
+  // action only during a session. They gate independently so each button stays
+  // in lockstep with its voice command.
+  strokeDisabled: boolean;
+  actionDisabled: boolean;
   strokePulsing: "plus" | "minus" | null;
   onValvePlus: (state: boolean) => Promise<unknown>;
   onValveMinus: (state: boolean) => Promise<unknown>;
@@ -35,7 +40,7 @@ export function StrokeCard({
         <HoldButton
           label="Stroke −"
           badge="down"
-          disabled={disabled}
+          disabled={strokeDisabled}
           onValve={onValveMinus}
           onError={onError}
           forcedActive={strokePulsing === "minus"}
@@ -43,7 +48,7 @@ export function StrokeCard({
         <HoldButton
           label="Stroke +"
           badge="up"
-          disabled={disabled}
+          disabled={strokeDisabled}
           onValve={onValvePlus}
           onError={onError}
           forcedActive={strokePulsing === "plus"}
@@ -51,7 +56,7 @@ export function StrokeCard({
         {onFinish !== undefined && (
           <Button
             onClick={onFinish}
-            disabled={disabled}
+            disabled={actionDisabled}
             className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
             badge="finish"
           >
@@ -61,7 +66,7 @@ export function StrokeCard({
         {onCumming !== undefined && (
           <Button
             onClick={onCumming}
-            disabled={disabled}
+            disabled={actionDisabled}
             className="flex-1 rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40"
             badge="cumming"
           >

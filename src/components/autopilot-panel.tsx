@@ -24,12 +24,14 @@ export function AutopilotPanel({
   kws,
   onStart,
   onStop,
+  onReset,
 }: {
   vacuglide: VacuglideDeviceController;
   autopilot: AutopilotController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
+  onReset: () => void;
 }) {
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
@@ -41,10 +43,11 @@ export function AutopilotPanel({
       <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
 
       <RunButton
-        running={autopilot.isPlaying}
+        state={autopilot.state}
         connected={vacuglide.connected}
         onStart={onStart}
         onStop={onStop}
+        onReset={onReset}
         className="bg-linear-to-br from-orange-500 to-pink-500"
       />
 
@@ -57,7 +60,8 @@ export function AutopilotPanel({
       </Card>
 
       <StrokeCard
-        disabled={!autopilot.isPlaying}
+        strokeDisabled={!autopilot.canStroke}
+        actionDisabled={!autopilot.canEnd}
         strokePulsing={autopilot.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
