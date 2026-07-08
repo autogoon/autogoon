@@ -28,7 +28,9 @@ Keep [CHANGELOG.md](./CHANGELOG.md) current. Update it **after each logical set 
 
 ## Git workflow
 
-- Work on a branch off `main`; never commit to `main` directly.
+- Work on a branch off `main`; never commit to `main` directly. One branch/PR per piece of work.
+- The flow is **branch → do the work → commit → push → open a PR**: push with
+  `git push -u origin <branch>`, then open a PR against `main` with `gh pr create`.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
