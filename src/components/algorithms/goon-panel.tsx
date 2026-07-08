@@ -179,7 +179,7 @@ export function GoonPanel({
         </div>
         <div className="bg-secondary mt-2 h-2 w-full overflow-hidden rounded-full">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-fuchsia-600 to-rose-500"
+            className="h-full rounded-full bg-linear-to-r from-fuchsia-600 to-rose-500"
             style={{ width: `${pct}%` }}
           />
         </div>
