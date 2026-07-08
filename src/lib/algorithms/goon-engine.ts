@@ -6,7 +6,6 @@
 
 import {
   type PlayerContext,
-  type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
   type ValveEvent,
@@ -221,21 +220,19 @@ export class GoonEngine implements AlgorithmEngine {
     this.cummingEmitted = false;
   }
 
-  generate(
+  generateSpeed(
     fromTime: number,
     untilTime: number,
     _ctx: PlayerContext,
-  ): ProgramEvent[] {
+  ): SpeedEvent[] {
     if (this.cumming) {
       if (this.cummingEmitted) return [];
       this.cummingEmitted = true;
-      return this.cummingEvents(fromTime);
+      return buildCummingScript(fromTime);
     }
 
-    const events: ProgramEvent[] = [];
+    const events: SpeedEvent[] = [];
     let at = fromTime;
-    let parked = false;
-    let parkAt = fromTime;
     while (at < untilTime) {
       if (at >= PROGRAM_MS) {
         events.push({ kind: "speed", at, speed: PEAK_SPEED });
@@ -244,8 +241,6 @@ export class GoonEngine implements AlgorithmEngine {
           at: at + PARK_HOLD_MS,
           speed: PEAK_SPEED,
         });
-        parked = true;
-        parkAt = at;
         break;
       }
       const { waypoints, endAt } = buildGoonCycle(at, at);
@@ -254,34 +249,30 @@ export class GoonEngine implements AlgorithmEngine {
       }
       at = endAt;
     }
-
-    const teaseUntil = parked ? parkAt : at;
-    events.push(...teaseEvents(fromTime, teaseUntil));
-
-    events.sort((a, b) => a.at - b.at);
     return events;
+  }
+
+  generateValves(
+    _speedEvents: SpeedEvent[],
+    fromTime: number,
+    untilTime: number,
+    _ctx: PlayerContext,
+  ): ValveEvent[] {
+    if (this.cumming) {
+      // The one-shot suction pulse that rides the cumming wind-down.
+      return [
+        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
+        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
+      ];
+    }
+    // Auto teasing. teaseEvents caps itself at PROGRAM_MS, so passing the speed
+    // batch's full extent (untilTime, huge once parked) is safe.
+    return teaseEvents(fromTime, untilTime);
   }
 
   scale(event: SpeedEvent): number {
     return event.unscaled === true
       ? event.speed
       : Math.round((event.speed * this.intensity) / 100);
-  }
-
-  private cummingEvents(startAt: number): ProgramEvent[] {
-    const events: ProgramEvent[] = [...buildCummingScript(startAt)];
-    events.push({
-      kind: "valve",
-      at: startAt + 3000,
-      valve: "minus",
-      open: true,
-    });
-    events.push({
-      kind: "valve",
-      at: startAt + 12000,
-      valve: "minus",
-      open: false,
-    });
-    return events.sort((a, b) => a.at - b.at);
   }
 }

@@ -127,9 +127,11 @@ export function AutopilotPanel({
     (level: SuctionControlLevel) => {
       setSuction(level);
       engine.setSuctionControl(level);
+      // Valve-only: re-lay the suction overlay over the unchanged speed script.
+      device.invalidateValves();
       vacuglide.log(`vacuum maintenance → ${level}`);
     },
-    [engine, vacuglide],
+    [device, engine, vacuglide],
   );
 
   const connected = vacuglide.connected;

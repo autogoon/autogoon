@@ -65,15 +65,32 @@ export interface AlgorithmEngine {
   // flags, cumming). Called by the Player when an engine is set.
   reset(): void;
 
-  // Extend the timeline: return events with `at` in [fromTime, untilTime),
-  // sorted non-decreasing by `at`, in whole cycles so each call resumes from a
-  // clean boundary. May read ctx and keep private generation state. Return [] to
-  // park (nothing more to generate until something changes).
-  generate(
+  // Two generation channels, split because speed is the stateful backbone and
+  // valves are an overlay *derived from* it (a suction pulse's shape can depend
+  // on the speed in effect at that moment). Splitting lets the Player re-lay the
+  // valve overlay over an unchanged speed script (see Player.invalidateValves).
+
+  // Extend the speed timeline: return SpeedEvents with `at` in
+  // [fromTime, untilTime), sorted non-decreasing by `at`, in whole cycles so
+  // each call resumes from a clean boundary. May read ctx and keep private
+  // generation state. Return [] to park (nothing more until something changes).
+  generateSpeed(
     fromTime: number,
     untilTime: number,
     ctx: PlayerContext,
-  ): ProgramEvent[];
+  ): SpeedEvent[];
+
+  // Overlay valve events across a span of already-built speed. `speedEvents` is
+  // the speed covering [fromTime, untilTime) (so a pulse can read the speed in
+  // effect at its moment); return ValveEvents with `at` in [fromTime, untilTime),
+  // sorted non-decreasing. Must be a pure function of its inputs + the engine's
+  // knobs (no cadence state), so the Player can re-run it to re-lay the overlay.
+  generateValves(
+    speedEvents: SpeedEvent[],
+    fromTime: number,
+    untilTime: number,
+    ctx: PlayerContext,
+  ): ValveEvent[];
 
   // Map a raw SpeedEvent to the device speed given the engine's current knobs.
   // Honours `unscaled`. Called every tick, so magnitude knobs stay live without
