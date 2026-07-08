@@ -1,8 +1,8 @@
 # Developing Autogoon
 
 How to run Autogoon locally and contribute changes. For how the app is put
-together internally — the program/player model, the engine/hook/panel split, the
-shared device layer and algorithm runner, and the keyword spotter — see
+together internally — the program/player model, the engine/panel split, the
+shared device layer and single Player, and the keyword spotter — see
 [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Running locally
@@ -33,7 +33,8 @@ offline.
 - **No test framework.** The app drives physical hardware, so verify changes by
   running the app and driving the affected flow in the browser — not just
   typecheck and build.
-- **Adding a movement mode?** It's a new engine (`src/lib/*-engine.ts`), hook
-  (`src/hooks/use-*.ts`), and panel (`src/components/*-panel.tsx`), registered in
-  `src/app/page.tsx`. See the engine/hook/panel pattern in
+- **Adding a movement mode?** It's a new engine
+  (`src/lib/algorithms/*-engine.ts`) and panel
+  (`src/components/algorithms/*-panel.tsx`), wired in with one `<Panel>` and one
+  tab in `src/app/page.tsx`. See the engine/panel pattern in
   [ARCHITECTURE.md](./ARCHITECTURE.md).

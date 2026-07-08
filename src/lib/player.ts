@@ -17,19 +17,15 @@ import {
   type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
+  type UpcomingWindow,
   type ValveEvent,
 } from "@/lib/program";
+
+export type { UpcomingWindow };
 
 export interface PlayerOptions {
   getDevice: () => VacuglideDevice | null;
   onError?: (message: string) => void;
-}
-
-export interface UpcomingWindow {
-  // Step points for the sparkline; t is ms from now (0..windowMs).
-  speed: Array<{ t: number; speed: number }>;
-  // Valve state changes coming up in the window (rendered later; ignored for now).
-  valves: Array<{ t: number; valve: "plus" | "minus"; open: boolean }>;
 }
 
 export class Player {
@@ -164,22 +160,45 @@ export class Player {
     }, TICK_MS);
   }
 
-  // Keep LOOKAHEAD_MS of future built ahead of the clock. `from` never trails the
-  // clock, so after invalidateFuture() (which drops the future) generation
-  // resumes cleanly at "now".
+  // Keep LOOKAHEAD_MS of future built ahead of the clock. Speed is the backbone
+  // (from never trails the last speed event, so after invalidateFuture() drops
+  // the future, generation resumes cleanly at "now"); valves are overlaid across
+  // each speed batch. Events land unsorted (a valve close can spill past the next
+  // speed event), so the whole array is re-sorted once when anything was added.
   protected ensureLookahead(): void {
     if (this.source === null) return;
     const horizon = this.clock + LOOKAHEAD_MS;
     let guard = 0;
+    let changed = false;
     while (true) {
-      const last = this.events[this.events.length - 1];
-      const from = Math.max(last?.at ?? this.clock, this.clock);
+      const from = Math.max(this.lastSpeedAt() ?? this.clock, this.clock);
       if (from >= horizon) break;
-      const batch = this.source.generate(from, horizon, this.context());
-      if (batch.length === 0) break; // source parked
-      this.events.push(...batch);
+      const ctx = this.context();
+      const speedBatch = this.source.generateSpeed(from, horizon, ctx);
+      if (speedBatch.length === 0) break; // source parked
+      const batchEnd = speedBatch[speedBatch.length - 1]!.at;
+      const valveBatch = this.source.generateValves(
+        speedBatch,
+        from,
+        batchEnd,
+        ctx,
+      );
+      this.events.push(...speedBatch, ...valveBatch);
+      changed = true;
       if (++guard > 10_000) break; // runaway guard
     }
+    if (changed) this.events.sort((a, b) => a.at - b.at);
+  }
+
+  // The `at` of the last speed event (the speed backbone's extent), or null if
+  // none. Valve closes can trail it, so this scans for the last speed rather than
+  // reading the final array element.
+  private lastSpeedAt(): number | null {
+    for (let i = this.events.length - 1; i >= 0; i--) {
+      const ev = this.events[i]!;
+      if (ev.kind === "speed") return ev.at;
+    }
+    return null;
   }
 
   private async tick(): Promise<void> {
@@ -291,6 +310,39 @@ export class Player {
     if (this.source === null) return;
     this.events = this.events.slice(0, this.cursor);
     this.ensureLookahead();
+    this.notify();
+  }
+
+  // Re-lay ONLY the valve overlay, keeping the speed script byte-identical — for a
+  // knob that shapes valves but not speed (Autopilot's vacuum maintenance). Drop
+  // the not-yet-played valve events, ask the source to overlay fresh valves across
+  // the retained future speed, and splice them back in. The speed the user is
+  // riding is untouched; only the suction reshapes from here on.
+  invalidateValves(): void {
+    if (this.source === null) return;
+    const ctx = this.context();
+    // Keep the past (fired) events and ALL speed; drop only future valve events.
+    const kept = this.events.filter(
+      (e) => e.kind === "speed" || e.at <= this.clock,
+    );
+    const futureSpeed = kept.filter(
+      (e): e is SpeedEvent => e.kind === "speed" && e.at > this.clock,
+    );
+    // Overlay only as far as the speed is built; ensureLookahead extends the rest.
+    const speedEnd =
+      futureSpeed.length > 0
+        ? futureSpeed[futureSpeed.length - 1]!.at
+        : this.clock;
+    const valves = this.source.generateValves(
+      futureSpeed,
+      this.clock,
+      speedEnd,
+      ctx,
+    );
+    this.events = [...kept, ...valves].sort((a, b) => a.at - b.at);
+    let idx = this.events.findIndex((e) => e.at > this.clock);
+    if (idx === -1) idx = this.events.length;
+    this.cursor = idx;
     this.notify();
   }
 
