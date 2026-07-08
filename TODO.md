@@ -3,13 +3,6 @@
 Concrete, intended work. Speculative direction and design thinking lives in
 [ROADMAP.md](./ROADMAP.md).
 
-## Visualisation
-
-- [ ] **Indicate scheduled valve operations on the timeline.** The visualisation
-      shows the upcoming speed curve but not the scheduled stroke − / stroke +
-      (valve) events. Mark them on the timeline so the stroke changes are visible
-      coming up, not just the speed.
-
 ## Algorithm settings
 
 - [ ] **Goon: expose session length.** Goon's run length is the hard-coded
