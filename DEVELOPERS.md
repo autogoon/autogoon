@@ -76,9 +76,11 @@ _manual-knob_ mode, `groove-engine.ts` + `groove-panel.tsx` are the leaner model
      you);
    - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the others,
      passing `active={tab === "<name>" || runningTab === "<name>"}`.
-4. **Docs** — add `ALGORITHM-<NAME>.md` (high-level and experiential, like the
-   others — not an implementation spec), and link it from `README.md` (the mode
-   list and the Documentation list).
+4. **User-facing copy** — add `ALGORITHM-<NAME>.md` (high-level and experiential,
+   like the others — not an implementation spec) and link it from `README.md` (the
+   mode list and the Documentation list); and update the in-app intro in
+   `src/components/settings-panel.tsx`, which hardcodes both the mode list and the
+   spoken switch words.
 5. **Changelog** — add a `feature` line to [CHANGELOG.md](./CHANGELOG.md).
 
 ### Which knob-change method to call
