@@ -68,6 +68,12 @@ _manual-knob_ mode, `groove-engine.ts` + `groove-panel.tsx` are the leaner model
    active, `start`/`stop`/`reset`, a `Command[]` handed to `useVoiceCommands`, and
    the shared `ListeningFor` / `RunButton` / `Sparkline` / `StrokeCard` / `LogCard`
    scaffolding. What's algorithm-specific is your knob cards and their commands.
+   Two details worth copying deliberately: **reset is two layers** — your `reset`
+   restores the knobs' React state and their engine defaults and then re-arms (the
+   Player rebuilds the program from the start and calls `engine.reset()` to clear
+   transient state like a pending `cumming`); and **`StrokeCard` exposes only two
+   ending verbs** (Finish and Cumming), so reuse one for your send-off or add a
+   prop to `StrokeCard` for a third.
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
    - add a `TABS` entry with **`algorithm: true`** (this one flag is what puts the
@@ -121,3 +127,6 @@ wrong:
   Player's look-ahead loop spins building empty cycles.
 - Return **`[]` to park** — nothing more to play until a knob changes (this is how
   Goon's `cumming` wind-down ends: emit the glide, then park).
+- A send-off / wind-down ramp should emit its speed events **`unscaled`** (see
+  `SpeedEvent.unscaled` in `program.ts`), so a magnitude ceiling like intensity
+  can't shrink the ramp out from under it — Goon's `buildCummingScript` does this.
