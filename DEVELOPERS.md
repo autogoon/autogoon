@@ -71,9 +71,11 @@ _manual-knob_ mode, `groove-engine.ts` + `groove-panel.tsx` are the leaner model
    Two details worth copying deliberately: **reset is two layers** — your `reset`
    restores the knobs' React state and their engine defaults and then re-arms (the
    Player rebuilds the program from the start and calls `engine.reset()` to clear
-   transient state like a pending `cumming`); and **`StrokeCard` exposes only two
-   ending verbs** (Finish and Cumming), so reuse one for your send-off or add a
-   prop to `StrokeCard` for a third.
+   transient state like a pending `cumming`); and **`StrokeCard` currently bakes in
+   the finish-like button** — Autopilot's **Finish** (a _pre_-ending: jump/hold at
+   the climax point) via `onFinish`, and Goon/Groove's **Cumming** (the actual
+   send-off) via `onCumming` — while Goon renders its own Finish directly in the
+   Timeline card instead. Reuse a prop or render your own button.
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
    - add a `TABS` entry with **`algorithm: true`** (this one flag is what puts the
