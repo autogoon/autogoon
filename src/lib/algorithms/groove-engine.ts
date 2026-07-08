@@ -1,8 +1,6 @@
-// Groove as an AlgorithmEngine — the dip pattern (this file formerly held the
-// Groove *engine*), translated onto the shared Player's event model. The Player
-// owns the clock, lookahead, sends and cumming valve timing; this only *generates*
-// events and *scales* them. Generation helpers are private to this file — algorithms
-// do not share generation code.
+// Groove as an AlgorithmEngine — the manual dip pattern (100 -> floor -> 100)
+// with Speed + Variability knobs. Pure event generation/scaling — no React, no
+// device; generation helpers are private to this file.
 
 import {
   type PlayerContext,
@@ -37,19 +35,11 @@ const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 500;
 
-// The helpers below are deliberately module-level functions, not private methods
-// of the class: they are pure, stateless transforms, kept file-private (never
-// exported). Matching the sibling engines (see goon-engine.ts), keeping them as
-// functions avoids handing stateless code a `this` it does not use.
-
 interface Ramp {
   waypoints: Array<{ speed: number; at: number }>;
   endAt: number;
 }
 
-// One ramp: a leading waypoint at `from`, then a step every stepMs to `to`. One
-// random duration per ramp (asymmetric: up to variabilityPercent faster, at most
-// SLOW_JITTER_CAP slower). A zero-length leg still consumes a step (a hold).
 function buildLeg(
   from: number,
   to: number,
@@ -82,7 +72,6 @@ function toSpeedEvents(
   return waypoints.map((w) => ({ kind: "speed", at: w.at, speed: w.speed }));
 }
 
-// One full cycle: 100 -> floor -> 100.
 function buildFullCycle(
   floor: number,
   variabilityPercent: number,
@@ -106,8 +95,6 @@ function buildFullCycle(
   return { events, endAt: at };
 }
 
-// After a variability change: ramp from the current speed back up to the peak at
-// a fixed 10 units/sec, then one full cycle at the new floor.
 function buildRecovery(
   fromSpeed: number,
   floor: number,
@@ -129,30 +116,22 @@ function buildRecovery(
   return { events, endAt: cycle.endAt };
 }
 
-// Map a raw pattern speed (floor..100) to the device value: peak tracks
-// speedPercent linearly; lower raw speeds are pulled toward 0 harder as the speed
-// falls (exponent grows from 1 as speedPercent drops).
 function scaleSpeed(raw: number, speedPercent: number): number {
   if (speedPercent <= 0) return 0;
   const exponent = 1 + LOW_END_GAMMA * (1 - speedPercent / 100);
   return Math.round(speedPercent * Math.pow(raw / PEAK_SPEED, exponent));
 }
 
-export interface GrooveOptions {
-  speedPercent: number;
-  variability: VariabilityLevel;
-}
-
-export class Groove implements AlgorithmEngine {
+export class GrooveEngine implements AlgorithmEngine {
   private speedPercent: number;
   private variabilityLevel: VariabilityLevel;
   private pendingRecovery = false;
   private cumming = false;
   private cummingEmitted = false;
 
-  constructor(opts: GrooveOptions) {
-    this.speedPercent = opts.speedPercent;
-    this.variabilityLevel = opts.variability;
+  constructor(speedPercent: number, variability: VariabilityLevel) {
+    this.speedPercent = speedPercent;
+    this.variabilityLevel = variability;
   }
 
   private get floor(): number {
@@ -168,13 +147,10 @@ export class Groove implements AlgorithmEngine {
     this.cummingEmitted = false;
   }
 
-  // Magnitude knob: scale() picks it up next tick, no regeneration.
   setSpeedPercent(percent: number): void {
     this.speedPercent = Math.max(0, Math.min(100, percent));
   }
 
-  // Shape knob: the hook calls invalidateFuture() after this while playing, so
-  // generate() emits a recovery ramp then the new-depth cycles.
   setVariability(level: VariabilityLevel): void {
     this.variabilityLevel = level;
     this.pendingRecovery = true;
@@ -221,9 +197,6 @@ export class Groove implements AlgorithmEngine {
     return scaleSpeed(event.speed, this.speedPercent);
   }
 
-  // Groove's wind-down: unscaled ramp 30 -> ... -> 5, park at 0 far in the
-  // future, plus a stroke-minus pulse from +3s to +12s (a 9s pulse). Sorted by
-  // `at` because the valve pulse interleaves with the ramp.
   private cummingEvents(startAt: number): ProgramEvent[] {
     const events: ProgramEvent[] = [];
     let at = startAt;
@@ -245,7 +218,6 @@ export class Groove implements AlgorithmEngine {
       speed: 0,
       unscaled: true,
     });
-    // Stroke-minus pulse: open at +3s, close at +12s (a 9s hold), as two events.
     events.push({
       kind: "valve",
       at: startAt + 3000,

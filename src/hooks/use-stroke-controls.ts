@@ -8,7 +8,7 @@
 // algorithm is currently running.
 
 import { useCallback, useMemo, useState } from "react";
-import type { KeywordAction } from "@/hooks/use-algorithm-runner";
+import type { Command } from "@/hooks/use-voice-commands";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 const STROKE_PULSE_MINUS_MS = 4000;
@@ -53,7 +53,7 @@ export function useStrokeControls(vacuglide: VacuglideDeviceController) {
   // of truth for both the voice words below and the Stroke buttons' enabled state.
   const canStroke = connected;
 
-  const keywords = useMemo<KeywordAction[]>(
+  const keywords = useMemo<Command[]>(
     () => [
       { word: "up", enabled: canStroke, run: () => strokePulse("plus") },
       { word: "down", enabled: canStroke, run: () => strokePulse("minus") },

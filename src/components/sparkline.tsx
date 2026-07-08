@@ -44,7 +44,8 @@ export function Sparkline({
   // Pair each valve's open → close into a drawable span. A dangling open (close
   // is beyond the window) runs to the window end; a close with no open in-window
   // means the valve was already open at t=0, so the span starts there.
-  const spans: Array<{ from: number; to: number; valve: "plus" | "minus" }> = [];
+  const spans: Array<{ from: number; to: number; valve: "plus" | "minus" }> =
+    [];
   const openAt: { plus: number | null; minus: number | null } = {
     plus: null,
     minus: null,
