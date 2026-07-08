@@ -44,8 +44,8 @@ and regenerates from the beginning.
 generation-only object with four methods —
 
 - `generateSpeed(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
-  speed backbone (in whole cycles), keeping a couple of minutes ahead, so looping
-  algorithms never materialise all at once.
+  speed backbone (in whole cycles), keeping ~5 minutes ahead, so looping algorithms
+  never materialise all at once.
 - `generateValves(speedEvents, fromTime, untilTime, ctx)` — overlays the automatic
   valve pulses (tease, vacuum maintenance, the cumming pulse) across a span of
   already-built speed, as open/close event pairs that show on the sparkline. It's
