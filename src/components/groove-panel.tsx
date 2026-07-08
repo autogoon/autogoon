@@ -24,12 +24,14 @@ export function GroovePanel({
   kws,
   onStart,
   onStop,
+  onReset,
 }: {
   vacuglide: VacuglideDeviceController;
   groove: GrooveController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
+  onReset: () => void;
 }) {
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
@@ -41,10 +43,11 @@ export function GroovePanel({
       <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
 
       <RunButton
-        running={groove.isPlaying}
+        state={groove.state}
         connected={vacuglide.connected}
         onStart={onStart}
         onStop={onStop}
+        onReset={onReset}
         className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
 

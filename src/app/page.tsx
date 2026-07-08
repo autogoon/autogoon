@@ -160,6 +160,7 @@ export default function Home() {
               kws={kws}
               onStart={() => void runner.run("goon")}
               onStop={runner.stop}
+              onReset={() => runner.reset("goon")}
             />
           </div>
           <div className={tab === "groove" ? undefined : "hidden"}>
@@ -169,6 +170,7 @@ export default function Home() {
               kws={kws}
               onStart={() => void runner.run("groove")}
               onStop={runner.stop}
+              onReset={() => runner.reset("groove")}
             />
           </div>
           <div className={tab === "autopilot" ? undefined : "hidden"}>
@@ -178,6 +180,7 @@ export default function Home() {
               kws={kws}
               onStart={() => void runner.run("autopilot")}
               onStop={runner.stop}
+              onReset={() => runner.reset("autopilot")}
             />
           </div>
           <div className={tab === "settings" ? undefined : "hidden"}>

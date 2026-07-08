@@ -1,35 +1,59 @@
 "use client";
 
-// The "play" button shown in each algorithm panel. When idle it starts the
-// algorithm (stopping any other that's running); while running it becomes a
-// Stop button. The device must be connected first (from the header).
+// The transport control shown at the top of each algorithm panel. Driven by the
+// Player's state: while playing it's a single Stop; while armed or paused it's
+// Start + Reset side by side. Start needs the device connected first.
 
+import type { PlayerState } from "@/lib/program";
 import { Button } from "@/components/button";
 
 export function RunButton({
-  running,
+  state,
   connected,
   onStart,
   onStop,
+  onReset,
   className,
 }: {
-  running: boolean;
+  state: PlayerState;
   connected: boolean;
   onStart: () => void;
   onStop: () => void;
+  onReset: () => void;
   className?: string;
 }) {
+  if (state === "playing") {
+    return (
+      <Button
+        onClick={onStop}
+        className="w-full rounded-lg bg-red-600 py-3.5 text-lg font-bold text-white"
+        badge="stop"
+      >
+        Stop
+      </Button>
+    );
+  }
+
   return (
-    <Button
-      onClick={running ? onStop : onStart}
-      disabled={!running && !connected}
-      title={!running && !connected ? "Connect the device first" : undefined}
-      className={`w-full rounded-lg py-3.5 text-lg font-bold text-white disabled:opacity-40 ${
-        running ? "bg-red-600" : (className ?? "bg-blue-600")
-      }`}
-      badge={running ? "stop" : "start"}
-    >
-      {running ? "Stop" : "Start"}
-    </Button>
+    <div className="flex gap-3">
+      <Button
+        onClick={onStart}
+        disabled={!connected}
+        title={!connected ? "Connect the device first" : undefined}
+        className={`flex-1 rounded-lg py-3.5 text-lg font-bold text-white disabled:opacity-40 ${
+          className ?? "bg-blue-600"
+        }`}
+        badge="start"
+      >
+        Start
+      </Button>
+      <Button
+        onClick={onReset}
+        className="bg-secondary rounded-lg px-6 py-3.5 text-lg font-bold disabled:opacity-40"
+        badge="reset"
+      >
+        Reset
+      </Button>
+    </div>
   );
 }
