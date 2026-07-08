@@ -129,6 +129,7 @@ function App() {
             return (
               <Button
                 key={t.id}
+                flash={false}
                 onClick={() => setTab(t.id)}
                 disabled={locked}
                 className={`-mb-px border-b-2 py-3 text-sm font-medium disabled:pointer-events-none disabled:opacity-40 ${
