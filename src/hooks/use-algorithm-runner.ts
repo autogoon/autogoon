@@ -18,8 +18,14 @@ const REPEAT_MS = 700;
 // (or ignores it if the algorithm doesn't claim that word). start/stop are
 // universal and handled by the dispatcher via the runner, so they don't appear
 // here.
+// One spoken command: the word, whether it is valid *right now*, and what it
+// does. `enabled` is the single source of truth for validity — the KWS grammar
+// only listens for enabled words, the dispatcher only runs an enabled command,
+// and the matching UI control derives its disabled state from the same flag, so
+// button and voice can never disagree.
 export interface KeywordAction {
   word: string;
+  enabled: boolean;
   run: () => void | Promise<void>;
 }
 
@@ -187,9 +193,11 @@ export function useAlgorithmRunner(
       const inProgress =
         algorithms.find((algo) => algo.state !== "armed") ?? null;
       if (inProgress !== null) {
-        // Something's running/paused: only its own keywords apply. Switching is
-        // locked.
-        action = inProgress.keywords.find((k) => k.word === word)?.run ?? null;
+        // Something's running/paused: only its own keywords apply (and only the
+        // ones enabled right now). Switching is locked.
+        action =
+          inProgress.keywords.find((k) => k.word === word && k.enabled)?.run ??
+          null;
       } else {
         // Armed: an algorithm's switch word selects that algorithm (points
         // "start" at it and brings its tab into view); otherwise the word is the
@@ -206,7 +214,9 @@ export function useAlgorithmRunner(
         } else {
           const current =
             algorithms.find((algo) => algo.id === currentIdRef.current) ?? null;
-          action = current?.keywords.find((k) => k.word === word)?.run ?? null;
+          action =
+            current?.keywords.find((k) => k.word === word && k.enabled)?.run ??
+            null;
         }
       }
     }

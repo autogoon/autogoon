@@ -158,20 +158,24 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   // The words this algorithm understands and what each one does. start/stop are
   // universal (handled by the dispatcher via the runner) so they're not here.
   // Stroke's up/down come from the shared useStrokeControls.
+  // Knobs are valid whenever Autopilot is the current source (armed, playing or
+  // paused); finish (the crescendo ending) only during a session.
+  const canEnd = state !== "armed";
+
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
-      { word: "finish", run: finishMe },
-      { word: "more", run: () => stepIntensity(1) },
-      { word: "less", run: () => stepIntensity(-1) },
-      { word: "gentle", run: () => changeEdge("gentle") },
-      { word: "moderate", run: () => changeEdge("moderate") },
-      { word: "intense", run: () => changeEdge("intense") },
-      { word: "off", run: () => changeSuction("off") },
-      { word: "light", run: () => changeSuction("little") },
-      { word: "heavy", run: () => changeSuction("more") },
+      { word: "finish", enabled: canEnd, run: finishMe },
+      { word: "more", enabled: isCurrent, run: () => stepIntensity(1) },
+      { word: "less", enabled: isCurrent, run: () => stepIntensity(-1) },
+      { word: "gentle", enabled: isCurrent, run: () => changeEdge("gentle") },
+      { word: "moderate", enabled: isCurrent, run: () => changeEdge("moderate") },
+      { word: "intense", enabled: isCurrent, run: () => changeEdge("intense") },
+      { word: "off", enabled: isCurrent, run: () => changeSuction("off") },
+      { word: "light", enabled: isCurrent, run: () => changeSuction("little") },
+      { word: "heavy", enabled: isCurrent, run: () => changeSuction("more") },
     ],
-    [stroke.keywords, finishMe, stepIntensity, changeEdge, changeSuction],
+    [stroke.keywords, isCurrent, canEnd, finishMe, stepIntensity, changeEdge, changeSuction],
   );
 
   return {
@@ -191,6 +195,8 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
     changeEdge,
     suction,
     changeSuction,
+    canStroke: stroke.canStroke,
+    canEnd,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };

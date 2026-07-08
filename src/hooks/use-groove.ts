@@ -114,18 +114,22 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
     }
   }, [player, source, log]);
 
+  // Speed/variability knobs are valid whenever Groove is the current source
+  // (armed, playing or paused); cumming (the ending) only during a session.
+  const canEnd = state !== "armed";
+
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
-      { word: "faster", run: () => stepSpeedPercent(5) },
-      { word: "slower", run: () => stepSpeedPercent(-5) },
-      { word: "off", run: () => changeVariability("off") },
-      { word: "low", run: () => changeVariability("low") },
-      { word: "medium", run: () => changeVariability("medium") },
-      { word: "high", run: () => changeVariability("high") },
-      { word: "cumming", run: cumming },
+      { word: "faster", enabled: isCurrent, run: () => stepSpeedPercent(5) },
+      { word: "slower", enabled: isCurrent, run: () => stepSpeedPercent(-5) },
+      { word: "off", enabled: isCurrent, run: () => changeVariability("off") },
+      { word: "low", enabled: isCurrent, run: () => changeVariability("low") },
+      { word: "medium", enabled: isCurrent, run: () => changeVariability("medium") },
+      { word: "high", enabled: isCurrent, run: () => changeVariability("high") },
+      { word: "cumming", enabled: canEnd, run: cumming },
     ],
-    [stroke.keywords, stepSpeedPercent, changeVariability, cumming],
+    [stroke.keywords, isCurrent, canEnd, stepSpeedPercent, changeVariability, cumming],
   );
 
   return {
@@ -143,6 +147,8 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
     variability,
     changeVariability,
     cumming,
+    canStroke: stroke.canStroke,
+    canEnd,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };

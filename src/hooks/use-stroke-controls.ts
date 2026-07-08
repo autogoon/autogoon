@@ -15,7 +15,7 @@ const STROKE_PULSE_MINUS_MS = 4000;
 const STROKE_PULSE_PLUS_MS = 400;
 
 export function useStrokeControls(vacuglide: VacuglideDeviceController) {
-  const { valvePlus, valveMinus, log } = vacuglide;
+  const { valvePlus, valveMinus, log, connected } = vacuglide;
 
   // Which valve a voice pulse is currently holding open, so the matching
   // manual-override button can highlight while it happens.
@@ -48,15 +48,20 @@ export function useStrokeControls(vacuglide: VacuglideDeviceController) {
     [valvePlus, valveMinus, log],
   );
 
+  // Manual stroke drives the valves directly, so it is valid exactly when a
+  // device is connected — regardless of play state. This one flag is the source
+  // of truth for both the voice words below and the Stroke buttons' enabled state.
+  const canStroke = connected;
+
   const keywords = useMemo<KeywordAction[]>(
     () => [
-      { word: "up", run: () => strokePulse("plus") },
-      { word: "down", run: () => strokePulse("minus") },
+      { word: "up", enabled: canStroke, run: () => strokePulse("plus") },
+      { word: "down", enabled: canStroke, run: () => strokePulse("minus") },
     ],
-    [strokePulse],
+    [strokePulse, canStroke],
   );
 
-  return { strokePulsing, keywords };
+  return { strokePulsing, canStroke, keywords };
 }
 
 export type StrokeControls = ReturnType<typeof useStrokeControls>;

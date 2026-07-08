@@ -76,7 +76,8 @@ export function GoonPanel({
       </Card>
 
       <StrokeCard
-        disabled={!goon.isPlaying}
+        strokeDisabled={!goon.canStroke}
+        actionDisabled={!goon.canEnd}
         strokePulsing={goon.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}

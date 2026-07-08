@@ -135,20 +135,26 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
     }
   }, [player, source, log]);
 
+  // Knobs and timeline transport are valid whenever Goon is the current source
+  // (armed, playing or paused); cumming (the ending) only during a session.
+  const canEnd = state !== "armed";
+
   const keywords = useMemo<KeywordAction[]>(
     () => [
       ...stroke.keywords,
-      { word: "more", run: () => stepIntensity(INTENSITY_STEP) },
-      { word: "less", run: () => stepIntensity(-INTENSITY_STEP) },
-      { word: "forward", run: forward },
-      { word: "back", run: back },
-      { word: "finish", run: finish },
-      { word: "faster", run: faster },
-      { word: "slower", run: slower },
-      { word: "cumming", run: cumming },
+      { word: "more", enabled: isCurrent, run: () => stepIntensity(INTENSITY_STEP) },
+      { word: "less", enabled: isCurrent, run: () => stepIntensity(-INTENSITY_STEP) },
+      { word: "forward", enabled: isCurrent, run: forward },
+      { word: "back", enabled: isCurrent, run: back },
+      { word: "finish", enabled: isCurrent, run: finish },
+      { word: "faster", enabled: isCurrent, run: faster },
+      { word: "slower", enabled: isCurrent, run: slower },
+      { word: "cumming", enabled: canEnd, run: cumming },
     ],
     [
       stroke.keywords,
+      isCurrent,
+      canEnd,
       stepIntensity,
       forward,
       back,
@@ -180,6 +186,8 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
     faster,
     slower,
     cumming,
+    canStroke: stroke.canStroke,
+    canEnd,
     strokePulsing: stroke.strokePulsing,
     keywords,
   };

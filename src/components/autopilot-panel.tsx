@@ -60,7 +60,8 @@ export function AutopilotPanel({
       </Card>
 
       <StrokeCard
-        disabled={!autopilot.isPlaying}
+        strokeDisabled={!autopilot.canStroke}
+        actionDisabled={!autopilot.canEnd}
         strokePulsing={autopilot.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}

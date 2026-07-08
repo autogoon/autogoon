@@ -101,7 +101,9 @@ export default function Home() {
     () => [
       ...new Set([
         ...runner.globalWords,
-        ...(activeAlgo?.keywords ?? []).map((k) => k.word),
+        ...(activeAlgo?.keywords ?? [])
+          .filter((k) => k.enabled)
+          .map((k) => k.word),
       ]),
     ],
     [runner.globalWords, activeAlgo?.keywords],

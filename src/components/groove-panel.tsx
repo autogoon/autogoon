@@ -60,7 +60,8 @@ export function GroovePanel({
       </Card>
 
       <StrokeCard
-        disabled={groove.isPlaying === false}
+        strokeDisabled={!groove.canStroke}
+        actionDisabled={!groove.canEnd}
         strokePulsing={groove.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
