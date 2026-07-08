@@ -74,9 +74,10 @@ export interface AlgorithmEngine {
   // valve overlay over an unchanged speed script (see Player.invalidateValves).
 
   // Extend the speed timeline: return SpeedEvents with `at` in
-  // [fromTime, untilTime), sorted non-decreasing by `at`, in whole cycles so
-  // each call resumes from a clean boundary. May read ctx and keep private
-  // generation state. Return [] to park (nothing more until something changes).
+  // [fromTime, untilTime), sorted non-decreasing by `at`. Emitting in whole
+  // cycles isn't required, but it's convenient — each call then resumes from a
+  // clean boundary. May read ctx and keep private generation state. Return [] to
+  // park (nothing more until something changes).
   generateSpeed(
     fromTime: number,
     untilTime: number,
