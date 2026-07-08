@@ -50,8 +50,8 @@ export function SettingsPanel({
               Tap its tab — or, while stopped, say{" "}
               <span className="text-foreground">goon</span>,{" "}
               <span className="text-foreground">groove</span>, or{" "}
-              <span className="text-foreground">autopilot</span> — to switch; once
-              a session is running, switching is locked until you stop.
+              <span className="text-foreground">autopilot</span> — to switch;
+              once a session is running, switching is locked until you stop.
             </p>
           </div>
           <p>
@@ -70,11 +70,10 @@ export function SettingsPanel({
             <span className="text-foreground font-medium">Get connected.</span>{" "}
             Paste your Vacuglide device token from Autoblow into the{" "}
             <span className="text-foreground">Device</span> card below, then
-            press <span className="text-foreground">Connect</span>{" "}
-            in the header. Your token is saved on this device, so next time you
-            open Autogoon it
-            connects automatically — and once you&rsquo;ve allowed the
-            microphone, your browser remembers that too.
+            press <span className="text-foreground">Connect</span> in the
+            header. Your token is saved on this device, so next time you open
+            Autogoon it connects automatically — and once you&rsquo;ve allowed
+            the microphone, your browser remembers that too.
           </p>
           <p>
             <span className="text-foreground font-medium">Privacy.</span> Speech

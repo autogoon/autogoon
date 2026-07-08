@@ -55,7 +55,9 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
       const active = player.source === source && player.isPlaying;
       setIsPlaying(active);
       setCurrentSpeed(active ? player.getState().currentSpeed : 0);
-      setUpcoming(active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT);
+      setUpcoming(
+        active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
+      );
     };
     const unsubscribe = player.subscribe(sync);
     sync();
@@ -75,7 +77,8 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
   const finishMe = useCallback(() => {
     try {
       source.beginFinish();
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }
@@ -88,7 +91,8 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
     (level: IntensityLevel) => {
       setIntensity(level);
       source.setIntensity(level);
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
       log(`intensity → ${level}`);
     },
     [player, source, log],
@@ -111,7 +115,8 @@ export function useAutopilot(vacuglide: VacuglideDeviceController) {
     (level: EdgeControlLevel) => {
       setEdge(level);
       source.setEdgeControl(level);
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
       log(`edge control → ${level}`);
     },
     [player, source, log],

@@ -23,7 +23,7 @@ export function Button({
   return (
     <button {...props} className={`relative ${className ?? ""}`}>
       {children}
-      <span className="text-muted-foreground bg-background pointer-events-none absolute right-1 top-1 rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
+      <span className="text-muted-foreground bg-background pointer-events-none absolute top-1 right-1 rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
         {badge}
       </span>
     </button>

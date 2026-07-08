@@ -94,7 +94,12 @@ function buildFullCycle(
     { from: PEAK_SPEED, to: floor },
     { from: floor, to: PEAK_SPEED },
   ]) {
-    const { waypoints, endAt } = buildLeg(leg.from, leg.to, variabilityPercent, at);
+    const { waypoints, endAt } = buildLeg(
+      leg.from,
+      leg.to,
+      variabilityPercent,
+      at,
+    );
     events.push(...toSpeedEvents(waypoints));
     at = endAt;
   }
@@ -234,10 +239,25 @@ export class Groove implements AlgorithmEngine {
       events.push({ kind: "speed", at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
-    events.push({ kind: "speed", at: at + 1_800_000, speed: 0, unscaled: true });
+    events.push({
+      kind: "speed",
+      at: at + 1_800_000,
+      speed: 0,
+      unscaled: true,
+    });
     // Stroke-minus pulse: open at +3s, close at +12s (a 9s hold), as two events.
-    events.push({ kind: "valve", at: startAt + 3000, valve: "minus", open: true });
-    events.push({ kind: "valve", at: startAt + 12000, valve: "minus", open: false });
+    events.push({
+      kind: "valve",
+      at: startAt + 3000,
+      valve: "minus",
+      open: true,
+    });
+    events.push({
+      kind: "valve",
+      at: startAt + 12000,
+      valve: "minus",
+      open: false,
+    });
     return events.sort((a, b) => a.at - b.at);
   }
 }

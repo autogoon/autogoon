@@ -22,7 +22,7 @@ next Start begins a **fresh** session (the program resets). Things to weigh:
 
 Note that **pause is mechanically the same as edge** — both halt the device and
 hold the clock/position, then resume — so they'd likely share one implementation.
-What differs is the *semantics and use case* (a deliberate user "I need to take a
+What differs is the _semantics and use case_ (a deliberate user "I need to take a
 phone call" vs. the edging loop's timed tease), which is really what this
 discussion is about, not the mechanism.
 
@@ -32,7 +32,7 @@ the only way out.
 
 ## Algorithm options
 
-Behaviours that layer on top of any algorithm, grouped by *when* they happen:
+Behaviours that layer on top of any algorithm, grouped by _when_ they happen:
 **mid-play** (during the ride), **end-play** (the moment you cum), and
 **after-play** (what happens next).
 
@@ -41,7 +41,7 @@ depends on the phase:
 
 - **End-play / after-play** — good to add, and purely additive (no need for a
   separate "Autopilot + end-play" algorithm). They don't touch the drive, so the
-  algorithm's feel is left intact — and they'd *improve* it: Autopilot's only
+  algorithm's feel is left intact — and they'd _improve_ it: Autopilot's only
   ending today is **Finish**, which just holds full speed until you stop it
   (torture-until-stop, not much of a finish). Real cumming endings are a clear
   upgrade. Autopilot has no `cumming` command yet — Goon and Groove do — so it
@@ -87,7 +87,7 @@ Rides on whatever the moment-ending was:
 - **Stops** — the normal ending.
 - **Torture** — **keeps going anyway** (overstimulation), ignoring **Stop/Pause**.
   This
-  is why it isn't just another moment-ending: it *rides on* one. Two standout
+  is why it isn't just another moment-ending: it _rides on_ one. Two standout
   pairings — **wind-down then torture**, where the gentle glide lulls you into a
   soft finish and torture kicks in exactly as you relax; and **ruin then torture**,
   where it cuts you to zero and then slams back to full throttle for a cold-start
@@ -98,10 +98,10 @@ Any outcome that ignores **Stop/Pause** is backstopped by the always-on safe wor
 
 ## New algorithm candidates
 
-Genuinely new drive *shapes* (rarer than options):
+Genuinely new drive _shapes_ (rarer than options):
 
 - **Metronome** — follows a BPM you call out.
-  - *Interesting stretch:* detect BPM **from music** instead of calling it out.
+  - _Interesting stretch:_ detect BPM **from music** instead of calling it out.
     Beat/tempo detection is a solved-ish problem (onset detection → tempo
     estimation), but the catch is the keyword spotter: the mic already feeds vosk,
     so music near the mic would trigger false keywords off lyrics/vocals, and

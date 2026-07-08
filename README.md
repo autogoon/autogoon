@@ -33,7 +33,7 @@ machine.
 
 ## The app
 
-*Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md).*
+_Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md)._
 
 A Next.js app (App Router, TypeScript, Tailwind v4): a single page with a sticky
 header bar — a mic **Listen** toggle (keyword spotting), device **Connect**, live
@@ -67,12 +67,12 @@ throttle background or screen-locked tabs, which stops both.
   the algorithm and the mic stop. In practice you need a **second device**
   dedicated to Autogoon (screen on, tab in front) while you use the toy. This is
   the only tested configuration.
-- **iOS Chrome / Firefox / any iOS browser** *(untested)* — expected to behave
+- **iOS Chrome / Firefox / any iOS browser** _(untested)_ — expected to behave
   exactly like iOS Safari: Apple requires every iOS browser to use the system
   WebKit engine, so they inherit the same background-tab and media limits.
-- **Android Chrome** *(untested)* — likely more forgiving in the foreground with
+- **Android Chrome** _(untested)_ — likely more forgiving in the foreground with
   the screen on (different engine), but background/locked tabs are still throttled.
-  A single device *may* work if you keep the tab in front and the screen awake
+  A single device _may_ work if you keep the tab in front and the screen awake
   (e.g. Screen Wake Lock) — unverified.
 
 ## Documentation

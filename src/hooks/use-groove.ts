@@ -5,10 +5,7 @@
 // mirrors the player into render state while Groove is the active source.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Groove,
-  type VariabilityLevel,
-} from "@/lib/groove-engine";
+import { Groove, type VariabilityLevel } from "@/lib/groove-engine";
 import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
@@ -43,7 +40,9 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
       const active = player.source === source && player.isPlaying;
       setIsPlaying(active);
       setCurrentSpeed(active ? player.getState().currentSpeed : 0);
-      setUpcoming(active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT);
+      setUpcoming(
+        active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
+      );
     };
     const unsubscribe = player.subscribe(sync);
     sync();
@@ -77,7 +76,8 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
     (level: VariabilityLevel) => {
       setVariability(level);
       source.setVariability(level);
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
     },
     [player, source],
   );
@@ -85,7 +85,8 @@ export function useGroove(vacuglide: VacuglideDeviceController) {
   const cumming = useCallback(() => {
     try {
       source.beginCumming();
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }

@@ -15,12 +15,12 @@ the tab you're looking at — not only while an algorithm is running.
 - [ ] **Enable on connection, not on run.** All UI controls are disabled while the
       device is disconnected; once connected, the selected tab's controls are usable
       whether or not the algorithm is running.
-      *(Today: the sliders / segmented controls are never disabled, and the Stroke
-      card gates on `isPlaying`.)*
+      _(Today: the sliders / segmented controls are never disabled, and the Stroke
+      card gates on `isPlaying`.)_
 - [ ] **Voice follows the enabled controls.** If a control is enabled, its spoken
       command works — including while idle.
-      *(Today: while idle, a spoken word is only ever treated as an algorithm switch
-      word.)*
+      _(Today: while idle, a spoken word is only ever treated as an algorithm switch
+      word.)_
 - [ ] **Stroke − / Stroke + / Cumming / Finish work while idle** (connected, not
       running). The device layer already supports manual strokes when idle; the UI
       needs to enable them, and Cumming / Finish need to run against the idle player.
@@ -28,7 +28,7 @@ the tab you're looking at — not only while an algorithm is running.
       the active tab's algorithm commands + the globals (`connect` / `start` /
       `stop`, plus the switch words while idle) — so you never respond to another
       tab's words.
-      *(Today: the grammar is the **running** algorithm's commands.)*
+      _(Today: the grammar is the **running** algorithm's commands.)_
 
 ## Nice-to-have (unlocked by the same work)
 

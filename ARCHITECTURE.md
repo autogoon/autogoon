@@ -33,15 +33,15 @@ built ahead, transport (`play`/`pause`, `forward`/`back` = ±1 min, `faster`/
 sparkline draws. It knows nothing about any specific algorithm. There is **one**
 Player, owned by the device hook; it plays whichever algorithm is active.
 
-**An AlgorithmEngine** (`src/lib/*-engine.ts`) is what each algorithm *is* here: a
+**An AlgorithmEngine** (`src/lib/*-engine.ts`) is what each algorithm _is_ here: a
 generation-only object with three methods —
 
-- `generate(fromTime, untilTime, ctx)` — the Player *pulls* this to extend the
+- `generate(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
   timeline (in whole cycles), keeping ~2 minutes ahead, so looping algorithms
   never materialise all at once. Automatic valve pulses (tease, vacuum
   maintenance, the cumming pulse) are emitted here as open/close event pairs, so
   they regenerate with the curve and show on the sparkline.
-- `scale(event, ctx)` — maps a raw speed event to the device value at *send* time.
+- `scale(event, ctx)` — maps a raw speed event to the device value at _send_ time.
   It's called every tick, so a "magnitude" knob stays live with no regeneration.
 - `reset()` — start a fresh session.
 
@@ -50,15 +50,15 @@ clock of its own.
 
 **How a change reaches the device** — two directions:
 
-- *Magnitude* knobs (Goon's intensity, Groove's Speed %) live in `scale()`; the
+- _Magnitude_ knobs (Goon's intensity, Groove's Speed %) live in `scale()`; the
   next tick picks them up.
-- *Shape* changes (Groove's Variability, Autopilot's intensity/edge) and
+- _Shape_ changes (Groove's Variability, Autopilot's intensity/edge) and
   program rewrites (`cumming`, Autopilot's finish) update engine state and then the
   Player `invalidateFuture()`s — it drops the events after the cursor and re-pulls
   `generate`, which reflects the new state. Regeneration only ever rewrites the
   future, never the past.
 
-**Position = the clock.** Goon's 30-minute build is a *position*, and that
+**Position = the clock.** Goon's 30-minute build is a _position_, and that
 position **is** the Player's clock; time dilation is the Player's rate. So
 `forward`/`back`/`finish`/`faster`/`slower` are just the Player moving or
 consuming the clock, and the engine samples its curves at each event's
@@ -73,8 +73,8 @@ when nothing is.
 
 Each device-driving algorithm is split into three layers:
 
-- an **engine** — a plain-TS `AlgorithmEngine` that only *generates* events and
-  *scales* them (`src/lib/autopilot-engine.ts`, `groove-engine.ts`,
+- an **engine** — a plain-TS `AlgorithmEngine` that only _generates_ events and
+  _scales_ them (`src/lib/autopilot-engine.ts`, `groove-engine.ts`,
   `goon-engine.ts`). Engines are self-contained and never import from one another;
   where two algorithms share a shape (Goon reuses Groove's dip), the helpers are
   **duplicated**, not shared — a deliberate boundary so each algorithm stays

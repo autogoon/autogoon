@@ -172,7 +172,8 @@ export class Player {
     // This suppresses duplicate sends AND keeps magnitude knobs live without
     // regeneration (scale() reads the source's current knobs each tick).
     const current = this.currentSpeedEvent();
-    const output = current === null ? 0 : this.source.scale(current, this.context());
+    const output =
+      current === null ? 0 : this.source.scale(current, this.context());
     this.currentSpeed = output;
     if (output !== this.lastDeviceSpeed) {
       await this.device().targetSpeedSet(output);

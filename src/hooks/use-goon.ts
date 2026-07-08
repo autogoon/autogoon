@@ -46,7 +46,9 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
       const state = player.getState();
       setIsPlaying(active);
       setCurrentSpeed(active ? state.currentSpeed : 0);
-      setUpcoming(active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT);
+      setUpcoming(
+        active ? player.upcomingWindow(UPCOMING_WINDOW_MS).speed : FLAT,
+      );
       setPositionMs(active ? Math.min(state.clock, PROGRAM_MS) : 0);
       setTimeScale(active ? state.rate : 1);
     };
@@ -99,7 +101,8 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
   const cumming = useCallback(() => {
     try {
       source.beginCumming();
-      if (player.source === source && player.isPlaying) player.invalidateFuture();
+      if (player.source === source && player.isPlaying)
+        player.invalidateFuture();
     } catch (err) {
       log(`error: ${(err as Error).message}`, "error");
     }
@@ -117,7 +120,16 @@ export function useGoon(vacuglide: VacuglideDeviceController) {
       { word: "slower", run: slower },
       { word: "cumming", run: cumming },
     ],
-    [stroke.keywords, stepIntensity, forward, back, finish, faster, slower, cumming],
+    [
+      stroke.keywords,
+      stepIntensity,
+      forward,
+      back,
+      finish,
+      faster,
+      slower,
+      cumming,
+    ],
   );
 
   return {

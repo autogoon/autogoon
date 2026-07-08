@@ -376,12 +376,18 @@ export class Autopilot implements AlgorithmEngine {
       }
       let t = this.lastSuctionTime + p.interval;
       while (t < batchEnd) {
-        const speedFactor = speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
+        const speedFactor =
+          speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
         const pulseMs = Math.round(
           (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
         );
         events.push({ kind: "valve", at: t, valve: "minus", open: true });
-        events.push({ kind: "valve", at: t + pulseMs, valve: "minus", open: false });
+        events.push({
+          kind: "valve",
+          at: t + pulseMs,
+          valve: "minus",
+          open: false,
+        });
         this.lastSuctionTime = t;
         t += p.interval;
       }

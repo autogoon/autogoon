@@ -78,7 +78,12 @@ export function Sparkline({
         </linearGradient>
       </defs>
       {area !== "" && (
-        <path d={area} fill={`url(#${gradientId})`} opacity={0.15} stroke="none" />
+        <path
+          d={area}
+          fill={`url(#${gradientId})`}
+          opacity={0.15}
+          stroke="none"
+        />
       )}
       <path
         d={line}

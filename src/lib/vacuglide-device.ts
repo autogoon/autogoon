@@ -90,7 +90,10 @@ export class VacuglideDevice {
     const resetSeconds =
       expired || this.windowStart === null
         ? 0
-        : Math.max(0, Math.ceil((this.windowStart + RATE_WINDOW_MS - now) / 1000));
+        : Math.max(
+            0,
+            Math.ceil((this.windowStart + RATE_WINDOW_MS - now) / 1000),
+          );
     return {
       used,
       remaining: Math.max(0, RATE_LIMIT - used),

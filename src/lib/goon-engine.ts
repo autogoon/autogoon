@@ -215,7 +215,12 @@ function buildCummingScript(startAt: number): SpeedEvent[] {
     events.push({ kind: "speed", at, speed, unscaled: true });
     at += CUMMING_STEP_MS;
   }
-  events.push({ kind: "speed", at: at + PARK_HOLD_MS, speed: 0, unscaled: true });
+  events.push({
+    kind: "speed",
+    at: at + PARK_HOLD_MS,
+    speed: 0,
+    unscaled: true,
+  });
   return events;
 }
 
@@ -323,7 +328,11 @@ export class Goon implements AlgorithmEngine {
       // is never regenerated because this parks first).
       if (at >= PROGRAM_MS) {
         events.push({ kind: "speed", at, speed: PEAK_SPEED });
-        events.push({ kind: "speed", at: at + PARK_HOLD_MS, speed: PEAK_SPEED });
+        events.push({
+          kind: "speed",
+          at: at + PARK_HOLD_MS,
+          speed: PEAK_SPEED,
+        });
         parked = true;
         parkAt = at;
         break;
@@ -359,7 +368,12 @@ export class Goon implements AlgorithmEngine {
   // by `at` because the valve pulse interleaves with the ramp.
   private cummingEvents(startAt: number): ProgramEvent[] {
     const events: ProgramEvent[] = [...buildCummingScript(startAt)];
-    events.push({ kind: "valve", at: startAt + 3000, valve: "minus", open: true });
+    events.push({
+      kind: "valve",
+      at: startAt + 3000,
+      valve: "minus",
+      open: true,
+    });
     events.push({
       kind: "valve",
       at: startAt + 12000,

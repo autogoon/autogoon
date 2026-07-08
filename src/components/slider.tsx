@@ -24,7 +24,7 @@ export function Slider({
       step={step}
       value={value}
       onChange={(e) => onChange(e.target.valueAsNumber)}
-      className="accent-blue-600 h-2 w-full cursor-pointer"
+      className="h-2 w-full cursor-pointer accent-blue-600"
     />
   );
 }
