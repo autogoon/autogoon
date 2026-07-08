@@ -91,11 +91,11 @@ export function GoonPanel({
   }, [device, engine, vacuglide]);
 
   const connected = vacuglide.connected;
+  // Ending actions (cumming, and Finish = jump to the end of the build) need a
+  // device. Scrubbing the timeline (±1 min, faster/slower) and the intensity knob
+  // only shape the preview, so they're valid whenever Goon is the current source —
+  // connected or not.
   const canEnd = isCurrent && connected;
-  // Timeline transport moves the Player's clock/rate to drive the device, so it's
-  // only meaningful with a device connected — disabled (and out of the grammar)
-  // otherwise. Intensity (more/less) shapes the preview, so it stays on isCurrent.
-  const canTransport = isCurrent && connected;
 
   const commands: Command[] = [
     ...stroke.keywords,
@@ -112,15 +112,15 @@ export function GoonPanel({
       enabled: isCurrent,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
-    { word: "forward", enabled: canTransport, run: () => device.forward() },
-    { word: "back", enabled: canTransport, run: () => device.back() },
+    { word: "forward", enabled: isCurrent, run: () => device.forward() },
+    { word: "back", enabled: isCurrent, run: () => device.back() },
     {
       word: "finish",
-      enabled: canTransport,
+      enabled: canEnd,
       run: () => device.seekTo(PROGRAM_MS),
     },
-    { word: "faster", enabled: canTransport, run: () => device.faster() },
-    { word: "slower", enabled: canTransport, run: () => device.slower() },
+    { word: "faster", enabled: isCurrent, run: () => device.faster() },
+    { word: "slower", enabled: isCurrent, run: () => device.slower() },
     { word: "cumming", enabled: canEnd, run: cumming },
   ];
   useVoiceCommands(active, commands);
@@ -186,7 +186,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={() => device.back()}
-            disabled={!canTransport}
+            disabled={!isCurrent}
             className={jumpClass}
             badge="back"
           >
@@ -194,7 +194,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={() => device.forward()}
-            disabled={!canTransport}
+            disabled={!isCurrent}
             className={jumpClass}
             badge="forward"
           >
@@ -202,7 +202,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={() => device.seekTo(PROGRAM_MS)}
-            disabled={!canTransport}
+            disabled={!canEnd}
             className={jumpClass}
             badge="finish"
           >
@@ -212,7 +212,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={() => device.slower()}
-            disabled={!canTransport}
+            disabled={!isCurrent}
             className={jumpClass}
             badge="slower"
           >
@@ -220,7 +220,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={() => device.faster()}
-            disabled={!canTransport}
+            disabled={!isCurrent}
             className={jumpClass}
             badge="faster"
           >

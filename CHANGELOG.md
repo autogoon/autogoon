@@ -8,7 +8,7 @@ it landed.
 
 - feature: The timeline preview now shows upcoming stroke and suction pulses, not just speed. ([#2](https://github.com/autogoon/autogoon/pull/2))
 - enhancement: On-screen buttons light up when you say their voice command. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- bug: Goon's timeline controls (Finish, faster/slower, ±1 min) stay disabled until a device is connected. ([#2](https://github.com/autogoon/autogoon/pull/2))
+- bug: Goon's Finish control stays disabled until a device is connected. ([#2](https://github.com/autogoon/autogoon/pull/2))
 - feature: Stop now pauses and holds your place — Start picks up where you left off. ([#1](https://github.com/autogoon/autogoon/pull/1))
 - feature: New Reset command (button or voice) to clear back to a fresh session. ([#1](https://github.com/autogoon/autogoon/pull/1))
 - feature: The program previews live before you press Start, so you can adjust it first. ([#1](https://github.com/autogoon/autogoon/pull/1))
