@@ -33,12 +33,14 @@ export function GoonPanel({
   kws,
   onStart,
   onStop,
+  onReset,
 }: {
   vacuglide: VacuglideDeviceController;
   goon: GoonController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
+  onReset: () => void;
 }) {
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
@@ -57,10 +59,11 @@ export function GoonPanel({
       <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
 
       <RunButton
-        running={goon.isPlaying}
+        state={goon.state}
         connected={vacuglide.connected}
         onStart={onStart}
         onStop={onStop}
+        onReset={onReset}
         className="bg-gradient-to-br from-fuchsia-600 to-rose-500"
       />
 
@@ -73,7 +76,8 @@ export function GoonPanel({
       </Card>
 
       <StrokeCard
-        disabled={!goon.isPlaying}
+        strokeDisabled={!goon.canStroke}
+        actionDisabled={!goon.canEnd}
         strokePulsing={goon.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
@@ -97,7 +101,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={goon.back}
-            disabled={!goon.isPlaying}
+            disabled={!goon.isCurrent}
             className={jumpClass}
             badge="back"
           >
@@ -105,7 +109,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={goon.forward}
-            disabled={!goon.isPlaying}
+            disabled={!goon.isCurrent}
             className={jumpClass}
             badge="forward"
           >
@@ -113,7 +117,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={goon.finish}
-            disabled={!goon.isPlaying}
+            disabled={!goon.isCurrent}
             className={jumpClass}
             badge="finish"
           >
@@ -123,7 +127,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={goon.slower}
-            disabled={!goon.isPlaying}
+            disabled={!goon.isCurrent}
             className={jumpClass}
             badge="slower"
           >
@@ -131,7 +135,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={goon.faster}
-            disabled={!goon.isPlaying}
+            disabled={!goon.isCurrent}
             className={jumpClass}
             badge="faster"
           >
