@@ -15,12 +15,14 @@ import type { CurvePoint, ValveMarker } from "@/lib/program";
 // stroke stays crisp via vector-effect and the gradient is vertical so the
 // horizontal stretch doesn't distort the colour mapping.
 const VIEW_W = 100;
-const VIEW_H = 100;
-
-// Valve markers sit in a thin lane along the bottom of the viewBox: stroke − in
-// red, stroke + in green. Heights are viewBox units (the SVG is 100 tall stretched
-// to h-16 ≈ 64px, so ~0.64px per unit). Prototype values — tweak freely.
-const VALVE_LANE_H = 6;
+// The speed graph fills SPEED_H; the valve lane sits in its own strip BELOW it,
+// with a blank gap so the two never touch, and VIEW_H is taller to make room.
+// Units are viewBox units; at the rendered height (~0.64px/unit) the gap is ~1px
+// and the lane ~2px. stroke − is red, stroke + green.
+const SPEED_H = 100;
+const VALVE_GAP = 2;
+const VALVE_LANE_H = 3;
+const VIEW_H = SPEED_H + VALVE_GAP + VALVE_LANE_H;
 const VALVE_MIN_W = 0.6; // keep very short pulses visible after horizontal squash
 const VALVE_COLOUR = { minus: "#ef4444", plus: "#22c55e" } as const;
 
@@ -39,7 +41,7 @@ export function Sparkline({
   const domainT = points[points.length - 1]?.t || 1;
   const x = (t: number) => (t / domainT) * VIEW_W;
   const y = (speed: number) =>
-    VIEW_H - (Math.max(0, Math.min(max, speed)) / max) * VIEW_H;
+    SPEED_H - (Math.max(0, Math.min(max, speed)) / max) * SPEED_H;
 
   // Pair each valve's open → close into a drawable span. A dangling open (close
   // is beyond the window) runs to the window end; a close with no open in-window
@@ -78,26 +80,26 @@ export function Sparkline({
   const first = points[0];
   const area =
     last !== undefined && first !== undefined
-      ? `${line} L ${x(last.t)} ${VIEW_H} L ${x(first.t)} ${VIEW_H} Z`
+      ? `${line} L ${x(last.t)} ${SPEED_H} L ${x(first.t)} ${SPEED_H} Z`
       : "";
 
   return (
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="none"
-      className={`h-16 w-full ${className ?? ""}`}
+      className={`h-[67px] w-full ${className ?? ""}`}
       aria-hidden="true"
     >
       <defs>
         {/* userSpaceOnUse so the stops map to the absolute speed axis (y=0 is
-            max/red, y=VIEW_H is 0/green), not the path's bounding box. */}
+            max/red, y=SPEED_H is 0/green), not the path's bounding box. */}
         <linearGradient
           id={gradientId}
           gradientUnits="userSpaceOnUse"
           x1="0"
           y1="0"
           x2="0"
-          y2={VIEW_H}
+          y2={SPEED_H}
         >
           <stop offset="0%" stopColor="#ef4444" />
           <stop offset="50%" stopColor="#eab308" />
