@@ -50,7 +50,7 @@ const TEASE_PULSE_MS = 100;
 const CUMMING_START_SPEED = 30;
 const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
-const CUMMING_STEP_MS = 500;
+const CUMMING_STEP_MS = 400;
 
 // Past PROGRAM_MS the build is over and Goon holds at top speed. Emit that hold
 // one minute at a time (extended by the normal lookahead) rather than as a single
@@ -70,31 +70,50 @@ const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 const roundToStep = (v: number): number =>
   Math.round(v / STEP_SIZE) * STEP_SIZE;
 
+// The curves that define the build, each sampled at a program position. These are
+// the automatic stand-ins for Groove's two manual knobs.
+
+// Program position as a 0..1 fraction (clamped, so anything past the end reads 1).
 function progress(positionMs: number): number {
   return clamp01(positionMs / PROGRAM_MS);
 }
 
+// The auto "speed" knob: eased BUILD_START -> BUILD_PEAK across the program.
 function buildSpeedPercent(positionMs: number): number {
   const eased = Math.pow(progress(positionMs), BUILD_EXP);
   return lerp(BUILD_START, BUILD_PEAK, eased);
 }
 
+// The auto "variability" knob has two parts. The floor is how deep each dip goes:
+// it rises from a deep 50 (a big 100->50 tease) to 100 (no dip) by the end.
 function variabilityFloor(positionMs: number): number {
   return roundToStep(
     lerp(VAR_FLOOR_DEEP, VAR_FLOOR_SHALLOW, progress(positionMs)),
   );
 }
 
+// ...and the jitter is how much random stretch the dip timing gets: high early,
+// fading to 0 so the finish is steady rather than ragged.
 function variabilityJitter(positionMs: number): number {
   return lerp(VAR_JITTER_HIGH, 0, progress(positionMs));
 }
 
+// Map a raw dip speed (0..100 pattern space) to a device speed under the current
+// build speedPercent. Not a flat multiply: the exponent grows as speedPercent
+// falls, curving the low end down toward 0, so even slow early settings still dip
+// over a wide range with long legs rather than a narrow band near the top.
 function scaleSpeed(raw: number, speedPercent: number): number {
   if (speedPercent <= 0) return 0;
   const exponent = 1 + LOW_END_GAMMA * (1 - speedPercent / 100);
   return Math.round(speedPercent * Math.pow(raw / PEAK_SPEED, exponent));
 }
 
+// One ramp of a dip: step the speed from `from` to `to` in STEP_SIZE increments,
+// one step every ~STEP_MS. The step timing gets a single random stretch/squeeze
+// (jitter) for the whole leg so dips never feel metronomic — the size of that
+// jitter grows with variabilityPercent, and slowing down (a downward leg) is
+// capped tighter than speeding up (SLOW_JITTER_CAP). Returns the waypoints plus
+// the time the leg ends, so successive legs and cycles chain back to back.
 function buildLeg(
   from: number,
   to: number,
@@ -122,6 +141,12 @@ function buildLeg(
   return { waypoints, endAt: at };
 }
 
+// One full dip cycle at this program position. Sample the build speed and the
+// variability (floor + jitter) here, then build the raw Groove dip PEAK -> floor
+// -> PEAK as two legs, mapping every waypoint through scaleSpeed so the whole dip
+// sits under the current build speed. Early on this is a deep, slow, wide swing;
+// near the end it flattens toward a hold at the top. Sampling at positionMs (the
+// live clock) is what keeps the ramp correct after a forward/back jump.
 function buildGoonCycle(
   positionMs: number,
   startAt: number,
@@ -145,6 +170,12 @@ function buildGoonCycle(
   return { waypoints, endAt: at };
 }
 
+// The `cumming` send-off: a slow, deliberate glide down to a standstill. Ramp
+// from CUMMING_START_SPEED in two phases — gentle -1.5 steps down to the mid
+// speed, then -1 steps to the end speed — one step every CUMMING_STEP_MS, so the
+// strokes visibly shorten as it winds down. A final speed-0 event parked far in
+// the future (PARK_HOLD_MS) leaves the device at rest. Every event is `unscaled`
+// so the intensity ceiling can't shrink the wind-down out from under itself.
 function buildCummingScript(startAt: number): SpeedEvent[] {
   const events: SpeedEvent[] = [];
   let at = startAt;
@@ -169,6 +200,14 @@ function buildCummingScript(startAt: number): SpeedEvent[] {
   return events;
 }
 
+// The automatic tease overlay: valve pulses laid across [from, until) in two
+// phases. It walks fixed time grids rather than keeping state, so it's a pure
+// function of the window and can be re-derived for any span (see generateValves):
+//   - stroke-minus pulses every minute, only before STROKE_PLUS_START_MS (10 min);
+//   - stroke-plus pulses every 5 min after that, suppressed in the final segment
+//     (the last TEASE_INTERVAL_MS) so nothing interrupts the approach.
+// Each pulse is an open event plus a later close. Grid positions before `from` are
+// skipped so adjacent windows don't emit the same pulse twice.
 function teaseEvents(from: number, until: number): ValveEvent[] {
   const events: ValveEvent[] = [];
 
@@ -228,6 +267,10 @@ export class GoonEngine implements AlgorithmEngine {
     this.cummingEmitted = false;
   }
 
+  // The speed backbone, filling [fromTime, untilTime) in whole cycles. Three
+  // cases: once cumming, emit the wind-down script once and then park ([]); past
+  // the end of the build, hold at the top a step at a time; otherwise tile dip
+  // cycles, each sampling the curves at its own start so the build keeps ramping.
   generateSpeed(
     fromTime: number,
     untilTime: number,
