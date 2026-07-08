@@ -1,5 +1,5 @@
 // Goon as an AlgorithmEngine — an automatic, timeline-driven slow build. It IS
-// the manual Homegrown dip pattern with its two knobs driven automatically over a
+// the manual Groove dip pattern with its two knobs driven automatically over a
 // "program position" that runs 0 -> 30 min, translated onto the shared Player's
 // event model. The Player owns the clock, rate (time dilation), lookahead, sends
 // and valve timing; this only *generates* events and *scales* them.
@@ -11,10 +11,10 @@
 // ramp smooth and correct even after a jump — forward/back/finish/faster/slower are
 // all just the Player moving/consuming the clock, with no engine-side transport.
 //
-//   - the dip is always the raw pattern 100 -> floor -> 100 (Homegrown's shape),
-//     mapped to the device through Homegrown's curved-low-end scaleSpeed. Depth
+//   - the dip is always the raw pattern 100 -> floor -> 100 (Groove's shape),
+//     mapped to the device through Groove's curved-low-end scaleSpeed. Depth
 //     lives in RAW units, so it is wide and the legs are long early on.
-//   - the auto SPEED (Homegrown's speedPercent) eases up from 25 -> 100 over the
+//   - the auto SPEED (Groove's speedPercent) eases up from 25 -> 100 over the
 //     30 minutes — this is the "build".
 //   - the auto VARIABILITY decreases: the raw dip floor rises 50 -> 100 (deep
 //     teasing dips -> no dip) and the timing jitter falls 80 -> 0, so it starts
@@ -27,7 +27,7 @@
 // scaled output — so "build to 50%" just means intensity 50; scale() applies it
 // every tick so a knob change takes effect on the next tick without regeneration.
 // Auto teasing is emitted as open/close valve pulse PAIRS placed deterministically
-// at their program positions. cumming() is Homegrown's wind-down, duplicated so
+// at their program positions. cumming() is Groove's wind-down, duplicated so
 // this engine stays self-contained; the hook invalidates the future after it.
 
 import {
@@ -43,7 +43,7 @@ import {
 // uses it for the position readout and for "finish" (seekTo the end).
 export const PROGRAM_MS = 30 * 60_000;
 
-// The auto "build" — Homegrown's speedPercent — eases from BUILD_START to
+// The auto "build" — Groove's speedPercent — eases from BUILD_START to
 // BUILD_PEAK across the program. BUILD_EXP > 1 makes it ease-IN: a patient start
 // that accelerates toward the finish (1 would be a straight line). BUILD_START is
 // 25 (not 0) so the very start still swings up to ~25% at full intensity.
@@ -51,20 +51,20 @@ const BUILD_START = 25;
 const BUILD_PEAK = 100;
 const BUILD_EXP = 1.3;
 
-// Variability endpoints, in RAW units like Homegrown. At position 0 the dip floor
+// Variability endpoints, in RAW units like Groove. At position 0 the dip floor
 // is VAR_FLOOR_DEEP (a deep 100->50 dip) with VAR_JITTER_HIGH timing randomisation;
 // both interpolate linearly to "no dip (floor 100), no jitter" at the end.
 const VAR_FLOOR_DEEP = 50;
 const VAR_FLOOR_SHALLOW = 100;
 const VAR_JITTER_HIGH = 80;
 
-// Shared dip mechanics (same values as Homegrown, duplicated to stay standalone).
+// Shared dip mechanics (same values as Groove, duplicated to stay standalone).
 const STEP_MS = 1250;
 const STEP_SIZE = 5;
 const SLOW_JITTER_CAP = 40;
 const PEAK_SPEED = 100;
 
-// scaleSpeed's low-end curve (Homegrown's LOW_END_GAMMA): the exponent grows as
+// scaleSpeed's low-end curve (Groove's LOW_END_GAMMA): the exponent grows as
 // the speed falls, pulling the dip's low point toward 0 so slow settings still
 // get a wide range instead of a narrow band near the top. 0 would be flat linear.
 const LOW_END_GAMMA = 2.5;
@@ -91,7 +91,7 @@ const PARK_HOLD_MS = 1_800_000;
 
 // The helpers below are deliberately module-level functions, not private methods
 // of the class: they are pure, stateless transforms, kept file-private (never
-// exported). Matching the sibling engines (see homegrown-engine.ts), keeping them
+// exported). Matching the sibling engines (see groove-engine.ts), keeping them
 // as functions avoids handing stateless code a `this` it does not use.
 
 interface Waypoint {
@@ -109,13 +109,13 @@ function progress(positionMs: number): number {
   return clamp01(positionMs / PROGRAM_MS);
 }
 
-// The auto build (Homegrown's speedPercent) at a position — eased 25 -> 100.
+// The auto build (Groove's speedPercent) at a position — eased 25 -> 100.
 function buildSpeedPercent(positionMs: number): number {
   const eased = Math.pow(progress(positionMs), BUILD_EXP);
   return lerp(BUILD_START, BUILD_PEAK, eased);
 }
 
-// The raw dip floor (Homegrown's variability floor) at a position: VAR_FLOOR_DEEP
+// The raw dip floor (Groove's variability floor) at a position: VAR_FLOOR_DEEP
 // -> VAR_FLOOR_SHALLOW, snapped to a whole STEP_SIZE so the 100->floor legs divide
 // into whole steps. At the end floor === 100, so the dip collapses to a hold.
 function variabilityFloor(positionMs: number): number {
@@ -129,7 +129,7 @@ function variabilityJitter(positionMs: number): number {
   return lerp(VAR_JITTER_HIGH, 0, progress(positionMs));
 }
 
-// Homegrown's scaleSpeed, verbatim: map a raw pattern speed (floor..100) to the
+// Groove's scaleSpeed, verbatim: map a raw pattern speed (floor..100) to the
 // pre-intensity device value. The peak (raw 100) scales linearly to speedPercent;
 // lower raw speeds are pulled toward 0 harder as the speed falls, via an exponent
 // that grows from 1 (at full speed) upward as speedPercent drops.
@@ -168,7 +168,7 @@ function buildLeg(
   return { waypoints, endAt: at };
 }
 
-// One dip cycle: the raw Homegrown pattern PEAK_SPEED -> floor -> PEAK_SPEED
+// One dip cycle: the raw Groove pattern PEAK_SPEED -> floor -> PEAK_SPEED
 // (floor and jitter sampled from the variability curves at `positionMs`), with
 // every raw waypoint mapped through scaleSpeed at this position's build level. The
 // stored speeds are therefore the pre-intensity device values (scale() applies
@@ -294,7 +294,7 @@ export class Goon implements AlgorithmEngine {
     this.intensity = Math.max(0, Math.min(100, percent));
   }
 
-  // Homegrown's wind-down. The hook calls invalidateFuture() after this while
+  // Groove's wind-down. The hook calls invalidateFuture() after this while
   // playing, so generate() emits the ramp + stroke-minus pulse once.
   beginCumming(): void {
     this.cumming = true;
@@ -354,7 +354,7 @@ export class Goon implements AlgorithmEngine {
       : Math.round((event.speed * this.intensity) / 100);
   }
 
-  // Homegrown's wind-down, duplicated: unscaled ramp 30 -> ... -> 5, park at 0 far
+  // Groove's wind-down, duplicated: unscaled ramp 30 -> ... -> 5, park at 0 far
   // in the future, plus a stroke-minus pulse from +3s to +12s (a 9s pulse). Sorted
   // by `at` because the valve pulse interleaves with the ramp.
   private cummingEvents(startAt: number): ProgramEvent[] {

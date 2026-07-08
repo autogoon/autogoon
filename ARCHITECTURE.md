@@ -1,6 +1,6 @@
 # Architecture
 
-A single-page app with a sticky header bar and four tabs (Goon, Homegrown,
+A single-page app with a sticky header bar and four tabs (Goon, Groove,
 Autopilot, Settings). `src/app/page.tsx` owns the layout and mounts every
 controller hook at the top of the tree, so the keyword spotter and all the
 algorithms keep running regardless of which tab is visible — hidden tabs stay
@@ -50,9 +50,9 @@ clock of its own.
 
 **How a change reaches the device** — two directions:
 
-- *Magnitude* knobs (Goon's intensity, Homegrown's Speed %) live in `scale()`; the
+- *Magnitude* knobs (Goon's intensity, Groove's Speed %) live in `scale()`; the
   next tick picks them up.
-- *Shape* changes (Homegrown's Variability, Autopilot's intensity/edge) and
+- *Shape* changes (Groove's Variability, Autopilot's intensity/edge) and
   program rewrites (`cumming`, Autopilot's finish) update engine state and then the
   Player `invalidateFuture()`s — it drops the events after the cursor and re-pulls
   `generate`, which reflects the new state. Regeneration only ever rewrites the
@@ -74,9 +74,9 @@ when nothing is.
 Each device-driving algorithm is split into three layers:
 
 - an **engine** — a plain-TS `AlgorithmEngine` that only *generates* events and
-  *scales* them (`src/lib/autopilot-engine.ts`, `homegrown-engine.ts`,
+  *scales* them (`src/lib/autopilot-engine.ts`, `groove-engine.ts`,
   `goon-engine.ts`). Engines are self-contained and never import from one another;
-  where two algorithms share a shape (Goon reuses Homegrown's dip), the helpers are
+  where two algorithms share a shape (Goon reuses Groove's dip), the helpers are
   **duplicated**, not shared — a deliberate boundary so each algorithm stays
   standalone.
 - a **hook** — a React wrapper (`src/hooks/use-*.ts`) that mirrors the shared
@@ -161,6 +161,6 @@ Each algorithm carries a `switchWord` — the spoken word that selects it while
 idle, kept separate from `label` because a label could be display text that isn't
 a single in-vocabulary word (e.g. "Gooning" or "Vacuglide" wouldn't be
 recognized). Today every switch word is just the lowercased label (`goon`,
-`autopilot`, `homegrown`), but the split lets a future algorithm name something
+`autopilot`, `groove`), but the split lets a future algorithm name something
 unspeakable while still exposing a recognizable switch word. Selecting an algorithm
 points voice `start` at it and brings its tab into view.

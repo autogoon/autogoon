@@ -1,7 +1,7 @@
 # The Goon algorithm
 
 An automatic, timeline-driven counterpart to the
-[Homegrown](./ALGORITHM-HOMEGROWN.md) algorithm. Where Homegrown hands you Speed
+[Groove](./ALGORITHM-GROOVE.md) algorithm. Where Groove hands you Speed
 and Variability as manual knobs, Goon drives them for you over a fixed
 **30-minute program**: a slow build that starts gentle and teasing and finishes as
 a steady hold at the top. It models a long, unhurried arousal ramp to a controlled
@@ -9,9 +9,9 @@ climax — a "gooning" session, not deny-and-repeat edging.
 
 ## The build
 
-It **is** the Homegrown dip pattern with its two knobs driven automatically. The
-dip is always Homegrown's raw pattern **100 → floor → 100**, mapped to the device
-through Homegrown's curved low end. A **position** runs from 0 to 30 minutes, and
+It **is** the Groove dip pattern with its two knobs driven automatically. The
+dip is always Groove's raw pattern **100 → floor → 100**, mapped to the device
+through Groove's curved low end. A **position** runs from 0 to 30 minutes, and
 the two curves are sampled at that position:
 
 - **Speed** eases from **25 → 100** across the 30 minutes — a patient start that

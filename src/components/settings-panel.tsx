@@ -38,7 +38,7 @@ export function SettingsPanel({
                 30-minute slow build.
               </li>
               <li>
-                <span className="text-foreground">Homegrown</span> — a manual
+                <span className="text-foreground">Groove</span> — a manual
                 pattern you shape live.
               </li>
               <li>
@@ -49,7 +49,7 @@ export function SettingsPanel({
             <p>
               Tap its tab — or, while stopped, say{" "}
               <span className="text-foreground">goon</span>,{" "}
-              <span className="text-foreground">homegrown</span>, or{" "}
+              <span className="text-foreground">groove</span>, or{" "}
               <span className="text-foreground">autopilot</span> — to switch; once
               a session is running, switching is locked until you stop.
             </p>

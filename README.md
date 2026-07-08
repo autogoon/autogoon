@@ -19,7 +19,7 @@ install; just open it, enter your device token, and go.
 - **Three movement modes**, each steered live by voice:
   - **Goon** — an automatic 30-minute slow build, with an intensity dial and
     faster/slower time-stretch.
-  - **Homegrown** — a manual stroke pattern you shape live (speed + variability).
+  - **Groove** — a manual stroke pattern you shape live (speed + variability).
   - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
@@ -41,7 +41,7 @@ status, and a **Stop** button while an algorithm runs — and four tabs, one per
 algorithm plus settings:
 
 1. **Goon** (the default tab) — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md).
-2. **Homegrown** — see [ALGORITHM-HOMEGROWN.md](./ALGORITHM-HOMEGROWN.md).
+2. **Groove** — see [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md).
 3. **Autopilot** — a faithful recreation of Autoblow's own autopilot; see
    [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md).
 4. **Settings** — an intro to the app, device token entry, and appearance (theme).
@@ -82,6 +82,6 @@ throttle background or screen-locked tabs, which stops both.
   program/player model, the engine/hook/panel split, the shared device layer and
   algorithm runner, the keyword spotter, and the Vacuglide HTTP API.
 - [ALGORITHM-GOON.md](./ALGORITHM-GOON.md) — the automatic slow-build algorithm.
-- [ALGORITHM-HOMEGROWN.md](./ALGORITHM-HOMEGROWN.md) — the hand-built dip algorithm.
+- [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md) — the hand-built dip algorithm.
 - [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md) — the reverse-engineered
   autopilot algorithm (mystery script, intensity, edge control, suction).

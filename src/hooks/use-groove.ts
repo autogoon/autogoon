@@ -1,14 +1,14 @@
 "use client";
 
-// The Homegrown algorithm as a React hook. It no longer owns a play loop —
-// it drives the shared Player (in the device hook) with a Homegrown, and
-// mirrors the player into render state while Homegrown is the active source.
+// The Groove algorithm as a React hook. It no longer owns a play loop —
+// it drives the shared Player (in the device hook) with a Groove, and
+// mirrors the player into render state while Groove is the active source.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Homegrown,
+  Groove,
   type VariabilityLevel,
-} from "@/lib/homegrown-engine";
+} from "@/lib/groove-engine";
 import { UPCOMING_WINDOW_MS, type CurvePoint } from "@/components/sparkline";
 import type { KeywordAction } from "@/hooks/use-algorithm-runner";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
@@ -19,7 +19,7 @@ const FLAT: CurvePoint[] = [
   { t: UPCOMING_WINDOW_MS, speed: 0 },
 ];
 
-export function useHomegrown(vacuglide: VacuglideDeviceController) {
+export function useGroove(vacuglide: VacuglideDeviceController) {
   const { player, log } = vacuglide;
   const stroke = useStrokeControls(vacuglide);
 
@@ -29,14 +29,14 @@ export function useHomegrown(vacuglide: VacuglideDeviceController) {
   const [speedPercent, setSpeedPercent] = useState(10);
   const [variability, setVariability] = useState<VariabilityLevel>("low");
 
-  const sourceRef = useRef<Homegrown | null>(null);
-  sourceRef.current ??= new Homegrown({
+  const sourceRef = useRef<Groove | null>(null);
+  sourceRef.current ??= new Groove({
     speedPercent: 10,
     variability: "low",
   });
   const source = sourceRef.current;
 
-  // Mirror the player into render state, but only while Homegrown is the active
+  // Mirror the player into render state, but only while Groove is the active
   // source (the shared player may be idle or, later, running another algorithm).
   useEffect(() => {
     const sync = () => {
@@ -121,4 +121,4 @@ export function useHomegrown(vacuglide: VacuglideDeviceController) {
   };
 }
 
-export type HomegrownController = ReturnType<typeof useHomegrown>;
+export type GrooveController = ReturnType<typeof useGroove>;

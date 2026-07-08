@@ -44,7 +44,7 @@ depends on the phase:
   algorithm's feel is left intact — and they'd *improve* it: Autopilot's only
   ending today is **Finish**, which just holds full speed until you stop it
   (torture-until-stop, not much of a finish). Real cumming endings are a clear
-  upgrade. Autopilot has no `cumming` command yet — Goon and Homegrown do — so it
+  upgrade. Autopilot has no `cumming` command yet — Goon and Groove do — so it
   would need one adding.
 - **Mid-play** (edge) — a **departure** from the Vacuglide recreation: it
   interrupts the drive itself and changes the authentic feel. More questionable;
@@ -69,7 +69,7 @@ depends on the phase:
 
 ### End-play — the moment you cum
 
-Saying **"cumming"** is where the ending gets chosen and spliced in. Homegrown and
+Saying **"cumming"** is where the ending gets chosen and spliced in. Groove and
 Goon already have the seam — `beginCumming()` + `player.invalidateFuture()` drops
 the future and splices a new tail — they just hardcode a single ending today (the
 slow wind-down). The idea is to give "cumming" a choice of endings, picked one at

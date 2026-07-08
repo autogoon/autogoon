@@ -1,6 +1,6 @@
-# The Homegrown algorithm
+# The Groove algorithm
 
-A fresh, home-grown alternative to the [Autopilot](./ALGORITHM-AUTOPILOT.md).
+A fresh alternative to the [Autopilot](./ALGORITHM-AUTOPILOT.md).
 Where the autopilot faithfully recreates the original app, this one is ours to
 design from scratch — and it's the most hands-on: a single repeating **dip** you
 shape live while it runs.

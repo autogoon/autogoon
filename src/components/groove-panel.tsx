@@ -1,10 +1,10 @@
 "use client";
 
-// Homegrown algorithm panel — presentation only. The algorithm runs in
-// useHomegrown at the top of the tree so it keeps going while this panel is
+// Groove algorithm panel — presentation only. The algorithm runs in
+// useGroove at the top of the tree so it keeps going while this panel is
 // hidden behind another tab. Mostly boilerplate for now.
 
-import type { HomegrownController } from "@/hooks/use-homegrown";
+import type { GrooveController } from "@/hooks/use-groove";
 import type { KeywordSpotterController } from "@/hooks/use-keyword-spotter";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useCallback } from "react";
@@ -18,15 +18,15 @@ import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 
-export function HomegrownPanel({
+export function GroovePanel({
   vacuglide,
-  homegrown,
+  groove,
   kws,
   onStart,
   onStop,
 }: {
   vacuglide: VacuglideDeviceController;
-  homegrown: HomegrownController;
+  groove: GrooveController;
   kws: KeywordSpotterController;
   onStart: () => void;
   onStop: () => void;
@@ -41,7 +41,7 @@ export function HomegrownPanel({
       <ListeningFor words={kws.listeningFor} flashing={kws.flashing} />
 
       <RunButton
-        running={homegrown.isPlaying}
+        running={groove.isPlaying}
         connected={vacuglide.connected}
         onStart={onStart}
         onStop={onStop}
@@ -49,7 +49,7 @@ export function HomegrownPanel({
       />
 
       <Card>
-        <Sparkline points={homegrown.upcoming} />
+        <Sparkline points={groove.upcoming} />
         <div className="text-muted-foreground flex justify-between text-xs">
           <span>now</span>
           <span>+60s</span>
@@ -57,25 +57,25 @@ export function HomegrownPanel({
       </Card>
 
       <StrokeCard
-        disabled={homegrown.isPlaying === false}
-        strokePulsing={homegrown.strokePulsing}
+        disabled={groove.isPlaying === false}
+        strokePulsing={groove.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onCumming={homegrown.cumming}
+        onCumming={groove.cumming}
       />
 
       <Card title="Speed">
         <div className="text-muted-foreground flex justify-between text-sm">
           <span>Scale</span>
-          <span className="tabular-nums">{homegrown.speedPercent}%</span>
+          <span className="tabular-nums">{groove.speedPercent}%</span>
         </div>
         <Slider
-          value={homegrown.speedPercent}
+          value={groove.speedPercent}
           min={0}
           max={100}
           step={5}
-          onChange={homegrown.changeSpeedPercent}
+          onChange={groove.changeSpeedPercent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>slower</code> / <code>faster</code> to step down or up.
@@ -90,8 +90,8 @@ export function HomegrownPanel({
             { value: "medium", label: "Medium", badge: "medium" },
             { value: "high", label: "High", badge: "high" },
           ]}
-          value={homegrown.variability}
-          onChange={homegrown.changeVariability}
+          value={groove.variability}
+          onChange={groove.changeVariability}
           activeClass="bg-purple-600 text-white"
         />
       </Card>

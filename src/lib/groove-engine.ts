@@ -1,5 +1,5 @@
-// Homegrown as an AlgorithmEngine — the dip pattern (this file formerly held the
-// Homegrown *engine*), translated onto the shared Player's event model. The Player
+// Groove as an AlgorithmEngine — the dip pattern (this file formerly held the
+// Groove *engine*), translated onto the shared Player's event model. The Player
 // owns the clock, lookahead, sends and cumming valve timing; this only *generates*
 // events and *scales* them. Generation helpers are private to this file — algorithms
 // do not share generation code.
@@ -133,19 +133,19 @@ function scaleSpeed(raw: number, speedPercent: number): number {
   return Math.round(speedPercent * Math.pow(raw / PEAK_SPEED, exponent));
 }
 
-export interface HomegrownOptions {
+export interface GrooveOptions {
   speedPercent: number;
   variability: VariabilityLevel;
 }
 
-export class Homegrown implements AlgorithmEngine {
+export class Groove implements AlgorithmEngine {
   private speedPercent: number;
   private variabilityLevel: VariabilityLevel;
   private pendingRecovery = false;
   private cumming = false;
   private cummingEmitted = false;
 
-  constructor(opts: HomegrownOptions) {
+  constructor(opts: GrooveOptions) {
     this.speedPercent = opts.speedPercent;
     this.variabilityLevel = opts.variability;
   }
@@ -216,7 +216,7 @@ export class Homegrown implements AlgorithmEngine {
     return scaleSpeed(event.speed, this.speedPercent);
   }
 
-  // Homegrown's wind-down: unscaled ramp 30 -> ... -> 5, park at 0 far in the
+  // Groove's wind-down: unscaled ramp 30 -> ... -> 5, park at 0 far in the
   // future, plus a stroke-minus pulse from +3s to +12s (a 9s pulse). Sorted by
   // `at` because the valve pulse interleaves with the ramp.
   private cummingEvents(startAt: number): ProgramEvent[] {

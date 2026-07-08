@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/autopilot-panel";
 import { HeaderBar } from "@/components/header-bar";
-import { HomegrownPanel } from "@/components/homegrown-panel";
+import { GroovePanel } from "@/components/groove-panel";
 import { GoonPanel } from "@/components/goon-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import {
@@ -16,7 +16,7 @@ import {
   type Algorithm,
 } from "@/hooks/use-algorithm-runner";
 import { useAutopilot } from "@/hooks/use-autopilot";
-import { useHomegrown } from "@/hooks/use-homegrown";
+import { useGroove } from "@/hooks/use-groove";
 import { useGoon } from "@/hooks/use-goon";
 import { useKeywordSpotter } from "@/hooks/use-keyword-spotter";
 import {
@@ -26,7 +26,7 @@ import {
 
 const TABS = [
   { id: "goon", label: "Goon", align: "left" },
-  { id: "homegrown", label: "Homegrown", align: "left" },
+  { id: "groove", label: "Groove", align: "left" },
   { id: "autopilot", label: "Autopilot", align: "left" },
   { id: "settings", label: "Settings", align: "right" },
 ] as const;
@@ -36,7 +36,7 @@ type TabId = (typeof TABS)[number]["id"];
 export default function Home() {
   const vacuglide = useVacuglideDevice();
   const autopilot = useAutopilot(vacuglide);
-  const homegrown = useHomegrown(vacuglide);
+  const groove = useGroove(vacuglide);
   const goon = useGoon(vacuglide);
   const [tab, setTab] = useState<TabId>("goon");
 
@@ -71,14 +71,14 @@ export default function Home() {
       keywords: autopilot.keywords,
     },
     {
-      id: "homegrown",
-      label: "Homegrown",
-      switchWord: "homegrown",
-      isPlaying: homegrown.isPlaying,
-      currentSpeed: homegrown.currentSpeed,
-      start: homegrown.start,
-      stop: homegrown.stop,
-      keywords: homegrown.keywords,
+      id: "groove",
+      label: "Groove",
+      switchWord: "groove",
+      isPlaying: groove.isPlaying,
+      currentSpeed: groove.currentSpeed,
+      start: groove.start,
+      stop: groove.stop,
+      keywords: groove.keywords,
     },
   ];
   const runner = useAlgorithmRunner(vacuglide, algorithms, (id) =>
@@ -151,12 +151,12 @@ export default function Home() {
               onStop={runner.stop}
             />
           </div>
-          <div className={tab === "homegrown" ? undefined : "hidden"}>
-            <HomegrownPanel
+          <div className={tab === "groove" ? undefined : "hidden"}>
+            <GroovePanel
               vacuglide={vacuglide}
-              homegrown={homegrown}
+              groove={groove}
               kws={kws}
-              onStart={() => void runner.run("homegrown")}
+              onStart={() => void runner.run("groove")}
               onStop={runner.stop}
             />
           </div>
