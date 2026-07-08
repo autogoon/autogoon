@@ -66,16 +66,17 @@ _manual-knob_ mode, `groove-engine.ts` + `groove-panel.tsx` are the leaner model
    active source by reference, so never re-create it), `isCurrent`/`state` derived
    from the Player view, an effect that arms the preview when the tab becomes
    active, `start`/`stop`/`reset`, a `Command[]` handed to `useVoiceCommands`, and
-   the shared `ListeningFor` / `RunButton` / `Sparkline` / `StrokeCard` / `LogCard`
-   scaffolding. What's algorithm-specific is your knob cards and their commands.
-   Two details worth copying deliberately: **reset is two layers** — your `reset`
-   restores the knobs' React state and their engine defaults and then re-arms (the
-   Player rebuilds the program from the start and calls `engine.reset()` to clear
-   transient state like a pending `cumming`); and **`StrokeCard` currently bakes in
-   the finish-like button** — Autopilot's **Finish** (a _pre_-ending: jump/hold at
-   the climax point) via `onFinish`, and Goon/Groove's **Cumming** (the actual
-   send-off) via `onCumming` — while Goon renders its own Finish directly in the
-   Timeline card instead. Reuse a prop or render your own button.
+   the shared `ListeningFor` / `SessionControls` / `Sparkline` / `StrokeCard` /
+   `LogCard` scaffolding. What's algorithm-specific is your knob cards and their
+   commands. Two details worth copying deliberately: **reset is two layers** — your
+   `reset` restores the knobs' React state and their engine defaults and then
+   re-arms (the Player rebuilds the program from the start and calls `engine.reset()`
+   to clear transient state like a pending `cumming`); and **the ending buttons
+   belong to the panel**, not `StrokeCard` (which is just the shared stroke ±
+   buttons). If your algorithm has an ending, render a `FinishButton` and/or a
+   `CummingButton` — **Finish** (a _pre_-ending: reach/hold the climax point) and
+   **Cumming** (the actual send-off) are distinct actions. An algorithm can have
+   both, one, or neither.
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
    - add a `TABS` entry with **`algorithm: true`** (this one flag is what puts the
