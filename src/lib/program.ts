@@ -4,7 +4,10 @@
 
 // Player timing.
 export const TICK_MS = 100; // clock resolution / send cadence
-export const LOOKAHEAD_MS = 120_000; // keep 2 min of future built ahead
+// Keep 5 min of future built ahead. Must cover the widest sparkline preview: at
+// MAX_RATE (4×) the preview shows UPCOMING_WINDOW_MS × 4 = 4 min of program-time,
+// so anything less would leave the sparkline's tail flat at high dilation.
+export const LOOKAHEAD_MS = 300_000;
 export const JUMP_MS = 60_000; // forward/back transport distance
 export const RATE_STEP = 1.05; // faster/slower multiply/divide the rate by this
 export const MIN_RATE = 0.25;
