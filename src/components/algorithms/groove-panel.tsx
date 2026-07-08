@@ -6,10 +6,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
+import { CummingButton } from "@/components/cumming-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { RunButton } from "@/components/run-button";
+import { SessionControls } from "@/components/session-controls";
 import { Segmented } from "@/components/segmented";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
@@ -77,6 +78,8 @@ export function GroovePanel({
       const clamped = Math.max(0, Math.min(100, percent));
       setSpeedPercent(clamped);
       engine.setSpeedPercent(clamped);
+      // Magnitude knob: speed is applied in scale() every tick, so a live
+      // refresh() re-sends at the new scale without regenerating the script.
       device.refresh();
     },
     [device, engine],
@@ -90,6 +93,9 @@ export function GroovePanel({
     (level: VariabilityLevel) => {
       setVariability(level);
       engine.setVariability(level);
+      // Shape knob: variability changes the generated dip pattern itself, which
+      // scale() can't rescale after the fact — so drop the not-yet-played future
+      // and regenerate it from the new setting.
       device.invalidateFuture();
     },
     [device, engine],
@@ -143,7 +149,7 @@ export function GroovePanel({
     <section className="flex w-full flex-col gap-4">
       <ListeningFor words={spotter.listeningFor} flashing={spotter.flashing} />
 
-      <RunButton
+      <SessionControls
         state={state}
         connected={connected}
         onStart={start}
@@ -163,14 +169,14 @@ export function GroovePanel({
         </div>
       </Card>
 
+      <CummingButton onClick={cumming} disabled={!canEnd} />
+
       <StrokeCard
         strokeDisabled={!stroke.canStroke}
-        actionDisabled={!canEnd}
         strokePulsing={stroke.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onCumming={cumming}
       />
 
       <Card title="Speed">

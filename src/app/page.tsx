@@ -24,19 +24,26 @@ import {
   useVacuglideDevice,
 } from "@/hooks/use-vacuglide-device";
 
+// The tab bar. `algorithm: true` marks an algorithm tab: its id is also the
+// voice "switch" word that selects it while idle, it takes part in the tab lock,
+// and it needs a panel rendered below. ALGORITHM_TABS is derived from this list,
+// so adding a mode is a TABS entry plus its panel — the switch word and tab lock
+// follow automatically and the two lists can never drift.
 const TABS = [
-  { id: "goon", label: "Goon", align: "left" },
-  { id: "groove", label: "Groove", align: "left" },
-  { id: "autopilot", label: "Autopilot", align: "left" },
+  { id: "goon", label: "Goon", align: "left", algorithm: true },
+  { id: "groove", label: "Groove", align: "left", algorithm: true },
+  { id: "autopilot", label: "Autopilot", align: "left", algorithm: true },
   { id: "settings", label: "Settings", align: "right" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
-// The algorithm tabs, whose names are also the voice "switch" words that select
-// them while idle.
-const ALGORITHM_TABS = ["goon", "groove", "autopilot"] as const;
-type AlgorithmTab = (typeof ALGORITHM_TABS)[number];
+// The algorithm tabs (derived — single source of truth), whose names are also the
+// voice "switch" words that select them while idle.
+type AlgorithmTab = Extract<(typeof TABS)[number], { algorithm: true }>["id"];
+const ALGORITHM_TABS = TABS.filter(
+  (t): t is (typeof TABS)[number] & { algorithm: true } => "algorithm" in t,
+).map((t) => t.id);
 
 const isAlgorithmTab = (id: string): id is AlgorithmTab =>
   (ALGORITHM_TABS as readonly string[]).includes(id);
