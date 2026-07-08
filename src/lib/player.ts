@@ -1,5 +1,5 @@
 // The shared Player: owns the program-clock, the tick loop, device sends (with
-// duplicate-send suppression), and the 2-minute lookahead. It plays a
+// duplicate-send suppression), and the 5-minute lookahead. It plays a
 // AlgorithmEngine; it knows nothing about any specific algorithm. Lives in
 // src/lib (no React) and reaches the device through a getDevice accessor, like
 // the engines it replaces.
