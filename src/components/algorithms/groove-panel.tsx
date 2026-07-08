@@ -77,6 +77,8 @@ export function GroovePanel({
       const clamped = Math.max(0, Math.min(100, percent));
       setSpeedPercent(clamped);
       engine.setSpeedPercent(clamped);
+      // Magnitude knob: speed is applied in scale() every tick, so a live
+      // refresh() re-sends at the new scale without regenerating the script.
       device.refresh();
     },
     [device, engine],
@@ -90,6 +92,9 @@ export function GroovePanel({
     (level: VariabilityLevel) => {
       setVariability(level);
       engine.setVariability(level);
+      // Shape knob: variability changes the generated dip pattern itself, which
+      // scale() can't rescale after the fact — so drop the not-yet-played future
+      // and regenerate it from the new setting.
       device.invalidateFuture();
     },
     [device, engine],
