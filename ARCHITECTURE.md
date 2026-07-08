@@ -28,7 +28,7 @@ after it are the future, in the same array.
 **The Player** (`src/lib/player.ts`) plays a program and is the only thing that
 touches the device's motion commands. It owns the program-clock, the playback
 **rate** (time dilation), the ~100 ms tick loop, sending target speeds (with
-duplicate-send suppression), executing valve events, keeping ~2 minutes of future
+duplicate-send suppression), executing valve events, keeping ~5 minutes of future
 built ahead, transport (`play`/`pause`, `forward`/`back` = ±1 min, `faster`/
 `slower`, `seekTo`), the `pagehide` safety-stop, and the upcoming-speed window the
 sparkline draws. It knows nothing about any specific algorithm. There is **one**
@@ -100,8 +100,10 @@ Each device-driving algorithm is two files:
 
 There is no per-algorithm hook and no central runner: the panel drives the Player
 directly, and mutual exclusion falls out of the Player holding one engine at a
-time. Adding an algorithm is a new engine + panel plus one `<Panel>` and one tab
-in `page.tsx` — nothing else wires up.
+time. Adding an algorithm is a new engine + panel, then registering it in
+`page.tsx` (a `TABS` entry and its panel rendered) — the tab list is the single
+source of truth, so the voice switch word and the tab lock follow automatically.
+The step-by-step lives in [DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
 
 **Commands are declared once.** Each action is a `Command` — `{ word, enabled,
 run }` — so the on-screen button and the spoken keyword call the same `run` and

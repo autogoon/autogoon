@@ -7,10 +7,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { CummingButton } from "@/components/cumming-button";
+import { FinishButton } from "@/components/finish-button";
 import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { RunButton } from "@/components/run-button";
+import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
@@ -40,6 +42,10 @@ export function GoonPanel({
   const stroke = useStrokeControls(vacuglide);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
 
+  // A stable engine identity for the panel's lifetime. The Player identifies its
+  // active source by reference (`player.source === engine`, just below), so this
+  // must never be re-created on render — a `useMemo` with deps would silently
+  // break active-source detection when it recomputed.
   const engineRef = useRef<GoonEngine | null>(null);
   engineRef.current ??= new GoonEngine(DEFAULT_INTENSITY);
   const engine = engineRef.current;
@@ -73,6 +79,9 @@ export function GoonPanel({
       const clamped = Math.max(0, Math.min(100, percent));
       setIntensity(clamped);
       engine.setIntensity(clamped);
+      // Magnitude knob: intensity is applied in the engine's scale(), which the
+      // Player runs every tick — so refresh() just re-sends the current speed at
+      // the new ceiling. No need to regenerate the speed script.
       device.refresh();
     },
     [device, engine],
@@ -157,7 +166,7 @@ export function GoonPanel({
     <section className="flex w-full flex-col gap-4">
       <ListeningFor words={spotter.listeningFor} flashing={spotter.flashing} />
 
-      <RunButton
+      <SessionControls
         state={state}
         connected={connected}
         onStart={start}
@@ -177,14 +186,25 @@ export function GoonPanel({
         </div>
       </Card>
 
+      <div className="flex gap-3">
+        <FinishButton
+          onClick={() => device.seekTo(PROGRAM_MS)}
+          disabled={!canEnd}
+          className="flex-1"
+        />
+        <CummingButton
+          onClick={cumming}
+          disabled={!canEnd}
+          className="flex-1"
+        />
+      </div>
+
       <StrokeCard
         strokeDisabled={!stroke.canStroke}
-        actionDisabled={!canEnd}
         strokePulsing={stroke.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
         onError={logError}
-        onCumming={cumming}
       />
 
       <Card title="Timeline">
@@ -216,14 +236,6 @@ export function GoonPanel({
             badge="forward"
           >
             + 1 min
-          </Button>
-          <Button
-            onClick={() => device.seekTo(PROGRAM_MS)}
-            disabled={!canEnd}
-            className={jumpClass}
-            badge="finish"
-          >
-            Finish
           </Button>
         </div>
         <div className="mt-3 flex gap-3">

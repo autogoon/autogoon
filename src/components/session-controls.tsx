@@ -1,13 +1,14 @@
 "use client";
 
-// The transport control shown at the top of each algorithm panel. Driven by the
-// Player's state: while playing it's a single Stop; while armed or paused it's
-// Start + Reset side by side. Start needs the device connected first.
+// The session controls shown at the top of each algorithm panel — Start / Stop /
+// Reset. Driven by the Player's state: while playing it's a single Stop; while
+// armed or paused it's Start + Reset side by side. Start needs the device
+// connected first.
 
 import type { PlayerState } from "@/lib/program";
 import { Button } from "@/components/button";
 
-export function RunButton({
+export function SessionControls({
   state,
   connected,
   onStart,
