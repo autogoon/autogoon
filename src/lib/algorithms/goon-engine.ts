@@ -115,6 +115,9 @@ function buildLeg(
     at += stepMs;
     waypoints.push({ speed, at });
   }
+  // A zero-length leg (from === to — e.g. no dip once variability reaches the
+  // top) must still advance time, or the cycle collapses to zero duration and the
+  // Player's look-ahead loop spins forever building empty cycles.
   if (steps === 0) at += stepMs;
   return { waypoints, endAt: at };
 }
