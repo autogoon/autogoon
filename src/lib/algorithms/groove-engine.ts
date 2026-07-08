@@ -4,9 +4,9 @@
 
 import {
   type PlayerContext,
-  type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
+  type ValveEvent,
 } from "@/lib/program";
 
 export type VariabilityLevel = "off" | "low" | "medium" | "high";
@@ -161,17 +161,17 @@ export class GrooveEngine implements AlgorithmEngine {
     this.cummingEmitted = false;
   }
 
-  generate(
+  generateSpeed(
     fromTime: number,
     untilTime: number,
     ctx: PlayerContext,
-  ): ProgramEvent[] {
+  ): SpeedEvent[] {
     if (this.cumming) {
       if (this.cummingEmitted) return [];
       this.cummingEmitted = true;
-      return this.cummingEvents(fromTime);
+      return this.cummingSpeed(fromTime);
     }
-    const events: ProgramEvent[] = [];
+    const events: SpeedEvent[] = [];
     let at = fromTime;
     if (this.pendingRecovery) {
       this.pendingRecovery = false;
@@ -192,13 +192,30 @@ export class GrooveEngine implements AlgorithmEngine {
     return events;
   }
 
+  // Groove has no scheduled valves — its only valve action is the one-shot pulse
+  // that rides the cumming wind-down.
+  generateValves(
+    _speedEvents: SpeedEvent[],
+    fromTime: number,
+    _untilTime: number,
+    _ctx: PlayerContext,
+  ): ValveEvent[] {
+    if (this.cumming) {
+      return [
+        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
+        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
+      ];
+    }
+    return [];
+  }
+
   scale(event: SpeedEvent): number {
     if (event.unscaled === true) return event.speed;
     return scaleSpeed(event.speed, this.speedPercent);
   }
 
-  private cummingEvents(startAt: number): ProgramEvent[] {
-    const events: ProgramEvent[] = [];
+  private cummingSpeed(startAt: number): SpeedEvent[] {
+    const events: SpeedEvent[] = [];
     let at = startAt;
     for (
       let speed = CUMMING_START_SPEED;
@@ -218,18 +235,6 @@ export class GrooveEngine implements AlgorithmEngine {
       speed: 0,
       unscaled: true,
     });
-    events.push({
-      kind: "valve",
-      at: startAt + 3000,
-      valve: "minus",
-      open: true,
-    });
-    events.push({
-      kind: "valve",
-      at: startAt + 12000,
-      valve: "minus",
-      open: false,
-    });
-    return events.sort((a, b) => a.at - b.at);
+    return events;
   }
 }

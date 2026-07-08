@@ -5,9 +5,9 @@
 
 import {
   type PlayerContext,
-  type ProgramEvent,
   type AlgorithmEngine,
   type SpeedEvent,
+  type ValveEvent,
 } from "@/lib/program";
 
 export type IntensityLevel = "warmup" | "low" | "medium" | "high";
@@ -226,7 +226,6 @@ export class AutopilotEngine implements AlgorithmEngine {
   private intensityLevel: IntensityLevel;
   private edgeControlLevel: EdgeControlLevel;
   private suctionControlLevel: SuctionControlLevel;
-  private lastSuctionTime = 0;
   private finishing = false;
   private finishEmitted = false;
 
@@ -243,7 +242,6 @@ export class AutopilotEngine implements AlgorithmEngine {
   reset(): void {
     this.finishing = false;
     this.finishEmitted = false;
-    this.lastSuctionTime = 0;
   }
 
   setIntensity(level: IntensityLevel): void {
@@ -266,18 +264,16 @@ export class AutopilotEngine implements AlgorithmEngine {
     this.suctionControlLevel = "off";
   }
 
-  generate(
+  generateSpeed(
     fromTime: number,
     untilTime: number,
-    ctx: PlayerContext,
-  ): ProgramEvent[] {
+    _ctx: PlayerContext,
+  ): SpeedEvent[] {
     if (this.finishing) {
       if (this.finishEmitted) return [];
       this.finishEmitted = true;
       return [
         { kind: "speed", at: fromTime, speed: SPEED_MAX, unscaled: true },
-        { kind: "valve", at: fromTime, valve: "minus", open: false },
-        { kind: "valve", at: fromTime, valve: "plus", open: false },
         {
           kind: "speed",
           at: fromTime + FINISH_HOLD_MS,
@@ -287,46 +283,57 @@ export class AutopilotEngine implements AlgorithmEngine {
       ];
     }
 
-    const speedEvents: SpeedEvent[] = [];
+    const events: SpeedEvent[] = [];
     let at = fromTime;
     while (at < untilTime) {
       const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
-      speedEvents.push(...block.events);
+      events.push(...block.events);
       at = block.endAt;
     }
-    const batchEnd = at;
+    return events;
+  }
 
-    const events: ProgramEvent[] = [...speedEvents];
-
-    const p = suctionControlParams[this.suctionControlLevel];
-    if (p.enabled) {
-      if (this.lastSuctionTime >= fromTime) {
-        this.lastSuctionTime = fromTime - p.interval;
-      }
-      while (this.lastSuctionTime + p.interval < fromTime) {
-        this.lastSuctionTime += p.interval;
-      }
-      let t = this.lastSuctionTime + p.interval;
-      while (t < batchEnd) {
-        const speedFactor =
-          speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
-        const pulseMs = Math.round(
-          (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
-        );
-        events.push({ kind: "valve", at: t, valve: "minus", open: true });
-        events.push({
-          kind: "valve",
-          at: t + pulseMs,
-          valve: "minus",
-          open: false,
-        });
-        this.lastSuctionTime = t;
-        t += p.interval;
-      }
+  // Vacuum maintenance: brief stroke-minus pulses on a fixed interval grid, each
+  // pulse's length keyed to the speed in effect at that moment (slow strokes get
+  // long pulses). Stateless — pulses sit on the global `k × interval` grid — so
+  // the Player can re-lay this overlay (invalidateValves) when the setting
+  // changes without re-rolling the speed script. Finish closes both valves.
+  generateValves(
+    speedEvents: SpeedEvent[],
+    fromTime: number,
+    untilTime: number,
+    ctx: PlayerContext,
+  ): ValveEvent[] {
+    if (this.finishing) {
+      return [
+        { kind: "valve", at: fromTime, valve: "minus", open: false },
+        { kind: "valve", at: fromTime, valve: "plus", open: false },
+      ];
     }
 
-    events.sort((a, b) => a.at - b.at);
-    return events;
+    const p = suctionControlParams[this.suctionControlLevel];
+    if (!p.enabled) return [];
+
+    const valves: ValveEvent[] = [];
+    for (
+      let t = Math.ceil(fromTime / p.interval) * p.interval;
+      t < untilTime;
+      t += p.interval
+    ) {
+      const speedFactor =
+        speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
+      const pulseMs = Math.round(
+        (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
+      );
+      valves.push({ kind: "valve", at: t, valve: "minus", open: true });
+      valves.push({
+        kind: "valve",
+        at: t + pulseMs,
+        valve: "minus",
+        open: false,
+      });
+    }
+    return valves;
   }
 
   scale(event: SpeedEvent): number {

@@ -41,13 +41,18 @@ Stop (`pause`) holds position, and `reset` restores the algorithm's default knob
 and regenerates from the beginning.
 
 **An AlgorithmEngine** (`src/lib/algorithms/*-engine.ts`) is what each algorithm _is_ here: a
-generation-only object with three methods —
+generation-only object with four methods —
 
-- `generate(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
-  timeline (in whole cycles), keeping ~2 minutes ahead, so looping algorithms
-  never materialise all at once. Automatic valve pulses (tease, vacuum
-  maintenance, the cumming pulse) are emitted here as open/close event pairs, so
-  they regenerate with the curve and show on the sparkline.
+- `generateSpeed(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
+  speed backbone (in whole cycles), keeping a couple of minutes ahead, so looping
+  algorithms never materialise all at once.
+- `generateValves(speedEvents, fromTime, untilTime, ctx)` — overlays the automatic
+  valve pulses (tease, vacuum maintenance, the cumming pulse) across a span of
+  already-built speed, as open/close event pairs that show on the sparkline. It's
+  split from speed because a pulse's shape can depend on the speed in effect at
+  that moment (Autopilot's suction), and because keeping it a _pure_ overlay lets
+  the Player re-lay it over an unchanged speed script. It must not keep cadence
+  state.
 - `scale(event, ctx)` — maps a raw speed event to the device value at _send_ time.
   It's called every tick, so a "magnitude" knob stays live with no regeneration.
 - `reset()` — start a fresh session.
@@ -62,8 +67,10 @@ clock of its own.
 - _Shape_ changes (Groove's Variability, Autopilot's intensity/edge) and
   program rewrites (`cumming`, Autopilot's finish) update engine state and then the
   Player `invalidateFuture()`s — it drops the events after the cursor and re-pulls
-  `generate`, which reflects the new state. Regeneration only ever rewrites the
-  future, never the past.
+  both channels, which reflect the new state. _Valve-only_ changes (Autopilot's
+  vacuum maintenance) instead call `invalidateValves()`, which keeps the speed
+  script byte-identical and only re-lays the valve overlay. Regeneration only ever
+  rewrites the future, never the past.
 
 **Position = the clock.** Goon's 30-minute build is a _position_, and that
 position **is** the Player's clock; time dilation is the Player's rate. So
