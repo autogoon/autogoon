@@ -4,31 +4,19 @@ Direction and design thinking — ideas that still need to be **thought through 
 spec'd more firmly** before they become concrete tasks. Once one is settled, it
 graduates to [TODO.md](./TODO.md).
 
-## Stop vs Pause vs Reset
+## Stop vs Pause vs Reset — resolved
 
-**Decide this first.** Several options below (torture, point of no return) ignore
-**Stop**, and if Stop becomes Pause they'd need to ignore Pause instead — so the
-transport model shapes them, and it should be settled before that work starts.
-
-Right now the run button is **Start ⇄ Stop**, where Stop halts the device and the
-next Start begins a **fresh** session (the program resets). Things to weigh:
-
-- Should **Stop really mean Pause** — halt the device but keep the position — so
-  Start **resumes** from there (Pause ⇄ Start/Resume) rather than restarting?
-- If so, do we also want a separate **Reset** (command + button) to clear back to
-  the beginning?
-- Is a three-way Start / Pause / Reset too complicated for the UI and voice,
-  versus a simple Start ⇄ Stop?
+Settled: **Start / Stop / Reset**, where Stop holds position (Start resumes) and
+Reset (only when stopped) restores defaults + regenerates. The program is built
+on tab mount so the preview is live before Start. Downstream options below can
+assume this transport. See the design in
+`docs/superpowers/specs/2026-07-08-transport-start-stop-reset-design.md`.
 
 Note that **pause is mechanically the same as edge** — both halt the device and
 hold the clock/position, then resume — so they'd likely share one implementation.
 What differs is the _semantics and use case_ (a deliberate user "I need to take a
 phone call" vs. the edging loop's timed tease), which is really what this
 discussion is about, not the mechanism.
-
-Stop/Pause behaviour can be impacted by the after-play options below — e.g.
-torture carrying on through your plea to stop mid-cum, leaving the **safe word** as
-the only way out.
 
 ## Algorithm options
 
@@ -85,15 +73,14 @@ a time (turn on several and it picks at random):
 Rides on whatever the moment-ending was:
 
 - **Stops** — the normal ending.
-- **Torture** — **keeps going anyway** (overstimulation), ignoring **Stop/Pause**.
-  This
+- **Torture** — **keeps going anyway** (overstimulation), ignoring **Stop**. This
   is why it isn't just another moment-ending: it _rides on_ one. Two standout
   pairings — **wind-down then torture**, where the gentle glide lulls you into a
   soft finish and torture kicks in exactly as you relax; and **ruin then torture**,
   where it cuts you to zero and then slams back to full throttle for a cold-start
   shock.
 
-Any outcome that ignores **Stop/Pause** is backstopped by the always-on safe word
+Any outcome that ignores **Stop** is backstopped by the always-on safe word
 (a concrete task in [TODO.md](./TODO.md)).
 
 ## New algorithm candidates
