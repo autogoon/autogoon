@@ -35,8 +35,10 @@ offline.
 - **No test framework.** The app drives physical hardware, so verify changes by
   running the app and driving the affected flow in the browser — not just
   typecheck and build.
-- **Update [CHANGELOG.md](./CHANGELOG.md)** for anything a user would notice (see
-  the format note at the top of that file).
+- **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change — user-facing
+  ones described by what the app does, internal ones (refactors, etc.) by what
+  changed. One line per change, newest first, grouped by date, tagged `feature` /
+  `enhancement` / `bug` / `internal` (in that order within a day), linking the PR.
 - **Adding a movement mode?** It's a new engine
   (`src/lib/algorithms/*-engine.ts`) and panel
   (`src/components/algorithms/*-panel.tsx`), wired in with one `<Panel>` and one

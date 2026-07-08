@@ -22,8 +22,8 @@ Before committing — or at the latest before a finished PR is reviewed — run 
 
 Keep [CHANGELOG.md](./CHANGELOG.md) current. Update it **after each logical set of changes** as part of the work itself — not tied to a commit or PR (a change can span several commits, and commits land after a PR is opened). If you finished something a user would notice, it gets an entry before you consider the work done.
 
-- **Format:** one line per change, newest first, grouped under the date it landed (`## YYYY-MM-DD`). Tag each line `feature`, `enhancement`, or `bug`, and within a day order the entries in exactly that sequence — all features, then all enhancements, then all bugs. Link the PR: `([#N](https://github.com/autogoon/autogoon/pull/N))`.
-- **Write for the user, not the developer:** describe what someone using the app notices. A pure refactor with no user-visible effect gets no entry.
+- **Format:** one line per change, newest first, grouped under the date it landed (`## YYYY-MM-DD`). Tag each line `feature`, `enhancement`, `bug`, or `internal`, and within a day order the entries in exactly that sequence — features, then enhancements, then bugs, then internal (bottom priority). Link the PR: `([#N](https://github.com/autogoon/autogoon/pull/N))`.
+- **Every notable change gets an entry, described for whoever cares about it.** A user-facing change gets a user-friendly description — _what the app does, not how it's built_. A developer-facing change (an internal refactor and the like) gets a developer-friendly description of _what changed_, tagged `internal`. Don't force a user angle onto a pure refactor, and don't drop a change just because users won't notice it.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_ fixed within the same PR is not a changelog bug — leave it out; the net user-facing feature/enhancement line already covers the behaviour.
 
 ## Git workflow
