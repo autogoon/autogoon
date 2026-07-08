@@ -1,10 +1,11 @@
 # Architecture
 
 A single-page app with a sticky header bar and four tabs (Goon, Groove,
-Autopilot, Settings). `src/app/page.tsx` owns the layout and mounts every
-controller hook at the top of the tree, so the keyword spotter and all the
-algorithms keep running regardless of which tab is visible — hidden tabs stay
-mounted, only their visibility changes.
+Autopilot, Settings). `src/app/page.tsx` owns the layout: it wraps everything in
+the keyword-spotter provider, mirrors the one shared Player into React once, and
+renders all four panels. Hidden tabs stay mounted (only their visibility
+changes), so the recognizer and the running algorithm keep going regardless of
+which tab is visible.
 
 ## The program / player model
 
@@ -39,14 +40,19 @@ Start (`play`) then **resumes** from the held position rather than restarting,
 Stop (`pause`) holds position, and `reset` restores the algorithm's default knobs
 and regenerates from the beginning.
 
-**An AlgorithmEngine** (`src/lib/*-engine.ts`) is what each algorithm _is_ here: a
-generation-only object with three methods —
+**An AlgorithmEngine** (`src/lib/algorithms/*-engine.ts`) is what each algorithm _is_ here: a
+generation-only object with four methods —
 
-- `generate(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
-  timeline (in whole cycles), keeping ~2 minutes ahead, so looping algorithms
-  never materialise all at once. Automatic valve pulses (tease, vacuum
-  maintenance, the cumming pulse) are emitted here as open/close event pairs, so
-  they regenerate with the curve and show on the sparkline.
+- `generateSpeed(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend the
+  speed backbone (in whole cycles), keeping ~5 minutes ahead, so looping algorithms
+  never materialise all at once.
+- `generateValves(speedEvents, fromTime, untilTime, ctx)` — overlays the automatic
+  valve pulses (tease, vacuum maintenance, the cumming pulse) across a span of
+  already-built speed, as open/close event pairs that show on the sparkline. It's
+  split from speed because a pulse's shape can depend on the speed in effect at
+  that moment (Autopilot's suction), and because keeping it a _pure_ overlay lets
+  the Player re-lay it over an unchanged speed script. It must not keep cadence
+  state.
 - `scale(event, ctx)` — maps a raw speed event to the device value at _send_ time.
   It's called every tick, so a "magnitude" knob stays live with no regeneration.
 - `reset()` — start a fresh session.
@@ -61,8 +67,10 @@ clock of its own.
 - _Shape_ changes (Groove's Variability, Autopilot's intensity/edge) and
   program rewrites (`cumming`, Autopilot's finish) update engine state and then the
   Player `invalidateFuture()`s — it drops the events after the cursor and re-pulls
-  `generate`, which reflects the new state. Regeneration only ever rewrites the
-  future, never the past.
+  both channels, which reflect the new state. _Valve-only_ changes (Autopilot's
+  vacuum maintenance) instead call `invalidateValves()`, which keeps the speed
+  script byte-identical and only re-lays the valve overlay. Regeneration only ever
+  rewrites the future, never the past.
 
 **Position = the clock.** Goon's 30-minute build is a _position_, and that
 position **is** the Player's clock; time dilation is the Player's rate. So
@@ -75,44 +83,55 @@ program-time — a jump needs no special handling.
 `Player.insertEvent` while something is playing, and drive the device directly
 when nothing is.
 
-## Three layers per algorithm
+## Two layers per algorithm
 
-Each device-driving algorithm is split into three layers:
+Each device-driving algorithm is two files:
 
 - an **engine** — a plain-TS `AlgorithmEngine` that only _generates_ events and
-  _scales_ them (`src/lib/autopilot-engine.ts`, `groove-engine.ts`,
-  `goon-engine.ts`). Engines are self-contained and never import from one another;
-  where two algorithms share a shape (Goon reuses Groove's dip), the helpers are
-  **duplicated**, not shared — a deliberate boundary so each algorithm stays
-  standalone.
-- a **hook** — a React wrapper (`src/hooks/use-*.ts`) that mirrors the shared
-  Player into render state while this engine is the active source, owns the UI
-  default knob values (constructed into the engine), and wires the knob handlers
-  (magnitude → set state; shape/command → set state + `invalidateFuture`), the
-  transport buttons (to the Player), and the voice keywords.
-- a **panel** — presentation only (`src/components/*-panel.tsx`).
+  _scales_ them (`src/lib/algorithms/goon-engine.ts`, `groove-engine.ts`,
+  `autopilot-engine.ts`). No React, no device. Engines are self-contained and
+  never import from one another; where two algorithms share a shape (Goon reuses
+  Groove's dip), the helpers are **duplicated**, not shared — a deliberate
+  boundary so each algorithm stays standalone.
+- a **panel** — the React surface (`src/components/algorithms/*-panel.tsx`). It
+  **owns** its engine instance (a `useRef`), arms/plays the shared Player with it,
+  holds its own knob state (setting the engine's fields directly), and reads the
+  shared Player view for the sparkline, timeline and current state.
 
-Adding an algorithm is a new engine/hook/panel plus one entry in the
-`algorithms[]` array in `page.tsx` and one tab — nothing else wires up.
+There is no per-algorithm hook and no central runner: the panel drives the Player
+directly, and mutual exclusion falls out of the Player holding one engine at a
+time. Adding an algorithm is a new engine + panel plus one `<Panel>` and one tab
+in `page.tsx` — nothing else wires up.
 
-## Shared device and the algorithm runner
+**Commands are declared once.** Each action is a `Command` — `{ word, enabled,
+run }` — so the on-screen button and the spoken keyword call the same `run` and
+share the same `enabled` (a disabled control is also out of the grammar). The
+panel renders a button from each command and hands the list to `useVoiceCommands`
+(`src/hooks/use-voice-commands.ts`), which registers the enabled words with the
+recognizer and routes detections back — but only while the panel is the active
+tab. A button flashes when its word is recognized.
+
+## Shared device, one Player, mutual exclusion
 
 Every algorithm shares one device **and** one Player via `useVacuglideDevice`
 (`src/hooks/use-vacuglide-device.ts`), which wraps the `src/lib/vacuglide-device.ts`
 API client and owns the single `Player`. An engine reaches the device only
-indirectly, through the Player.
+indirectly, through the Player. `usePlayer` (`src/hooks/use-player.ts`) mirrors the
+Player's live state into React once, at the top of the page, and passes that view
+down to the panels (sparkline, current speed, timeline position/rate, and which
+engine is currently the Player's `source`).
 
-`useAlgorithmRunner` (`src/hooks/use-algorithm-runner.ts`) coordinates the
-algorithms. It **derives** the currently-running algorithm from the engines' own
-`isPlaying` (rather than keeping a separate copy that could drift when an algorithm
-stops itself), enforces mutual exclusion — starting one stops any other — and
-routes each detected keyword: `connect`/`start`/`stop` and the switch words it
-handles itself, everything else it dispatches to the running algorithm.
+**Mutual exclusion is a Player invariant, not a coordinator.** The Player holds
+one engine at a time; a panel arming its engine replaces whoever was there. A
+panel knows it's the active source by comparing the Player view's `source` to its
+own engine, so only the active algorithm's controls and voice words are live.
 
-While an algorithm is running, switching is locked: the page disables the other
-algorithm tabs (the running one's tab and Settings stay reachable), and the runner
-drops the per-algorithm switch words from the grammar — only the running
-algorithm's own commands and `stop` respond.
+`page.tsx` keeps the two genuinely global concerns. First, the tab lock: while a
+session runs, the other algorithm tabs are disabled (the running one's tab and
+Settings stay reachable). Second, the global voice words — `connect`, and while
+idle a switch word per algorithm — which it sets on the recognizer and routes
+itself (`connect` drives the device; a switch word brings that algorithm's tab
+up). Everything else is an algorithm word, owned by the active panel.
 
 ## Controls
 
@@ -151,22 +170,22 @@ remembered in `localStorage`.
 
 In-browser speech keyword detection using
 [vosk-browser](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) with a
-grammar constrained to the words valid right now — the running algorithm's
-published words plus the global words (`connect`/`start`/`stop`, and while stopped
-a switch word per algorithm) — rebuilt whenever that word set changes. Detections
-fire from vosk's settled per-utterance result (the `result` event; streaming
-partials are ignored). The ~40 MB recognizer model
-(`public/vosk-model-small-en-us-0.15.tar.gz`) is fetched on load and cached by the
-browser. It lives in `useKeywordSpotter` (`src/hooks/use-keyword-spotter.ts`) and,
-like the algorithms, is mounted at the top of the tree so it keeps listening across
-tab switches. Each detected word is handed to the algorithm runner
-(`useAlgorithmRunner`), which routes `connect`/`start`/`stop` and the switch words
-itself and dispatches any other word to the running algorithm's matching action.
+grammar constrained to the words valid right now — the active algorithm's enabled
+words plus the global words (`connect`, and while idle a switch word per
+algorithm) — rebuilt whenever that word set changes. Detections fire from vosk's
+settled per-utterance result (the `result` event; streaming partials are ignored).
+The ~40 MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
+fetched on load and cached by the browser.
 
-Each algorithm carries a `switchWord` — the spoken word that selects it while
-idle, kept separate from `label` because a label could be display text that isn't
-a single in-vocabulary word (e.g. "Gooning" or "Vacuglide" wouldn't be
-recognized). Today every switch word is just the lowercased label (`goon`,
-`autopilot`, `groove`), but the split lets a future algorithm name something
-unspeakable while still exposing a recognizable switch word. Selecting an algorithm
-points voice `start` at it and brings its tab into view.
+There is **one** recognizer, owned by `KeywordSpotterProvider`
+(`src/components/keyword-spotter.tsx`) at the top of the tree, so it keeps
+listening across tab switches. Its grammar is two slots: the **global** words
+(the page sets these via `setGlobalWords`) and the **algorithm** words (the active
+panel sets these via `setAlgorithmKeywords`, through `useVoiceCommands`). Any
+component subscribes to detections with `keywordListener`: the page's listener
+logs every recognised word and handles `connect`/switch, while each active panel's
+listener runs its own commands. Because only the active panel registers its words,
+exactly one algorithm's commands are ever live.
+
+Switch words are just the algorithm tab names (`goon`, `groove`, `autopilot`) —
+say one while idle to bring that tab up (which also points voice `start` at it).
