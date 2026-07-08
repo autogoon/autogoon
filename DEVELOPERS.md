@@ -26,13 +26,17 @@ offline.
 
 ## Contributing
 
-- Branch off `main` and open a pull request.
-- **Zero warnings.** `npm run lint` and `npm run typecheck` must both pass with no
-  output. Fix every warning, not just the ones your change introduced.
-- Run `npm run format` before committing.
+- **Branch off `main`** — never commit to `main` directly. One branch/PR per piece
+  of work.
+- **Before committing** — at the latest before the PR is ready to review — run
+  `npm run typecheck`, `npm run lint`, and `npm run format`. **Zero warnings:**
+  typecheck and lint must pass with no output; fix every warning, not just the
+  ones your change introduced. If `format` changes files, commit those changes.
 - **No test framework.** The app drives physical hardware, so verify changes by
   running the app and driving the affected flow in the browser — not just
   typecheck and build.
+- **Update [CHANGELOG.md](./CHANGELOG.md)** for anything a user would notice (see
+  the format note at the top of that file).
 - **Adding a movement mode?** It's a new engine
   (`src/lib/algorithms/*-engine.ts`) and panel
   (`src/components/algorithms/*-panel.tsx`), wired in with one `<Panel>` and one
