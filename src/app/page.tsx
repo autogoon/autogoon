@@ -54,30 +54,36 @@ export default function Home() {
       id: "goon",
       label: "Goon",
       switchWord: "goon",
-      isPlaying: goon.isPlaying,
+      state: goon.state,
       currentSpeed: goon.currentSpeed,
       start: goon.start,
       stop: goon.stop,
+      reset: goon.reset,
+      arm: goon.arm,
       keywords: goon.keywords,
     },
     {
       id: "autopilot",
       label: "Autopilot",
       switchWord: "autopilot",
-      isPlaying: autopilot.isPlaying,
+      state: autopilot.state,
       currentSpeed: autopilot.currentSpeed,
       start: autopilot.start,
       stop: autopilot.stop,
+      reset: autopilot.reset,
+      arm: autopilot.arm,
       keywords: autopilot.keywords,
     },
     {
       id: "groove",
       label: "Groove",
       switchWord: "groove",
-      isPlaying: groove.isPlaying,
+      state: groove.state,
       currentSpeed: groove.currentSpeed,
       start: groove.start,
       stop: groove.stop,
+      reset: groove.reset,
+      arm: groove.arm,
       keywords: groove.keywords,
     },
   ];
@@ -90,20 +96,25 @@ export default function Home() {
   // keywords of whichever algorithm is running. This is exactly what gets
   // handed to vosk, and the spotter echoes it back as `listeningFor`.
   const running = runner.running;
+  const activeAlgo = running ?? algorithms.find((a) => a.id === tab) ?? null;
   const commandWords = useMemo(
     () => [
       ...new Set([
         ...runner.globalWords,
-        ...(running?.keywords ?? []).map((k) => k.word),
+        ...(activeAlgo?.keywords ?? []).map((k) => k.word),
       ]),
     ],
-    [runner.globalWords, running?.keywords],
+    [runner.globalWords, activeAlgo?.keywords],
   );
   // Point voice "start" at whichever algorithm's tab is visible, so it works
-  // from a cold load (before anything has run).
+  // from a cold load (before anything has run). Also arm the visible algorithm
+  // tab so its preview is built — runner.arm no-ops while a session is running.
+  const runningId = runner.running?.id ?? null;
   useEffect(() => {
-    if (tab !== "settings") runner.setCurrent(tab);
-  }, [tab, runner, runner.setCurrent]);
+    if (tab === "settings") return;
+    runner.setCurrent(tab);
+    if (runningId === null) runner.arm(tab);
+  }, [tab, runningId, runner]);
 
   // KWS calls the runner directly with each detected word, and logs its final
   // transcripts into the shared command log (the runner logs each executed word

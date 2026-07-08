@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import type { PlayerState } from "@/lib/program";
 
 // The same word can land twice in quick succession (e.g. repeated within one
 // utterance, or across back-to-back results); ignore a repeat within this window.
@@ -30,10 +31,12 @@ export interface Algorithm {
   // own names ("gooning", "vacuglide") are out-of-vocabulary and never recognised,
   // so this uses plain in-dictionary words like "goon" and "autopilot".
   switchWord: string;
-  isPlaying: boolean;
+  state: PlayerState;
   currentSpeed: number;
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  reset: () => void;
+  arm: () => void;
   keywords: KeywordAction[];
 }
 
@@ -46,22 +49,28 @@ export function useAlgorithmRunner(
 ) {
   // Derived from the engines themselves (the source of truth), so it stays
   // correct even when an algorithm stops itself (e.g. finish, or page hide).
-  const running = algorithms.find((algo) => algo.isPlaying) ?? null;
+  // A session is "in progress" when it is playing OR paused (state !== "armed").
+  // This is what locks the other tabs and narrows the grammar.
+  const running = algorithms.find((algo) => algo.state !== "armed") ?? null;
 
   // The app-level words worth listening for right now — only the ones that would
   // actually do something in the current state. Running → just "stop" (switching
   // is locked). Idle → the state-appropriate global word ("connect" when there's
   // nothing connected, else "start") plus each algorithm's switch word, so you
   // can name an algorithm to select it.
-  const isRunning = running !== null;
-  // A stable key over the switch words, so globalWords keeps a stable identity
-  // across renders (the recognizer rebuilds whenever its word list changes).
+  // The transport words valid right now, by state:
+  //   playing → stop (switching locked)
+  //   paused  → start (resume) + reset (switching locked, so no switch words)
+  //   armed   → connect|start + reset + each algorithm's switch word
+  const runState = running?.state ?? "armed";
   const switchWordsKey = algorithms.map((algo) => algo.switchWord).join("\n");
   const globalWords = useMemo(() => {
-    if (isRunning) return ["stop"];
+    if (runState === "playing") return ["stop"];
+    if (runState === "paused") return ["start", "reset"];
     const switchWords = switchWordsKey === "" ? [] : switchWordsKey.split("\n");
-    return [vacuglide.connected ? "start" : "connect", ...switchWords];
-  }, [vacuglide.connected, isRunning, switchWordsKey]);
+    if (!vacuglide.connected) return ["connect", ...switchWords];
+    return ["start", "reset", ...switchWords];
+  }, [vacuglide.connected, runState, switchWordsKey]);
 
   const logError = useCallback(
     (err: unknown) =>
@@ -75,10 +84,11 @@ export function useAlgorithmRunner(
     async (id: string) => {
       try {
         for (const algo of algorithms) {
-          if (algo.id !== id && algo.isPlaying) await algo.stop();
+          if (algo.id !== id && algo.state !== "armed") await algo.stop();
         }
         const target = algorithms.find((algo) => algo.id === id);
-        if (target !== undefined && !target.isPlaying) await target.start();
+        if (target !== undefined && target.state !== "playing")
+          await target.start();
       } catch (err) {
         logError(err);
       }
@@ -88,9 +98,28 @@ export function useAlgorithmRunner(
 
   const stop = useCallback(() => {
     for (const algo of algorithms) {
-      if (algo.isPlaying) algo.stop().catch(logError);
+      if (algo.state === "playing") algo.stop().catch(logError);
     }
   }, [algorithms, logError]);
+
+  const reset = useCallback(
+    (id: string) => {
+      const target = algorithms.find((algo) => algo.id === id);
+      if (target !== undefined && target.state !== "playing") target.reset();
+    },
+    [algorithms],
+  );
+
+  const arm = useCallback(
+    (id: string) => {
+      // Only arm while nothing is in progress; a paused/playing session must not
+      // be re-armed out from under the user (the tab lock enforces this too).
+      if (running !== null) return;
+      const target = algorithms.find((algo) => algo.id === id);
+      target?.arm();
+    },
+    [algorithms, running],
+  );
 
   // The "current" algorithm: the running one, or the last that ran. A voice
   // "start" from idle (re)starts this, so voice control has a target before
@@ -115,6 +144,7 @@ export function useAlgorithmRunner(
     algorithms,
     run,
     stop,
+    reset,
     connect: vacuglide.connect,
     log: vacuglide.log,
     onSwitch,
@@ -123,6 +153,7 @@ export function useAlgorithmRunner(
     algorithms,
     run,
     stop,
+    reset,
     connect: vacuglide.connect,
     log: vacuglide.log,
     onSwitch,
@@ -133,7 +164,7 @@ export function useAlgorithmRunner(
   // runner; any other word is handed to the running algorithm, which acts on it
   // or ignores it.
   const handleWord = useCallback((word: string) => {
-    const { algorithms, run, stop, connect, log, onSwitch } =
+    const { algorithms, run, stop, reset, connect, log, onSwitch } =
       dispatchRef.current;
 
     let action: (() => void | Promise<void>) | null = null;
@@ -143,11 +174,14 @@ export function useAlgorithmRunner(
       };
     } else if (word === "stop") {
       action = stop;
+    } else if (word === "reset") {
+      const id = currentIdRef.current;
+      if (id !== null) action = () => reset(id);
     } else if (word === "start") {
       const id = currentIdRef.current;
       if (id !== null) action = () => run(id);
     } else {
-      const target = algorithms.find((algo) => algo.isPlaying) ?? null;
+      const target = algorithms.find((algo) => algo.state !== "armed") ?? null;
       if (target !== null) {
         // Something's running: only its own keywords apply. Switching is locked.
         action = target.keywords.find((k) => k.word === word)?.run ?? null;
@@ -176,7 +210,7 @@ export function useAlgorithmRunner(
     );
   }, []);
 
-  return { running, run, stop, handleWord, setCurrent, globalWords };
+  return { running, run, stop, reset, arm, handleWord, setCurrent, globalWords };
 }
 
 export type AlgorithmRunner = ReturnType<typeof useAlgorithmRunner>;
