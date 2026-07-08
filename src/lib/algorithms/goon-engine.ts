@@ -52,7 +52,12 @@ const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 500;
 
-// The far-future hold used for the end-of-program park and the cumming rest.
+// Past PROGRAM_MS the build is over and Goon holds at top speed. Emit that hold
+// one minute at a time (extended by the normal lookahead) rather than as a single
+// far-future event, so the tail stays a uniform stream.
+const PARK_STEP_MS = 60_000;
+
+// The far-future hold used for the cumming rest.
 const PARK_HOLD_MS = 1_800_000;
 
 interface Waypoint {
@@ -236,12 +241,8 @@ export class GoonEngine implements AlgorithmEngine {
     while (at < untilTime) {
       if (at >= PROGRAM_MS) {
         events.push({ kind: "speed", at, speed: PEAK_SPEED });
-        events.push({
-          kind: "speed",
-          at: at + PARK_HOLD_MS,
-          speed: PEAK_SPEED,
-        });
-        break;
+        at += PARK_STEP_MS;
+        continue;
       }
       const { waypoints, endAt } = buildGoonCycle(at, at);
       for (const wp of waypoints) {

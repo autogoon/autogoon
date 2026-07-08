@@ -20,6 +20,7 @@ import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { GoonEngine, PROGRAM_MS } from "@/lib/algorithms/goon-engine";
+import { JUMP_MS } from "@/lib/program";
 import { formatMs } from "@/lib/format";
 
 const DEFAULT_INTENSITY = 50;
@@ -97,6 +98,19 @@ export function GoonPanel({
   // connected or not.
   const canEnd = isCurrent && connected;
 
+  const rawPositionMs = isCurrent ? player.positionMs : 0;
+  const timeScale = isCurrent ? player.timeScale : 1;
+  // ±1 min steps a *displayed* minute. The display is program-time ÷ rate, so the
+  // program-time jump scales with the rate (at 4× a "1 min" step covers 4 min of
+  // program-time). The timeline caps at the 30-min build: forward never runs past
+  // it (the clock may still drift past 30 as Goon holds at top, but scrubbing and
+  // the display stop at PROGRAM_MS).
+  const jumpMs = JUMP_MS * timeScale;
+  const canForward = isCurrent && rawPositionMs < PROGRAM_MS;
+  const forward = () =>
+    device.seekTo(Math.min(rawPositionMs + jumpMs, PROGRAM_MS));
+  const back = () => device.seekTo(Math.max(0, rawPositionMs - jumpMs));
+
   const commands: Command[] = [
     ...stroke.keywords,
     { word: "start", enabled: connected && state !== "playing", run: start },
@@ -112,8 +126,8 @@ export function GoonPanel({
       enabled: isCurrent,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
-    { word: "forward", enabled: isCurrent, run: () => device.forward() },
-    { word: "back", enabled: isCurrent, run: () => device.back() },
+    { word: "forward", enabled: canForward, run: forward },
+    { word: "back", enabled: isCurrent, run: back },
     {
       word: "finish",
       enabled: canEnd,
@@ -130,9 +144,12 @@ export function GoonPanel({
     [vacuglide],
   );
 
-  const positionMs = isCurrent ? Math.min(player.positionMs, PROGRAM_MS) : 0;
-  const timeScale = isCurrent ? player.timeScale : 1;
+  const positionMs = Math.min(rawPositionMs, PROGRAM_MS);
   const pct = Math.round((positionMs / PROGRAM_MS) * 100);
+  // Numbers scale with dilation: at 4× the 30-min build reads 7:30. The bar (a
+  // fraction of PROGRAM_MS) is rate-independent, so only the times shrink.
+  const displayPositionMs = positionMs / timeScale;
+  const displayTotalMs = PROGRAM_MS / timeScale;
   const jumpClass =
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-40";
 
@@ -172,9 +189,9 @@ export function GoonPanel({
 
       <Card title="Timeline">
         <div className="text-muted-foreground flex justify-between text-sm">
-          <span className="tabular-nums">{formatMs(positionMs)}</span>
+          <span className="tabular-nums">{formatMs(displayPositionMs)}</span>
           <span className="tabular-nums">
-            {formatMs(PROGRAM_MS)} · {pct}% · {timeScale.toFixed(2)}×
+            {formatMs(displayTotalMs)} · {pct}% · {timeScale.toFixed(2)}×
           </span>
         </div>
         <div className="bg-secondary mt-2 h-2 w-full overflow-hidden rounded-full">
@@ -185,7 +202,7 @@ export function GoonPanel({
         </div>
         <div className="mt-3 flex gap-3">
           <Button
-            onClick={() => device.back()}
+            onClick={back}
             disabled={!isCurrent}
             className={jumpClass}
             badge="back"
@@ -193,8 +210,8 @@ export function GoonPanel({
             − 1 min
           </Button>
           <Button
-            onClick={() => device.forward()}
-            disabled={!isCurrent}
+            onClick={forward}
+            disabled={!canForward}
             className={jumpClass}
             badge="forward"
           >
