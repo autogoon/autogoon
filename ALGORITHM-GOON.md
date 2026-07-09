@@ -1,34 +1,39 @@
 # The Goon algorithm
 
 An automatic, timeline-driven counterpart to the
-[Groove](./ALGORITHM-GROOVE.md) algorithm. Where Groove hands you Speed
-and Variability as manual knobs, Goon drives them for you over a fixed
-**30-minute program**: a slow build that starts gentle and teasing and finishes as
-a steady hold at the top. It models a long, unhurried arousal ramp to a controlled
-climax — a "gooning" session, not deny-and-repeat edging.
+[Groove](./ALGORITHM-GROOVE.md) algorithm. Where Groove hands you Intensity, Dip
+variability and Timing variability as manual knobs, Goon drives them for you over
+a fixed **30-minute program**: a slow build that starts gentle and teasing and
+finishes as a steady hold at the top. It models a long, unhurried arousal ramp to
+a controlled climax — a "gooning" session, not deny-and-repeat edging.
 
 ## The build
 
-It **is** the Groove dip pattern with its two knobs driven automatically. The
-dip is always Groove's raw pattern **100 → floor → 100**, mapped to the device
-through Groove's curved low end. A **position** runs from 0 to 30 minutes, and
-the two curves are sampled at that position:
+It **is** Groove with its knobs driven automatically. The dip is always Groove's
+raw pattern **100 → floor → 100**. A **position** runs from 0 to 30 minutes, and
+the curves are sampled at that position:
 
-- **Speed** eases from **25 → 100** across the 30 minutes — a patient start that
-  accelerates toward the finish. Because the dip is raw `100 → floor` and the
-  curved low end pulls the low point toward 0 the lower the speed, the early
-  low-speed dips still swing over a **wide** device range (≈25 down to ≈3 at full
-  intensity) with **long** legs, rather than a narrow band near the top.
-- **Variability** decreases: the dip floor rises from **50 → 100** (a deep
-  `100 → 50` tease dip shrinking to no dip) and the timing jitter falls from
-  **80% → 0**. So it starts with long, deep, slow, randomised dips and ends as a
-  flat hold at the top; the legs naturally shorten as the dips get shallower.
+- **Speed** eases from **25 → 100** across the whole 30 minutes — a patient start
+  that accelerates toward the finish.
+- **Dip variability** winds down from Groove's _high_ to _off_ over the **first 25
+  minutes**. Early on a dip can plunge anywhere from a shallow nudge to a dead
+  stop, redrawn every cycle and weighted toward the deep end; by 25 minutes every
+  dip is the standard, predictable `100 → 60`.
+- **Timing variability** winds down from Groove's _high_ (**75%**) to _off_ over
+  the same 25 minutes. Early legs can be cut to a quarter of their length, so the
+  pace lurches; by 25 minutes every leg takes its full, unhurried ten seconds.
+
+Then the **last 5 minutes are a taper**: the dip floor rises from 60 to 100, so the
+dips shrink away to nothing and the program arrives at a flat hold at the top.
+
+So it opens with deep, ragged, unpredictable swings that could stop you dead,
+settles into a slow, steady `100 → 60` bob, and then flattens out entirely.
 
 ## Intensity
 
 **Intensity** (0–100, default **50**) is a final ceiling on the whole thing — the
-build/variability shape is fixed and intensity just scales what actually reaches
-the device. At the default **50**, the 25 → 100 build plays out as roughly
+build is fixed and intensity just scales, evenly, what actually reaches the
+device. At the default **50**, the 25 → 100 build plays out as roughly
 **12 → 50%** on the device; turn it down further when you're more sensitive. It
 takes effect live, so a change lands at once.
 

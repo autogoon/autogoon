@@ -207,6 +207,23 @@ export function GoonPanel({
         onError={logError}
       />
 
+      <Card title="Intensity">
+        <div className="text-muted-foreground flex justify-between text-sm">
+          <span>Ceiling</span>
+          <span className="tabular-nums">{intensity}%</span>
+        </div>
+        <Slider
+          value={intensity}
+          min={0}
+          max={100}
+          step={5}
+          onChange={changeIntensity}
+        />
+        <p className="text-muted-foreground mt-2 text-sm">
+          Say <code>less</code> / <code>more</code> to step down or up.
+        </p>
+      </Card>
+
       <Card title="Timeline">
         <div className="text-muted-foreground flex justify-between text-sm">
           <span className="tabular-nums">{formatMs(displayPositionMs)}</span>
@@ -256,23 +273,6 @@ export function GoonPanel({
             Faster
           </Button>
         </div>
-      </Card>
-
-      <Card title="Intensity">
-        <div className="text-muted-foreground flex justify-between text-sm">
-          <span>Ceiling</span>
-          <span className="tabular-nums">{intensity}%</span>
-        </div>
-        <Slider
-          value={intensity}
-          min={0}
-          max={100}
-          step={5}
-          onChange={changeIntensity}
-        />
-        <p className="text-muted-foreground mt-2 text-sm">
-          Say <code>less</code> / <code>more</code> to step down or up.
-        </p>
       </Card>
 
       <LogCard
