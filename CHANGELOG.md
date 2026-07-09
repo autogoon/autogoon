@@ -7,6 +7,7 @@
 - enhancement: Groove's dips feel less mechanical: each rise and fall now takes a randomly drawn length of time rather than a fixed one, and the speed eases into the bottom of a dip instead of stepping evenly, so slow speeds change more gently. ([#6](https://github.com/autogoon/autogoon/pull/6))
 - enhancement: Groove's Intensity now scales the pattern evenly, so turning it down no longer flattens deep dips into shallow ones. ([#6](https://github.com/autogoon/autogoon/pull/6))
 - enhancement: In Groove, the Speed card is now Intensity and steps with `more` / `less`, matching Goon and Autopilot — `faster` / `slower` now only ever means playback speed. ([#6](https://github.com/autogoon/autogoon/pull/6))
+- enhancement: Goon's Intensity card now sits directly under the stroke controls rather than below the timeline, putting the control you reach for most within easier reach. ([#6](https://github.com/autogoon/autogoon/pull/6))
 
 ## 2026-07-08
 
