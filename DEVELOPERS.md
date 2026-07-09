@@ -68,7 +68,7 @@ wind-down), so Goon is the richest template. For a simpler _manual-knob_ mode,
      `generateValves`, `scale`. That interface is the contract and the
      best-commented file to read first.
    - Engines are **self-contained** — they never import from each other. If you
-     reuse another algorithm's shape (as Goon reuses Groove's dip), **duplicate**
+     reuse another algorithm's pattern (as Goon reuses Groove's dip), **duplicate**
      the helper, don't share it.
 2. **Panel** — `src/components/algorithms/<name>-panel.tsx`. Copy Goon's or
    Groove's structure; what's algorithm-specific is only your knob cards and their
