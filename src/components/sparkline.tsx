@@ -33,7 +33,7 @@ const VALVE_COLOUR = { minus: "#ef4444", plus: "#22c55e" } as const;
 // staircase. So gaps this short are drawn as a straight line between the two
 // speeds — near enough what's felt — and anything longer is a real hold, stepped.
 // Program-time, so it tracks the events rather than the playback rate.
-const SMOOTH_GAP_MS = 1100;
+const SMOOTH_GAP_MS = 1500;
 
 export function Sparkline({
   points,
