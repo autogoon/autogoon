@@ -1,88 +1,92 @@
 # Roadmap
 
-Direction and design thinking — ideas that still need to be **thought through and
-spec'd more firmly** before they become concrete tasks. Once one is settled, it
-graduates to [TODO.md](./TODO.md).
+Direction and design thinking — ideas that still need to be thought through and
+specified more firmly before implementation.
+
+Some ideas might need some prototyping and testing to work out how well they
+work.
+
+## Improve keyword detection
+
+If watching videos, it's common for them to trigger keywords in the background,
+which is a problem. Does Vosk support any options which can require a certain
+volume, or clarity? Are there other KWS options which rely on voice training so
+it can recognise the user's voice and ignore background noise?
 
 ## Algorithm options
 
-Behaviours that layer on top of any algorithm, grouped by _when_ they happen:
-**mid-play** (during the ride), **end-play** (the moment you cum), and
-**after-play** (what happens next).
+Options which seem like they should belong to all algorithms, grouped by when
+they happen:
 
-How much of this applies to **Autopilot** — a faithful Vacuglide recreation —
-depends on the phase:
+- **mid-play**: During the ride.
+- **end-play**: The point you decide you want to cum — it drops into a finish
+  mode and drives you toward climax.
+- **after-play**: From the moment you start to cum.
 
-- **End-play / after-play** — good to add, and purely additive (no need for a
-  separate "Autopilot + end-play" algorithm). They don't touch the drive, so the
-  algorithm's feel is left intact — and they'd _improve_ it: Autopilot's only
-  ending today is **Finish**, which just holds full speed until you stop it
-  (torture-until-stop, not much of a finish). Real cumming endings are a clear
-  upgrade. Autopilot has no `cumming` command yet — Goon and Groove do — so it
-  would need one adding.
-- **Mid-play** (edge) — a **departure** from the Vacuglide recreation: it
-  interrupts the drive itself and changes the authentic feel. More questionable;
-  probably leave Autopilot out of it.
+Autopilot is a faithful implementation of the Vacuglide algorithm, but these
+options are really additive, users can keep that faithful implementation by not
+enabling any of the options.
 
 ### Mid-play — during the ride
 
-- **Edge** — say **"edge"** → short cool-down → build back up. The classic edging
-  loop, on your voice. Prototype against **Goon** (the favourite) first.
-  Mechanically edge is the same as **Stop** (halt the device, hold the
-  clock/position, then resume), so it can reuse that machinery — what differs is
-  the _timed auto-resume_ and the tease shape, not the halt/hold/resume itself.
-  - **Edge length** — how long the pause lasts before it ramps back: short teases
-    vs. long denials.
-  - **Point of no return** — a % chance it **ignores your "edge"** and just keeps
-    building toward the finish. Two things to decide:
-    - **How does the chance grow?** Options: it climbs the longer the session
-      runs, it climbs with each "edge" you survive, or it's just a flat chance
-      every time.
-    - **Can the user change the numbers?** Whichever of those we build, we then
-      decide whether the base chance (and how fast it climbs) is fixed in the code
-      or adjustable in the settings.
+- **Edge** — say **"edge"** → short cool-down → wait → build back up.
+  - **Edge length** — how long the pause lasts before it ramps back: short
+    teases vs. long denials.
+    - User adjustable, with some randomisation? Danger of restarting too soon
+      and causing an orgasm.
+    - Maybe a voice command to resume, but then it's the same as Stop/Start.
+    - There is this : https://github.com/nogasm/nogasm
+  - A % chance it **ignores your "edge"**
+    - **Does the chance grow?** Maybe it climbs the longer the session runs, it
+      climbs with each "edge" you survive, or it's just a flat chance every
+      time.
+  - **How to best expose the options?** Could end up being a checkbox/slider
+    nightmare!
 
-    Worth prototyping a couple of these before deciding.
+### End-play — the run to finish
 
-### End-play — the moment you cum
+You signal you're ready to finish (a **"finish"** command) and the device goes
+into a **finish mode** that drives you toward climax rather than riding on
 
-Saying **"cumming"** is where the ending gets chosen and spliced in. Groove and
-Goon already have the seam — `beginCumming()` + `player.invalidateFuture()` drops
-the future and splices a new tail — they just hardcode a single ending today (the
-slow wind-down). The idea is to give "cumming" a choice of endings, picked one at
-a time (turn on several and it picks at random):
+Autopilot goes to full speed until you say stop, Goon goes to the end of its
+ramp (so to the intensity percentage set.)
 
-- **Wind-down** — the slow glide to a stop (today's only ending).
-- **Full throttle** — slams to 100% and drives you through it.
-- **Ruin** — **cuts to zero.** You ask for release and it dies on you — denial at
-  the exact moment you reach for it.
+### After-play — from the moment you cum
 
-### After-play — what happens next
+Saying **"cumming"** splices in an after-play behaviour.
 
-Rides on whatever the moment-ending was:
+- **Wind-down** — Simulate a penetrative orgasm, a slow, comfortable decrease
+  (like Goon and Groove implement in `beginCumming()`).
+- **Torture** — Speed goes straight to 100%, and ignore the Stop command.
+- **Ruin** — There are two possible options here :
+  - **Stay-in** — stop the device, leaving you still seated in the toy. The
+    vacuum seal stays, so there's still passive sensation — a softer, less
+    complete ruin.
+  - **Eject** — drive the toy to physically push you out, removing all contact
+    — a more complete ruin
+    - However, generating that ejecting force takes a second or two of movement,
+      which is stimulation at exactly the wrong moment; with voice-recognition
+      lag on top (~1s between saying "cumming" and the device reacting), it may
+      fail to cut stimulation in time and tip into a finish instead of a ruin.
+    - Worth noting a ruin is timing-dependent anyway — even by hand it doesn't
+      always land — so some unreliability here may be acceptable rather than a
+      flaw to design out.
 
-- **Stops** — the normal ending.
-- **Torture** — **keeps going anyway** (overstimulation), ignoring **Stop**. This
-  is why it isn't just another moment-ending: it _rides on_ one. Two standout
-  pairings — **wind-down then torture**, where the gentle glide lulls you into a
-  soft finish and torture kicks in exactly as you relax; and **ruin then torture**,
-  where it cuts you to zero and then slams back to full throttle for a cold-start
-  shock.
+It might be an option to combine these into a single after-play, like ruin but
+then torture.
+
+How to best expose the options? Could end up being a checkbox/slider nightmare!
 
 Any outcome that ignores **Stop** is backstopped by the always-on safe word
 (a concrete task in [TODO.md](./TODO.md)).
 
 ## New algorithm candidates
 
-Genuinely new drive _shapes_ (rarer than options):
-
 - **Metronome** — follows a BPM you call out.
-  - _Interesting stretch:_ detect BPM **from music** instead of calling it out.
-    Beat/tempo detection is a solved-ish problem (onset detection → tempo
-    estimation), but the catch is the keyword spotter: the mic already feeds vosk,
-    so music near the mic would trigger false keywords off lyrics/vocals, and
-    separating the user's voice from the music is hard. The likely escape is **two
-    audio sources** — take BPM from the music (system/tab audio capture or an
-    uploaded track via Web Audio) and keep keywords on the mic — so the two streams
-    never have to be untangled.
+  - Consider detecting BPM from music instead of calling it out. The mic already
+    feeds vosk, so music near the mic would trigger false keywords off
+    lyrics/vocals, and separating the user's voice from the music is hard. The
+    likely escape is **two audio sources** — take BPM from the music
+    (system/tab audio capture or an uploaded track via Web Audio) and keep
+    keywords on the mic — so the two streams never have to be untangled.
 - **Tide** — very long, slow swells.
