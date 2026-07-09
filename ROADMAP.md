@@ -82,7 +82,9 @@ Any outcome that ignores **Stop** is backstopped by the always-on safe word
 
 ## New algorithm candidates
 
-### Rounds
+New algorithms to look at implementing :
+
+### Rounds
 
 The only algorithm that continues past the first orgasm. Finish,
 then a brief burst on the over-sensitive glans, ease down through the
