@@ -90,7 +90,7 @@ Each device-driving algorithm is two files:
 - an **engine** — a plain-TS `AlgorithmEngine` that only _generates_ events and
   _scales_ them (`src/lib/algorithms/goon-engine.ts`, `groove-engine.ts`,
   `autopilot-engine.ts`). No React, no device. Engines are self-contained and
-  never import from one another; where two algorithms share a shape (Goon reuses
+  never import from one another; where two algorithms share a pattern (Goon reuses
   Groove's dip), the helpers are **duplicated**, not shared — a deliberate
   boundary so each algorithm stays standalone.
 - a **panel** — the React surface (`src/components/algorithms/*-panel.tsx`). It

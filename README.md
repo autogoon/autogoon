@@ -19,7 +19,8 @@ install; just open it, enter your device token, and go.
 - **Three modes**, each steered live by voice:
   - **Goon** — an automatic 30-minute slow build, with an intensity dial and
     faster/slower time-stretch.
-  - **Groove** — a manual stroke pattern you shape live (speed + variability).
+  - **Groove** — a manual stroke pattern you shape live (intensity + dip and
+    timing variability).
   - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
