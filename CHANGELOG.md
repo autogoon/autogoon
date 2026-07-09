@@ -9,6 +9,7 @@
 - enhancement: In Groove, the Speed card is now Intensity and steps with `more` / `less`, matching Goon and Autopilot — `faster` / `slower` now only ever means playback speed. ([#6](https://github.com/autogoon/autogoon/pull/6))
 - enhancement: Goon's build now winds Groove's Dip and Timing variability down from high to off across its first 25 minutes, then flattens the dip away over the last 5. It opens with deep, ragged swings that can drop you to a standstill rather than dipping to the same depth every time, and eases into the hold at the top instead of arriving there abruptly. ([#7](https://github.com/autogoon/autogoon/pull/7))
 - enhancement: Goon's Intensity now scales the build evenly, so turning it down no longer squashes the dips into a narrow band near the top. ([#7](https://github.com/autogoon/autogoon/pull/7))
+- enhancement: The timeline preview draws a ramp as a smooth slope instead of a staircase, so a rise or fall reads as one movement rather than a run of tiny steps. Genuine holds are still drawn as steps. ([#7](https://github.com/autogoon/autogoon/pull/7))
 - enhancement: Goon's Intensity card now sits directly under the stroke controls rather than below the timeline, putting the control you reach for most within easier reach. ([#6](https://github.com/autogoon/autogoon/pull/6))
 
 ## 2026-07-08
