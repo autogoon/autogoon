@@ -2,7 +2,11 @@
 
 ## 2026-07-09
 
+- feature: Groove has a new Dip variability control — every dip now falls to a randomly drawn depth instead of the same one each time. Pick Off/Low/Medium/High, or say `flatter` / `hillier`. ([#6](https://github.com/autogoon/autogoon/pull/6))
 - feature: Settings now has an Info card showing what's live — the deployed commit (linked to its page on GitHub) and when the build was made, in the user's local time. ([#5](https://github.com/autogoon/autogoon/pull/5))
+- enhancement: Groove's dips feel less mechanical: each rise and fall now takes a randomly drawn length of time rather than a fixed one, and the speed eases into the bottom of a dip instead of stepping evenly, so slow speeds change more gently. ([#6](https://github.com/autogoon/autogoon/pull/6))
+- enhancement: Groove's Intensity now scales the pattern evenly, so turning it down no longer flattens deep dips into shallow ones. ([#6](https://github.com/autogoon/autogoon/pull/6))
+- enhancement: In Groove, the Speed card is now Intensity and steps with `more` / `less`, matching Goon and Autopilot — `faster` / `slower` now only ever means playback speed. ([#6](https://github.com/autogoon/autogoon/pull/6))
 
 ## 2026-07-08
 
