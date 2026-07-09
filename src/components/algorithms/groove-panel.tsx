@@ -26,8 +26,10 @@ import {
 } from "@/lib/algorithms/groove-engine";
 
 const DEFAULT_SPEED = 10;
-const DEFAULT_VARIABILITY: VariabilityLevel = "low";
-const SPEED_STEP = 5;
+const DEFAULT_VARIABILITY: VariabilityLevel = "medium";
+const DEFAULT_DIP: VariabilityLevel = "medium";
+const DIP_LEVELS: VariabilityLevel[] = ["off", "low", "medium", "high"];
+const INTENSITY_STEP = 5;
 
 export function GroovePanel({
   vacuglide,
@@ -44,9 +46,15 @@ export function GroovePanel({
   const [speedPercent, setSpeedPercent] = useState(DEFAULT_SPEED);
   const [variability, setVariability] =
     useState<VariabilityLevel>(DEFAULT_VARIABILITY);
+  const [dipVariability, setDipVariability] =
+    useState<VariabilityLevel>(DEFAULT_DIP);
 
   const engineRef = useRef<GrooveEngine | null>(null);
-  engineRef.current ??= new GrooveEngine(DEFAULT_SPEED, DEFAULT_VARIABILITY);
+  engineRef.current ??= new GrooveEngine(
+    DEFAULT_SPEED,
+    DEFAULT_VARIABILITY,
+    DEFAULT_DIP,
+  );
   const engine = engineRef.current;
 
   const isCurrent = player.source === engine;
@@ -70,6 +78,8 @@ export function GroovePanel({
     engine.setSpeedPercent(DEFAULT_SPEED);
     setVariability(DEFAULT_VARIABILITY);
     engine.setVariability(DEFAULT_VARIABILITY);
+    setDipVariability(DEFAULT_DIP);
+    engine.setDipVariability(DEFAULT_DIP);
     device.arm(engine);
   }, [device, engine]);
 
@@ -101,6 +111,29 @@ export function GroovePanel({
     [device, engine],
   );
 
+  const changeDipVariability = useCallback(
+    (level: VariabilityLevel) => {
+      setDipVariability(level);
+      engine.setDipVariability(level);
+      // Shape knob, like variability: the drawn floor changes the dip pattern
+      // itself, so drop the not-yet-played future and regenerate it.
+      device.invalidateFuture();
+    },
+    [device, engine],
+  );
+
+  // Dip variability has no per-level words of its own — "off"/"low"/"medium"/
+  // "high" already belong to timing — so it steps through the levels instead.
+  const stepDipVariability = useCallback(
+    (delta: number) => {
+      const i = DIP_LEVELS.indexOf(dipVariability);
+      const next =
+        DIP_LEVELS[Math.max(0, Math.min(DIP_LEVELS.length - 1, i + delta))]!;
+      if (next !== dipVariability) changeDipVariability(next);
+    },
+    [dipVariability, changeDipVariability],
+  );
+
   const cumming = useCallback(() => {
     try {
       engine.beginCumming();
@@ -119,14 +152,24 @@ export function GroovePanel({
     { word: "stop", enabled: state === "playing", run: stop },
     { word: "reset", enabled: state !== "playing", run: reset },
     {
-      word: "faster",
+      word: "more",
       enabled: isCurrent,
-      run: () => stepSpeedPercent(SPEED_STEP),
+      run: () => stepSpeedPercent(INTENSITY_STEP),
     },
     {
-      word: "slower",
+      word: "less",
       enabled: isCurrent,
-      run: () => stepSpeedPercent(-SPEED_STEP),
+      run: () => stepSpeedPercent(-INTENSITY_STEP),
+    },
+    {
+      word: "hillier",
+      enabled: isCurrent,
+      run: () => stepDipVariability(1),
+    },
+    {
+      word: "flatter",
+      enabled: isCurrent,
+      run: () => stepDipVariability(-1),
     },
     { word: "off", enabled: isCurrent, run: () => changeVariability("off") },
     { word: "low", enabled: isCurrent, run: () => changeVariability("low") },
@@ -179,9 +222,9 @@ export function GroovePanel({
         onError={logError}
       />
 
-      <Card title="Speed">
+      <Card title="Intensity">
         <div className="text-muted-foreground flex justify-between text-sm">
-          <span>Scale</span>
+          <span>Ceiling</span>
           <span className="tabular-nums">{speedPercent}%</span>
         </div>
         <Slider
@@ -192,11 +235,28 @@ export function GroovePanel({
           onChange={changeSpeedPercent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
-          Say <code>slower</code> / <code>faster</code> to step down or up.
+          Say <code>less</code> / <code>more</code> to step down or up.
         </p>
       </Card>
 
-      <Card title="Variability">
+      <Card title="Dip variability">
+        <Segmented
+          options={[
+            { value: "off", label: "Off" },
+            { value: "low", label: "Low" },
+            { value: "medium", label: "Medium" },
+            { value: "high", label: "High" },
+          ]}
+          value={dipVariability}
+          onChange={changeDipVariability}
+          activeClass="bg-purple-600 text-white"
+        />
+        <p className="text-muted-foreground mt-2 text-sm">
+          Say <code>flatter</code> / <code>hillier</code> to step down or up.
+        </p>
+      </Card>
+
+      <Card title="Timing variability">
         <Segmented
           options={[
             { value: "off", label: "Off", badge: "off" },
