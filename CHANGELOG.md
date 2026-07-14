@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-14
+
+- enhancement: Goon's dips now keep some unevenness in their timing right to the end of the build, instead of settling into a metronome at 25 minutes. The pace slackens off gradually across the whole 30 minutes, so only the last few dips run at their full, unhurried length. ([#7](https://github.com/autogoon/autogoon/pull/7))
+
 ## 2026-07-09
 
 - feature: Groove has a new Dip variability control — every dip now falls to a randomly drawn depth instead of the same one each time. Pick Off/Low/Medium/High, or say `flatter` / `hillier`. ([#6](https://github.com/autogoon/autogoon/pull/6))
