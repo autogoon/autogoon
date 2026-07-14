@@ -19,15 +19,18 @@ the curves are sampled at that position:
   minutes**. Early on a dip can plunge anywhere from a shallow nudge to a dead
   stop, redrawn every cycle and weighted toward the deep end; by 25 minutes every
   dip is the standard, predictable `100 → 60`.
-- **Timing variability** winds down from Groove's _high_ (**75%**) to _off_ over
-  the same 25 minutes. Early legs can be cut to a quarter of their length, so the
-  pace lurches; by 25 minutes every leg takes its full, unhurried ten seconds.
+- **Timing variability** winds down from Groove's _high_ (**75%**) to _off_ across
+  the **whole 30 minutes**. Early legs can be cut to a quarter of their length, so
+  the pace lurches; only the very last legs take their full, unhurried ten seconds.
 
 Then the **last 5 minutes are a taper**: the dip floor rises from 60 to 100, so the
-dips shrink away to nothing and the program arrives at a flat hold at the top.
+dips shrink away to nothing and the program arrives at a flat hold at the top. The
+timing is still slackening off through all of that, so the dips keep a little
+unevenness right up to the point where they vanish.
 
 So it opens with deep, ragged, unpredictable swings that could stop you dead,
-settles into a slow, steady `100 → 60` bob, and then flattens out entirely.
+settles into a steady `100 → 60` bob that gradually slows, and then flattens out
+entirely.
 
 ## Intensity
 

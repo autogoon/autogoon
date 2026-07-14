@@ -22,11 +22,12 @@ const BUILD_START = 25;
 const BUILD_PEAK = 100;
 const BUILD_EXP = 1.3;
 
-// The program has two parts. For its first VARIABILITY_MS Goon is exactly Groove,
-// with both of Groove's variability knobs swept from "high" down to "off" over
-// that span. Then the remaining time is a taper: variability is spent, and the dip
-// itself flattens away to leave the hold at the top.
-const VARIABILITY_MS = 25 * 60_000;
+// The dip has two parts. Over the first DIP_VARIABILITY_MS, Groove's dip
+// variability knob is swept from "high" down to "off". Then the remaining time is a
+// taper: the dip itself flattens away to leave the hold at the top. Timing
+// variability keeps its own schedule, spanning the whole program (see
+// timingPercent), so the legs are still losing their snap through the taper.
+const DIP_VARIABILITY_MS = 25 * 60_000;
 
 // Timing variability: how much of a leg's baseline duration may be randomly cut.
 const TIMING_PERCENT_HIGH = 75;
@@ -97,51 +98,51 @@ function progress(positionMs: number): number {
   return clamp01(positionMs / PROGRAM_MS);
 }
 
-// Position within the variability window, as a 0..1 fraction. Reads 1 for the
-// whole taper, so both variability curves sit at "off" once it starts.
-function variabilityProgress(positionMs: number): number {
-  return clamp01(positionMs / VARIABILITY_MS);
+// Position within the dip-variability window, as a 0..1 fraction. Reads 1 for the
+// whole taper, so the dip curve sits at "off" once it starts.
+function dipVariabilityProgress(positionMs: number): number {
+  return clamp01(positionMs / DIP_VARIABILITY_MS);
 }
 
-// Position within the taper, as a 0..1 fraction: 0 until the variability window is
-// over, then rising to 1 at the end of the program.
+// Position within the taper, as a 0..1 fraction: 0 until dip variability is spent,
+// then rising to 1 at the end of the program.
 function taperProgress(positionMs: number): number {
-  return clamp01((positionMs - VARIABILITY_MS) / (PROGRAM_MS - VARIABILITY_MS));
+  return clamp01(
+    (positionMs - DIP_VARIABILITY_MS) / (PROGRAM_MS - DIP_VARIABILITY_MS),
+  );
 }
 
-// The auto "speed" knob: eased BUILD_START -> BUILD_PEAK across the program. This
-// one runs the full 30 minutes, right through the taper.
+// The auto "speed" knob: eased BUILD_START -> BUILD_PEAK across the program, right
+// through the taper.
 function buildSpeedPercent(positionMs: number): number {
   const eased = Math.pow(progress(positionMs), BUILD_EXP);
   return lerp(BUILD_START, BUILD_PEAK, eased);
 }
 
 // How low a dip bottoms out when dip variability has nothing to add. Fixed at
-// STANDARD_FLOOR through the variability window, then lifted to the peak across
+// STANDARD_FLOOR through the dip-variability window, then lifted to the peak across
 // the taper — so the dip shrinks to nothing and the program ends holding at top.
 function standardFloor(positionMs: number): number {
   return lerp(STANDARD_FLOOR, PEAK_SPEED, taperProgress(positionMs));
 }
 
 // The auto "dip variability" knob: the deepest a dip may reach at this position.
-// It rises from DEEPEST_FLOOR to the standard floor over the variability window,
-// so early dips can plunge all the way to a standstill and by the end of that
-// window every dip is the standard 100 -> 60. Through the taper it simply tracks
+// It rises from DEEPEST_FLOOR to the standard floor over the dip-variability
+// window, so early dips can plunge all the way to a standstill and by the end of
+// that window every dip is the standard 100 -> 60. Through the taper it tracks
 // the standard floor, collapsing the draw's span to zero.
 function deepestFloor(positionMs: number): number {
   const standard = standardFloor(positionMs);
-  return lerp(DEEPEST_FLOOR, standard, variabilityProgress(positionMs));
+  return lerp(DEEPEST_FLOOR, standard, dipVariabilityProgress(positionMs));
 }
 
-// The auto "timing variability" knob: how much a leg's duration may be cut. High
-// early, reaching 0 by the end of the variability window, so the taper is a slow,
-// steady climb to the hold rather than a ragged one.
+// The auto "timing variability" knob: how much a leg's duration may be cut. High at
+// the start, easing to 0 only at the very end of the program — unlike dip
+// variability, which is spent well before that. So the pace keeps a little lurch
+// through the taper, and it's the last legs of all that finally run their full,
+// unhurried length.
 function timingPercent(positionMs: number): number {
-  return lerp(
-    TIMING_PERCENT_HIGH,
-    TIMING_PERCENT_OFF,
-    variabilityProgress(positionMs),
-  );
+  return lerp(TIMING_PERCENT_HIGH, TIMING_PERCENT_OFF, progress(positionMs));
 }
 
 // Every dip draws its own floor, between the deepest reach allowed at this
