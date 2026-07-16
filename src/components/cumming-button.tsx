@@ -19,7 +19,7 @@ export function CummingButton({
     <Button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-40 ${
+      className={`rounded-lg bg-linear-to-br from-red-600 to-pink-500 py-3 text-lg font-bold text-white disabled:opacity-50 ${
         className ?? "w-full"
       }`}
       badge="cumming"

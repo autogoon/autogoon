@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
 import { CummingButton } from "@/components/cumming-button";
-import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { SessionControls } from "@/components/session-controls";
@@ -15,7 +14,6 @@ import { Segmented } from "@/components/segmented";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
-import { useKeywordSpotter } from "@/components/keyword-spotter";
 import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
@@ -41,7 +39,6 @@ export function GroovePanel({
   active: boolean;
 }) {
   const device = vacuglide.player;
-  const spotter = useKeywordSpotter();
   const stroke = useStrokeControls(vacuglide);
   const [speedPercent, setSpeedPercent] = useState(DEFAULT_SPEED);
   const [variability, setVariability] =
@@ -189,16 +186,13 @@ export function GroovePanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-4">
-      <ListeningFor words={spotter.listeningFor} flashing={spotter.flashing} />
-
+    <section className="flex w-full flex-col gap-8">
       <SessionControls
         state={state}
         connected={connected}
         onStart={start}
         onStop={stop}
         onReset={reset}
-        className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
 
       <Card>

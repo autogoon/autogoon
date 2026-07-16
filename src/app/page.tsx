@@ -15,6 +15,7 @@
 // the illegal mid-session switch simply cannot be said or tapped.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Activity } from "lucide-react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
 import { GroovePanel } from "@/components/algorithms/groove-panel";
@@ -28,47 +29,90 @@ import {
 } from "@/components/keyword-spotter";
 import { usePlayer } from "@/hooks/use-player";
 import { useVacuglideDevice } from "@/hooks/use-vacuglide-device";
+import {
+  DEFAULT_SAFE_WORD,
+  SAFE_WORD_STORAGE_KEY,
+  sanitizeSafeWord,
+} from "@/lib/safe-word";
 
 // The algorithm registry: each entry is a home-page listing (label +
-// description + accent), a screen, and a voice word (the id, live on home) all
+// description + icon), a screen, and a voice word (the id, live on home) all
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
-// The accent is the algorithm's signature gradient pair (the same one its
-// panel's Start button wears), as a border so the entries read at a glance.
+// Each entry wears its algorithm's signature bright colour twice: the icon
+// (iconClass) and the row's accent — a diagonal tint of the same colour with a
+// matching border.
+// TODO: the icons are a single placeholder until each algorithm gets its own.
 const ALGORITHMS = [
   {
     id: "goon",
     label: "Goon",
     description:
       "An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.",
-    accent: "border-fuchsia-500 bg-fuchsia-500/10 hover:bg-fuchsia-500/20",
+    icon: Activity,
+    iconClass: "text-fuchsia-500",
+    accent:
+      "border-fuchsia-500 bg-linear-to-br from-fuchsia-500/15 to-fuchsia-500/5 hover:from-fuchsia-500/25 hover:to-fuchsia-500/10",
   },
   {
     id: "groove",
     label: "Groove",
     description:
       "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
-    accent: "border-blue-500 bg-blue-500/10 hover:bg-blue-500/20",
+    icon: Activity,
+    iconClass: "text-cyan-500",
+    accent:
+      "border-cyan-500 bg-linear-to-br from-cyan-500/15 to-cyan-500/5 hover:from-cyan-500/25 hover:to-cyan-500/10",
   },
   {
     id: "autopilot",
     label: "Autopilot",
     description: "A faithful recreation of the Vacuglide's own autopilot.",
-    accent: "border-orange-500 bg-orange-500/10 hover:bg-orange-500/20",
+    icon: Activity,
+    iconClass: "text-orange-500",
+    accent:
+      "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
   },
 ] as const;
 
 type AlgorithmId = (typeof ALGORITHMS)[number]["id"];
-type Screen = "home" | "settings" | AlgorithmId;
+// An algorithm's setup is its own level (`#goon`), with the live session one
+// below (`#goon/play`) — for algorithms that have a setup view (only Goon so
+// far; Groove and Autopilot never navigate to a `/play`).
+type Screen = "home" | "settings" | AlgorithmId | `${AlgorithmId}/play`;
 
 const isAlgorithmId = (id: string): id is AlgorithmId =>
   ALGORITHMS.some((a) => a.id === id);
 
-// The screen the URL names: `#goon` / `#settings` etc.; no (known) hash = home.
+// The screen the URL names: `#goon`, `#goon/play`, `#settings`…; no (known)
+// hash = home.
 const hashScreen = (): Screen => {
-  const h = window.location.hash.slice(1);
-  return isAlgorithmId(h) || h === "settings" ? h : "home";
+  const [base, sub] = window.location.hash.slice(1).split("/");
+  if (base !== undefined && isAlgorithmId(base)) {
+    return sub === "play" ? `${base}/play` : base;
+  }
+  return base === "settings" ? "settings" : "home";
 };
+
+// One level up: play -> its algorithm's setup, everything else -> home.
+const parentOf = (s: Screen): Screen =>
+  s.includes("/") ? (s.split("/")[0] as Screen) : "home";
+
+// Words the safe word may not take: everything the grammar already routes
+// elsewhere — the global words plus the shared transport words the panels
+// declare. One utterance must never mean two things.
+const SAFE_WORD_RESERVED = [
+  "connect",
+  "exit",
+  "settings",
+  "start",
+  "stop",
+  "reset",
+  ...ALGORITHMS.map((a) => a.id),
+];
+// The validator the editing surfaces use, with the reserved list baked in.
+const sanitizeCandidate = (input: string): string | null =>
+  sanitizeSafeWord(input, SAFE_WORD_RESERVED);
 
 export default function Home() {
   return (
@@ -93,19 +137,41 @@ function App() {
   // screen you're on — no separate tracking needed.
   const running = player.state !== "armed";
 
+  // The safe word — the always-on hard stop (see src/lib/safe-word.ts). It
+  // lives here, not in the panels, so no algorithm can ever gate it: panels
+  // own `stop` and may one day ignore it; the safe word bypasses them and
+  // halts the Player directly. Persisted across sessions; the stored value is
+  // re-validated on load in case a stale one clashes with words added since.
+  const [safeWord, setSafeWordState] = useState(DEFAULT_SAFE_WORD);
+  useEffect(() => {
+    const stored = localStorage.getItem(SAFE_WORD_STORAGE_KEY);
+    if (stored === null) return;
+    const word = sanitizeCandidate(stored);
+    if (word !== null) setSafeWordState(word);
+  }, []);
+  // Takes an already-sanitized word (the editing surfaces validate with
+  // sanitizeCandidate before calling this).
+  const saveSafeWord = useCallback((word: string) => {
+    setSafeWordState(word);
+    localStorage.setItem(SAFE_WORD_STORAGE_KEY, word);
+  }, []);
+
   // The global grammar slot: connect (while disconnected) everywhere; the
-  // algorithm names on home; exit inside an algorithm while nothing runs.
+  // algorithm names on home; exit inside an algorithm while nothing runs; the
+  // safe word whenever something is playing — exactly where `stop` is live.
   const connected = vacuglide.connected;
+  const playing = player.state === "playing";
   useEffect(() => {
     const words: string[] = [];
     if (!connected) words.push("connect");
+    if (playing) words.push(safeWord);
     if (screen === "home") {
       words.push(...ALGORITHMS.map((a) => a.id), "settings");
     } else if (!running) {
       words.push("exit");
     }
     setGlobalWords(words);
-  }, [connected, running, screen, setGlobalWords]);
+  }, [connected, running, playing, safeWord, screen, setGlobalWords]);
 
   const runningRef = useRef(running);
   runningRef.current = running;
@@ -127,7 +193,14 @@ function App() {
   }, []);
   useEffect(() => {
     // Land wherever the URL points (reload / deep-link); plain loads read home.
-    setScreen(hashScreen());
+    // A `/play` deep-link is normalized to its setup level — the session it
+    // named didn't survive the reload, so re-entering play means re-arming.
+    const initial = hashScreen();
+    const landing = parentOf(initial) === "home" ? initial : parentOf(initial);
+    if (landing !== initial) {
+      window.history.replaceState(null, "", `#${landing}`);
+    }
+    setScreen(landing);
     const onPop = () => {
       if (runningRef.current) {
         window.history.pushState(null, "", `#${screenRef.current}`);
@@ -147,6 +220,10 @@ function App() {
   connectRef.current = vacuglide.connect;
   const logRef = useRef(vacuglide.log);
   logRef.current = vacuglide.log;
+  const safeWordRef = useRef(safeWord);
+  safeWordRef.current = safeWord;
+  const playerRef = useRef(vacuglide.player);
+  playerRef.current = vacuglide.player;
   useEffect(() => {
     return keywordListener((word) => {
       // Central log of every recognised command word, so every algorithm's voice
@@ -154,12 +231,19 @@ function App() {
       // active panel's own handler and the "Listening for" flash — all three ride
       // the same detection.
       logRef.current(`🎙 ${word}`, "hit");
+      if (word === safeWordRef.current) {
+        // The safe word: halt exactly like Stop, no reset. Routed before (and
+        // independently of) everything else; pause() no-ops unless playing, so
+        // hearing it outside a session (the test modal) is harmless.
+        void playerRef.current.pause();
+        return;
+      }
       if (word === "connect") {
         void connectRef.current();
         return;
       }
       if (word === "exit" && !runningRef.current) {
-        navigate("home");
+        navigate(parentOf(screenRef.current));
         return;
       }
       if (
@@ -172,9 +256,14 @@ function App() {
   }, [keywordListener, navigate]);
 
   // Top level = home + its Settings sibling, shown as the old tab strip;
-  // algorithm screens get the breadcrumb instead.
+  // algorithm screens get the breadcrumb instead: Home › Goon (setup), and
+  // Home › Goon › Play once a session's been generated.
   const topLevel = screen === "home" || screen === "settings";
-  const currentLabel = ALGORITHMS.find((a) => a.id === screen)?.label ?? null;
+  const screenBase = screen.split("/")[0]!;
+  const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
+  const atPlayLevel = screen.endsWith("/play");
+  const crumbLink =
+    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
 
   return (
     <>
@@ -205,21 +294,40 @@ function App() {
             ))}
           </nav>
         )}
-        {currentLabel !== null && (
+        {currentAlgorithm !== null && (
           // The breadcrumb: the way back up, locked while a session runs (the
           // old tab lock's rule — stop before you leave).
-          <nav className="flex items-center gap-2 border-b py-2 text-sm">
+          <nav className="flex items-center gap-2 border-b py-3 text-sm">
             <Button
               onClick={() => navigate("home")}
               disabled={running}
               title={running ? "Stop the session first" : undefined}
-              badge="exit"
-              className="text-muted-foreground hover:text-foreground bg-card rounded-lg border px-3 py-1.5 font-medium disabled:opacity-40"
+              className={crumbLink}
             >
-              ‹ Home
+              Home
             </Button>
             <span className="text-muted-foreground">›</span>
-            <span className="font-medium">{currentLabel}</span>
+            {atPlayLevel ? (
+              <>
+                <Button
+                  onClick={() => navigate(currentAlgorithm.id)}
+                  disabled={running}
+                  title={running ? "Stop the session first" : undefined}
+                  className={crumbLink}
+                >
+                  {currentAlgorithm.label}
+                </Button>
+                <span className="text-muted-foreground">›</span>
+                <span className="font-medium">Play</span>
+              </>
+            ) : (
+              <span className="font-medium">{currentAlgorithm.label}</span>
+            )}
+            {!running && (
+              <span className="text-muted-foreground ml-auto text-xs">
+                Say <code>exit</code> to go back
+              </span>
+            )}
           </nav>
         )}
         <main className="py-6">
@@ -232,11 +340,16 @@ function App() {
               }}
             />
           </div>
-          <div className={screen === "goon" ? undefined : "hidden"}>
+          <div className={screenBase === "goon" ? undefined : "hidden"}>
             <GoonPanel
               vacuglide={vacuglide}
               player={player}
-              active={screen === "goon"}
+              active={screenBase === "goon"}
+              view={atPlayLevel ? "play" : "setup"}
+              onEnterPlay={() => navigate("goon/play")}
+              safeWord={safeWord}
+              sanitizeSafeWord={sanitizeCandidate}
+              onSaveSafeWord={saveSafeWord}
             />
           </div>
           <div className={screen === "groove" ? undefined : "hidden"}>
@@ -254,7 +367,11 @@ function App() {
             />
           </div>
           <div className={screen === "settings" ? undefined : "hidden"}>
-            <SettingsPanel />
+            <SettingsPanel
+              safeWord={safeWord}
+              sanitizeSafeWord={sanitizeCandidate}
+              onSaveSafeWord={saveSafeWord}
+            />
           </div>
         </main>
       </div>

@@ -80,10 +80,10 @@ export function HoldButton({
       onPointerUp={release}
       onPointerLeave={release}
       onPointerCancel={release}
-      className={`flex-1 rounded-lg border py-3 text-lg disabled:opacity-40 ${
+      className={`flex-1 rounded-lg border py-3 text-lg disabled:opacity-50 ${
         active || forcedActive
           ? "scale-95 border-red-500 bg-red-500 text-white"
-          : "bg-card text-cyan-600 dark:text-cyan-400"
+          : "border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
       }`}
     >
       {label}

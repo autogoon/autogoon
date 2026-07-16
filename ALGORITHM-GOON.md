@@ -10,12 +10,14 @@ edging.
 
 ## Setup
 
-Goon opens on a **setup view**: pick your **session length** (10–120 minutes in
-5-minute steps, default **30** — say `shorter` / `longer` to step it), then hit
-**Play** (or say it). Play locks your choices in and takes you to the session
-itself — the transport, preview, stroke and intensity controls. Setup is
-deliberately not changeable mid-play; **Reset** brings you back to it. Play needs
-the device connected, like Start.
+Goon opens on its **setup view** (`Home › Goon`): pick your **session length**
+(10–120 minutes in 5-minute steps, default **30** — say `shorter` / `longer` to
+step it), then hit **Play** (or say it). Play locks your choices in and takes
+you down a level (`Home › Goon › Play`) to the session itself — the transport,
+preview, stroke and intensity controls. Setup is deliberately not changeable
+mid-play: **Reset** restarts the session from time 0 (staying put), while
+`exit` — or the breadcrumb — climbs back up to setup, and from there to home.
+Play needs the device connected, like Start.
 
 The build **scales to fit** whatever length you choose — a 15-minute Goon
 compresses the whole ramp, an hour-long one stretches it, and either way the
