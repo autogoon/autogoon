@@ -4,29 +4,27 @@
 // it, and declares its commands once (button == voice). Presentation + wiring;
 // event generation lives in @/lib/algorithms/goon-engine.
 //
-// The panel has two views, keyed off whether Goon holds the Player:
-//   - setup — shown while Goon is not the Player's source. Setup options (one
-//     card per concern) and a Play button, with a small grammar of its own
-//     (`shorter` / `longer` / `play`). Play commits the settings, arms the
-//     engine, and builds the preview.
+// The panel has two views, which are separate navigation levels (the page owns
+// which one shows, via the `view` prop — Home › Goon is setup, Home › Goon ›
+// Play is play):
+//   - setup — setup options (one card per concern) and a Play button, with a
+//     small grammar of its own (`shorter` / `longer` / `play`). Play commits
+//     the settings, arms the engine, and navigates to the play view.
 //   - play — the live session: transport, preview, stroke, intensity, timeline.
-//     Setup choices are deliberately locked here; Reset returns to setup.
-// Setup is each algorithm's own affair — nothing outside this panel knows Goon
-// has one.
+//     Setup choices are deliberately locked here; Reset re-arms from time 0 and
+//     stays put, while exit (page-owned) walks back up to setup.
 
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { CummingButton } from "@/components/cumming-button";
 import { FinishButton } from "@/components/finish-button";
-import { ListeningFor } from "@/components/listening-for";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
-import { useKeywordSpotter } from "@/components/keyword-spotter";
 import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
@@ -49,13 +47,16 @@ export function GoonPanel({
   vacuglide,
   player,
   active,
+  view,
+  onEnterPlay,
 }: {
   vacuglide: VacuglideDeviceController;
   player: PlayerView;
   active: boolean;
+  view: "setup" | "play";
+  onEnterPlay: () => void;
 }) {
   const device = vacuglide.player;
-  const spotter = useKeywordSpotter();
   const stroke = useStrokeControls(vacuglide);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
   const [sessionMinutes, setSessionMinutes] = useState(DEFAULT_SESSION_MINUTES);
@@ -68,19 +69,24 @@ export function GoonPanel({
   engineRef.current ??= new GoonEngine(DEFAULT_INTENSITY);
   const engine = engineRef.current;
 
-  // Goon's slice of the shared player, derived from the view. Not holding the
-  // Player means the setup view; the session-length slider is only live there,
-  // so whenever the play view is visible it reads the value Play committed.
+  // Goon's slice of the shared player, derived from the view. The play-view
+  // controls need both to be true: this is the play level AND Goon still holds
+  // the Player (isCurrent alone isn't enough — the engine stays armed when you
+  // exit back to setup).
   const isCurrent = player.source === engine;
+  const inPlay = view === "play";
   const state = isCurrent ? player.state : "armed";
   const sessionMs = sessionMinutes * 60_000;
 
-  // The setup -> play boundary: commit the setup choices to the engine, then
-  // arm. Gated on connection (like Start) — there's no play without a device.
+  // The setup -> play boundary: commit the setup choices to the engine, arm
+  // (always afresh — re-entering play is a new session), and navigate down to
+  // the play level. Gated on connection (like Start) — there's no play without
+  // a device.
   const enterPlay = useCallback(() => {
     engine.setProgramMs(sessionMinutes * 60_000);
     device.arm(engine);
-  }, [device, engine, sessionMinutes]);
+    onEnterPlay();
+  }, [device, engine, sessionMinutes, onEnterPlay]);
 
   const stepSessionMinutes = useCallback(
     (delta: number) =>
@@ -99,12 +105,13 @@ export function GoonPanel({
   const stop = useCallback(() => {
     void device.pause();
   }, [device]);
-  // Back to setup: release the Player (which stops the preview) and restore the
-  // live knobs. Setup choices keep their last values.
+  // Reset stays on the play view: restore the live knobs and re-arm, putting
+  // the program back at time 0. Setup choices are untouched (they're a level
+  // up — exit to change them).
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
     engine.setIntensity(DEFAULT_INTENSITY);
-    device.arm(null);
+    device.arm(engine);
   }, [device, engine]);
 
   const changeIntensity = useCallback(
@@ -136,9 +143,10 @@ export function GoonPanel({
   const connected = vacuglide.connected;
   // Ending actions (cumming, and Finish = jump to the end of the build) need a
   // device. Scrubbing the timeline (±1 min, faster/slower) and the intensity knob
-  // only shape the preview, so they're valid whenever Goon is the current source —
-  // connected or not.
-  const canEnd = isCurrent && connected;
+  // only shape the preview, so they're valid whenever the play view is up with
+  // Goon as the current source — connected or not.
+  const live = inPlay && isCurrent;
+  const canEnd = live && connected;
 
   const rawPositionMs = isCurrent ? player.positionMs : 0;
   const timeScale = isCurrent ? player.timeScale : 1;
@@ -153,51 +161,51 @@ export function GoonPanel({
     device.seekTo(Math.min(rawPositionMs + jumpMs, sessionMs));
   const back = () => device.seekTo(Math.max(0, rawPositionMs - jumpMs));
 
-  // Two grammars that never overlap: the setup words are live only while Goon
-  // does NOT hold the Player, everything else only while it does — so the
-  // recognizer is always listening for exactly the visible view's controls.
+  // Two grammars that never overlap: the setup words are live only on the setup
+  // level, everything else only on the play level — so the recognizer is always
+  // listening for exactly the visible view's controls.
   const commands: Command[] = [
     {
       word: "shorter",
-      enabled: !isCurrent,
+      enabled: !inPlay,
       run: () => stepSessionMinutes(-SESSION_STEP_MINUTES),
     },
     {
       word: "longer",
-      enabled: !isCurrent,
+      enabled: !inPlay,
       run: () => stepSessionMinutes(SESSION_STEP_MINUTES),
     },
-    { word: "play", enabled: !isCurrent && connected, run: enterPlay },
+    { word: "play", enabled: !inPlay && connected, run: enterPlay },
     ...stroke.keywords.map((k) => ({
       ...k,
-      enabled: k.enabled && isCurrent,
+      enabled: k.enabled && inPlay,
     })),
     {
       word: "start",
-      enabled: isCurrent && connected && state !== "playing",
+      enabled: live && connected && state !== "playing",
       run: start,
     },
-    { word: "stop", enabled: state === "playing", run: stop },
-    { word: "reset", enabled: isCurrent && state !== "playing", run: reset },
+    { word: "stop", enabled: inPlay && state === "playing", run: stop },
+    { word: "reset", enabled: live && state !== "playing", run: reset },
     {
       word: "more",
-      enabled: isCurrent,
+      enabled: live,
       run: () => stepIntensity(INTENSITY_STEP),
     },
     {
       word: "less",
-      enabled: isCurrent,
+      enabled: live,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
-    { word: "forward", enabled: canForward, run: forward },
-    { word: "back", enabled: isCurrent, run: back },
+    { word: "forward", enabled: live && canForward, run: forward },
+    { word: "back", enabled: live, run: back },
     {
       word: "finish",
       enabled: canEnd,
       run: () => device.seekTo(sessionMs),
     },
-    { word: "faster", enabled: isCurrent, run: () => device.faster() },
-    { word: "slower", enabled: isCurrent, run: () => device.slower() },
+    { word: "faster", enabled: live, run: () => device.faster() },
+    { word: "slower", enabled: live, run: () => device.slower() },
     { word: "cumming", enabled: canEnd, run: cumming },
   ];
   useVoiceCommands(active, commands);
@@ -207,14 +215,9 @@ export function GoonPanel({
     [vacuglide],
   );
 
-  if (!isCurrent) {
+  if (!inPlay) {
     return (
       <section className="flex w-full flex-col gap-4">
-        <ListeningFor
-          words={spotter.listeningFor}
-          flashing={spotter.flashing}
-        />
-
         <SessionLengthCard
           minutes={sessionMinutes}
           onChange={setSessionMinutes}
@@ -250,8 +253,6 @@ export function GoonPanel({
 
   return (
     <section className="flex w-full flex-col gap-4">
-      <ListeningFor words={spotter.listeningFor} flashing={spotter.flashing} />
-
       <SessionControls
         state={state}
         connected={connected}

@@ -135,12 +135,15 @@ own engine, so only the active algorithm's controls and voice words are live.
 
 `page.tsx` keeps the two genuinely global concerns. First, navigation: the top
 level (home + its Settings sibling tab) and the algorithm screens form a strict
-hierarchy with no sideways moves — `exit` (the word, or the breadcrumb's Home
-button) goes back up, and both are locked while a session runs, so switching
-algorithms mid-session simply can't be expressed; stop first. Screens mirror
-into the URL hash (`#goon`), so the browser back button, reloads and deep-links
-follow the same hierarchy — back is locked mid-session just like exit (the
-consumed history entry is pushed straight back). Second, the
+hierarchy with no sideways moves — `exit` (the word, or a breadcrumb link) goes
+up one level, and both are locked while a session runs, so switching algorithms
+mid-session simply can't be expressed; stop first. An algorithm with a setup
+view gets a play sub-level (`Home › Goon › Play`): Play navigates down into it,
+exit climbs back to setup. Screens mirror into the URL hash (`#goon`,
+`#goon/play`), so the browser back button, reloads and deep-links follow the
+same hierarchy — back is locked mid-session just like exit (the consumed
+history entry is pushed straight back), and a `/play` deep-link lands on its
+setup level, since the session it named didn't survive the reload. Second, the
 global voice words — `connect` while disconnected, the algorithm names and
 `settings` on home, `exit` on any other screen while idle — which it sets on
 the recognizer and routes itself (`connect` drives the device; an algorithm
