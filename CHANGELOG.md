@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-16
+
+- internal: Added the first test suites: Jest unit tests for the device client's rate-limit accounting and the Goon engine's generation contract, and a Playwright end-to-end voice test that plays a synthesized "autopilot" through a stubbed microphone and asserts the tab switches — run against real Chromium, Firefox, and WebKit. ([#8](https://github.com/autogoon/autogoon/pull/8))
+
 ## 2026-07-14
 
 - enhancement: Goon's dips now keep some unevenness in their timing right to the end of the build, instead of settling into a metronome at 25 minutes. The pace slackens off gradually across the whole 30 minutes, so only the last few dips run at their full, unhurried length. ([#7](https://github.com/autogoon/autogoon/pull/7))

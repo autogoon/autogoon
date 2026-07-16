@@ -18,7 +18,9 @@ Other scripts:
   issues the dev server tolerates).
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src` and the root config/docs.
+- `npm run format` — Prettier over `src`, `tests` and the root config/docs.
+- `npm test` — Jest unit tests.
+- `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
@@ -28,9 +30,10 @@ offline.
 
 - **Branch off `main`** — never commit to `main` directly. One branch/PR per piece
   of work.
-- **No test framework.** The app drives physical hardware, so verify changes by
-  running the app and driving the affected flow in the browser — not just
-  typecheck and build.
+- **Run the tests** (`npm test` and `npm run test:e2e` — see
+  [Testing](#testing)). They're a floor, not the whole story: the app drives
+  physical hardware, so behaviour changes still want the app run and the
+  affected flow driven in the browser — not just typecheck and build.
 - **Open a pull request** — push your branch (`git push -u origin <branch>`) and
   open a PR against `main` with `gh pr create` (the GitHub CLI), or the "Compare &
   pull request" prompt GitHub shows after you push.
@@ -45,6 +48,45 @@ offline.
   reformats.
 - **Adding an algorithm?** See [Adding an algorithm](#adding-an-algorithm) below
   for the full checklist.
+
+## Testing
+
+Two layers, both local-only for now (no CI):
+
+- **Unit tests** — `npm test` (Jest via `next/jest`, node environment). They live
+  next to what they test (`src/**/*.test.ts`) and cover pure logic: engine
+  generation contracts, the device client's rate-limit accounting. Import from
+  `@jest/globals` rather than relying on globals.
+- **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
+  spec runs on real Chromium, Firefox **and** WebKit; the config starts the dev
+  server on :8931 (or reuses one already running).
+
+The voice test is the reason the E2E layer exists: it proves the whole voice
+pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
+routing — works in each engine. Only the microphone _hardware_ is faked:
+`getUserMedia` is stubbed (via `MediaDevices.prototype` — instance assignment
+doesn't stick in WebKit) to return a WebAudio-built `MediaStream`, and the test
+plays a committed wav of a synthesized switch word into it once, then asserts
+the app heard it and switched tabs.
+
+Two hard-won details, should you write more voice tests:
+
+- The stub keeps a zero-value `ConstantSourceNode` feeding the stream at all
+  times. Firefox only produces frames while something feeds the destination
+  node, and vosk needs trailing silence to endpoint an utterance — without it
+  the word is heard but never finalised.
+- The test clicks the page **before** the audio pipeline comes up: in real use
+  the mic-permission click grants the user activation that lets Firefox/WebKit
+  run the app's `AudioContext`; the stub bypasses the prompt, so the test must
+  supply the activation itself.
+
+Fixtures are committed under `tests/fixtures/`; regenerate them with
+`tests/fixtures/generate.sh` (macOS only — it uses `say`).
+
+The first time the suite runs a given browser, macOS asks whether to allow it
+to use the microphone — approve it once per browser and it won't ask again.
+(The tests never use the real mic, but the browsers still request the
+permission.)
 
 ## Adding an algorithm
 

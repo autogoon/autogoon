@@ -12,7 +12,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Verifying changes
 
-There is **no test framework** here (no vitest/jest) — don't look for or write unit tests, and don't add a test runner without being asked. Because this app drives physical hardware, the real gate is `npm run typecheck` + `npm run build` plus driving the app in the browser and watching behaviour.
+- `npm test` — Jest unit tests (`src/**/*.test.ts`, colocated, node environment, import from `@jest/globals`). Cover pure logic: engine contracts, device-client accounting.
+- `npm run test:e2e` — Playwright (`tests/e2e/`), running each spec on real Chromium, Firefox and WebKit; starts (or reuses) the dev server on :8931. The voice test fakes only the microphone (a `MediaDevices.prototype.getUserMedia` stub playing a committed wav fixture) — everything downstream (worklet, vosk, command routing) is real. Read the Testing section in [DEVELOPERS.md](./DEVELOPERS.md#testing) before writing more voice tests: the stub's always-on silence source and the pre-pipeline activation click are both load-bearing.
+
+Tests are a floor, not the whole gate: the app drives physical hardware, so behaviour changes still want `npm run typecheck` + `npm run build` plus driving the app in the browser and watching behaviour.
 
 `npm run lint` runs with `--max-warnings 0`, and the repo is kept at **zero warnings**. This is a zero-warning outfit: always fix every lint and typecheck warning or error before you finish — including ones your direct changes didn't cause. Never leave a warning behind or treat one as "pre-existing, not mine." Gate on both `npm run lint` and `npm run typecheck` being completely clean (no output).
 
