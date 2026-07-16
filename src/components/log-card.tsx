@@ -38,6 +38,10 @@ export function LogCard({
     boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight });
   }, [entries]);
 
+  // The command log is a development tool — hidden entirely on live builds
+  // (NODE_ENV is inlined at build time, so the whole card compiles away).
+  if (process.env.NODE_ENV !== "development") return null;
+
   return (
     <Card title={title} className={className}>
       {header}

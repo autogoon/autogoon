@@ -12,32 +12,32 @@ const OPTIONS: Array<{
   option: AfterPlayOption;
   label: string;
   description: string;
-  ignoresStop: boolean;
+  ignoresVoice: boolean;
 }> = [
   {
     option: "wind-down",
     label: "Wind-down",
     description: "A slow, comfortable glide down to a standstill.",
-    ignoresStop: false,
+    ignoresVoice: false,
   },
   {
     option: "torture",
     label: "Torture",
     description: "Straight to full speed and held there.",
-    ignoresStop: true,
+    ignoresVoice: true,
   },
   {
     option: "stay-in",
-    label: "Stay-in",
+    label: "Ruin: stay in",
     description: "Stops dead.",
-    ignoresStop: true,
+    ignoresVoice: true,
   },
   {
     option: "eject",
-    label: "Eject",
+    label: "Ruin: eject",
     description:
       "Pushes you out — note it might take a few seconds, so you might want to say cumming earlier, which might change your experience with other options enabled at the same time.",
-    ignoresStop: true,
+    ignoresVoice: true,
   },
 ];
 
@@ -51,13 +51,16 @@ export function AfterPlayCard({
   return (
     <Card title="After-play">
       <p className="text-muted-foreground text-sm">
-        What happens when you say <code>cumming</code> — picked at random from
-        the ticked outcomes. Anything that ignores{" "}
+        What happens when you say{" "}
+        <span className="bg-background text-muted-foreground rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
+          cumming
+        </span>{" "}
+        — picked at random from the ticked outcomes. Anything that ignores{" "}
         <span className="text-foreground">stop</span> still answers to the safe
         word.
       </p>
       <div className="mt-3 flex flex-col gap-2">
-        {OPTIONS.map(({ option, label, description, ignoresStop }) => (
+        {OPTIONS.map(({ option, label, description, ignoresVoice }) => (
           <label
             key={option}
             className="flex cursor-pointer items-baseline gap-3"
@@ -70,9 +73,9 @@ export function AfterPlayCard({
             />
             <span>
               <span className="font-medium">{label}</span>
-              {ignoresStop && (
-                <span className="ml-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-normal tracking-wide whitespace-nowrap text-white uppercase dark:bg-amber-800">
-                  Ignores Stop
+              {ignoresVoice && (
+                <span className="ml-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-normal tracking-wide whitespace-nowrap text-white lowercase dark:bg-amber-800">
+                  Ignores voice
                 </span>
               )}
               <span className="text-muted-foreground ml-3 text-sm">
