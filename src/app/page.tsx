@@ -59,16 +59,27 @@ const ALGORITHMS = [
 ] as const;
 
 type AlgorithmId = (typeof ALGORITHMS)[number]["id"];
-type Screen = "home" | "settings" | AlgorithmId;
+// An algorithm's setup is its own level (`#goon`), with the live session one
+// below (`#goon/play`) — for algorithms that have a setup view (only Goon so
+// far; Groove and Autopilot never navigate to a `/play`).
+type Screen = "home" | "settings" | AlgorithmId | `${AlgorithmId}/play`;
 
 const isAlgorithmId = (id: string): id is AlgorithmId =>
   ALGORITHMS.some((a) => a.id === id);
 
-// The screen the URL names: `#goon` / `#settings` etc.; no (known) hash = home.
+// The screen the URL names: `#goon`, `#goon/play`, `#settings`…; no (known)
+// hash = home.
 const hashScreen = (): Screen => {
-  const h = window.location.hash.slice(1);
-  return isAlgorithmId(h) || h === "settings" ? h : "home";
+  const [base, sub] = window.location.hash.slice(1).split("/");
+  if (base !== undefined && isAlgorithmId(base)) {
+    return sub === "play" ? `${base}/play` : base;
+  }
+  return base === "settings" ? "settings" : "home";
 };
+
+// One level up: play -> its algorithm's setup, everything else -> home.
+const parentOf = (s: Screen): Screen =>
+  s.includes("/") ? (s.split("/")[0] as Screen) : "home";
 
 export default function Home() {
   return (
@@ -127,7 +138,14 @@ function App() {
   }, []);
   useEffect(() => {
     // Land wherever the URL points (reload / deep-link); plain loads read home.
-    setScreen(hashScreen());
+    // A `/play` deep-link is normalized to its setup level — the session it
+    // named didn't survive the reload, so re-entering play means re-arming.
+    const initial = hashScreen();
+    const landing = parentOf(initial) === "home" ? initial : parentOf(initial);
+    if (landing !== initial) {
+      window.history.replaceState(null, "", `#${landing}`);
+    }
+    setScreen(landing);
     const onPop = () => {
       if (runningRef.current) {
         window.history.pushState(null, "", `#${screenRef.current}`);
@@ -159,7 +177,7 @@ function App() {
         return;
       }
       if (word === "exit" && !runningRef.current) {
-        navigate("home");
+        navigate(parentOf(screenRef.current));
         return;
       }
       if (
@@ -172,9 +190,14 @@ function App() {
   }, [keywordListener, navigate]);
 
   // Top level = home + its Settings sibling, shown as the old tab strip;
-  // algorithm screens get the breadcrumb instead.
+  // algorithm screens get the breadcrumb instead: Home › Goon (setup), and
+  // Home › Goon › Play once a session's been generated.
   const topLevel = screen === "home" || screen === "settings";
-  const currentLabel = ALGORITHMS.find((a) => a.id === screen)?.label ?? null;
+  const screenBase = screen.split("/")[0]!;
+  const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
+  const atPlayLevel = screen.endsWith("/play");
+  const crumbLink =
+    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-40";
 
   return (
     <>
@@ -205,21 +228,40 @@ function App() {
             ))}
           </nav>
         )}
-        {currentLabel !== null && (
+        {currentAlgorithm !== null && (
           // The breadcrumb: the way back up, locked while a session runs (the
           // old tab lock's rule — stop before you leave).
-          <nav className="flex items-center gap-2 border-b py-2 text-sm">
+          <nav className="flex items-center gap-2 border-b py-3 text-sm">
             <Button
               onClick={() => navigate("home")}
               disabled={running}
               title={running ? "Stop the session first" : undefined}
-              badge="exit"
-              className="text-muted-foreground hover:text-foreground bg-card rounded-lg border px-3 py-1.5 font-medium disabled:opacity-40"
+              className={crumbLink}
             >
-              ‹ Home
+              Home
             </Button>
             <span className="text-muted-foreground">›</span>
-            <span className="font-medium">{currentLabel}</span>
+            {atPlayLevel ? (
+              <>
+                <Button
+                  onClick={() => navigate(currentAlgorithm.id)}
+                  disabled={running}
+                  title={running ? "Stop the session first" : undefined}
+                  className={crumbLink}
+                >
+                  {currentAlgorithm.label}
+                </Button>
+                <span className="text-muted-foreground">›</span>
+                <span className="font-medium">Play</span>
+              </>
+            ) : (
+              <span className="font-medium">{currentAlgorithm.label}</span>
+            )}
+            {!running && (
+              <span className="text-muted-foreground ml-auto text-xs">
+                Say <code>exit</code> to go back
+              </span>
+            )}
           </nav>
         )}
         <main className="py-6">
@@ -232,11 +274,13 @@ function App() {
               }}
             />
           </div>
-          <div className={screen === "goon" ? undefined : "hidden"}>
+          <div className={screenBase === "goon" ? undefined : "hidden"}>
             <GoonPanel
               vacuglide={vacuglide}
               player={player}
-              active={screen === "goon"}
+              active={screenBase === "goon"}
+              view={atPlayLevel ? "play" : "setup"}
+              onEnterPlay={() => navigate("goon/play")}
             />
           </div>
           <div className={screen === "groove" ? undefined : "hidden"}>
