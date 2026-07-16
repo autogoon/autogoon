@@ -42,15 +42,8 @@ takes effect live, so a change lands at once.
 
 ## Teases
 
-Automatic teasing runs in two phases:
-
-- **First 10 minutes** — a **5-second stroke− pulse every minute** (at 0–9 min,
-  starting right at session start).
-- **From 10 minutes on** — a brief **stroke+ pulse every 5 minutes** (at 10, 15,
-  20 min), suppressed in the final segment (after 25 min) so nothing interrupts the
-  approach.
-
-These are separate from the manual Stroke ± / `up`/`down` controls.
+One automatic tease: a single **10-second stroke− application** right at session
+start. It's separate from the manual Stroke ± / `up`/`down` controls.
 
 ## The finish and cumming
 
