@@ -3,14 +3,6 @@
 Concrete, intended work. Speculative direction and design thinking lives in
 [ROADMAP.md](./ROADMAP.md).
 
-## Algorithm settings
-
-- [ ] **Goon: expose session length.** Goon's run length is the hard-coded
-      30-minute `PROGRAM_MS`. Make it a setting, with the build **scaling to fit** —
-      a 15-min Goon compresses the ramp, a 45-min one stretches it — and the ramp
-      still driving toward the finish as the clock runs out. A per-Goon option, not
-      a cross-cutting one.
-
 ## Safety
 
 - [ ] **Safe word — an always-on hard stop.** A **user-defined** word that

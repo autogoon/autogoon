@@ -1,8 +1,9 @@
 // Goon as an AlgorithmEngine — an automatic, timeline-driven slow build: the
 // manual Groove dip pattern with its knobs driven automatically over a
-// program-position running 0 -> 30 min. position === the Player's clock, so each
-// cycle samples the curves at its own program-time and the ramp stays correct
-// after a jump. Pure event generation/scaling — no React, no device.
+// program-position running 0 -> the configured session length. position === the
+// Player's clock, so each cycle samples the curves at its own program-time and
+// the ramp stays correct after a jump. Pure event generation/scaling — no React,
+// no device.
 
 import {
   type PlayerContext,
@@ -11,9 +12,12 @@ import {
   type ValveEvent,
 } from "@/lib/program";
 
-// The whole build runs over this long. Position is clamped to [0, PROGRAM_MS];
-// past the end the pattern parks at the top forever.
-export const PROGRAM_MS = 30 * 60_000;
+// How long the whole build runs by default; the live value is the engine's
+// programMs, set from the panel's session-length setting before a session
+// starts. The curves scale to fit — a shorter session compresses the ramp, a
+// longer one stretches it. Position is clamped to [0, programMs]; past the end
+// the pattern parks at the top forever.
+export const DEFAULT_PROGRAM_MS = 30 * 60_000;
 
 // The auto "build" — Groove's Intensity — eases from BUILD_START to BUILD_PEAK
 // across the program (BUILD_EXP > 1 => ease-in). BUILD_START is 25 so the start
@@ -22,12 +26,12 @@ const BUILD_START = 25;
 const BUILD_PEAK = 100;
 const BUILD_EXP = 1.3;
 
-// The dip has two parts. Over the first DIP_VARIABILITY_MS, Groove's dip
-// variability knob is swept from "high" down to "off". Then the remaining time is a
-// taper: the dip itself flattens away to leave the hold at the top. Timing
-// variability keeps its own schedule, spanning the whole program (see
-// timingPercent), so the legs are still losing their snap through the taper.
-const DIP_VARIABILITY_MS = 25 * 60_000;
+// The dip has two parts. Over the first DIP_VARIABILITY_FRACTION of the session,
+// Groove's dip variability knob is swept from "high" down to "off". Then the
+// remaining time is a taper: the dip itself flattens away to leave the hold at
+// the top. Timing variability keeps its own schedule, spanning the whole session
+// (see timingPercent), so the legs are still losing their snap through the taper.
+const DIP_VARIABILITY_FRACTION = 25 / 30;
 
 // Timing variability: how much of a leg's baseline duration may be randomly cut.
 const TIMING_PERCENT_HIGH = 75;
@@ -69,9 +73,9 @@ const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 400;
 
-// Past PROGRAM_MS the build is over and Goon holds at top speed. Emit that hold
-// one minute at a time (extended by the normal lookahead) rather than as a single
-// far-future event, so the tail stays a uniform stream.
+// Past the end of the session the build is over and Goon holds at top speed.
+// Emit that hold one minute at a time (extended by the normal lookahead) rather
+// than as a single far-future event, so the tail stays a uniform stream.
 const PARK_STEP_MS = 60_000;
 
 // The far-future hold used for the cumming rest.
@@ -85,40 +89,37 @@ interface Waypoint {
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 const clamp01 = (x: number): number => Math.max(0, Math.min(1, x));
 
-// The curves that define the build, each sampled at a program position. These are
-// the automatic stand-ins for Groove's three manual knobs.
-
-// Program position as a 0..1 fraction (clamped, so anything past the end reads 1).
-function progress(positionMs: number): number {
-  return clamp01(positionMs / PROGRAM_MS);
-}
+// The curves that define the build, each sampled at a program position expressed
+// as a 0..1 fraction of the session (`t`, clamped — anything past the end reads
+// 1). Working in fractions is what makes the build scale to fit any session
+// length. These are the automatic stand-ins for Groove's three manual knobs.
 
 // Position within the dip-variability window, as a 0..1 fraction. Reads 1 for the
 // whole taper, so the dip curve sits at "off" once it starts.
-function dipVariabilityProgress(positionMs: number): number {
-  return clamp01(positionMs / DIP_VARIABILITY_MS);
+function dipVariabilityProgress(t: number): number {
+  return clamp01(t / DIP_VARIABILITY_FRACTION);
 }
 
 // Position within the taper, as a 0..1 fraction: 0 until dip variability is spent,
 // then rising to 1 at the end of the program.
-function taperProgress(positionMs: number): number {
+function taperProgress(t: number): number {
   return clamp01(
-    (positionMs - DIP_VARIABILITY_MS) / (PROGRAM_MS - DIP_VARIABILITY_MS),
+    (t - DIP_VARIABILITY_FRACTION) / (1 - DIP_VARIABILITY_FRACTION),
   );
 }
 
 // The auto "speed" knob: eased BUILD_START -> BUILD_PEAK across the program, right
 // through the taper.
-function buildSpeedPercent(positionMs: number): number {
-  const eased = Math.pow(progress(positionMs), BUILD_EXP);
+function buildSpeedPercent(t: number): number {
+  const eased = Math.pow(t, BUILD_EXP);
   return lerp(BUILD_START, BUILD_PEAK, eased);
 }
 
 // How low a dip bottoms out when dip variability has nothing to add. Fixed at
 // STANDARD_FLOOR through the dip-variability window, then lifted to the peak across
 // the taper — so the dip shrinks to nothing and the program ends holding at top.
-function standardFloor(positionMs: number): number {
-  return lerp(STANDARD_FLOOR, PEAK_SPEED, taperProgress(positionMs));
+function standardFloor(t: number): number {
+  return lerp(STANDARD_FLOOR, PEAK_SPEED, taperProgress(t));
 }
 
 // The auto "dip variability" knob: the deepest a dip may reach at this position.
@@ -126,9 +127,9 @@ function standardFloor(positionMs: number): number {
 // window, so early dips can plunge all the way to a standstill and by the end of
 // that window every dip is the standard 100 -> 60. Through the taper it tracks
 // the standard floor, collapsing the draw's span to zero.
-function deepestFloor(positionMs: number): number {
-  const standard = standardFloor(positionMs);
-  return lerp(DEEPEST_FLOOR, standard, dipVariabilityProgress(positionMs));
+function deepestFloor(t: number): number {
+  const standard = standardFloor(t);
+  return lerp(DEEPEST_FLOOR, standard, dipVariabilityProgress(t));
 }
 
 // The auto "timing variability" knob: how much a leg's duration may be cut. High at
@@ -136,16 +137,16 @@ function deepestFloor(positionMs: number): number {
 // variability, which is spent well before that. So the pace keeps a little lurch
 // through the taper, and it's the last legs of all that finally run their full,
 // unhurried length.
-function timingPercent(positionMs: number): number {
-  return lerp(TIMING_PERCENT_HIGH, TIMING_PERCENT_OFF, progress(positionMs));
+function timingPercent(t: number): number {
+  return lerp(TIMING_PERCENT_HIGH, TIMING_PERCENT_OFF, t);
 }
 
 // Every dip draws its own floor, between the deepest reach allowed at this
 // position and the standard floor, skewed toward the deep end by DIP_SKEW. In the
 // taper the two coincide, so the floor is just the tapered value.
-function drawFloor(positionMs: number): number {
-  const deepest = deepestFloor(positionMs);
-  const span = standardFloor(positionMs) - deepest;
+function drawFloor(t: number): number {
+  const deepest = deepestFloor(t);
+  const span = standardFloor(t) - deepest;
   return Math.round(deepest + span * Math.pow(Math.random(), DIP_SKEW));
 }
 
@@ -196,20 +197,21 @@ function buildLeg(
   return { waypoints, endAt: at };
 }
 
-// One full dip cycle at this program position. Sample the build speed and both
-// variability curves here, then build the raw Groove dip PEAK -> floor -> PEAK as
-// two legs, mapping every waypoint through scaleSpeed so the whole dip sits under
-// the current build speed. The floor is drawn once per cycle, not per leg, so the
-// down-leg and the up-leg share the same bottom. Early on this is a deep, slow,
-// wide swing; near the end it settles into a shallow bob at the top. Sampling at
-// positionMs (the live clock) is what keeps the ramp correct after a jump.
+// One full dip cycle at this program position (`t`, a 0..1 fraction of the
+// session). Sample the build speed and both variability curves here, then build
+// the raw Groove dip PEAK -> floor -> PEAK as two legs, mapping every waypoint
+// through scaleSpeed so the whole dip sits under the current build speed. The
+// floor is drawn once per cycle, not per leg, so the down-leg and the up-leg
+// share the same bottom. Early on this is a deep, slow, wide swing; near the end
+// it settles into a shallow bob at the top. Sampling at the live clock's position
+// is what keeps the ramp correct after a jump.
 function buildGoonCycle(
-  positionMs: number,
+  t: number,
   startAt: number,
 ): { waypoints: Waypoint[]; endAt: number } {
-  const speedPercent = buildSpeedPercent(positionMs);
-  const variabilityPercent = timingPercent(positionMs);
-  const floor = drawFloor(positionMs);
+  const speedPercent = buildSpeedPercent(t);
+  const variabilityPercent = timingPercent(t);
+  const floor = drawFloor(t);
   const legs: ReadonlyArray<{ from: number; to: number }> = [
     { from: PEAK_SPEED, to: floor },
     { from: floor, to: PEAK_SPEED },
@@ -275,6 +277,7 @@ function teaseEvents(from: number, until: number): ValveEvent[] {
 
 export class GoonEngine implements AlgorithmEngine {
   private intensity: number;
+  private programMs = DEFAULT_PROGRAM_MS;
   private cumming = false;
   private cummingEmitted = false;
 
@@ -289,6 +292,14 @@ export class GoonEngine implements AlgorithmEngine {
 
   setIntensity(percent: number): void {
     this.intensity = Math.max(0, Math.min(100, percent));
+  }
+
+  // Session length — a setup-time setting, set before a session is armed (the
+  // build scales to fit). Deliberately not survivable mid-run: nothing rescales
+  // already-generated events. Floored at a minute so a bad value can't collapse
+  // the build to nothing.
+  setProgramMs(ms: number): void {
+    this.programMs = Math.max(60_000, ms);
   }
 
   beginCumming(): void {
@@ -314,12 +325,15 @@ export class GoonEngine implements AlgorithmEngine {
     const events: SpeedEvent[] = [];
     let at = fromTime;
     while (at < untilTime) {
-      if (at >= PROGRAM_MS) {
+      if (at >= this.programMs) {
         events.push({ kind: "speed", at, speed: PEAK_SPEED });
         at += PARK_STEP_MS;
         continue;
       }
-      const { waypoints, endAt } = buildGoonCycle(at, at);
+      const { waypoints, endAt } = buildGoonCycle(
+        clamp01(at / this.programMs),
+        at,
+      );
       for (const wp of waypoints) {
         events.push({ kind: "speed", at: wp.at, speed: wp.speed });
       }

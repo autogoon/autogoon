@@ -17,8 +17,8 @@ install; just open it, enter your device token, and go.
 - **Private by default** — speech recognition runs entirely on your machine; only
   device-control traffic leaves it.
 - **Three modes**, each steered live by voice:
-  - **Goon** — an automatic 30-minute slow build, with an intensity dial and
-    faster/slower time-stretch.
+  - **Goon** — an automatic slow build over a session length you choose
+    (10–120 min), with an intensity dial and faster/slower time-stretch.
   - **Groove** — a manual stroke pattern you shape live (intensity + dip and
     timing variability).
   - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.

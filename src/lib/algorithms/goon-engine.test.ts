@@ -46,6 +46,24 @@ describe("GoonEngine.generateSpeed", () => {
     expect(engine.generateSpeed(60_000, 120_000, CTX)).toEqual([]);
   });
 
+  it("scales the build to the configured session length", () => {
+    const short = new GoonEngine(100);
+    short.setProgramMs(10 * 60_000);
+    // Past the configured end the build parks, holding at top speed…
+    const parked = short.generateSpeed(10 * 60_000, 11 * 60_000, CTX);
+    expect(parked.length).toBeGreaterThan(0);
+    expect(parked.every((e) => e.speed === 100)).toBe(true);
+
+    // …while the default 30-minute build at the same position is still
+    // mid-ramp, its dips sitting well under the top.
+    const midBuild = new GoonEngine(100).generateSpeed(
+      10 * 60_000,
+      12 * 60_000,
+      CTX,
+    );
+    expect(midBuild.some((e) => e.speed < 100)).toBe(true);
+  });
+
   it("resumes generating after reset() clears a cumming session", () => {
     const engine = new GoonEngine(50);
     engine.beginCumming();
