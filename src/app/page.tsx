@@ -15,6 +15,7 @@
 // the illegal mid-session switch simply cannot be said or tapped.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Activity } from "lucide-react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
 import { GroovePanel } from "@/components/algorithms/groove-panel";
@@ -35,31 +36,42 @@ import {
 } from "@/lib/safe-word";
 
 // The algorithm registry: each entry is a home-page listing (label +
-// description + accent), a screen, and a voice word (the id, live on home) all
+// description + icon), a screen, and a voice word (the id, live on home) all
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
-// The accent is the algorithm's signature gradient pair (the same one its
-// panel's Start button wears), as a border so the entries read at a glance.
+// Each entry wears its algorithm's signature bright colour twice: the icon
+// (iconClass) and the row's accent — a diagonal tint of the same colour with a
+// matching border.
+// TODO: the icons are a single placeholder until each algorithm gets its own.
 const ALGORITHMS = [
   {
     id: "goon",
     label: "Goon",
     description:
       "An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.",
-    accent: "border-fuchsia-500 bg-fuchsia-500/10 hover:bg-fuchsia-500/20",
+    icon: Activity,
+    iconClass: "text-fuchsia-500",
+    accent:
+      "border-fuchsia-500 bg-linear-to-br from-fuchsia-500/15 to-fuchsia-500/5 hover:from-fuchsia-500/25 hover:to-fuchsia-500/10",
   },
   {
     id: "groove",
     label: "Groove",
     description:
       "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
-    accent: "border-blue-500 bg-blue-500/10 hover:bg-blue-500/20",
+    icon: Activity,
+    iconClass: "text-cyan-500",
+    accent:
+      "border-cyan-500 bg-linear-to-br from-cyan-500/15 to-cyan-500/5 hover:from-cyan-500/25 hover:to-cyan-500/10",
   },
   {
     id: "autopilot",
     label: "Autopilot",
     description: "A faithful recreation of the Vacuglide's own autopilot.",
-    accent: "border-orange-500 bg-orange-500/10 hover:bg-orange-500/20",
+    icon: Activity,
+    iconClass: "text-orange-500",
+    accent:
+      "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
   },
 ] as const;
 
@@ -251,7 +263,7 @@ function App() {
   const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
   const crumbLink =
-    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-40";
+    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
 
   return (
     <>

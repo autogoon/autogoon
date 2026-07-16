@@ -6,6 +6,7 @@
 // setup view instead).
 
 import { useEffect, useState } from "react";
+import { Card } from "@/components/card";
 import { SafeWordField } from "@/components/safe-word-field";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -51,17 +52,15 @@ export function SettingsPanel({
         <ThemeToggle />
       </div>
 
-      <div className="space-y-2">
-        <h2 className="font-semibold">Safe word</h2>
+      <Card title="Safe word">
         <SafeWordField
           safeWord={safeWord}
           sanitize={sanitizeSafeWord}
           onSave={onSaveSafeWord}
         />
-      </div>
+      </Card>
 
-      <div className="space-y-2">
-        <h2 className="font-semibold">Info</h2>
+      <Card title="Info">
         <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
           <dt>Commit</dt>
           <dd className="font-mono">
@@ -83,7 +82,7 @@ export function SettingsPanel({
           <dt>Built</dt>
           <dd className="text-foreground">{builtAt ?? "…"}</dd>
         </dl>
-      </div>
+      </Card>
     </section>
   );
 }

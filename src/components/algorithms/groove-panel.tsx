@@ -186,14 +186,13 @@ export function GroovePanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-4">
+    <section className="flex w-full flex-col gap-8">
       <SessionControls
         state={state}
         connected={connected}
         onStart={start}
         onStop={stop}
         onReset={reset}
-        className="bg-gradient-to-br from-blue-600 to-cyan-500"
       />
 
       <Card>

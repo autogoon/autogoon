@@ -13,8 +13,14 @@
 // fails the test is genuinely unusable, not just drowned out.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/button";
+import {
+  CONTROL_BORDER,
+  CONTROL_BUTTON,
+  CONTROL_INPUT,
+} from "@/components/controls";
 import { useKeywordSpotter } from "@/components/keyword-spotter";
 
 export function SafeWordField({
@@ -67,7 +73,7 @@ export function SafeWordField({
       <p className="text-muted-foreground text-sm">
         Use Test to make sure the app can recognise your word.
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-stretch gap-2">
         <input
           type="text"
           value={draft}
@@ -82,12 +88,12 @@ export function SafeWordField({
           aria-label="Safe word"
           spellCheck={false}
           autoComplete="off"
-          className="bg-background min-w-0 flex-1 rounded-lg border px-3 py-2"
+          className={`${CONTROL_INPUT} min-w-0 flex-1`}
         />
         <Button
           onClick={() => setTestWord(candidate)}
           disabled={candidate === null}
-          className="bg-card shrink-0 rounded-lg border px-3 py-2 text-sm disabled:opacity-40"
+          className={`${CONTROL_BUTTON} shrink-0`}
         >
           Test
         </Button>
@@ -151,9 +157,13 @@ function SafeWordTestModal({
     [partialListener],
   );
 
-  return (
+  // Portaled to <body>: rendered in place it would count as a sibling in the
+  // field's space-y stack and shift the layout below by the stack margin.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-card w-full max-w-sm space-y-4 rounded-xl border p-6 text-center">
+      <div
+        className={`bg-background w-full max-w-sm space-y-4 rounded-xl border ${CONTROL_BORDER} p-6 text-center`}
+      >
         <h2 className="font-semibold">Safe word test</h2>
         {!listening ? (
           <p className="text-muted-foreground text-sm">
@@ -188,6 +198,7 @@ function SafeWordTestModal({
           Close
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
