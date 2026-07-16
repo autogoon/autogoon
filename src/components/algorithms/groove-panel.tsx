@@ -39,7 +39,7 @@ export function GroovePanel({
   active: boolean;
 }) {
   const device = vacuglide.player;
-  const stroke = useStrokeControls(vacuglide);
+  const stroke = useStrokeControls(vacuglide, player);
   const [speedPercent, setSpeedPercent] = useState(DEFAULT_SPEED);
   const [variability, setVariability] =
     useState<VariabilityLevel>(DEFAULT_VARIABILITY);

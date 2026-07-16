@@ -66,7 +66,7 @@ export function GoonPanel({
   onSaveSafeWord: (word: string) => void;
 }) {
   const device = vacuglide.player;
-  const stroke = useStrokeControls(vacuglide);
+  const stroke = useStrokeControls(vacuglide, player);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
   const [sessionMinutes, setSessionMinutes] = useState(DEFAULT_SESSION_MINUTES);
 

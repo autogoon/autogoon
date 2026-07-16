@@ -9,12 +9,16 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Command } from "@/hooks/use-voice-commands";
+import type { PlayerView } from "@/hooks/use-player";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 
 const STROKE_PULSE_MINUS_MS = 4000;
 const STROKE_PULSE_PLUS_MS = 400;
 
-export function useStrokeControls(vacuglide: VacuglideDeviceController) {
+export function useStrokeControls(
+  vacuglide: VacuglideDeviceController,
+  player: PlayerView,
+) {
   const { valvePlus, valveMinus, log, connected } = vacuglide;
 
   // Which valve a voice pulse is currently holding open, so the matching
@@ -23,35 +27,32 @@ export function useStrokeControls(vacuglide: VacuglideDeviceController) {
     null,
   );
 
+  // A pulse is scheduled as a whole up front: open now, close in the pulse
+  // length (real milliseconds — while a program plays both land in it as
+  // program events, undilated by the playback rate; see valvePlus/valveMinus).
+  // The highlight clear is purely cosmetic, so a plain timer is fine for it.
   const strokePulse = useCallback(
     (dir: "plus" | "minus") => {
       const valve = dir === "plus" ? valvePlus : valveMinus;
-      const clear = () => setStrokePulsing((cur) => (cur === dir ? null : cur));
+      const ms = dir === "minus" ? STROKE_PULSE_MINUS_MS : STROKE_PULSE_PLUS_MS;
+      const onError = (err: Error) => log(`error: ${err.message}`, "error");
       setStrokePulsing(dir);
-      valve(true)
-        .then(() => {
-          setTimeout(
-            () => {
-              valve(false).catch((err: Error) =>
-                log(`error: ${err.message}`, "error"),
-              );
-              clear();
-            },
-            dir == "minus" ? STROKE_PULSE_MINUS_MS : STROKE_PULSE_PLUS_MS,
-          );
-        })
-        .catch((err: Error) => {
-          log(`error: ${err.message}`, "error");
-          clear();
-        });
+      valve(true).catch(onError);
+      valve(false, ms).catch(onError);
+      setTimeout(
+        () => setStrokePulsing((cur) => (cur === dir ? null : cur)),
+        ms,
+      );
     },
     [valvePlus, valveMinus, log],
   );
 
-  // Manual stroke drives the valves directly, so it is valid exactly when a
-  // device is connected — regardless of play state. This one flag is the source
-  // of truth for both the voice words below and the Stroke buttons' enabled state.
-  const canStroke = connected;
+  // Manual stroke needs a connected device — regardless of play state — and
+  // yields to a scheduled stroke: while an engine-generated stroke is holding
+  // a valve open, the manual controls are out (ruin/torture endings depend on
+  // their schedule playing out untouched). This one flag is the source of
+  // truth for both the voice words below and the Stroke buttons' enabled state.
+  const canStroke = connected && !player.strokeBusy;
 
   const keywords = useMemo<Command[]>(
     () => [

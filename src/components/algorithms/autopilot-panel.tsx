@@ -39,7 +39,7 @@ export function AutopilotPanel({
   active: boolean;
 }) {
   const device = vacuglide.player;
-  const stroke = useStrokeControls(vacuglide);
+  const stroke = useStrokeControls(vacuglide, player);
   const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
   const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
   const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
