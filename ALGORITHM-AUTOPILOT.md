@@ -71,8 +71,8 @@ it (`speed −= round(min(speed − 50, 20) × 0.5)`); Moderate leaves it alone.
 ## Vacuum maintenance (suction control)
 
 Autoblow's own name, and an apt one: the device can lose a little suction over a
-session, so this periodically fires a brief **stroke-minus** pulse to re-apply the
-vacuum and keep the toy firmly seated — **Off**, **Light**, or **Heavy**. Because
+session, so this fires a brief **stroke-minus** pulse to re-apply the vacuum and
+keep the toy firmly seated — **Off**, **Light**, or **Heavy**. Because
 stroke-minus also shortens the stroke each time, keeping it topped up trends toward
 short strokes with strong suction — rarely strictly necessary, but a feel some
 enjoy:
@@ -83,9 +83,18 @@ enjoy:
 | Low (little) |        200ms |             0.8 |   3000ms |
 | High (more)  |        400ms |             0.6 |   2000ms |
 
-Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))` —
-inversely proportional to the speed at that moment, so slow strokes get long pulses
-(Light at speed 10: 800 ms) and fast strokes short ones.
+A pulse fires only **when a speed move is sent** — at a script step transition,
+never mid-step — and only if at least `interval` has passed since the last pulse.
+The interval is a **minimum gap between pulses, not a cadence**: a long step gets
+one pulse at its start and nothing more, and steps arriving sooner than the gap
+are skipped. The gate starts closed (`lastSuctionTime` starts at 0, so nothing
+fires in the first `interval` of a session); changing the suction setting resets
+it, so the next move pulses immediately.
+
+Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))`, where
+`speed` is the move just sent (intensity-scaled, jitter included) — inversely
+proportional, so slow strokes get long pulses (Light at speed 10: 800 ms) and
+fast strokes short ones.
 
 ## Manual override
 
