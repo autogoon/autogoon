@@ -226,7 +226,7 @@ export function GoonPanel({
 
   if (!inPlay) {
     return (
-      <section className="flex w-full flex-col gap-4">
+      <section className="flex w-full flex-col gap-8">
         <SessionLengthCard
           minutes={sessionMinutes}
           onChange={setSessionMinutes}
@@ -244,7 +244,7 @@ export function GoonPanel({
           onClick={enterPlay}
           disabled={!connected}
           title={!connected ? "Connect the device first" : undefined}
-          className="w-full rounded-lg bg-linear-to-br from-fuchsia-600 to-rose-500 py-3.5 text-lg font-bold text-white disabled:opacity-40"
+          className="w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
           badge="play"
         >
           Play
@@ -266,17 +266,16 @@ export function GoonPanel({
   const displayPositionMs = positionMs / timeScale;
   const displayTotalMs = sessionMs / timeScale;
   const jumpClass =
-    "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-40";
+    "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-50";
 
   return (
-    <section className="flex w-full flex-col gap-4">
+    <section className="flex w-full flex-col gap-8">
       <SessionControls
         state={state}
         connected={connected}
         onStart={start}
         onStop={stop}
         onReset={reset}
-        className="bg-linear-to-br from-fuchsia-600 to-rose-500"
       />
 
       <Card>

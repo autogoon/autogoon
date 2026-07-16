@@ -162,14 +162,13 @@ export function AutopilotPanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-4">
+    <section className="flex w-full flex-col gap-8">
       <SessionControls
         state={state}
         connected={connected}
         onStart={start}
         onStop={stop}
         onReset={reset}
-        className="bg-linear-to-br from-orange-500 to-pink-500"
       />
 
       <Card>

@@ -14,14 +14,12 @@ export function SessionControls({
   onStart,
   onStop,
   onReset,
-  className,
 }: {
   state: PlayerState;
   connected: boolean;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
-  className?: string;
 }) {
   if (state === "playing") {
     return (
@@ -41,9 +39,7 @@ export function SessionControls({
         onClick={onStart}
         disabled={!connected}
         title={!connected ? "Connect the device first" : undefined}
-        className={`flex-1 rounded-lg py-3.5 text-lg font-bold text-white disabled:opacity-40 ${
-          className ?? "bg-blue-600"
-        }`}
+        className="flex-1 rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
         badge="start"
       >
         Start
