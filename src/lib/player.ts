@@ -43,6 +43,11 @@ export class Player {
   protected rate = 1;
   protected events: ProgramEvent[] = [];
   protected cursor = 0; // index of the next unfired event
+  // Live valve ownership, per valve: whether a manual (inserted) or scheduled
+  // (engine-generated) open is in effect. Scheduled strokes outrank manual
+  // ones — see fireValve().
+  private manualOpen = { plus: false, minus: false };
+  private generatedOpen = { plus: false, minus: false };
   private lastDeviceSpeed: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners: Array<() => void> = [];
@@ -63,12 +68,20 @@ export class Player {
     for (const fn of this.listeners) fn();
   }
 
+  // A scheduled stroke is in effect (its open has fired, its close not yet).
+  // While true, the manual stroke controls are unavailable — a scheduled
+  // stroke must play out exactly (ruin/torture endings depend on it).
+  get strokeBusy(): boolean {
+    return this.generatedOpen.plus || this.generatedOpen.minus;
+  }
+
   getState(): {
     state: PlayerState;
     isPlaying: boolean;
     currentSpeed: number;
     clock: number;
     rate: number;
+    strokeBusy: boolean;
   } {
     return {
       state: this.state,
@@ -76,6 +89,7 @@ export class Player {
       currentSpeed: this.currentSpeed,
       clock: this.clock,
       rate: this.rate,
+      strokeBusy: this.strokeBusy,
     };
   }
 
@@ -112,6 +126,8 @@ export class Player {
     this.cursor = 0;
     this.lastDeviceSpeed = null;
     this.currentSpeed = 0;
+    this.manualOpen = { plus: false, minus: false };
+    this.generatedOpen = { plus: false, minus: false };
     source?.reset();
   }
 
@@ -206,13 +222,14 @@ export class Player {
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
-    // cursor (the in-effect speed is derived); valve events set the valve state.
+    // cursor (the in-effect speed is derived); valve events go through the
+    // stroke-precedence rules.
     while (
       this.cursor < this.events.length &&
       this.events[this.cursor]!.at <= this.clock
     ) {
       const ev = this.events[this.cursor]!;
-      if (ev.kind === "valve") this.setValve(ev.valve, ev.open);
+      if (ev.kind === "valve") this.fireValve(ev);
       this.cursor++;
     }
 
@@ -229,6 +246,57 @@ export class Player {
     }
 
     this.clock += TICK_MS * this.rate;
+  }
+
+  // Apply a due valve event, honouring stroke precedence: scheduled
+  // (engine-generated) strokes outrank manual (inserted) ones — ruin/torture
+  // endings depend on their valve schedule playing out exactly. A scheduled
+  // open force-releases any running manual stroke (the release fires now, its
+  // pending close is cancelled); a manual open landing while a scheduled
+  // stroke is open is dropped along with its pending close; and a manual
+  // close applies only while its manual open is in effect, so a hold released
+  // after preemption can't cut a scheduled hold short.
+  private fireValve(ev: ValveEvent): void {
+    if (ev.manual === true) {
+      if (ev.open) {
+        if (this.strokeBusy) {
+          this.cancelPendingManual(ev.valve);
+          return;
+        }
+        this.manualOpen[ev.valve] = true;
+        this.setValve(ev.valve, true);
+        return;
+      }
+      if (!this.manualOpen[ev.valve]) return;
+      this.manualOpen[ev.valve] = false;
+      this.setValve(ev.valve, false);
+      return;
+    }
+    if (ev.open) this.releaseManualStrokes();
+    this.generatedOpen[ev.valve] = ev.open;
+    this.setValve(ev.valve, ev.open);
+  }
+
+  // Force-release every running manual stroke: fire its close now and cancel
+  // its scheduled release.
+  private releaseManualStrokes(): void {
+    for (const valve of ["plus", "minus"] as const) {
+      if (!this.manualOpen[valve]) continue;
+      this.manualOpen[valve] = false;
+      this.setValve(valve, false);
+      this.cancelPendingManual(valve);
+    }
+  }
+
+  // Remove this valve's not-yet-fired manual events from the program. Strictly
+  // after the cursor: the event at the cursor is the one being fired.
+  private cancelPendingManual(valve: "plus" | "minus"): void {
+    for (let i = this.events.length - 1; i > this.cursor; i--) {
+      const ev = this.events[i]!;
+      if (ev.kind === "valve" && ev.manual === true && ev.valve === valve) {
+        this.events.splice(i, 1);
+      }
+    }
   }
 
   private setValve(valve: "plus" | "minus", open: boolean): void {
@@ -250,6 +318,9 @@ export class Player {
     }
     this.currentSpeed = 0;
     this.lastDeviceSpeed = null;
+    // Pausing closes both valves below, so no stroke of either kind survives.
+    this.manualOpen = { plus: false, minus: false };
+    this.generatedOpen = { plus: false, minus: false };
     this.notify();
     const dev = this.getDevice();
     if (dev !== null) {
@@ -277,6 +348,10 @@ export class Player {
   }
 
   private seek(to: number): void {
+    // A jump ends any running manual stroke cleanly (its release fires now) —
+    // its schedule is meaningless across the jump, and the drop rule in
+    // fireValve() keeps a leftover pending close from firing later.
+    this.releaseManualStrokes();
     this.clock = to;
     // Events are stamped in program-time, so a jump keeps them — just re-place
     // the cursor at the first event after the new clock, and top up the future.
@@ -306,9 +381,13 @@ export class Player {
 
   // Drop everything after the cursor (keep the past + the in-effect event) and
   // re-pull generate from now. The source reflects its new state on the re-pull.
+  // Pending manual events survive — a running manual stroke's release must
+  // fire whatever the engine regenerates.
   invalidateFuture(): void {
     if (this.source === null) return;
-    this.events = this.events.slice(0, this.cursor);
+    this.events = this.events.filter(
+      (e, i) => i < this.cursor || (e.kind === "valve" && e.manual === true),
+    );
     this.ensureLookahead();
     this.notify();
   }
@@ -321,9 +400,11 @@ export class Player {
   invalidateValves(): void {
     if (this.source === null) return;
     const ctx = this.context();
-    // Keep the past (fired) events and ALL speed; drop only future valve events.
+    // Keep the past (fired) events, ALL speed, and pending manual events (a
+    // running manual stroke's release must fire); drop only the future
+    // generated valve events.
     const kept = this.events.filter(
-      (e) => e.kind === "speed" || e.at <= this.clock,
+      (e) => e.kind === "speed" || e.at <= this.clock || e.manual === true,
     );
     const futureSpeed = kept.filter(
       (e): e is SpeedEvent => e.kind === "speed" && e.at > this.clock,
@@ -346,19 +427,24 @@ export class Player {
     this.notify();
   }
 
-  // Splice a one-off event into the LIVE program at clock + deltaT, keeping the
-  // event array sorted — without regenerating. deltaT = 0 lands it at the current
-  // clock so the next tick fires it. For ad-hoc events (e.g. a manual stroke
-  // pulse) that should ride the existing program rather than re-roll it. No-op
-  // while not playing (nothing is ticking) — the caller should drive the device
-  // directly in that case.
+  // Splice a one-off event into the LIVE program `inMs` REAL milliseconds from
+  // now, keeping the event array sorted — without regenerating. Ad-hoc events
+  // (e.g. a manual stroke pulse) are real-world actions, so their offset must
+  // not dilate with the playback rate: inMs is converted to program-time at the
+  // current rate, landing the event where the clock will be inMs real-ms from
+  // now. inMs = 0 lands it at the current clock so the next tick fires it.
+  // No-op while not playing (nothing is ticking) — the caller should drive the
+  // device directly in that case.
   insertEvent(
     event: Omit<SpeedEvent, "at"> | Omit<ValveEvent, "at">,
-    deltaT = 0,
+    inMs = 0,
   ): void {
     if (!this.isPlaying) return;
-    const at = this.clock + deltaT;
+    const at = this.clock + inMs * this.rate;
     const ev = { ...event, at } as ProgramEvent;
+    // Inserted valve events are manual by definition — the tag is what lets
+    // scheduled (engine-generated) strokes take precedence over them.
+    if (ev.kind === "valve") ev.manual = true;
     let i = this.cursor;
     while (i < this.events.length && this.events[i]!.at < at) i++;
     this.events.splice(i, 0, ev);

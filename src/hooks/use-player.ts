@@ -26,6 +26,9 @@ export interface PlayerView {
   currentSpeed: number;
   positionMs: number;
   timeScale: number;
+  // A scheduled (engine-generated) stroke is holding a valve open right now —
+  // the manual stroke controls disable while it plays out.
+  strokeBusy: boolean;
   upcoming: UpcomingWindow;
 }
 
@@ -38,6 +41,7 @@ function read(player: Player): PlayerView {
     currentSpeed: st.currentSpeed,
     positionMs: st.clock,
     timeScale: st.rate,
+    strokeBusy: st.strokeBusy,
     // Preview a constant *real*-time horizon: at playback rate R, R× as much
     // program-time elapses per real second, so widen the program-time window by R.
     // The "+60s" label stays true and the sparkline reflects the time dilation.

@@ -209,19 +209,6 @@ function buildBlock(
   return { events, endAt: at };
 }
 
-function speedInEffectAt(
-  events: SpeedEvent[],
-  t: number,
-  fallback: number,
-): number {
-  let speed = fallback;
-  for (const ev of events) {
-    if (ev.at > t) break;
-    speed = ev.speed;
-  }
-  return speed;
-}
-
 export class AutopilotEngine implements AlgorithmEngine {
   private intensityLevel: IntensityLevel;
   private edgeControlLevel: EdgeControlLevel;
@@ -293,16 +280,18 @@ export class AutopilotEngine implements AlgorithmEngine {
     return events;
   }
 
-  // Vacuum maintenance: brief stroke-minus pulses on a fixed interval grid, each
-  // pulse's length keyed to the speed in effect at that moment (slow strokes get
-  // long pulses). Stateless — pulses sit on the global `k × interval` grid — so
-  // the Player can re-lay this overlay (invalidateValves) when the setting
-  // changes without re-rolling the speed script. Finish closes both valves.
+  // Vacuum maintenance, faithful to the original's handleSuctionControl: a
+  // stroke-minus pulse fires only when a speed move is sent (a step
+  // transition — never mid-step), and only if at least `interval` has passed
+  // since the last pulse. The interval is a minimum gap between pulses, not a
+  // cadence — a long step gets one pulse at its start, no more. Each pulse's
+  // length is keyed to that move's speed (slow strokes get long pulses).
+  // Finish closes both valves.
   generateValves(
     speedEvents: SpeedEvent[],
     fromTime: number,
     untilTime: number,
-    ctx: PlayerContext,
+    _ctx: PlayerContext,
   ): ValveEvent[] {
     if (this.finishing) {
       return [
@@ -314,24 +303,26 @@ export class AutopilotEngine implements AlgorithmEngine {
     const p = suctionControlParams[this.suctionControlLevel];
     if (!p.enabled) return [];
 
+    // The gate starts closed at session start — the original's
+    // lastSuctionTime starts at 0, so nothing fires before `interval` — but
+    // OPEN on a mid-session (re-)lay: the original resets lastSuctionTime on
+    // a suction-setting change, making the very next move pulse.
+    let lastPulse = fromTime === 0 ? 0 : Number.NEGATIVE_INFINITY;
     const valves: ValveEvent[] = [];
-    for (
-      let t = Math.ceil(fromTime / p.interval) * p.interval;
-      t < untilTime;
-      t += p.interval
-    ) {
-      const speedFactor =
-        speedInEffectAt(speedEvents, t, ctx.currentRawSpeed) / SPEED_MAX;
+    for (const ev of speedEvents) {
+      if (ev.at < fromTime || ev.at >= untilTime) continue;
+      if (ev.at - lastPulse < p.interval) continue;
       const pulseMs = Math.round(
-        (p.baseDuration * p.speedMultiplier) / (speedFactor + 0.1),
+        (p.baseDuration * p.speedMultiplier) / (ev.speed / SPEED_MAX + 0.1),
       );
-      valves.push({ kind: "valve", at: t, valve: "minus", open: true });
+      valves.push({ kind: "valve", at: ev.at, valve: "minus", open: true });
       valves.push({
         kind: "valve",
-        at: t + pulseMs,
+        at: ev.at + pulseMs,
         valve: "minus",
         open: false,
       });
+      lastPulse = ev.at;
     }
     return valves;
   }

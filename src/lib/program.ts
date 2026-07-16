@@ -36,6 +36,10 @@ export interface ValveEvent {
   at: number;
   valve: "plus" | "minus";
   open: boolean;
+  // Set by Player.insertEvent on ad-hoc (manual stroke) events; engines never
+  // set it. Scheduled (engine-generated) strokes take precedence over manual
+  // ones — see Player's valve-firing rules.
+  manual?: boolean;
 }
 
 export type ProgramEvent = SpeedEvent | ValveEvent;
