@@ -70,6 +70,9 @@ export default [
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright artifacts:
+    "test-results/**",
+    "playwright-report/**",
   ]),
   {
     ...pluginReact.configs.flat.recommended,
