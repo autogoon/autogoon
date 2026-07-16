@@ -67,8 +67,9 @@ export function SafeWordField({
         instantly.
       </p>
       <p className="text-muted-foreground text-sm">
-        Some end-of-play options will deliberately ignore Stop — the safe word
-        always works, so it&rsquo;s how you halt those if you need to.
+        Some end-of-play options will deliberately ignore{" "}
+        <span className="text-foreground">stop</span> — the safe word always
+        works, so it&rsquo;s how you halt those if you need to.
       </p>
       <p className="text-muted-foreground text-sm">
         Use Test to make sure the app can recognise your word.

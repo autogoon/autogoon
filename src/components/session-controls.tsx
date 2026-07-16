@@ -14,18 +14,26 @@ export function SessionControls({
   onStart,
   onStop,
   onReset,
+  stopDisabled = false,
+  stopDisabledTitle,
 }: {
   state: PlayerState;
   connected: boolean;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  // An algorithm can withdraw Stop (e.g. an after-play outcome that ignores
+  // it); the safe word remains the way out.
+  stopDisabled?: boolean;
+  stopDisabledTitle?: string;
 }) {
   if (state === "playing") {
     return (
       <Button
         onClick={onStop}
-        className="w-full rounded-lg bg-red-600 py-3.5 text-lg font-bold text-white"
+        disabled={stopDisabled}
+        title={stopDisabled ? stopDisabledTitle : undefined}
+        className="w-full rounded-lg bg-red-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
         badge="stop"
       >
         Stop

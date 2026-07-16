@@ -73,6 +73,26 @@ const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 400;
 
+// After-play: what `cumming` splices in, picked at random from the options
+// enabled in setup. Wind-down is the classic ramp above; the other three are
+// one-shot outcomes the panel makes unstoppable (Stop is ignored once they
+// start — the safe word is the backstop).
+export type AfterPlayOption = "wind-down" | "torture" | "stay-in" | "eject";
+
+// The canonical option list (display order) — the panel validates restored
+// storage against it.
+export const AFTER_PLAY_OPTIONS: readonly AfterPlayOption[] = [
+  "wind-down",
+  "torture",
+  "stay-in",
+  "eject",
+];
+
+// The eject recipe, established by experiment: this speed with the stroke+
+// valve held open for this long pushes you out.
+const EJECT_SPEED = 40;
+const EJECT_MS = 15_000;
+
 // Past the end of the session the build is over and Goon holds at top speed.
 // Emit that hold one minute at a time (extended by the normal lookahead) rather
 // than as a single far-future event, so the tail stays a uniform stream.
@@ -280,6 +300,8 @@ export class GoonEngine implements AlgorithmEngine {
   private programMs = DEFAULT_PROGRAM_MS;
   private cumming = false;
   private cummingEmitted = false;
+  private afterPlayOptions: AfterPlayOption[] = ["wind-down"];
+  private afterPlay: AfterPlayOption | null = null;
 
   constructor(intensity: number) {
     this.intensity = intensity;
@@ -288,6 +310,7 @@ export class GoonEngine implements AlgorithmEngine {
   reset(): void {
     this.cumming = false;
     this.cummingEmitted = false;
+    this.afterPlay = null;
   }
 
   setIntensity(percent: number): void {
@@ -302,15 +325,31 @@ export class GoonEngine implements AlgorithmEngine {
     this.programMs = Math.max(60_000, ms);
   }
 
-  beginCumming(): void {
+  // The enabled after-play outcomes — a setup-time setting, like programMs.
+  // Never empty: the panel gates Play on at least one being ticked, and an
+  // empty list here would leave beginCumming with nothing to pick.
+  setAfterPlayOptions(options: AfterPlayOption[]): void {
+    if (options.length > 0) this.afterPlayOptions = [...options];
+  }
+
+  // The cumming point: pick the after-play at random from the enabled options
+  // and return it, so the panel knows whether the outcome ignores Stop.
+  beginCumming(): AfterPlayOption {
     this.cumming = true;
     this.cummingEmitted = false;
+    this.afterPlay =
+      this.afterPlayOptions[
+        Math.floor(Math.random() * this.afterPlayOptions.length)
+      ]!;
+    return this.afterPlay;
   }
 
   // The speed backbone, filling [fromTime, untilTime) in whole cycles. Three
-  // cases: once cumming, emit the wind-down script once and then park ([]); past
-  // the end of the build, hold at the top a step at a time; otherwise tile dip
-  // cycles, each sampling the curves at its own start so the build keeps ramping.
+  // cases: once cumming, emit the chosen after-play's script once and then park
+  // ([]); past the end of the build, hold at the top a step at a time; otherwise
+  // tile dip cycles, each sampling the curves at its own start so the build
+  // keeps ramping. Every after-play event is `unscaled` so the intensity
+  // ceiling can't soften the outcome.
   generateSpeed(
     fromTime: number,
     untilTime: number,
@@ -319,7 +358,32 @@ export class GoonEngine implements AlgorithmEngine {
     if (this.cumming) {
       if (this.cummingEmitted) return [];
       this.cummingEmitted = true;
-      return buildCummingScript(fromTime);
+      switch (this.afterPlay) {
+        case "torture":
+          // Straight to full and hold — the single event stays in effect
+          // forever once the engine parks.
+          return [
+            { kind: "speed", at: fromTime, speed: PEAK_SPEED, unscaled: true },
+          ];
+        case "stay-in":
+          // Stop dead, still seated; the valves close in generateValves so
+          // the seal holds.
+          return [{ kind: "speed", at: fromTime, speed: 0, unscaled: true }];
+        case "eject":
+          // Drive at the eject speed with stroke+ open (see generateValves)
+          // long enough to push out, then rest.
+          return [
+            { kind: "speed", at: fromTime, speed: EJECT_SPEED, unscaled: true },
+            {
+              kind: "speed",
+              at: fromTime + EJECT_MS,
+              speed: 0,
+              unscaled: true,
+            },
+          ];
+        default:
+          return buildCummingScript(fromTime);
+      }
     }
 
     const events: SpeedEvent[] = [];
@@ -349,11 +413,39 @@ export class GoonEngine implements AlgorithmEngine {
     _ctx: PlayerContext,
   ): ValveEvent[] {
     if (this.cumming) {
-      // The one-shot suction pulse that rides the cumming wind-down.
-      return [
-        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
-        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
-      ];
+      switch (this.afterPlay) {
+        case "torture":
+        case "stay-in":
+          // A clean slate: both valves closed (stay-in keeps its seal, and a
+          // generated close settles any manual stroke in flight).
+          return [
+            { kind: "valve", at: fromTime, valve: "minus", open: false },
+            { kind: "valve", at: fromTime, valve: "plus", open: false },
+          ];
+        case "eject":
+          // Stroke+ held open for the whole push, then closed at rest.
+          return [
+            { kind: "valve", at: fromTime, valve: "minus", open: false },
+            { kind: "valve", at: fromTime, valve: "plus", open: true },
+            {
+              kind: "valve",
+              at: fromTime + EJECT_MS,
+              valve: "plus",
+              open: false,
+            },
+          ];
+        default:
+          // The one-shot suction pulse that rides the cumming wind-down.
+          return [
+            { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
+            {
+              kind: "valve",
+              at: fromTime + 12000,
+              valve: "minus",
+              open: false,
+            },
+          ];
+      }
     }
     // Auto teasing: only the window covering session start emits anything.
     return teaseEvents(fromTime, untilTime);

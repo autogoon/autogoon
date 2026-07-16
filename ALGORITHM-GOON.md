@@ -70,12 +70,30 @@ At the end of the session the build reaches the top and **holds there** until yo
 end it. `finish` jumps straight to that hold — the top of the build, waiting for
 you.
 
-`cumming` is the actual send-off: the device eases off in a slow, deliberate glide
-from a moderate pace down to a standstill over about fifteen seconds — the strokes
-shortening as it winds down — then rests. It's an unhurried, drawn-out finish
-rather than a frantic pump. Fair warning: this is simply how the author likes to
-cum, and it won't be to everyone's taste — read it as one opinion of how to end a
-session, not the only way.
+`cumming` is the actual send-off — and what it does is set by the **After-play**
+card in setup. Tick any of the four outcomes; at the cumming point one is drawn
+at random from the ticked set, so with more than one enabled you don't know
+what's coming. At least one must be ticked before you can play, and your ticks
+are remembered on this device:
+
+- **Wind-down** — the classic: the device eases off in a slow, deliberate glide
+  from a moderate pace down to a standstill over about fifteen seconds — the
+  strokes shortening as it winds down — then rests. An unhurried, drawn-out
+  finish rather than a frantic pump. Fair warning: this is simply how the author
+  likes to cum, and it won't be to everyone's taste.
+- **Torture** — straight to full speed and held there. Indefinitely.
+- **Stay-in** — stops dead, leaving you seated with the vacuum seal held — a
+  ruin.
+- **Eject** — drives the toy to push you out (a steady pace with the stroke+
+  valve held open for fifteen seconds), then rests — a ruin with the contact
+  gone. A timing caveat: building the ejecting force takes a second or two of
+  movement — stimulation at exactly the wrong moment — with voice-recognition
+  lag on top, so it can tip into a finish instead of a ruin. A ruin is
+  timing-dependent even by hand.
+
+**Torture, stay-in and eject ignore Stop once they start** — Stop and the
+timeline controls grey out and their words leave the grammar, so the outcome
+can't be dodged. The safe word still works, always.
 
 ## Time dilation
 
@@ -98,7 +116,7 @@ During play:
 - `finish` — jump to the end-of-session hold.
 - `faster` / `slower` — dilate time ±5% from this point on.
 - `more` / `less` — step Intensity up/down.
-- `cumming` — trigger the wind-down.
+- `cumming` — trigger the drawn after-play (see above).
 - plus the shared stroke `up` / `down` words — lengthen (`up`) or shorten
   (`down`) the stroke by hand.
 

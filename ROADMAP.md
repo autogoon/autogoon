@@ -53,32 +53,24 @@ ramp (so to the intensity percentage set.)
 
 ### After-play — from the moment you cum
 
-Saying **"cumming"** splices in an after-play behaviour.
+Saying **"cumming"** splices in an after-play behaviour. The first concrete
+cut — wind-down, torture, stay-in and eject on Goon, picked randomly from the
+enabled options at the Cumming point — is specced in [TODO.md](./TODO.md).
+Ideas beyond it:
 
-- **Wind-down** — Simulate a penetrative orgasm, a slow, comfortable decrease
-  (like Goon and Groove implement in `beginCumming()`).
-- **Torture** — Speed goes straight to 100%, and ignore the Stop command.
-- **Ruin** — There are two possible options here :
-  - **Stay-in** — stop the device, leaving you still seated in the toy. The
-    vacuum seal stays, so there's still passive sensation — a softer, less
-    complete ruin.
-  - **Eject** — drive the toy to physically push you out, removing all contact
-    — a more complete ruin
-    - However, generating that ejecting force takes a second or two of movement,
-      which is stimulation at exactly the wrong moment; with voice-recognition
-      lag on top (~1s between saying "cumming" and the device reacting), it may
-      fail to cut stimulation in time and tip into a finish instead of a ruin.
-    - Worth noting a ruin is timing-dependent anyway — even by hand it doesn't
-      always land — so some unreliability here may be acceptable rather than a
-      flaw to design out.
+- **A torture period** — the first cut slams to 100% and holds "forever";
+  refine it with a torture duration (fixed, tunable, or randomly drawn), and
+  decide what follows it.
+- **Combined outcomes** — e.g. ruin, then torture.
+- **Other algorithms** — the options belong to every algorithm eventually;
+  Goon is just the first.
+- **Configurable eject** — the first cut hard-codes speed 40 with the
+  Stroke + valve open for 15 seconds; both want to be configurable at some
+  point.
+- **Configurable wind-down shape** — the current wind-down curve suits its
+  author; others may want it longer, shorter, or shaped differently.
 
-It might be an option to combine these into a single after-play, like ruin but
-then torture.
-
-How to best expose the options? Could end up being a checkbox/slider nightmare!
-
-Any outcome that ignores **Stop** is backstopped by the always-on safe word
-(a concrete task in [TODO.md](./TODO.md)).
+Any outcome that ignores **Stop** is backstopped by the always-on safe word.
 
 ## New algorithm candidates
 
