@@ -38,19 +38,19 @@ _Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md)._
 
 A Next.js app (App Router, TypeScript, Tailwind v4): a single page with a sticky
 header bar — a mic **Listen** toggle (keyword spotting), device **Connect**, live
-status, and a **Stop** button while an algorithm runs — and four tabs, one per
-algorithm plus settings:
+status, and a **Stop** button while an algorithm runs — and a two-level
+navigation. **Home** lists the algorithms (plus device token entry and a
+getting-started intro; a **Settings** tab beside home holds appearance and
+build info); pick an algorithm by tap or by saying its name:
 
-1. **Goon** (the default tab) — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md).
+1. **Goon** — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md).
 2. **Groove** — see [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md).
 3. **Autopilot** — a faithful recreation of Autoblow's own autopilot; see
    [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md).
-4. **Settings** — an intro to the app, device token entry, and appearance (theme).
 
-While an algorithm is running the other algorithm tabs are disabled (and their
-voice switch words leave the grammar) — you can't switch algorithms mid-session,
-by tab or by voice; stop first. The running algorithm's own tab and Settings stay
-reachable.
+**Exit** — the breadcrumb's Home button, or the spoken word — goes back up.
+While a session is running, Exit is locked (and leaves the grammar): you can't
+leave an algorithm or switch to another mid-session; stop first.
 
 Keyword spotting uses [vosk-browser](https://github.com/ccoreilly/vosk-browser)
 (WASM Kaldi). The recognizer's grammar is exactly the running algorithm's

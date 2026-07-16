@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 // The cross-browser proof that the whole voice pipeline works: a synthesized
 // utterance goes through the app's real AudioWorklet and vosk recognizer in
-// each engine, and the detected switch word changes the tab.
+// each engine, and the detected algorithm name navigates to its screen.
 //
 // Only the microphone *hardware* is faked: getUserMedia is stubbed (before the
 // app loads) to return a WebAudio-built MediaStream, and window.__testMic
@@ -25,7 +25,7 @@ const FIXTURE = path.join(
   "autopilot.wav",
 );
 
-test("saying an algorithm's switch word selects its tab", async ({ page }) => {
+test("saying an algorithm's name opens its screen", async ({ page }) => {
   // Serve the fixture bytes on a URL only the stub fetches — nothing
   // test-related ships in public/.
   await page.route("**/__fixtures/autopilot.wav", (route) =>
@@ -65,8 +65,8 @@ test("saying an algorithm's switch word selects its tab", async ({ page }) => {
 
   await page.goto("/");
 
-  // A fresh context has no device token, so the app lands on Settings.
-  await expect(page.getByText("Appearance")).toBeVisible();
+  // The app opens on home — the device group and the algorithm chooser.
+  await expect(page.getByText("Choose an algorithm")).toBeVisible();
 
   // Click (anywhere harmless) BEFORE the audio pipeline comes up: sticky user
   // activation lets Firefox/WebKit run the AudioContexts the app and the stub
@@ -83,7 +83,7 @@ test("saying an algorithm's switch word selects its tab", async ({ page }) => {
 
   await page.evaluate(() => window.__testMic?.speak());
 
-  // vosk hears "autopilot" and the app switches to its tab.
+  // vosk hears "autopilot" and the app navigates to its screen.
   await expect(page.getByText("Vacuum Maintenance")).toBeVisible({
     timeout: 30_000,
   });
