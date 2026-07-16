@@ -53,10 +53,11 @@ ramp (so to the intensity percentage set.)
 
 ### After-play — from the moment you cum
 
-Saying **"cumming"** splices in an after-play behaviour. The first concrete
-cut — wind-down, torture, stay-in and eject on Goon, picked randomly from the
-enabled options at the Cumming point — is specced in [TODO.md](./TODO.md).
-Ideas beyond it:
+Saying **"cumming"** splices in an after-play behaviour. The first cut is
+built and shipped on Goon — wind-down, torture and the two ruins, drawn at
+random from the ticked options, with torture and the ruins ignoring your
+voice once started — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md). Ideas
+beyond it:
 
 - **A torture period** — the first cut slams to 100% and holds "forever";
   refine it with a torture duration (fixed, tunable, or randomly drawn), and
