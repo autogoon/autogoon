@@ -1,11 +1,14 @@
 # Architecture
 
-A single-page app with a sticky header bar and four tabs (Goon, Groove,
-Autopilot, Settings). `src/app/page.tsx` owns the layout: it wraps everything in
-the keyword-spotter provider, mirrors the one shared Player into React once, and
-renders all four panels. Hidden tabs stay mounted (only their visibility
-changes), so the recognizer and the running algorithm keep going regardless of
-which tab is visible.
+A single-page app with a sticky header bar and a shallow navigation hierarchy:
+a top level of **home** (the device connection, the algorithm chooser and the
+getting-started notes) with a **Settings** tab beside it (appearance, build
+info), and one screen per algorithm (Goon, Groove, Autopilot).
+`src/app/page.tsx` owns the layout: it wraps everything in the keyword-spotter
+provider, mirrors the one shared Player into React once, and renders every
+screen. Hidden screens stay mounted (only their visibility changes), so the
+recognizer and the running algorithm keep going regardless of which screen is
+visible.
 
 ## The program / player model
 
@@ -35,7 +38,8 @@ sparkline draws. It knows nothing about any specific algorithm. There is **one**
 Player, owned by the device hook; it plays whichever algorithm is active.
 
 The Player carries a `state` — `armed` / `playing` / `paused`. The visible
-algorithm tab **arms** the Player (`arm`), building a live preview before Start;
+algorithm **arms** the Player (`arm`), building a live preview before Start
+(Goon defers arming to its setup view's Play, which commits the setup first);
 Start (`play`) then **resumes** from the held position rather than restarting,
 Stop (`pause`) holds position, and `reset` restores the algorithm's default knobs
 and regenerates from the beginning.
@@ -101,9 +105,10 @@ Each device-driving algorithm is two files:
 There is no per-algorithm hook and no central runner: the panel drives the Player
 directly, and mutual exclusion falls out of the Player holding one engine at a
 time. Adding an algorithm is a new engine + panel, then registering it in
-`page.tsx` (a `TABS` entry and its panel rendered) — the tab list is the single
-source of truth, so the voice switch word and the tab lock follow automatically.
-The step-by-step lives in [DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
+`page.tsx` (an `ALGORITHMS` entry and its panel rendered) — the registry is the
+single source of truth, so the home listing, the voice switch word and the
+screen all follow automatically. The step-by-step lives in
+[DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
 
 **Commands are declared once.** Each action is a `Command` — `{ word, enabled,
 run }` — so the on-screen button and the spoken keyword call the same `run` and
@@ -111,7 +116,7 @@ share the same `enabled` (a disabled control is also out of the grammar). The
 panel renders a button from each command and hands the list to `useVoiceCommands`
 (`src/hooks/use-voice-commands.ts`), which registers the enabled words with the
 recognizer and routes detections back — but only while the panel is the active
-tab. A button flashes when its word is recognized.
+screen. A button flashes when its word is recognized.
 
 ## Shared device, one Player, mutual exclusion
 
@@ -128,12 +133,19 @@ one engine at a time; a panel arming its engine replaces whoever was there. A
 panel knows it's the active source by comparing the Player view's `source` to its
 own engine, so only the active algorithm's controls and voice words are live.
 
-`page.tsx` keeps the two genuinely global concerns. First, the tab lock: while a
-session runs, the other algorithm tabs are disabled (the running one's tab and
-Settings stay reachable). Second, the global voice words — `connect`, and while
-idle a switch word per algorithm — which it sets on the recognizer and routes
-itself (`connect` drives the device; a switch word brings that algorithm's tab
-up). Everything else is an algorithm word, owned by the active panel.
+`page.tsx` keeps the two genuinely global concerns. First, navigation: the top
+level (home + its Settings sibling tab) and the algorithm screens form a strict
+hierarchy with no sideways moves — `exit` (the word, or the breadcrumb's Home
+button) goes back up, and both are locked while a session runs, so switching
+algorithms mid-session simply can't be expressed; stop first. Screens mirror
+into the URL hash (`#goon`), so the browser back button, reloads and deep-links
+follow the same hierarchy — back is locked mid-session just like exit (the
+consumed history entry is pushed straight back). Second, the
+global voice words — `connect` while disconnected, the algorithm names and
+`settings` on home, `exit` on any other screen while idle — which it sets on
+the recognizer and routes itself (`connect` drives the device; an algorithm
+name enters that screen; `exit` returns home). Everything
+else is an algorithm word, owned by the active panel.
 
 ## Controls
 
@@ -181,13 +193,14 @@ fetched on load and cached by the browser.
 
 There is **one** recognizer, owned by `KeywordSpotterProvider`
 (`src/components/keyword-spotter.tsx`) at the top of the tree, so it keeps
-listening across tab switches. Its grammar is two slots: the **global** words
+listening across screen changes. Its grammar is two slots: the **global** words
 (the page sets these via `setGlobalWords`) and the **algorithm** words (the active
 panel sets these via `setAlgorithmKeywords`, through `useVoiceCommands`). Any
 component subscribes to detections with `keywordListener`: the page's listener
-logs every recognised word and handles `connect`/switch, while each active panel's
-listener runs its own commands. Because only the active panel registers its words,
-exactly one algorithm's commands are ever live.
+logs every recognised word and handles `connect`/navigation, while each active
+panel's listener runs its own commands. Because only the active panel registers
+its words, exactly one algorithm's commands are ever live.
 
-Switch words are just the algorithm tab names (`goon`, `groove`, `autopilot`) —
-say one while idle to bring that tab up (which also points voice `start` at it).
+Switch words are just the algorithm names (`goon`, `groove`, `autopilot`) — say
+one on home to enter that algorithm's screen (`settings` likewise opens the
+Settings tab); `exit` (while nothing runs) returns to home.

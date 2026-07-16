@@ -2,6 +2,7 @@
 
 ## 2026-07-16
 
+- feature: The algorithm tabs are gone — the app now opens on a home screen: device connection, the algorithm chooser (say one's name, or tap it, to enter) and getting-started steps, with Settings as a tab beside home (appearance, build info). Inside an algorithm, Exit (the breadcrumb, the spoken word, or the browser's back button) returns home; all of them are locked while a session runs, so you still can't switch algorithms mid-session. Reloading the page lands you back on the screen you were on.
 - feature: Goon now opens on a setup view: choose your session length (10–120 minutes, default 30 — say `shorter` / `longer` to step it) and hit Play (or say it). The build scales to fit — a 15-minute session compresses the ramp, an hour-long one stretches it. Setup choices lock once you're playing; Reset brings the setup back.
 - enhancement: Goon's automatic teasing is now just a single 10-second stroke− application at session start — the every-minute stroke− pulses and the five-minutely stroke+ pulses are gone.
 

@@ -66,8 +66,8 @@ pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
 routing — works in each engine. Only the microphone _hardware_ is faked:
 `getUserMedia` is stubbed (via `MediaDevices.prototype` — instance assignment
 doesn't stick in WebKit) to return a WebAudio-built `MediaStream`, and the test
-plays a committed wav of a synthesized switch word into it once, then asserts
-the app heard it and switched tabs.
+plays a committed wav of a synthesized algorithm name into it once, then asserts
+the app heard it and navigated to that algorithm's screen.
 
 Two hard-won details, should you write more voice tests:
 
@@ -123,7 +123,8 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
    - a `useRef` engine — **stable identity matters**: the Player identifies the
      active source by reference, so never re-create it (no `useMemo` with deps);
    - `isCurrent` / `state` derived from the Player view;
-   - an effect that arms the preview when the tab becomes active;
+   - an effect that arms the preview when the screen becomes active (skip this
+     if your panel gates arming behind a setup view, as Goon does);
    - `start` / `stop` / `reset`, and a `Command[]` handed to `useVoiceCommands`;
    - the shared scaffolding: `ListeningFor`, `SessionControls`, `Sparkline`,
      `StrokeCard`, `LogCard`.
@@ -141,18 +142,14 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
 
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
-   - add a `TABS` entry with **`algorithm: true`** (this one flag is what puts the
-     id into `ALGORITHM_TABS`, so the voice switch word and the tab lock both work
-     — miss it and the tab renders but neither does, with no type error to warn
-     you);
+   - add an `ALGORITHMS` entry (`id`, `label`, `description`) — the id is the
+     voice switch word and the screen, and the description is the home-page
+     listing, so this one entry is the whole registration;
    - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the others,
-     passing `active={tab === "<name>" || runningTab === "<name>"}`.
-4. **User-facing copy:**
-   - add `ALGORITHM-<NAME>.md` (high-level and experiential, like the others — not
-     an implementation spec), and link it from `README.md` (the mode list and the
-     Documentation list);
-   - update the in-app intro in `src/components/settings-panel.tsx`, which hardcodes
-     both the mode list and the spoken switch words.
+     passing `active={screen === "<name>"}`.
+4. **User-facing copy:** add `ALGORITHM-<NAME>.md` (high-level and experiential,
+   like the others — not an implementation spec), and link it from `README.md`
+   (the mode list and the Documentation list).
 5. **Changelog** — add a `feature` line to [CHANGELOG.md](./CHANGELOG.md).
 
 ### Which knob-change method to call
