@@ -15,7 +15,7 @@
 // the illegal mid-session switch simply cannot be said or tapped.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Activity } from "lucide-react";
+import { AudioWaveform, Bot, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
 import { GroovePanel } from "@/components/algorithms/groove-panel";
@@ -42,14 +42,15 @@ import {
 // Each entry wears its algorithm's signature bright colour twice: the icon
 // (iconClass) and the row's accent — a diagonal tint of the same colour with a
 // matching border.
-// TODO: the icons are a single placeholder until each algorithm gets its own.
 const ALGORITHMS = [
   {
     id: "goon",
     label: "Goon",
     description:
       "An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.",
-    icon: Activity,
+    highlight:
+      "New: choose what cumming brings — wind-down, torture, stay-in or eject, drawn at random from the outcomes you tick.",
+    icon: TrendingUp,
     iconClass: "text-fuchsia-500",
     accent:
       "border-fuchsia-500 bg-linear-to-br from-fuchsia-500/15 to-fuchsia-500/5 hover:from-fuchsia-500/25 hover:to-fuchsia-500/10",
@@ -59,7 +60,7 @@ const ALGORITHMS = [
     label: "Groove",
     description:
       "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
-    icon: Activity,
+    icon: AudioWaveform,
     iconClass: "text-cyan-500",
     accent:
       "border-cyan-500 bg-linear-to-br from-cyan-500/15 to-cyan-500/5 hover:from-cyan-500/25 hover:to-cyan-500/10",
@@ -68,7 +69,7 @@ const ALGORITHMS = [
     id: "autopilot",
     label: "Autopilot",
     description: "A faithful recreation of the Vacuglide's own autopilot.",
-    icon: Activity,
+    icon: Bot,
     iconClass: "text-orange-500",
     accent:
       "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
