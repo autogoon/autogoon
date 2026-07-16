@@ -71,7 +71,7 @@ export function AfterPlayCard({
             <span>
               <span className="font-medium">{label}</span>
               {ignoresStop && (
-                <span className="ml-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-sm font-medium tracking-wide whitespace-nowrap text-white uppercase dark:bg-amber-800">
+                <span className="ml-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-normal tracking-wide whitespace-nowrap text-white uppercase dark:bg-amber-800">
                   Ignores Stop
                 </span>
               )}
