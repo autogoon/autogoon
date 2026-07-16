@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -14,6 +16,12 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "dev",
     NEXT_PUBLIC_GIT_REF: process.env.VERCEL_GIT_COMMIT_REF ?? "dev",
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+    // The changelog rides along the same way: frozen into the bundle at build
+    // time, rendered by the Changelog screen (src/lib/changelog.ts parses it).
+    NEXT_PUBLIC_CHANGELOG: readFileSync(
+      join(process.cwd(), "CHANGELOG.md"),
+      "utf8",
+    ),
   },
 };
 
