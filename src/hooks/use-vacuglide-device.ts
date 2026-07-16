@@ -191,36 +191,47 @@ export function useVacuglideDevice() {
   // Manual valve control. While a program is playing, ride it: insert an
   // open/close valve event so the action is part of the program (ordered with
   // the generated events, closed on stop). `state` true opens, false closes —
-  // so a hold is two events (open on press, close on release). With no program
-  // running there is no clock to schedule against, so drive the device directly.
-  const valvePlus = useCallback(
-    (state: boolean): Promise<unknown> => {
+  // so a hold is two events (open on press, close on release), and a fixed
+  // pulse schedules its close up front with `inMs` (real milliseconds from
+  // now; the Player lands it so it fires undilated whatever the playback
+  // rate). With no program running there is no clock to schedule against, so
+  // drive the device directly — a delayed set falls back to a timer.
+  const valveSet = useCallback(
+    (
+      valve: "plus" | "minus",
+      state: boolean,
+      inMs: number,
+    ): Promise<unknown> => {
       if (player.isPlaying) {
-        player.insertEvent({ kind: "valve", valve: "plus", open: state });
+        player.insertEvent({ kind: "valve", valve, open: state }, inMs);
         return Promise.resolve();
       }
       const device = deviceRef.current;
       if (device === null) {
         return Promise.reject(new Error("No device connected"));
       }
-      return device.valveStrokePlusSet(state);
+      const send = () =>
+        valve === "plus"
+          ? device.valveStrokePlusSet(state)
+          : device.valveStrokeMinusSet(state);
+      if (inMs === 0) return send();
+      return new Promise((resolve, reject) => {
+        setTimeout(() => send().then(resolve, reject), inMs);
+      });
     },
     [player],
   );
 
+  const valvePlus = useCallback(
+    (state: boolean, inMs = 0): Promise<unknown> =>
+      valveSet("plus", state, inMs),
+    [valveSet],
+  );
+
   const valveMinus = useCallback(
-    (state: boolean): Promise<unknown> => {
-      if (player.isPlaying) {
-        player.insertEvent({ kind: "valve", valve: "minus", open: state });
-        return Promise.resolve();
-      }
-      const device = deviceRef.current;
-      if (device === null) {
-        return Promise.reject(new Error("No device connected"));
-      }
-      return device.valveStrokeMinusSet(state);
-    },
-    [player],
+    (state: boolean, inMs = 0): Promise<unknown> =>
+      valveSet("minus", state, inMs),
+    [valveSet],
   );
 
   return {
