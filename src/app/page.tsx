@@ -49,7 +49,7 @@ const ALGORITHMS = [
     description:
       "An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.",
     highlight:
-      "New: choose what cumming brings — wind-down, torture, stay-in or eject, drawn at random from the outcomes you tick.",
+      "New: choose what cumming brings — wind-down, torture or a ruin (stay in, or eject), drawn at random from the outcomes you tick.",
     icon: TrendingUp,
     iconClass: "text-fuchsia-500",
     accent:

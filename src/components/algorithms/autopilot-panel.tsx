@@ -82,6 +82,9 @@ export function AutopilotPanel({
     try {
       engine.beginFinish();
       device.invalidateFuture();
+      // Finish can arrive before Start — something may be happening outside
+      // the app — so it starts the clock itself (play() no-ops if running).
+      device.play();
     } catch (err) {
       vacuglide.log(`error: ${(err as Error).message}`, "error");
     }

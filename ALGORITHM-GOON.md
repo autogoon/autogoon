@@ -82,18 +82,18 @@ are remembered on this device:
   finish rather than a frantic pump. Fair warning: this is simply how the author
   likes to cum, and it won't be to everyone's taste.
 - **Torture** — straight to full speed and held there. Indefinitely.
-- **Stay-in** — stops dead, leaving you seated with the vacuum seal held — a
-  ruin.
-- **Eject** — drives the toy to push you out (a steady pace with the stroke+
-  valve held open for fifteen seconds), then rests — a ruin with the contact
-  gone. A timing caveat: building the ejecting force takes a second or two of
+- **Ruin: stay in** — stops dead, leaving you seated with the vacuum seal held.
+- **Ruin: eject** — drives the toy to push you out (a steady pace with the stroke+
+  valve held open for fifteen seconds), then rests. A timing caveat: building
+  the ejecting force takes a second or two of
   movement — stimulation at exactly the wrong moment — with voice-recognition
   lag on top, so it can tip into a finish instead of a ruin. A ruin is
   timing-dependent even by hand.
 
-**Torture, stay-in and eject ignore Stop once they start** — Stop and the
-timeline controls grey out and their words leave the grammar, so the outcome
-can't be dodged. The safe word still works, always.
+**Torture and both ruins ignore your voice once they start** — every control
+greys out and every word leaves the grammar, so the outcome can't be dodged,
+diluted or fiddled with. The safe word still works, always; once it has halted
+things, Reset and Start return.
 
 ## Time dilation
 

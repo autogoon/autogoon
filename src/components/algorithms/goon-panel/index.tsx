@@ -196,12 +196,24 @@ export function GoonPanel({
 
   const cumming = useCallback(() => {
     try {
-      setAfterPlay(engine.beginCumming());
+      const drawn = engine.beginCumming();
+      setAfterPlay(drawn);
+      vacuglide.log(`after-play drawn: ${drawn}`);
       device.invalidateFuture();
+      // Ending actions can arrive before Start — something may be happening
+      // outside the app — so they start the clock themselves.
+      device.play();
     } catch (err) {
       vacuglide.log(`error: ${(err as Error).message}`, "error");
     }
   }, [device, engine, vacuglide]);
+
+  // Finish = jump to the end-of-build hold, starting the clock if it isn't
+  // already running (see cumming).
+  const finish = useCallback(() => {
+    device.seekTo(sessionMs);
+    device.play();
+  }, [device, sessionMs]);
 
   const connected = vacuglide.connected;
   // Ending actions (cumming, and Finish = jump to the end of the build) need a
@@ -213,6 +225,11 @@ export function GoonPanel({
   // avoided: Stop and every transport control that could dodge or dilute the
   // outcome are withdrawn. The page-owned safe word bypasses all of this.
   const unstoppable = afterPlay !== null && afterPlay !== "wind-down";
+  // And while such an outcome is actually playing, the panel ignores you
+  // entirely — every remaining command (word and button alike) is withdrawn
+  // too, so only the safe word gets a hearing. Once the safe word has halted
+  // it (state leaves "playing"), Reset and Start come back.
+  const lockedOut = unstoppable && state === "playing";
   // Cumming is one-shot per session — no re-rolling the draw.
   const canEnd = live && connected && afterPlay === null;
   const canPlay = connected && afterPlayOptions.length > 0;
@@ -252,7 +269,7 @@ export function GoonPanel({
     { word: "play", enabled: !inPlay && canPlay, run: enterPlay },
     ...stroke.keywords.map((k) => ({
       ...k,
-      enabled: k.enabled && inPlay,
+      enabled: k.enabled && inPlay && !lockedOut,
     })),
     {
       word: "start",
@@ -267,12 +284,12 @@ export function GoonPanel({
     { word: "reset", enabled: live && state !== "playing", run: reset },
     {
       word: "more",
-      enabled: live,
+      enabled: live && !lockedOut,
       run: () => stepIntensity(INTENSITY_STEP),
     },
     {
       word: "less",
-      enabled: live,
+      enabled: live && !lockedOut,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
     {
@@ -284,7 +301,7 @@ export function GoonPanel({
     {
       word: "finish",
       enabled: canEnd,
-      run: () => device.seekTo(sessionMs),
+      run: finish,
     },
     {
       word: "faster",
@@ -375,11 +392,7 @@ export function GoonPanel({
       </Card>
 
       <div className="flex gap-3">
-        <FinishButton
-          onClick={() => device.seekTo(sessionMs)}
-          disabled={!canEnd}
-          className="flex-1"
-        />
+        <FinishButton onClick={finish} disabled={!canEnd} className="flex-1" />
         <CummingButton
           onClick={cumming}
           disabled={!canEnd}
@@ -388,7 +401,7 @@ export function GoonPanel({
       </div>
 
       <StrokeCard
-        strokeDisabled={!stroke.canStroke}
+        strokeDisabled={!stroke.canStroke || lockedOut}
         strokePulsing={stroke.strokePulsing}
         onValvePlus={vacuglide.valvePlus}
         onValveMinus={vacuglide.valveMinus}
@@ -406,6 +419,7 @@ export function GoonPanel({
           max={100}
           step={5}
           onChange={changeIntensity}
+          disabled={lockedOut}
         />
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>less</code> / <code>more</code> to step down or up.
