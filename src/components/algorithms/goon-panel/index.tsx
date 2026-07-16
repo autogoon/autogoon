@@ -21,6 +21,7 @@ import { CummingButton } from "@/components/cumming-button";
 import { FinishButton } from "@/components/finish-button";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
+import { SafeWordField } from "@/components/safe-word-field";
 import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
@@ -49,12 +50,20 @@ export function GoonPanel({
   active,
   view,
   onEnterPlay,
+  safeWord,
+  sanitizeSafeWord,
+  onSaveSafeWord,
 }: {
   vacuglide: VacuglideDeviceController;
   player: PlayerView;
   active: boolean;
   view: "setup" | "play";
   onEnterPlay: () => void;
+  // The app-wide safe word (owned by the page, also editable in Settings),
+  // surfaced in Goon's setup so you see — and can change — it before playing.
+  safeWord: string;
+  sanitizeSafeWord: (input: string) => string | null;
+  onSaveSafeWord: (word: string) => void;
 }) {
   const device = vacuglide.player;
   const stroke = useStrokeControls(vacuglide);
@@ -222,6 +231,14 @@ export function GoonPanel({
           minutes={sessionMinutes}
           onChange={setSessionMinutes}
         />
+
+        <Card title="Safe word">
+          <SafeWordField
+            safeWord={safeWord}
+            sanitize={sanitizeSafeWord}
+            onSave={onSaveSafeWord}
+          />
+        </Card>
 
         <Button
           onClick={enterPlay}

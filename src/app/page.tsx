@@ -28,6 +28,11 @@ import {
 } from "@/components/keyword-spotter";
 import { usePlayer } from "@/hooks/use-player";
 import { useVacuglideDevice } from "@/hooks/use-vacuglide-device";
+import {
+  DEFAULT_SAFE_WORD,
+  SAFE_WORD_STORAGE_KEY,
+  sanitizeSafeWord,
+} from "@/lib/safe-word";
 
 // The algorithm registry: each entry is a home-page listing (label +
 // description + accent), a screen, and a voice word (the id, live on home) all
@@ -81,6 +86,22 @@ const hashScreen = (): Screen => {
 const parentOf = (s: Screen): Screen =>
   s.includes("/") ? (s.split("/")[0] as Screen) : "home";
 
+// Words the safe word may not take: everything the grammar already routes
+// elsewhere — the global words plus the shared transport words the panels
+// declare. One utterance must never mean two things.
+const SAFE_WORD_RESERVED = [
+  "connect",
+  "exit",
+  "settings",
+  "start",
+  "stop",
+  "reset",
+  ...ALGORITHMS.map((a) => a.id),
+];
+// The validator the editing surfaces use, with the reserved list baked in.
+const sanitizeCandidate = (input: string): string | null =>
+  sanitizeSafeWord(input, SAFE_WORD_RESERVED);
+
 export default function Home() {
   return (
     <KeywordSpotterProvider>
@@ -104,19 +125,41 @@ function App() {
   // screen you're on — no separate tracking needed.
   const running = player.state !== "armed";
 
+  // The safe word — the always-on hard stop (see src/lib/safe-word.ts). It
+  // lives here, not in the panels, so no algorithm can ever gate it: panels
+  // own `stop` and may one day ignore it; the safe word bypasses them and
+  // halts the Player directly. Persisted across sessions; the stored value is
+  // re-validated on load in case a stale one clashes with words added since.
+  const [safeWord, setSafeWordState] = useState(DEFAULT_SAFE_WORD);
+  useEffect(() => {
+    const stored = localStorage.getItem(SAFE_WORD_STORAGE_KEY);
+    if (stored === null) return;
+    const word = sanitizeCandidate(stored);
+    if (word !== null) setSafeWordState(word);
+  }, []);
+  // Takes an already-sanitized word (the editing surfaces validate with
+  // sanitizeCandidate before calling this).
+  const saveSafeWord = useCallback((word: string) => {
+    setSafeWordState(word);
+    localStorage.setItem(SAFE_WORD_STORAGE_KEY, word);
+  }, []);
+
   // The global grammar slot: connect (while disconnected) everywhere; the
-  // algorithm names on home; exit inside an algorithm while nothing runs.
+  // algorithm names on home; exit inside an algorithm while nothing runs; the
+  // safe word whenever something is playing — exactly where `stop` is live.
   const connected = vacuglide.connected;
+  const playing = player.state === "playing";
   useEffect(() => {
     const words: string[] = [];
     if (!connected) words.push("connect");
+    if (playing) words.push(safeWord);
     if (screen === "home") {
       words.push(...ALGORITHMS.map((a) => a.id), "settings");
     } else if (!running) {
       words.push("exit");
     }
     setGlobalWords(words);
-  }, [connected, running, screen, setGlobalWords]);
+  }, [connected, running, playing, safeWord, screen, setGlobalWords]);
 
   const runningRef = useRef(running);
   runningRef.current = running;
@@ -165,6 +208,10 @@ function App() {
   connectRef.current = vacuglide.connect;
   const logRef = useRef(vacuglide.log);
   logRef.current = vacuglide.log;
+  const safeWordRef = useRef(safeWord);
+  safeWordRef.current = safeWord;
+  const playerRef = useRef(vacuglide.player);
+  playerRef.current = vacuglide.player;
   useEffect(() => {
     return keywordListener((word) => {
       // Central log of every recognised command word, so every algorithm's voice
@@ -172,6 +219,13 @@ function App() {
       // active panel's own handler and the "Listening for" flash — all three ride
       // the same detection.
       logRef.current(`🎙 ${word}`, "hit");
+      if (word === safeWordRef.current) {
+        // The safe word: halt exactly like Stop, no reset. Routed before (and
+        // independently of) everything else; pause() no-ops unless playing, so
+        // hearing it outside a session (the test modal) is harmless.
+        void playerRef.current.pause();
+        return;
+      }
       if (word === "connect") {
         void connectRef.current();
         return;
@@ -281,6 +335,9 @@ function App() {
               active={screenBase === "goon"}
               view={atPlayLevel ? "play" : "setup"}
               onEnterPlay={() => navigate("goon/play")}
+              safeWord={safeWord}
+              sanitizeSafeWord={sanitizeCandidate}
+              onSaveSafeWord={saveSafeWord}
             />
           </div>
           <div className={screen === "groove" ? undefined : "hidden"}>
@@ -298,7 +355,11 @@ function App() {
             />
           </div>
           <div className={screen === "settings" ? undefined : "hidden"}>
-            <SettingsPanel />
+            <SettingsPanel
+              safeWord={safeWord}
+              sanitizeSafeWord={sanitizeCandidate}
+              onSaveSafeWord={saveSafeWord}
+            />
           </div>
         </main>
       </div>

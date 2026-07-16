@@ -5,11 +5,9 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 ## Safety
 
-- [ ] **Safe word — an always-on hard stop.** A **user-defined** word that
-      **always** halts the device instantly and clears any "ignore Stop"
-      state, overriding everything — on any tab, any algorithm, regardless of
-      connection. A permanent safety floor. It matters most once ignore-Stop
-      behaviours exist
-      (see the cumming endings in the roadmap), but it's cheap and worth having
-      regardless. Pick a word that's unambiguous and distinct from `stop`. Open:
-      does it also fully reset the session, or just halt?
+- [x] **Safe word — an always-on hard stop.** Done: a user-defined word
+      (default `pineapple`, editable in Settings and Goon's setup, with a
+      recognition test) that halts the Player exactly like Stop — no reset —
+      wired globally in the page so no algorithm can gate it. When ignore-Stop
+      behaviours land (the cumming endings in the roadmap), clearing that
+      state from the safe word handler is part of that work.
