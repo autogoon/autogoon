@@ -14,7 +14,7 @@
 //     Setup choices are deliberately locked here; Reset re-arms from time 0 and
 //     stays put, while exit (page-owned) walks back up to setup.
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { CummingButton } from "@/components/cumming-button";
@@ -30,9 +30,15 @@ import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import { GoonEngine, DEFAULT_PROGRAM_MS } from "@/lib/algorithms/goon-engine";
+import {
+  GoonEngine,
+  DEFAULT_PROGRAM_MS,
+  AFTER_PLAY_OPTIONS,
+  type AfterPlayOption,
+} from "@/lib/algorithms/goon-engine";
 import { JUMP_MS } from "@/lib/program";
 import { formatMs } from "@/lib/format";
+import { AfterPlayCard } from "./after-play-card";
 import {
   MAX_SESSION_MINUTES,
   MIN_SESSION_MINUTES,
@@ -43,6 +49,13 @@ import {
 const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
 const DEFAULT_SESSION_MINUTES = DEFAULT_PROGRAM_MS / 60_000;
+// Wind-down alone by default — the behaviour Goon has always had; the darker
+// outcomes are opt-in.
+const DEFAULT_AFTER_PLAY: AfterPlayOption[] = ["wind-down"];
+// The ticked set persists across visits. Keyed per algorithm ("goon") on
+// purpose: a future softer or harsher algorithm with after-play will want its
+// own set, not a shared one.
+const AFTER_PLAY_STORAGE_KEY = "goonAfterPlay";
 
 export function GoonPanel({
   vacuglide,
@@ -69,6 +82,12 @@ export function GoonPanel({
   const stroke = useStrokeControls(vacuglide, player);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
   const [sessionMinutes, setSessionMinutes] = useState(DEFAULT_SESSION_MINUTES);
+  // Setup: which after-play outcomes are in the hat. Play: the one drawn at
+  // the cumming point (null until then) — the panel needs it because every
+  // outcome except the wind-down ignores Stop once it starts.
+  const [afterPlayOptions, setAfterPlayOptions] =
+    useState<AfterPlayOption[]>(DEFAULT_AFTER_PLAY);
+  const [afterPlay, setAfterPlay] = useState<AfterPlayOption | null>(null);
 
   // A stable engine identity for the panel's lifetime. The Player identifies its
   // active source by reference (`player.source === engine`, just below), so this
@@ -90,12 +109,45 @@ export function GoonPanel({
   // The setup -> play boundary: commit the setup choices to the engine, arm
   // (always afresh — re-entering play is a new session), and navigate down to
   // the play level. Gated on connection (like Start) — there's no play without
-  // a device.
+  // a device — and on at least one after-play outcome being ticked.
   const enterPlay = useCallback(() => {
     engine.setProgramMs(sessionMinutes * 60_000);
+    engine.setAfterPlayOptions(afterPlayOptions);
+    setAfterPlay(null);
     device.arm(engine);
     onEnterPlay();
-  }, [device, engine, sessionMinutes, onEnterPlay]);
+  }, [device, engine, sessionMinutes, afterPlayOptions, onEnterPlay]);
+
+  // Restore the remembered after-play set. In an effect (not a lazy
+  // initializer) so server and first client render agree — the same pattern as
+  // the device token. Anything unrecognised in storage is dropped; an empty or
+  // unparsable value keeps the default.
+  useEffect(() => {
+    const stored = localStorage.getItem(AFTER_PLAY_STORAGE_KEY);
+    if (stored === null) return;
+    try {
+      const parsed: unknown = JSON.parse(stored);
+      if (!Array.isArray(parsed)) return;
+      const valid = AFTER_PLAY_OPTIONS.filter((o) => parsed.includes(o));
+      if (valid.length > 0) setAfterPlayOptions(valid);
+    } catch {
+      // Bad JSON — keep the default.
+    }
+  }, []);
+
+  const toggleAfterPlay = useCallback(
+    (option: AfterPlayOption, on: boolean) => {
+      // Filtering the canonical list keeps the set in display order.
+      const next = on
+        ? AFTER_PLAY_OPTIONS.filter(
+            (o) => o === option || afterPlayOptions.includes(o),
+          )
+        : afterPlayOptions.filter((o) => o !== option);
+      setAfterPlayOptions(next);
+      localStorage.setItem(AFTER_PLAY_STORAGE_KEY, JSON.stringify(next));
+    },
+    [afterPlayOptions],
+  );
 
   const stepSessionMinutes = useCallback(
     (delta: number) =>
@@ -116,10 +168,12 @@ export function GoonPanel({
   }, [device]);
   // Reset stays on the play view: restore the live knobs and re-arm, putting
   // the program back at time 0. Setup choices are untouched (they're a level
-  // up — exit to change them).
+  // up — exit to change them). Any drawn after-play is void — a fresh session
+  // draws its own.
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
     engine.setIntensity(DEFAULT_INTENSITY);
+    setAfterPlay(null);
     device.arm(engine);
   }, [device, engine]);
 
@@ -142,7 +196,7 @@ export function GoonPanel({
 
   const cumming = useCallback(() => {
     try {
-      engine.beginCumming();
+      setAfterPlay(engine.beginCumming());
       device.invalidateFuture();
     } catch (err) {
       vacuglide.log(`error: ${(err as Error).message}`, "error");
@@ -155,7 +209,18 @@ export function GoonPanel({
   // only shape the preview, so they're valid whenever the play view is up with
   // Goon as the current source — connected or not.
   const live = inPlay && isCurrent;
-  const canEnd = live && connected;
+  // Once an after-play other than the wind-down has been drawn, it can't be
+  // avoided: Stop and every transport control that could dodge or dilute the
+  // outcome are withdrawn. The page-owned safe word bypasses all of this.
+  const unstoppable = afterPlay !== null && afterPlay !== "wind-down";
+  // Cumming is one-shot per session — no re-rolling the draw.
+  const canEnd = live && connected && afterPlay === null;
+  const canPlay = connected && afterPlayOptions.length > 0;
+  const playTitle = !connected
+    ? "Connect the device first"
+    : afterPlayOptions.length === 0
+      ? "Tick at least one after-play outcome first"
+      : undefined;
 
   const rawPositionMs = isCurrent ? player.positionMs : 0;
   const timeScale = isCurrent ? player.timeScale : 1;
@@ -184,7 +249,7 @@ export function GoonPanel({
       enabled: !inPlay,
       run: () => stepSessionMinutes(SESSION_STEP_MINUTES),
     },
-    { word: "play", enabled: !inPlay && connected, run: enterPlay },
+    { word: "play", enabled: !inPlay && canPlay, run: enterPlay },
     ...stroke.keywords.map((k) => ({
       ...k,
       enabled: k.enabled && inPlay,
@@ -194,7 +259,11 @@ export function GoonPanel({
       enabled: live && connected && state !== "playing",
       run: start,
     },
-    { word: "stop", enabled: inPlay && state === "playing", run: stop },
+    {
+      word: "stop",
+      enabled: inPlay && state === "playing" && !unstoppable,
+      run: stop,
+    },
     { word: "reset", enabled: live && state !== "playing", run: reset },
     {
       word: "more",
@@ -206,15 +275,27 @@ export function GoonPanel({
       enabled: live,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
-    { word: "forward", enabled: live && canForward, run: forward },
-    { word: "back", enabled: live, run: back },
+    {
+      word: "forward",
+      enabled: live && canForward && !unstoppable,
+      run: forward,
+    },
+    { word: "back", enabled: live && !unstoppable, run: back },
     {
       word: "finish",
       enabled: canEnd,
       run: () => device.seekTo(sessionMs),
     },
-    { word: "faster", enabled: live, run: () => device.faster() },
-    { word: "slower", enabled: live, run: () => device.slower() },
+    {
+      word: "faster",
+      enabled: live && !unstoppable,
+      run: () => device.faster(),
+    },
+    {
+      word: "slower",
+      enabled: live && !unstoppable,
+      run: () => device.slower(),
+    },
     { word: "cumming", enabled: canEnd, run: cumming },
   ];
   useVoiceCommands(active, commands);
@@ -232,6 +313,8 @@ export function GoonPanel({
           onChange={setSessionMinutes}
         />
 
+        <AfterPlayCard enabled={afterPlayOptions} onToggle={toggleAfterPlay} />
+
         <Card title="Safe word">
           <SafeWordField
             safeWord={safeWord}
@@ -242,8 +325,8 @@ export function GoonPanel({
 
         <Button
           onClick={enterPlay}
-          disabled={!connected}
-          title={!connected ? "Connect the device first" : undefined}
+          disabled={!canPlay}
+          title={playTitle}
           className="w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
           badge="play"
         >
@@ -276,6 +359,8 @@ export function GoonPanel({
         onStart={start}
         onStop={stop}
         onReset={reset}
+        stopDisabled={unstoppable}
+        stopDisabledTitle="After-play has begun — only the safe word stops it now"
       />
 
       <Card>
@@ -343,7 +428,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={back}
-            disabled={!isCurrent}
+            disabled={!isCurrent || unstoppable}
             className={jumpClass}
             badge="back"
           >
@@ -351,7 +436,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={forward}
-            disabled={!canForward}
+            disabled={!canForward || unstoppable}
             className={jumpClass}
             badge="forward"
           >
@@ -361,7 +446,7 @@ export function GoonPanel({
         <div className="mt-3 flex gap-3">
           <Button
             onClick={() => device.slower()}
-            disabled={!isCurrent}
+            disabled={!isCurrent || unstoppable}
             className={jumpClass}
             badge="slower"
           >
@@ -369,7 +454,7 @@ export function GoonPanel({
           </Button>
           <Button
             onClick={() => device.faster()}
-            disabled={!isCurrent}
+            disabled={!isCurrent || unstoppable}
             className={jumpClass}
             badge="faster"
           >

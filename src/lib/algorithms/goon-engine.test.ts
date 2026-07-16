@@ -74,6 +74,82 @@ describe("GoonEngine.generateSpeed", () => {
   });
 });
 
+describe("GoonEngine after-play", () => {
+  it("defaults to the wind-down", () => {
+    expect(new GoonEngine(50).beginCumming()).toBe("wind-down");
+  });
+
+  it("picks only among the enabled options", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["torture"]);
+    expect(engine.beginCumming()).toBe("torture");
+  });
+
+  it("draws every pick from the enabled set", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["stay-in", "eject"]);
+    for (let i = 0; i < 50; i++) {
+      engine.reset();
+      expect(["stay-in", "eject"]).toContain(engine.beginCumming());
+    }
+  });
+
+  it("torture slams to full speed and holds, ignoring the intensity ceiling", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["torture"]);
+    engine.beginCumming();
+    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
+      { kind: "speed", at: 1_000, speed: 100, unscaled: true },
+    ]);
+    // Parked: the hold is the in-effect speed forever.
+    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    expect(engine.generateValves([], 1_000, 1_000, CTX)).toEqual([
+      { kind: "valve", at: 1_000, valve: "minus", open: false },
+      { kind: "valve", at: 1_000, valve: "plus", open: false },
+    ]);
+  });
+
+  it("stay-in stops the device dead with the valves closed", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["stay-in"]);
+    engine.beginCumming();
+    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
+      { kind: "speed", at: 1_000, speed: 0, unscaled: true },
+    ]);
+    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    expect(engine.generateValves([], 1_000, 1_000, CTX)).toEqual([
+      { kind: "valve", at: 1_000, valve: "minus", open: false },
+      { kind: "valve", at: 1_000, valve: "plus", open: false },
+    ]);
+  });
+
+  it("eject drives speed 40 with stroke+ open for 15 seconds, then stops", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["eject"]);
+    engine.beginCumming();
+    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
+      { kind: "speed", at: 1_000, speed: 40, unscaled: true },
+      { kind: "speed", at: 16_000, speed: 0, unscaled: true },
+    ]);
+    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    expect(engine.generateValves([], 1_000, 16_000, CTX)).toEqual([
+      { kind: "valve", at: 1_000, valve: "minus", open: false },
+      { kind: "valve", at: 1_000, valve: "plus", open: true },
+      { kind: "valve", at: 16_000, valve: "plus", open: false },
+    ]);
+  });
+
+  it("the wind-down still rides its suction pulse", () => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions(["wind-down"]);
+    engine.beginCumming();
+    expect(engine.generateValves([], 1_000, 20_000, CTX)).toEqual([
+      { kind: "valve", at: 4_000, valve: "minus", open: true },
+      { kind: "valve", at: 13_000, valve: "minus", open: false },
+    ]);
+  });
+});
+
 describe("GoonEngine.scale", () => {
   const event = (speed: number, unscaled?: boolean): SpeedEvent => ({
     kind: "speed",
