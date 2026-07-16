@@ -26,6 +26,9 @@ export function HomePanel({
     id: string;
     label: string;
     description: string;
+    // An optional second paragraph shouting about something new on this
+    // algorithm.
+    highlight?: string;
     icon: LucideIcon;
     iconClass: string;
     accent: string;
@@ -44,12 +47,18 @@ export function HomePanel({
             badge={a.id}
             className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-left ${a.accent}`}
           >
-            <a.icon className={`size-8 shrink-0 ${a.iconClass}`} aria-hidden />
+            <a.icon
+              className={`size-8 shrink-0 self-start ${a.iconClass}`}
+              aria-hidden
+            />
             <span className="min-w-0 flex-1">
               <span className="block font-semibold">{a.label}</span>
               <span className="text-muted-foreground block text-sm">
                 {a.description}
               </span>
+              {a.highlight !== undefined && (
+                <span className="mt-1.5 block text-sm">{a.highlight}</span>
+              )}
             </span>
             <ChevronRight className="text-muted-foreground size-4 shrink-0" />
           </Button>
