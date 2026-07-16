@@ -22,6 +22,7 @@ import { GroovePanel } from "@/components/algorithms/groove-panel";
 import { GoonPanel } from "@/components/algorithms/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomePanel } from "@/components/home-panel";
+import { ChangelogPanel } from "@/components/changelog-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import {
   KeywordSpotterProvider,
@@ -80,7 +81,8 @@ type AlgorithmId = (typeof ALGORITHMS)[number]["id"];
 // An algorithm's setup is its own level (`#goon`), with the live session one
 // below (`#goon/play`) — for algorithms that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
-type Screen = "home" | "settings" | AlgorithmId | `${AlgorithmId}/play`;
+type Screen =
+  "home" | "settings" | "changelog" | AlgorithmId | `${AlgorithmId}/play`;
 
 const isAlgorithmId = (id: string): id is AlgorithmId =>
   ALGORITHMS.some((a) => a.id === id);
@@ -92,7 +94,7 @@ const hashScreen = (): Screen => {
   if (base !== undefined && isAlgorithmId(base)) {
     return sub === "play" ? `${base}/play` : base;
   }
-  return base === "settings" ? "settings" : "home";
+  return base === "settings" || base === "changelog" ? base : "home";
 };
 
 // One level up: play -> its algorithm's setup, everything else -> home.
@@ -109,6 +111,7 @@ const SAFE_WORD_RESERVED = [
   "start",
   "stop",
   "reset",
+  "changelog",
   ...ALGORITHMS.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
@@ -167,7 +170,7 @@ function App() {
     if (!connected) words.push("connect");
     if (playing) words.push(safeWord);
     if (screen === "home") {
-      words.push(...ALGORITHMS.map((a) => a.id), "settings");
+      words.push(...ALGORITHMS.map((a) => a.id), "changelog", "settings");
     } else if (!running) {
       words.push("exit");
     }
@@ -248,7 +251,7 @@ function App() {
         return;
       }
       if (
-        (isAlgorithmId(word) || word === "settings") &&
+        (isAlgorithmId(word) || word === "settings" || word === "changelog") &&
         screenRef.current === "home"
       ) {
         navigate(word);
@@ -259,7 +262,8 @@ function App() {
   // Top level = home + its Settings sibling, shown as the old tab strip;
   // algorithm screens get the breadcrumb instead: Home › Goon (setup), and
   // Home › Goon › Play once a session's been generated.
-  const topLevel = screen === "home" || screen === "settings";
+  const topLevel =
+    screen === "home" || screen === "settings" || screen === "changelog";
   const screenBase = screen.split("/")[0]!;
   const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
@@ -274,8 +278,11 @@ function App() {
           <nav className="flex gap-6 border-b">
             {(
               [
+                // `align: "right"` marks where the right-hand cluster starts
+                // (ml-auto); the tabs after it just follow.
                 { id: "home", label: "Home", align: "left" },
-                { id: "settings", label: "Settings", align: "right" },
+                { id: "changelog", label: "Changelog", align: "right" },
+                { id: "settings", label: "Settings", align: "left" },
               ] as const
             ).map((t) => (
               <Button
@@ -366,6 +373,9 @@ function App() {
               player={player}
               active={screen === "autopilot"}
             />
+          </div>
+          <div className={screen === "changelog" ? undefined : "hidden"}>
+            <ChangelogPanel />
           </div>
           <div className={screen === "settings" ? undefined : "hidden"}>
             <SettingsPanel
