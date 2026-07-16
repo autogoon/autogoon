@@ -60,13 +60,8 @@ const STEP_INTERVAL_MS = 1000;
 const RAMP_GAMMA = 2;
 const PEAK_SPEED = 100;
 
-// Auto teasing: stroke-minus pulses every minute up to STROKE_PLUS_START_MS, then
-// stroke-plus pulses every five minutes, except in the final segment.
-const STROKE_PLUS_START_MS = 10 * 60_000;
-const STROKE_MINUS_INTERVAL_MS = 60_000;
-const STROKE_MINUS_PULSE_MS = 5000;
-const TEASE_INTERVAL_MS = 5 * 60_000;
-const TEASE_PULSE_MS = 100;
+// Auto teasing: one stroke-minus application right at session start.
+const STROKE_MINUS_APPLY_MS = 10_000;
 
 // cumming()'s wind-down ramp.
 const CUMMING_START_SPEED = 30;
@@ -261,48 +256,21 @@ function buildCummingScript(startAt: number): SpeedEvent[] {
   return events;
 }
 
-// The automatic tease overlay: valve pulses laid across [from, until) in two
-// phases. It walks fixed time grids rather than keeping state, so it's a pure
-// function of the window and can be re-derived for any span (see generateValves):
-//   - stroke-minus pulses every minute, only before STROKE_PLUS_START_MS (10 min);
-//   - stroke-plus pulses every 5 min after that, suppressed in the final segment
-//     (the last TEASE_INTERVAL_MS) so nothing interrupts the approach.
-// Each pulse is an open event plus a later close. Grid positions before `from` are
-// skipped so adjacent windows don't emit the same pulse twice.
+// The automatic tease overlay: a single stroke-minus application at session
+// start, held for STROKE_MINUS_APPLY_MS. A pure function of the window, so it can
+// be re-derived for any span (see generateValves): only the window that starts at
+// position 0 emits it, so adjacent windows don't emit it twice.
 function teaseEvents(from: number, until: number): ValveEvent[] {
-  const events: ValveEvent[] = [];
-
-  const minusStart = Math.max(0, Math.floor(from / STROKE_MINUS_INTERVAL_MS));
-  for (let k = minusStart; ; k++) {
-    const pos = k * STROKE_MINUS_INTERVAL_MS;
-    if (pos >= until) break;
-    if (pos >= STROKE_PLUS_START_MS) break;
-    if (pos < from) continue;
-    events.push({ kind: "valve", at: pos, valve: "minus", open: true });
-    events.push({
+  if (from > 0 || until <= 0) return [];
+  return [
+    { kind: "valve", at: 0, valve: "minus", open: true },
+    {
       kind: "valve",
-      at: pos + STROKE_MINUS_PULSE_MS,
+      at: STROKE_MINUS_APPLY_MS,
       valve: "minus",
       open: false,
-    });
-  }
-
-  const plusStart = Math.max(0, Math.floor(from / TEASE_INTERVAL_MS));
-  for (let k = plusStart; ; k++) {
-    const pos = k * TEASE_INTERVAL_MS;
-    if (pos >= until) break;
-    if (pos >= PROGRAM_MS - TEASE_INTERVAL_MS) break;
-    if (pos < from || pos < STROKE_PLUS_START_MS) continue;
-    events.push({ kind: "valve", at: pos, valve: "plus", open: true });
-    events.push({
-      kind: "valve",
-      at: pos + TEASE_PULSE_MS,
-      valve: "plus",
-      open: false,
-    });
-  }
-
-  return events;
+    },
+  ];
 }
 
 export class GoonEngine implements AlgorithmEngine {
@@ -373,8 +341,7 @@ export class GoonEngine implements AlgorithmEngine {
         { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
       ];
     }
-    // Auto teasing. teaseEvents caps itself at PROGRAM_MS, so passing the speed
-    // batch's full extent (untilTime, huge once parked) is safe.
+    // Auto teasing: only the window covering session start emits anything.
     return teaseEvents(fromTime, untilTime);
   }
 

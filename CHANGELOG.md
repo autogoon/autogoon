@@ -2,6 +2,8 @@
 
 ## 2026-07-16
 
+- enhancement: Goon's automatic teasing is now just a single 10-second stroke− application at session start — the every-minute stroke− pulses and the five-minutely stroke+ pulses are gone.
+
 - internal: Added the first test suites: Jest unit tests for the device client's rate-limit accounting and the Goon engine's generation contract, and a Playwright end-to-end voice test that plays a synthesized "autopilot" through a stubbed microphone and asserts the tab switches — run against real Chromium, Firefox, and WebKit. ([#8](https://github.com/autogoon/autogoon/pull/8))
 
 ## 2026-07-14
