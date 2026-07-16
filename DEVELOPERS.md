@@ -96,10 +96,11 @@ shared Player) — registered in `src/app/page.tsx`. Read the engine/panel split
 [ARCHITECTURE.md](./ARCHITECTURE.md) first.
 
 **Copy an existing algorithm as your starting point.** `goon-engine.ts` +
-`goon-panel.tsx` exercise the full feature set (an automatic build curve, a
-live-scaled magnitude knob, valve teases, time dilation, and a bespoke `cumming`
-wind-down), so Goon is the richest template. For a simpler _manual-knob_ mode,
-`groove-engine.ts` + `groove-panel.tsx` are the leaner model.
+`goon-panel/` exercise the full feature set (an automatic build curve, a setup
+view with per-concern option cards, a live-scaled magnitude knob, valve teases,
+time dilation, and a bespoke `cumming` wind-down), so Goon is the richest
+template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
+`groove-panel.tsx` are the leaner model.
 
 ### The steps
 
@@ -112,9 +113,13 @@ wind-down), so Goon is the richest template. For a simpler _manual-knob_ mode,
    - Engines are **self-contained** — they never import from each other. If you
      reuse another algorithm's pattern (as Goon reuses Groove's dip), **duplicate**
      the helper, don't share it.
-2. **Panel** — `src/components/algorithms/<name>-panel.tsx`. Copy Goon's or
+2. **Panel** — `src/components/algorithms/<name>-panel.tsx` (or a
+   `<name>-panel/` directory with the panel in `index.tsx`, once it has enough
+   pieces — Goon splits its setup option cards out this way). Copy Goon's or
    Groove's structure; what's algorithm-specific is only your knob cards and their
-   commands. The parts to copy:
+   commands. Whether an algorithm has a **setup view** before its play view is
+   the panel's own choice — Goon has one, Groove and Autopilot don't. The parts
+   to copy:
    - a `useRef` engine — **stable identity matters**: the Player identifies the
      active source by reference, so never re-create it (no `useMemo` with deps);
    - `isCurrent` / `state` derived from the Player view;

@@ -3,8 +3,18 @@
 // Goon algorithm panel. Owns the Goon engine, arms/plays the shared Player with
 // it, and declares its commands once (button == voice). Presentation + wiring;
 // event generation lives in @/lib/algorithms/goon-engine.
+//
+// The panel has two views, keyed off whether Goon holds the Player:
+//   - setup — shown while Goon is not the Player's source. Setup options (one
+//     card per concern) and a Play button, with a small grammar of its own
+//     (`shorter` / `longer` / `play`). Play commits the settings, arms the
+//     engine, and builds the preview.
+//   - play — the live session: transport, preview, stroke, intensity, timeline.
+//     Setup choices are deliberately locked here; Reset returns to setup.
+// Setup is each algorithm's own affair — nothing outside this panel knows Goon
+// has one.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { CummingButton } from "@/components/cumming-button";
@@ -21,12 +31,19 @@ import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import { GoonEngine, PROGRAM_MS } from "@/lib/algorithms/goon-engine";
+import { GoonEngine, DEFAULT_PROGRAM_MS } from "@/lib/algorithms/goon-engine";
 import { JUMP_MS } from "@/lib/program";
 import { formatMs } from "@/lib/format";
+import {
+  MAX_SESSION_MINUTES,
+  MIN_SESSION_MINUTES,
+  SESSION_STEP_MINUTES,
+  SessionLengthCard,
+} from "./session-length-card";
 
 const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
+const DEFAULT_SESSION_MINUTES = DEFAULT_PROGRAM_MS / 60_000;
 
 export function GoonPanel({
   vacuglide,
@@ -41,6 +58,7 @@ export function GoonPanel({
   const spotter = useKeywordSpotter();
   const stroke = useStrokeControls(vacuglide);
   const [intensity, setIntensity] = useState(DEFAULT_INTENSITY);
+  const [sessionMinutes, setSessionMinutes] = useState(DEFAULT_SESSION_MINUTES);
 
   // A stable engine identity for the panel's lifetime. The Player identifies its
   // active source by reference (`player.source === engine`, just below), so this
@@ -50,28 +68,43 @@ export function GoonPanel({
   engineRef.current ??= new GoonEngine(DEFAULT_INTENSITY);
   const engine = engineRef.current;
 
-  // Goon's slice of the shared player, derived from the view.
+  // Goon's slice of the shared player, derived from the view. Not holding the
+  // Player means the setup view; the session-length slider is only live there,
+  // so whenever the play view is visible it reads the value Play committed.
   const isCurrent = player.source === engine;
   const state = isCurrent ? player.state : "armed";
+  const sessionMs = sessionMinutes * 60_000;
 
-  // Build the preview when this tab becomes active while nothing is in progress.
-  useEffect(() => {
-    if (active && player.state === "armed" && player.source !== engine) {
-      device.arm(engine);
-    }
-  }, [active, player.state, player.source, device, engine]);
+  // The setup -> play boundary: commit the setup choices to the engine, then
+  // arm. Gated on connection (like Start) — there's no play without a device.
+  const enterPlay = useCallback(() => {
+    engine.setProgramMs(sessionMinutes * 60_000);
+    device.arm(engine);
+  }, [device, engine, sessionMinutes]);
+
+  const stepSessionMinutes = useCallback(
+    (delta: number) =>
+      setSessionMinutes((minutes) =>
+        Math.max(
+          MIN_SESSION_MINUTES,
+          Math.min(MAX_SESSION_MINUTES, minutes + delta),
+        ),
+      ),
+    [],
+  );
 
   const start = useCallback(() => {
-    if (device.source !== engine) device.arm(engine);
     device.play();
-  }, [device, engine]);
+  }, [device]);
   const stop = useCallback(() => {
     void device.pause();
   }, [device]);
+  // Back to setup: release the Player (which stops the preview) and restore the
+  // live knobs. Setup choices keep their last values.
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
     engine.setIntensity(DEFAULT_INTENSITY);
-    device.arm(engine);
+    device.arm(null);
   }, [device, engine]);
 
   const changeIntensity = useCallback(
@@ -111,20 +144,41 @@ export function GoonPanel({
   const timeScale = isCurrent ? player.timeScale : 1;
   // ±1 min steps a *displayed* minute. The display is program-time ÷ rate, so the
   // program-time jump scales with the rate (at 4× a "1 min" step covers 4 min of
-  // program-time). The timeline caps at the 30-min build: forward never runs past
-  // it (the clock may still drift past 30 as Goon holds at top, but scrubbing and
-  // the display stop at PROGRAM_MS).
+  // program-time). The timeline caps at the session length: forward never runs
+  // past it (the clock may still drift past the end as Goon holds at top, but
+  // scrubbing and the display stop at sessionMs).
   const jumpMs = JUMP_MS * timeScale;
-  const canForward = isCurrent && rawPositionMs < PROGRAM_MS;
+  const canForward = isCurrent && rawPositionMs < sessionMs;
   const forward = () =>
-    device.seekTo(Math.min(rawPositionMs + jumpMs, PROGRAM_MS));
+    device.seekTo(Math.min(rawPositionMs + jumpMs, sessionMs));
   const back = () => device.seekTo(Math.max(0, rawPositionMs - jumpMs));
 
+  // Two grammars that never overlap: the setup words are live only while Goon
+  // does NOT hold the Player, everything else only while it does — so the
+  // recognizer is always listening for exactly the visible view's controls.
   const commands: Command[] = [
-    ...stroke.keywords,
-    { word: "start", enabled: connected && state !== "playing", run: start },
+    {
+      word: "shorter",
+      enabled: !isCurrent,
+      run: () => stepSessionMinutes(-SESSION_STEP_MINUTES),
+    },
+    {
+      word: "longer",
+      enabled: !isCurrent,
+      run: () => stepSessionMinutes(SESSION_STEP_MINUTES),
+    },
+    { word: "play", enabled: !isCurrent && connected, run: enterPlay },
+    ...stroke.keywords.map((k) => ({
+      ...k,
+      enabled: k.enabled && isCurrent,
+    })),
+    {
+      word: "start",
+      enabled: isCurrent && connected && state !== "playing",
+      run: start,
+    },
     { word: "stop", enabled: state === "playing", run: stop },
-    { word: "reset", enabled: state !== "playing", run: reset },
+    { word: "reset", enabled: isCurrent && state !== "playing", run: reset },
     {
       word: "more",
       enabled: isCurrent,
@@ -140,7 +194,7 @@ export function GoonPanel({
     {
       word: "finish",
       enabled: canEnd,
-      run: () => device.seekTo(PROGRAM_MS),
+      run: () => device.seekTo(sessionMs),
     },
     { word: "faster", enabled: isCurrent, run: () => device.faster() },
     { word: "slower", enabled: isCurrent, run: () => device.slower() },
@@ -153,12 +207,44 @@ export function GoonPanel({
     [vacuglide],
   );
 
-  const positionMs = Math.min(rawPositionMs, PROGRAM_MS);
-  const pct = Math.round((positionMs / PROGRAM_MS) * 100);
-  // Numbers scale with dilation: at 4× the 30-min build reads 7:30. The bar (a
-  // fraction of PROGRAM_MS) is rate-independent, so only the times shrink.
+  if (!isCurrent) {
+    return (
+      <section className="flex w-full flex-col gap-4">
+        <ListeningFor
+          words={spotter.listeningFor}
+          flashing={spotter.flashing}
+        />
+
+        <SessionLengthCard
+          minutes={sessionMinutes}
+          onChange={setSessionMinutes}
+        />
+
+        <Button
+          onClick={enterPlay}
+          disabled={!connected}
+          title={!connected ? "Connect the device first" : undefined}
+          className="w-full rounded-lg bg-linear-to-br from-fuchsia-600 to-rose-500 py-3.5 text-lg font-bold text-white disabled:opacity-40"
+          badge="play"
+        >
+          Play
+        </Button>
+
+        <LogCard
+          title="Command log"
+          header={<RateLimitMeter {...vacuglide.rateLimit} />}
+          entries={vacuglide.logEntries}
+        />
+      </section>
+    );
+  }
+
+  const positionMs = Math.min(rawPositionMs, sessionMs);
+  const pct = Math.round((positionMs / sessionMs) * 100);
+  // Numbers scale with dilation: at 4× a 30-min build reads 7:30. The bar (a
+  // fraction of the session) is rate-independent, so only the times shrink.
   const displayPositionMs = positionMs / timeScale;
-  const displayTotalMs = PROGRAM_MS / timeScale;
+  const displayTotalMs = sessionMs / timeScale;
   const jumpClass =
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-40";
 
@@ -188,7 +274,7 @@ export function GoonPanel({
 
       <div className="flex gap-3">
         <FinishButton
-          onClick={() => device.seekTo(PROGRAM_MS)}
+          onClick={() => device.seekTo(sessionMs)}
           disabled={!canEnd}
           className="flex-1"
         />

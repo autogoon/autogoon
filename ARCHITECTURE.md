@@ -72,7 +72,7 @@ clock of its own.
   script byte-identical and only re-lays the valve overlay. Regeneration only ever
   rewrites the future, never the past.
 
-**Position = the clock.** Goon's 30-minute build is a _position_, and that
+**Position = the clock.** Goon's build is a _position_, and that
 position **is** the Player's clock; time dilation is the Player's rate. So
 `forward`/`back`/`finish`/`faster`/`slower` are just the Player moving or
 consuming the clock, and the engine samples its curves at each event's

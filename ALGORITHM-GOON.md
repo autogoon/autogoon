@@ -3,28 +3,45 @@
 An automatic, timeline-driven counterpart to the
 [Groove](./ALGORITHM-GROOVE.md) algorithm. Where Groove hands you Intensity, Dip
 variability and Timing variability as manual knobs, Goon drives them for you over
-a fixed **30-minute program**: a slow build that starts gentle and teasing and
-finishes as a steady hold at the top. It models a long, unhurried arousal ramp to
-a controlled climax — a "gooning" session, not deny-and-repeat edging.
+a program of a **session length you choose**: a slow build that starts gentle and
+teasing and finishes as a steady hold at the top. It models a long, unhurried
+arousal ramp to a controlled climax — a "gooning" session, not deny-and-repeat
+edging.
+
+## Setup
+
+Goon opens on a **setup view**: pick your **session length** (10–120 minutes in
+5-minute steps, default **30** — say `shorter` / `longer` to step it), then hit
+**Play** (or say it). Play locks your choices in and takes you to the session
+itself — the transport, preview, stroke and intensity controls. Setup is
+deliberately not changeable mid-play; **Reset** brings you back to it. Play needs
+the device connected, like Start.
+
+The build **scales to fit** whatever length you choose — a 15-minute Goon
+compresses the whole ramp, an hour-long one stretches it, and either way the
+curves below play out as fractions of your session. Times in this document
+describe the default 30-minute build.
 
 ## The build
 
 It **is** Groove with its knobs driven automatically. The dip is always Groove's
-raw pattern **100 → floor → 100**. A **position** runs from 0 to 30 minutes, and
-the curves are sampled at that position:
+raw pattern **100 → floor → 100**. A **position** runs from 0 to the end of the
+session, and the curves are sampled at that position:
 
-- **Speed** eases from **25 → 100** across the whole 30 minutes — a patient start
+- **Speed** eases from **25 → 100** across the whole session — a patient start
   that accelerates toward the finish.
-- **Dip variability** winds down from Groove's _high_ to _off_ over the **first 25
-  minutes**. Early on a dip can plunge anywhere from a shallow nudge to a dead
-  stop, redrawn every cycle and weighted toward the deep end; by 25 minutes every
-  dip is the standard, predictable `100 → 60`.
+- **Dip variability** winds down from Groove's _high_ to _off_ over the **first
+  five-sixths** of the session (25 minutes of a 30-minute build). Early on a dip
+  can plunge anywhere from a shallow nudge to a dead stop, redrawn every cycle and
+  weighted toward the deep end; by then every dip is the standard, predictable
+  `100 → 60`.
 - **Timing variability** winds down from Groove's _high_ (**75%**) to _off_ across
-  the **whole 30 minutes**. Early legs can be cut to a quarter of their length, so
+  the **whole session**. Early legs can be cut to a quarter of their length, so
   the pace lurches; only the very last legs take their full, unhurried ten seconds.
 
-Then the **last 5 minutes are a taper**: the dip floor rises from 60 to 100, so the
-dips shrink away to nothing and the program arrives at a flat hold at the top. The
+Then the **final sixth is a taper** (the last 5 minutes of a 30-minute build): the
+dip floor rises from 60 to 100, so the dips shrink away to nothing and the
+program arrives at a flat hold at the top. The
 timing is still slackening off through all of that, so the dips keep a little
 unevenness right up to the point where they vanish.
 
@@ -47,8 +64,9 @@ start. It's separate from the manual Stroke ± / `up`/`down` controls.
 
 ## The finish and cumming
 
-At 30 minutes the build reaches the top and **holds there** until you end it.
-`finish` jumps straight to that hold — the top of the build, waiting for you.
+At the end of the session the build reaches the top and **holds there** until you
+end it. `finish` jumps straight to that hold — the top of the build, waiting for
+you.
 
 `cumming` is the actual send-off: the device eases off in a slow, deliberate glide
 from a moderate pace down to a standstill over about fifteen seconds — the strokes
@@ -67,8 +85,15 @@ stretches. The Timeline card shows the current factor (e.g. `1.20×`).
 
 ## Voice control
 
+In setup:
+
+- `shorter` / `longer` — step the session length down/up.
+- `play` — lock the setup in and ready the session.
+
+During play:
+
 - `forward` / `back` — jump the position ±1 minute.
-- `finish` — jump to the 30-minute hold.
+- `finish` — jump to the end-of-session hold.
 - `faster` / `slower` — dilate time ±5% from this point on.
 - `more` / `less` — step Intensity up/down.
 - `cumming` — trigger the wind-down.
