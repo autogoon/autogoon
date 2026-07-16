@@ -6,9 +6,15 @@
 // wearing its algorithm's accent colour), and the getting-started small print.
 // Settings sits beside home as a top-level tab (see page.tsx).
 
-import { ChevronRight, Plug } from "lucide-react";
+import { ChevronRight, Plug, type LucideIcon } from "lucide-react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { Button } from "@/components/button";
+import { Card } from "@/components/card";
+import {
+  CONTROL_BORDER,
+  CONTROL_BUTTON_BASE,
+  CONTROL_INPUT,
+} from "@/components/controls";
 
 export function HomePanel({
   vacuglide,
@@ -20,41 +26,46 @@ export function HomePanel({
     id: string;
     label: string;
     description: string;
+    icon: LucideIcon;
+    iconClass: string;
     accent: string;
   }>;
   onSelect: (id: string) => void;
 }) {
   const chooser = (
-    <div className="flex flex-col gap-3">
-      <h2 className="font-semibold">Choose an algorithm</h2>
-      {algorithms.map((a) => (
-        <Button
-          key={a.id}
-          onClick={() => onSelect(a.id)}
-          badge={a.id}
-          className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left ${a.accent}`}
-        >
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold">{a.label}</span>
-            <span className="text-muted-foreground block text-sm">
-              {a.description}
+    <Card title="Choose an algorithm">
+      {/* pt-1 is optical: a bordered box carries no line-height slack, so the
+          title→border gap needs +4px to match the title→text gap elsewhere. */}
+      <div className="flex flex-col gap-3 pt-1">
+        {algorithms.map((a) => (
+          <Button
+            key={a.id}
+            onClick={() => onSelect(a.id)}
+            badge={a.id}
+            className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-left ${a.accent}`}
+          >
+            <a.icon className={`size-8 shrink-0 ${a.iconClass}`} aria-hidden />
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">{a.label}</span>
+              <span className="text-muted-foreground block text-sm">
+                {a.description}
+              </span>
             </span>
-          </span>
-          <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-        </Button>
-      ))}
-    </div>
+            <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+          </Button>
+        ))}
+      </div>
+    </Card>
   );
 
   const device = (
-    <div className="space-y-2">
-      <h2 className="font-semibold">Device</h2>
+    <Card title="Device">
       <p className="text-muted-foreground text-sm">
         Enter your Vacuglide device token, then use Connect in the header bar to
         connect via the Autoblow cloud API. The token is saved on this device,
         so next time Autogoon connects automatically.
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-stretch gap-2">
         <input
           type="text"
           value={vacuglide.token}
@@ -62,15 +73,21 @@ export function HomePanel({
           placeholder="Device token"
           spellCheck={false}
           autoComplete="off"
-          className="bg-background min-w-0 flex-1 rounded-lg border px-3 py-2"
+          className={`${CONTROL_INPUT} min-w-0 flex-1`}
         />
         <Button
           onClick={() => void vacuglide.connect()}
           disabled={vacuglide.connecting || vacuglide.connected}
           title={vacuglide.deviceStatus}
-          className={`bg-card flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm disabled:opacity-40 ${
-            vacuglide.connected ? "border-emerald-500 text-emerald-500" : ""
-          } ${vacuglide.deviceStatusKind === "error" ? "border-destructive text-destructive" : ""}`}
+          className={`${CONTROL_BUTTON_BASE} flex shrink-0 items-center gap-1.5 ${
+            // Exactly one border colour (see controls.ts): connected wins,
+            // then error, then the default control border.
+            vacuglide.connected
+              ? "border-emerald-500 text-emerald-500"
+              : vacuglide.deviceStatusKind === "error"
+                ? "border-destructive text-destructive"
+                : CONTROL_BORDER
+          }`}
         >
           <Plug className="size-4" />
           {vacuglide.connected
@@ -91,7 +108,7 @@ export function HomePanel({
       >
         {vacuglide.deviceStatus}
       </p>
-    </div>
+    </Card>
   );
 
   return (
@@ -99,8 +116,7 @@ export function HomePanel({
       {device}
       {chooser}
 
-      <div className="space-y-2">
-        <h2 className="font-semibold">Getting started</h2>
+      <Card title="Getting started">
         <div className="text-muted-foreground space-y-3 text-sm">
           <p>
             <span className="text-foreground font-medium">Autogoon</span> drives
@@ -131,7 +147,7 @@ export function HomePanel({
             tabs stop the mic and the timing loop.
           </p>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }

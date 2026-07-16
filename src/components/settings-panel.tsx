@@ -6,6 +6,8 @@
 // setup view instead).
 
 import { useEffect, useState } from "react";
+import { Card } from "@/components/card";
+import { SafeWordField } from "@/components/safe-word-field";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 // Build stamp, baked into the bundle by next.config at build time. On Vercel the
@@ -17,7 +19,15 @@ const gitRef = process.env.NEXT_PUBLIC_GIT_REF ?? "dev";
 const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME ?? "";
 const shortSha = gitSha === "dev" ? "dev" : gitSha.slice(0, 7);
 
-export function SettingsPanel() {
+export function SettingsPanel({
+  safeWord,
+  sanitizeSafeWord,
+  onSaveSafeWord,
+}: {
+  safeWord: string;
+  sanitizeSafeWord: (input: string) => string | null;
+  onSaveSafeWord: (word: string) => void;
+}) {
   // Local-time build stamp, resolved after mount (see the note above).
   const [builtAt, setBuiltAt] = useState<string | null>(null);
   useEffect(() => {
@@ -42,8 +52,15 @@ export function SettingsPanel() {
         <ThemeToggle />
       </div>
 
-      <div className="space-y-2">
-        <h2 className="font-semibold">Info</h2>
+      <Card title="Safe word">
+        <SafeWordField
+          safeWord={safeWord}
+          sanitize={sanitizeSafeWord}
+          onSave={onSaveSafeWord}
+        />
+      </Card>
+
+      <Card title="Info">
         <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
           <dt>Commit</dt>
           <dd className="font-mono">
@@ -65,7 +82,7 @@ export function SettingsPanel() {
           <dt>Built</dt>
           <dd className="text-foreground">{builtAt ?? "…"}</dd>
         </dl>
-      </div>
+      </Card>
     </section>
   );
 }

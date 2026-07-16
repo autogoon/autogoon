@@ -9,6 +9,10 @@
 //   - the ALGORITHM words — owned by whichever panel is currently active; it
 //     calls setAlgorithmKeywords with its enabled words and clears them when it
 //     stops being active, so only one algorithm's words are ever live.
+// A third, EXCLUSIVE slot overrides both: while a test word is set (the safe
+// word test modal), the grammar is only that word — the easiest possible
+// recognition setting, so a word that fails there is genuinely outside the
+// model's vocabulary.
 // Detections are broadcast to every registered keywordListener; a listener acts
 // on the words it owns and ignores the rest.
 //
@@ -35,6 +39,9 @@ const MODEL_URL = "/vosk-model-small-en-us-0.15.tar.gz";
 interface ResultMessage {
   result: { text: string };
 }
+interface PartialMessage {
+  result: { partial: string };
+}
 
 export interface KeywordSpotter {
   modelReady: boolean;
@@ -49,8 +56,17 @@ export interface KeywordSpotter {
   setGlobalWords: (words: string[]) => void;
   // The active panel sets its algorithm words (and clears them on deactivate).
   setAlgorithmKeywords: (words: string[]) => void;
+  // While non-null, the grammar is ONLY this word (the safe word test modal).
+  // Callers must clear it (null) on close/unmount to restore normal listening.
+  setExclusiveTestWord: (word: string | null) => void;
   // Subscribe to detections; returns an unsubscribe. Register inside an effect.
   keywordListener: (fn: (word: string) => void) => () => void;
+  // Subscribe to the decoder's in-flight partial text (fires many times a
+  // second while audio flows; "" during silence). Lets the UI show that vosk
+  // is hearing something before the settled result arrives (the safe word
+  // test's spinner). Deliberately a listener, not state — mirroring this into
+  // React state here would re-render every consumer per audio chunk.
+  partialListener: (fn: (text: string) => void) => () => void;
 }
 
 const Context = createContext<KeywordSpotter | null>(null);
@@ -67,9 +83,15 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
   // rebuilds the recognizer.
   const [globalWords, setGlobalWordsState] = useState<string[]>([]);
   const [algorithmWords, setAlgorithmWordsState] = useState<string[]>([]);
+  const [exclusiveTestWord, setExclusiveTestWord] = useState<string | null>(
+    null,
+  );
   const words = useMemo(
-    () => [...new Set([...globalWords, ...algorithmWords])],
-    [globalWords, algorithmWords],
+    () =>
+      exclusiveTestWord !== null
+        ? [exclusiveTestWord]
+        : [...new Set([...globalWords, ...algorithmWords])],
+    [globalWords, algorithmWords, exclusiveTestWord],
   );
 
   const modelRef = useRef<Model | null>(null);
@@ -91,6 +113,15 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     listenersRef.current.add(fn);
     return () => {
       listenersRef.current.delete(fn);
+    };
+  }, []);
+
+  // Partial-result listeners (see the interface note on partialListener).
+  const partialListenersRef = useRef<Set<(text: string) => void>>(new Set());
+  const partialListener = useCallback((fn: (text: string) => void) => {
+    partialListenersRef.current.add(fn);
+    return () => {
+      partialListenersRef.current.delete(fn);
     };
   }, []);
 
@@ -192,6 +223,10 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     recognizer.on("result", (m) => {
       handleFinalRef.current((m as unknown as ResultMessage).result.text);
     });
+    recognizer.on("partialresult", (m) => {
+      const text = (m as unknown as PartialMessage).result.partial;
+      for (const fn of partialListenersRef.current) fn(text);
+    });
     recognizerRef.current = recognizer;
   }, [buildAliasMap]);
 
@@ -277,7 +312,9 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       flashing,
       setGlobalWords,
       setAlgorithmKeywords,
+      setExclusiveTestWord,
       keywordListener,
+      partialListener,
     }),
     [
       modelReady,
@@ -289,6 +326,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       setGlobalWords,
       setAlgorithmKeywords,
       keywordListener,
+      partialListener,
     ],
   );
 

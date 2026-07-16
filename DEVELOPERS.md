@@ -126,7 +126,7 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
    - an effect that arms the preview when the screen becomes active (skip this
      if your panel gates arming behind a setup view, as Goon does);
    - `start` / `stop` / `reset`, and a `Command[]` handed to `useVoiceCommands`;
-   - the shared scaffolding: `ListeningFor`, `SessionControls`, `Sparkline`,
+   - the shared scaffolding: `SessionControls`, `Sparkline`,
      `StrokeCard`, `LogCard`.
 
    Two things to copy deliberately:
