@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-17
+
+- feature: **Voice words for the after-play ticks** — Goon's four after-play outcomes now answer to voice in setup: say `gentle` (wind-down), `torture`, `stay` or `eject` to tick or untick one. Each row shows its word and flashes when heard, just like a button. ([#12](https://github.com/autogoon/autogoon/pull/12))
+- enhancement: **Navigate the tabs by voice** — Say `home`, `changes` or `settings` from any top-level tab to switch to it. The Changelog tab is now called Changes — its old voice word wasn't in the recognizer's vocabulary, so it never answered. ([#12](https://github.com/autogoon/autogoon/pull/12))
+- internal: **Fix the voice e2e test's locator** — the changelog's own "Vacuum Maintenance" mentions made the test's text locator ambiguous; it now asserts the visible heading by role. ([#12](https://github.com/autogoon/autogoon/pull/12))
+
 ## 2026-07-16
 
 - feature: **Add a Changelog screen** — The app now shows this changelog: a Changelog tab sits just before Settings (say `changelog` on home), listing each day's changes with their tag pill and summary. It's baked in at build time, so what you read always matches the build you're running. ([#11](https://github.com/autogoon/autogoon/pull/11))
