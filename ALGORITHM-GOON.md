@@ -108,6 +108,8 @@ stretches. The Timeline card shows the current factor (e.g. `1.20×`).
 In setup:
 
 - `shorter` / `longer` — step the session length down/up.
+- `gentle` / `torture` / `stay` / `eject` — tick or untick that after-play
+  outcome.
 - `play` — lock the setup in and ready the session.
 
 During play:

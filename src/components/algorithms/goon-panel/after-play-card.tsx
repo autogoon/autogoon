@@ -5,8 +5,20 @@
 // get. At least one must be ticked before Play (the panel gates on it). All
 // but the wind-down ignore Stop once started — the safe word is the way out.
 
+import { RING } from "@/components/button";
 import { Card } from "@/components/card";
+import { useKeywordFlash } from "@/components/keyword-spotter";
 import type { AfterPlayOption } from "@/lib/algorithms/goon-engine";
+
+// The spoken word that toggles each outcome. Single words on purpose — the
+// recognizer fires per word, so the labels' phrases ("wind down", "stay in")
+// wouldn't match. The panel declares the Commands from this map.
+export const AFTER_PLAY_WORDS: Record<AfterPlayOption, string> = {
+  "wind-down": "gentle",
+  torture: "torture",
+  "stay-in": "stay",
+  eject: "eject",
+};
 
 const OPTIONS: Array<{
   option: AfterPlayOption;
@@ -48,6 +60,8 @@ export function AfterPlayCard({
   enabled: AfterPlayOption[];
   onToggle: (option: AfterPlayOption, on: boolean) => void;
 }) {
+  // Light a row up when its word is heard, exactly like a button's voice flash.
+  const flashing = useKeywordFlash();
   return (
     <Card title="After-play">
       <p className="text-muted-foreground text-sm">
@@ -55,7 +69,8 @@ export function AfterPlayCard({
         <span className="bg-background text-muted-foreground rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
           cumming
         </span>{" "}
-        — picked at random from the ticked outcomes. Anything that ignores{" "}
+        — picked at random from the ticked outcomes. Say an outcome&apos;s word
+        to tick or untick it. Anything that ignores{" "}
         <span className="text-foreground">stop</span> still answers to the safe
         word.
       </p>
@@ -63,7 +78,9 @@ export function AfterPlayCard({
         {OPTIONS.map(({ option, label, description, ignoresVoice }) => (
           <label
             key={option}
-            className="flex cursor-pointer items-baseline gap-3"
+            className={`flex cursor-pointer items-baseline gap-3 rounded ${
+              flashing.has(AFTER_PLAY_WORDS[option]) ? RING : ""
+            }`}
           >
             <input
               type="checkbox"
@@ -73,6 +90,9 @@ export function AfterPlayCard({
             />
             <span>
               <span className="font-medium">{label}</span>
+              <span className="bg-background text-muted-foreground ml-2 rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
+                {AFTER_PLAY_WORDS[option]}
+              </span>
               {ignoresVoice && (
                 <span className="ml-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-normal tracking-wide whitespace-nowrap text-white lowercase dark:bg-amber-800">
                   Ignores voice
