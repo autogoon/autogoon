@@ -38,7 +38,7 @@ import {
 } from "@/lib/algorithms/goon-engine";
 import { JUMP_MS } from "@/lib/program";
 import { formatMs } from "@/lib/format";
-import { AfterPlayCard } from "./after-play-card";
+import { AFTER_PLAY_WORDS, AfterPlayCard } from "./after-play-card";
 import {
   MAX_SESSION_MINUTES,
   MIN_SESSION_MINUTES,
@@ -266,6 +266,13 @@ export function GoonPanel({
       enabled: !inPlay,
       run: () => stepSessionMinutes(SESSION_STEP_MINUTES),
     },
+    // The after-play checkboxes: saying an outcome's word flips its tick, the
+    // same handler as clicking it.
+    ...AFTER_PLAY_OPTIONS.map((option) => ({
+      word: AFTER_PLAY_WORDS[option],
+      enabled: !inPlay,
+      run: () => toggleAfterPlay(option, !afterPlayOptions.includes(option)),
+    })),
     { word: "play", enabled: !inPlay && canPlay, run: enterPlay },
     ...stroke.keywords.map((k) => ({
       ...k,

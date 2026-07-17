@@ -12,7 +12,10 @@
 // You never move sideways between algorithms — home's words are the algorithm
 // names, an algorithm screen's word is `exit` (back up), and exit is locked
 // while a session runs, so the grammar always matches the visible screen and
-// the illegal mid-session switch simply cannot be said or tapped.
+// the illegal mid-session switch simply cannot be said or tapped. The
+// exception is the top-level tab strip (Home / Changes / Settings): those
+// three screens are siblings, so each other's tab words are live there —
+// sideways moves between tabs are exactly what the visible tabs offer.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AudioWaveform, Bot, TrendingUp } from "lucide-react";
@@ -82,7 +85,13 @@ type AlgorithmId = (typeof ALGORITHMS)[number]["id"];
 // below (`#goon/play`) — for algorithms that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
 type Screen =
-  "home" | "settings" | "changelog" | AlgorithmId | `${AlgorithmId}/play`;
+  "home" | "settings" | "changes" | AlgorithmId | `${AlgorithmId}/play`;
+
+// The three sibling tabs at the top level — see the tab strip below. Their ids
+// double as their voice words, live on whichever of the three you're on.
+type TabId = "home" | "settings" | "changes";
+const isTabId = (id: string): id is TabId =>
+  id === "home" || id === "settings" || id === "changes";
 
 const isAlgorithmId = (id: string): id is AlgorithmId =>
   ALGORITHMS.some((a) => a.id === id);
@@ -94,7 +103,7 @@ const hashScreen = (): Screen => {
   if (base !== undefined && isAlgorithmId(base)) {
     return sub === "play" ? `${base}/play` : base;
   }
-  return base === "settings" || base === "changelog" ? base : "home";
+  return base === "settings" || base === "changes" ? base : "home";
 };
 
 // One level up: play -> its algorithm's setup, everything else -> home.
@@ -107,11 +116,12 @@ const parentOf = (s: Screen): Screen =>
 const SAFE_WORD_RESERVED = [
   "connect",
   "exit",
+  "home",
   "settings",
   "start",
   "stop",
   "reset",
-  "changelog",
+  "changes",
   ...ALGORITHMS.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
@@ -161,16 +171,24 @@ function App() {
   }, []);
 
   // The global grammar slot: connect (while disconnected) everywhere; the
-  // algorithm names on home; exit inside an algorithm while nothing runs; the
-  // safe word whenever something is playing — exactly where `stop` is live.
+  // algorithm names on home; the other two tabs' words on any top-level tab;
+  // exit anywhere below the top level while nothing runs; the safe word
+  // whenever something is playing — exactly where `stop` is live.
   const connected = vacuglide.connected;
   const playing = player.state === "playing";
   useEffect(() => {
     const words: string[] = [];
     if (!connected) words.push("connect");
     if (playing) words.push(safeWord);
-    if (screen === "home") {
-      words.push(...ALGORITHMS.map((a) => a.id), "changelog", "settings");
+    if (isTabId(screen)) {
+      if (screen === "home") words.push(...ALGORITHMS.map((a) => a.id));
+      // The visible tabs, minus the one you're on (a disabled control is out
+      // of the grammar; so is the tab that would go nowhere).
+      words.push(
+        ...(["home", "changes", "settings"] as const).filter(
+          (t) => t !== screen,
+        ),
+      );
     } else if (!running) {
       words.push("exit");
     }
@@ -250,20 +268,21 @@ function App() {
         navigate(parentOf(screenRef.current));
         return;
       }
-      if (
-        (isAlgorithmId(word) || word === "settings" || word === "changelog") &&
-        screenRef.current === "home"
-      ) {
+      if (isAlgorithmId(word) && screenRef.current === "home") {
+        navigate(word);
+        return;
+      }
+      // A tab's word, heard on a sibling tab, is a sideways move.
+      if (isTabId(word) && isTabId(screenRef.current)) {
         navigate(word);
       }
     });
   }, [keywordListener, navigate]);
 
-  // Top level = home + its Settings sibling, shown as the old tab strip;
-  // algorithm screens get the breadcrumb instead: Home › Goon (setup), and
-  // Home › Goon › Play once a session's been generated.
-  const topLevel =
-    screen === "home" || screen === "settings" || screen === "changelog";
+  // Top level = home + its Changes/Settings siblings, shown as the old tab
+  // strip; algorithm screens get the breadcrumb instead: Home › Goon (setup),
+  // and Home › Goon › Play once a session's been generated.
+  const topLevel = isTabId(screen);
   const screenBase = screen.split("/")[0]!;
   const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
@@ -281,7 +300,7 @@ function App() {
                 // `align: "right"` marks where the right-hand cluster starts
                 // (ml-auto); the tabs after it just follow.
                 { id: "home", label: "Home", align: "left" },
-                { id: "changelog", label: "Changelog", align: "right" },
+                { id: "changes", label: "Changes", align: "right" },
                 { id: "settings", label: "Settings", align: "left" },
               ] as const
             ).map((t) => (
@@ -374,7 +393,7 @@ function App() {
               active={screen === "autopilot"}
             />
           </div>
-          <div className={screen === "changelog" ? undefined : "hidden"}>
+          <div className={screen === "changes" ? undefined : "hidden"}>
             <ChangelogPanel />
           </div>
           <div className={screen === "settings" ? undefined : "hidden"}>

@@ -83,8 +83,11 @@ test("saying an algorithm's name opens its screen", async ({ page }) => {
 
   await page.evaluate(() => window.__testMic?.speak());
 
-  // vosk hears "autopilot" and the app navigates to its screen.
-  await expect(page.getByText("Vacuum Maintenance")).toBeVisible({
-    timeout: 30_000,
-  });
+  // vosk hears "autopilot" and the app navigates to its screen. By role, not
+  // text: every screen stays in the DOM (inactive ones CSS-hidden) and the
+  // changelog also says "Vacuum Maintenance", so a text locator is ambiguous —
+  // roles only match the accessibility tree, i.e. the visible screen.
+  await expect(
+    page.getByRole("heading", { name: "Vacuum Maintenance" }),
+  ).toBeVisible({ timeout: 30_000 });
 });
