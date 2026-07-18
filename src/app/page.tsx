@@ -18,9 +18,10 @@
 // sideways moves between tabs are exactly what the visible tabs offer.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioWaveform, Bot, TrendingUp } from "lucide-react";
+import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
+import { CompanionsPanel } from "@/components/algorithms/companions-panel";
 import { GroovePanel } from "@/components/algorithms/groove-panel";
 import { GoonPanel } from "@/components/algorithms/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
@@ -77,6 +78,16 @@ const ALGORITHMS = [
     iconClass: "text-orange-500",
     accent:
       "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
+  },
+  {
+    id: "companions",
+    label: "Companions",
+    description:
+      "Talk to Elise — she listens, replies in her own voice, and you can cut in any time.",
+    icon: MessagesSquare,
+    iconClass: "text-emerald-500",
+    accent:
+      "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 hover:from-emerald-500/25 hover:to-emerald-500/10",
   },
 ] as const;
 
@@ -392,6 +403,9 @@ function App() {
               player={player}
               active={screen === "autopilot"}
             />
+          </div>
+          <div className={screen === "companions" ? undefined : "hidden"}>
+            <CompanionsPanel active={screen === "companions"} />
           </div>
           <div className={screen === "changes" ? undefined : "hidden"}>
             <ChangelogPanel />
