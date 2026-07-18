@@ -111,6 +111,14 @@ already has** — `setSpeedPercent` (live), `invalidateFuture` (shape knobs), an
 stroke controls (`valvePlus`/`valveMinus`). They are not authoring raw device
 events; they are a conversational hand on the existing knobs.
 
+**Starting is the companion's move (slices 2–4).** The device program does **not**
+auto-start. The user opens a session by starting to listen and talking to the
+companion; the timeline and the device only begin moving when the *companion*
+decides to start play — starting is itself one of the companion's actions, not a
+user button. Persona `agency` applies here too: an eager companion starts
+readily, while a reluctant or dominant one may need persuading before it will
+begin. (Slice 1 has no device, so this lands in the later slices.)
+
 ### Voice I/O and interruption
 
 - **In:** ElevenLabs **realtime Speech-to-Text** over WebSocket, callable from the
