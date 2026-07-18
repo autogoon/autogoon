@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-18
+
+- feature: **Companions (voice)** — talk to Elise: live transcription of what you say, a spoken reply in her own voice, and interrupt-to-barge-in — cut in over her and she stops. Pick Companions from home, start the mic, and speak.
+
 ## 2026-07-17
 
 - feature: **Voice words for the after-play ticks** — Goon's four after-play outcomes now answer to voice in setup: say `gentle` (wind-down), `torture`, `stay` or `eject` to tick or untick one. Each row shows its word and flashes when heard, just like a button. ([#12](https://github.com/autogoon/autogoon/pull/12))
