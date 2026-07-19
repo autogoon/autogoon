@@ -8,5 +8,6 @@ export type Companion = {
 export const ELISE: Companion = {
   name: "Elise",
   gender: "female",
-  voiceId: "exHJXWRRhHzWYCoZrSF1",
+  // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
+  voiceId: "uhseMNDjn3oAF24Hh83b", // normal
 };
