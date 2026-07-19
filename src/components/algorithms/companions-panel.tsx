@@ -1,9 +1,10 @@
 "use client";
 
-// Companions Slice 1 panel: a voice-lab surface over useVoiceSession. It does
-// NOT own an engine or arm the Player — there's no device this slice. It just
-// drives the mic session (start/stop), hosts the <audio> element the TTS player
-// plays through, and shows a live diagnostic readout for the acceptance run.
+// Companions panel: one testing surface over useVoiceSession. It does NOT own an
+// engine or arm the Player — there's no device this slice. It drives the mic
+// session (start/stop), hosts the <audio> element the TTS player plays through,
+// and folds transcription, the LLM, and the reply into a single Conversation
+// card: speak (hands-free) or type, then Send (LLM only) or Say it (LLM → speak).
 //
 // Hot-path note: useVoiceSession returns one `status` object that churns ~50×/s
 // (rms/preRollFrames refresh every mic frame), so this component re-renders at
@@ -25,7 +26,6 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { useVoiceSession } from "@/hooks/use-voice-session";
-import { createLlmClient } from "@/lib/llm/client";
 
 // The session's fast-moving loudness bar — the one thing that genuinely wants to
 // repaint every frame. Kept small and on its own.
@@ -71,100 +71,9 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-// A decoupled lab for Slice 2's LLMClient: type a prompt, watch tokens stream in,
-// press Stop to abort mid-generation. Not wired to the mic — this is the raw
-// client proof. The voice loop uses the same client (see use-voice-session).
-function LlmLab() {
-  const [prompt, setPrompt] = useState("");
-  const [output, setOutput] = useState("");
-  const [streaming, setStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
-  const clientRef = useRef<ReturnType<typeof createLlmClient> | null>(null);
-
-  const stop = useCallback(() => {
-    controllerRef.current?.abort();
-    controllerRef.current = null;
-    setStreaming(false);
-  }, []);
-
-  const send = useCallback(async () => {
-    if (prompt.trim() === "") return;
-    controllerRef.current?.abort(); // supersede any prior in-flight stream
-    const controller = new AbortController();
-    controllerRef.current = controller;
-    clientRef.current ??= createLlmClient();
-    setOutput("");
-    setError(null);
-    setStreaming(true);
-    try {
-      for await (const delta of clientRef.current.stream(
-        [{ role: "user", content: prompt }],
-        { signal: controller.signal },
-      )) {
-        if (controller.signal.aborted) break;
-        setOutput((o) => o + delta);
-      }
-    } catch (e) {
-      // Aborted turns land here too; only surface a real error.
-      if (!controller.signal.aborted) {
-        setError(e instanceof Error ? e.message : "LLM request failed");
-      }
-    } finally {
-      if (controllerRef.current === controller) {
-        controllerRef.current = null;
-        setStreaming(false);
-      }
-    }
-  }, [prompt]);
-
-  return (
-    <Card title="LLM lab">
-      <p className="text-muted-foreground text-sm">
-        Send a prompt straight to the model and watch it stream. Stop aborts
-        mid-generation.
-      </p>
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Say something…"
-        className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 text-sm"
-      />
-      <div className="mt-2 flex gap-2">
-        <Button
-          onClick={() => void send()}
-          disabled={streaming}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          Send
-        </Button>
-        <Button
-          onClick={stop}
-          disabled={!streaming}
-          className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-        >
-          Stop
-        </Button>
-        <span className="text-muted-foreground self-center text-sm">
-          {streaming ? "streaming…" : "idle"}
-        </span>
-      </div>
-      {error !== null && (
-        <p className="mt-2 text-sm text-red-500">Error: {error}</p>
-      )}
-      <p className="mt-2 min-h-6 text-sm whitespace-pre-wrap">
-        {output === "" ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
-          output
-        )}
-      </p>
-    </Card>
-  );
-}
-
 export function CompanionsPanel({ active }: { active: boolean }) {
-  const { start, stop, status, audioRef } = useVoiceSession();
+  const { start, stop, submitText, cancelReply, status, audioRef } =
+    useVoiceSession();
 
   // A hot mic must not linger once you leave the screen. The panels stay mounted
   // (hidden via CSS), so unmount won't fire — tear the session down when this one
@@ -205,15 +114,17 @@ export function CompanionsPanel({ active }: { active: boolean }) {
     }
   }, [status.replyPlaying, append]);
 
-  // Reply elapsed, read live off the same 50 Hz render (the mic keeps ticking
-  // during a reply, for barge-in), so no extra timer is needed.
-  const replyStartRef = useRef(0);
+  // The Conversation box: typed text, or a committed voice transcript dropped in
+  // so you can see what she heard (the hands-free turn has already fired from the
+  // hook). Local state so typing doesn't churn the session.
+  const [text, setText] = useState("");
+  const prevCommittedForBox = useRef(status.committed);
   useEffect(() => {
-    if (status.replyPlaying) replyStartRef.current = Date.now();
-  }, [status.replyPlaying]);
-  const replyElapsed = status.replyPlaying
-    ? (Date.now() - replyStartRef.current) / 1000
-    : 0;
+    if (status.committed !== prevCommittedForBox.current) {
+      prevCommittedForBox.current = status.committed;
+      if (status.committed !== "") setText(status.committed);
+    }
+  }, [status.committed]);
 
   return (
     <section className="flex w-full flex-col gap-8">
@@ -255,41 +166,83 @@ export function CompanionsPanel({ active }: { active: boolean }) {
         <Row label="RMS">{status.rms.toFixed(3)}</Row>
       </Card>
 
-      <Card title="Transcription">
-        <Row label="STT phase">{status.phase}</Row>
-        <Row label="Pre-roll buffered">{status.preRollFrames} frames</Row>
-        <div className="text-sm">
-          <p className="text-muted-foreground mb-1">Transcript</p>
-          <p className="min-h-6">
-            {status.committed !== "" && <span>{status.committed} </span>}
-            {status.partial !== "" && (
-              <span className="text-muted-foreground">{status.partial}</span>
-            )}
-            {status.committed === "" && status.partial === "" && (
+      <Card title="Conversation">
+        <p className="text-muted-foreground text-sm">
+          Speak (hands-free) or type. <strong>Send</strong> runs the model only;{" "}
+          <strong>Say it</strong> speaks the reply. Stop — or just talk over her
+          — to cut it.
+        </p>
+
+        {/* Live transcription: STT diagnostics + the rolling transcript. */}
+        <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
+          <span>STT {status.phase}</span>
+          <span>pre-roll {status.preRollFrames}</span>
+        </div>
+        <p className="min-h-6 text-sm">
+          {status.committed !== "" && <span>{status.committed} </span>}
+          {status.partial !== "" && (
+            <span className="text-muted-foreground">{status.partial}</span>
+          )}
+          {status.committed === "" && status.partial === "" && (
+            <span className="text-muted-foreground">Nothing heard yet.</span>
+          )}
+        </p>
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type a message, or speak…"
+          className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
+        />
+
+        <div className="mt-2 flex gap-2">
+          <Button
+            onClick={() => submitText(text, { speak: false })}
+            disabled={text.trim() === "" || status.replyPlaying}
+            className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            Send
+          </Button>
+          <Button
+            onClick={() => submitText(text, { speak: true })}
+            disabled={text.trim() === "" || status.replyPlaying}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            Say it
+          </Button>
+          <Button
+            onClick={cancelReply}
+            disabled={!status.replyPlaying}
+            className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+          >
+            Stop
+          </Button>
+          <span className="text-muted-foreground self-center text-sm">
+            {status.replyPlaying ? "working…" : "idle"}
+          </span>
+        </div>
+
+        {status.replyError !== null && (
+          <p className="mt-2 text-sm text-red-500">
+            Error: {status.replyError}
+          </p>
+        )}
+
+        <div className="mt-2 text-sm">
+          <p className="text-muted-foreground mb-1">Response</p>
+          <p className="min-h-6 whitespace-pre-wrap">
+            {status.replyText === "" ? (
               <span className="text-muted-foreground">—</span>
+            ) : (
+              status.replyText
             )}
           </p>
         </div>
       </Card>
 
-      <Card title="Reply">
-        <Row label="State">
-          <span
-            className={status.replyPlaying ? "text-emerald-500" : undefined}
-          >
-            {status.replyPlaying ? "playing" : "idle"}
-          </span>
-        </Row>
-        {status.replyPlaying && (
-          <Row label="Elapsed">{replyElapsed.toFixed(1)}s</Row>
-        )}
-      </Card>
-
       <Card title="Events">
         <EventLog entries={log} />
       </Card>
-
-      <LlmLab />
     </section>
   );
 }

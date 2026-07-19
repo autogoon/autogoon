@@ -3,6 +3,7 @@
 ## 2026-07-19
 
 - feature: **Companion replies for real** — the companion now answers what you say with a live, model-generated reply spoken in her own voice, instead of a canned line; cut in any time and she stops. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- enhancement: **Type or speak to Elise** — the Companions screen now takes typed messages as well as voice, in one Conversation view: Send runs the model and shows the streamed reply, Say it also speaks it, and speaking still works hands-free. ([#13](https://github.com/autogoon/autogoon/pull/13))
 
 ## 2026-07-18
 
