@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { useVoiceSession } from "@/hooks/use-voice-session";
+import { createLlmClient } from "@/lib/llm/client";
 
 // The session's fast-moving loudness bar — the one thing that genuinely wants to
 // repaint every frame. Kept small and on its own.
@@ -67,6 +68,98 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <span className="text-muted-foreground">{label}</span>
       <span className="tabular-nums">{children}</span>
     </div>
+  );
+}
+
+// A decoupled lab for Slice 2's LLMClient: type a prompt, watch tokens stream in,
+// press Stop to abort mid-generation. Not wired to the mic — this is the raw
+// client proof. The voice loop uses the same client (see use-voice-session).
+function LlmLab() {
+  const [prompt, setPrompt] = useState("");
+  const [output, setOutput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
+  const clientRef = useRef<ReturnType<typeof createLlmClient> | null>(null);
+
+  const stop = useCallback(() => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setStreaming(false);
+  }, []);
+
+  const send = useCallback(async () => {
+    if (prompt.trim() === "") return;
+    controllerRef.current?.abort(); // supersede any prior in-flight stream
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    clientRef.current ??= createLlmClient();
+    setOutput("");
+    setError(null);
+    setStreaming(true);
+    try {
+      for await (const delta of clientRef.current.stream(
+        [{ role: "user", content: prompt }],
+        { signal: controller.signal },
+      )) {
+        if (controller.signal.aborted) break;
+        setOutput((o) => o + delta);
+      }
+    } catch (e) {
+      // Aborted turns land here too; only surface a real error.
+      if (!controller.signal.aborted) {
+        setError(e instanceof Error ? e.message : "LLM request failed");
+      }
+    } finally {
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        setStreaming(false);
+      }
+    }
+  }, [prompt]);
+
+  return (
+    <Card title="LLM lab">
+      <p className="text-muted-foreground text-sm">
+        Send a prompt straight to the model and watch it stream. Stop aborts
+        mid-generation.
+      </p>
+      <textarea
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Say something…"
+        className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 text-sm"
+      />
+      <div className="mt-2 flex gap-2">
+        <Button
+          onClick={() => void send()}
+          disabled={streaming}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          Send
+        </Button>
+        <Button
+          onClick={stop}
+          disabled={!streaming}
+          className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          Stop
+        </Button>
+        <span className="text-muted-foreground self-center text-sm">
+          {streaming ? "streaming…" : "idle"}
+        </span>
+      </div>
+      {error !== null && (
+        <p className="mt-2 text-sm text-red-500">Error: {error}</p>
+      )}
+      <p className="mt-2 min-h-6 text-sm whitespace-pre-wrap">
+        {output === "" ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          output
+        )}
+      </p>
+    </Card>
   );
 }
 
@@ -195,6 +288,8 @@ export function CompanionsPanel({ active }: { active: boolean }) {
       <Card title="Events">
         <EventLog entries={log} />
       </Card>
+
+      <LlmLab />
     </section>
   );
 }
