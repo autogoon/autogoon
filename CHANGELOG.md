@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-19
+
+- feature: **Companion replies for real** — the companion now answers what you say with a live, model-generated reply spoken in her own voice, instead of a canned line; cut in any time and she stops. ([#13](https://github.com/autogoon/autogoon/pull/13))
+
 ## 2026-07-18
 
 - feature: **Companions (voice)** — talk to Elise: live transcription of what you say, a spoken reply in her own voice, and interrupt-to-barge-in — cut in over her and she stops. Pick Companions from home, start the mic, and speak. ([#13](https://github.com/autogoon/autogoon/pull/13))

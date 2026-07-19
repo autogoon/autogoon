@@ -10,7 +10,8 @@
 // Task 5); the wiring is exercised in the Task 13 acceptance run.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CANNED_REPLY, ELISE } from "@/lib/companions/companions";
+import { ELISE } from "@/lib/companions/companions";
+import { createLlmClient, type LlmClient } from "@/lib/llm/client";
 import { startMic, type MicHandle } from "@/lib/voice/mic";
 import { createStt, type Stt } from "@/lib/voice/stt";
 import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
@@ -69,6 +70,7 @@ export function useVoiceSession(): VoiceSession {
   const micHandleRef = useRef<MicHandle | null>(null);
   const sttRef = useRef<Stt | null>(null);
   const ttsRef = useRef<TtsPlayer | null>(null);
+  const llmRef = useRef<LlmClient | null>(null);
   const turnRef = useRef<AbortController | null>(null);
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
@@ -79,25 +81,51 @@ export function useVoiceSession(): VoiceSession {
     setStatus((s) => ({ ...s, replyPlaying: playing }));
   }, []);
 
-  // Speak the canned reply on a fresh turn controller; clear replyPlaying once
-  // the play promise settles (natural end, stop(), or barge-in abort).
-  const startReply = useCallback((): void => {
-    const tts = ttsRef.current;
-    if (tts === null) return;
-    const controller = new AbortController();
-    turnRef.current = controller;
-    setReplyPlaying(true);
-    void tts
-      .play(CANNED_REPLY, ELISE.voiceId, controller.signal)
-      .finally(() => {
-        // Only clear if this same turn is still the active one — a newer turn may
-        // have superseded us before this promise settled.
-        if (turnRef.current === controller) {
-          turnRef.current = null;
-          setReplyPlaying(false);
+  // A companion turn: stream the LLM reply for the user's transcript, buffer it
+  // whole, then speak it. replyPlaying goes true for the entire turn (from the
+  // first token), so a barge-in onset during generation — not just during
+  // playback — aborts this same controller, cancelling the LLM stream and TTS
+  // together. On an LLM error (e.g. Ollama down) we simply say nothing and the
+  // session stays usable.
+  const startReply = useCallback(
+    (prompt: string): void => {
+      const tts = ttsRef.current;
+      const llm = llmRef.current;
+      if (tts === null || llm === null) return;
+      const controller = new AbortController();
+      turnRef.current = controller;
+      setReplyPlaying(true);
+      void (async (): Promise<void> => {
+        try {
+          let reply = "";
+          for await (const delta of llm.stream(
+            [{ role: "user", content: prompt }],
+            { signal: controller.signal },
+          )) {
+            reply += delta;
+          }
+          if (
+            controller.signal.aborted ||
+            turnRef.current !== controller ||
+            reply.trim() === ""
+          ) {
+            return;
+          }
+          await tts.play(reply, ELISE.voiceId, controller.signal);
+        } catch {
+          // Aborted turn or LLM failure: no reply.
+        } finally {
+          // Only clear if this same turn is still active — a newer turn or a
+          // barge-in may have superseded us before this settled.
+          if (turnRef.current === controller) {
+            turnRef.current = null;
+            setReplyPlaying(false);
+          }
         }
-      });
-  }, [setReplyPlaying]);
+      })();
+    },
+    [setReplyPlaying],
+  );
 
   const start = useCallback((): void => {
     // Already running or mid-start. micHandleRef isn't set until the async mic
@@ -112,12 +140,13 @@ export function useVoiceSession(): VoiceSession {
       return;
     }
     ttsRef.current = createTtsPlayer(audioEl);
+    llmRef.current = createLlmClient();
 
     const stt = createStt({
       onPartial: (text) => setStatus((s) => ({ ...s, partial: text })),
       onCommitted: (text) => {
         setStatus((s) => ({ ...s, committed: text }));
-        startReply();
+        startReply(text);
       },
       onPhase: (phase) => setStatus((s) => ({ ...s, phase })),
     });
@@ -191,6 +220,7 @@ export function useVoiceSession(): VoiceSession {
     turnRef.current = null;
     ttsRef.current?.stop();
     ttsRef.current = null;
+    llmRef.current = null;
     sttRef.current?.close();
     sttRef.current = null;
     micHandleRef.current?.stop();
