@@ -1,13 +1,15 @@
 "use client";
 
-// Companions Slice 1 orchestrator: ties the mic, STT socket, and TTS player
-// into the barge-in loop, with one AbortController per companion reply-turn.
-// The mic/STT callbacks are created once (they outlive many renders) but must
-// read LIVE values — the current phase, whether a reply is playing, the active
-// turn's controller — so everything they touch lives in a ref; useState only
-// mirrors the `status` the panel renders. Integration code — no unit test (the
-// pure lifecycle/barge-in decisions live in session-policy.ts and are tested in
-// Task 5); the wiring is exercised in the Task 13 acceptance run.
+// Companions voice-session orchestrator: ties the mic, STT socket, LLM client
+// and TTS player into the barge-in loop, with one AbortController per companion
+// reply-turn. A turn runs on any text — a committed voice transcript (hands-free,
+// auto-spoken) or a typed prompt via submitText — streaming the LLM reply and,
+// when asked, speaking it. The mic/STT callbacks are created once (they outlive
+// many renders) but must read LIVE values — the current phase, whether a reply is
+// playing, the active turn's controller — so everything they touch lives in a
+// ref; useState only mirrors the `status` the panel renders. Integration code —
+// no unit test (the pure lifecycle/barge-in decisions live in session-policy.ts
+// and are unit-tested there); the wiring is exercised by driving the panel.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ELISE } from "@/lib/companions/companions";
@@ -30,11 +32,25 @@ export type VoiceStatus = {
   partial: string;
   committed: string;
   replyPlaying: boolean;
+  // The LLM reply, streamed token-by-token as it generates — the exact text a
+  // spoken ("say it") turn buffers and hands to TTS.
+  replyText: string;
+  // Surfaced so the panel can show an LLM failure (e.g. Ollama down) instead of
+  // silently saying nothing.
+  replyError: string | null;
 };
 
 export type VoiceSession = {
   start: () => void;
   stop: () => void;
+  // Run a turn on arbitrary text (a typed prompt, or a committed transcript):
+  // stream the LLM reply and, when `speak`, buffer it whole and speak it. Works
+  // whether or not the mic is running.
+  submitText: (text: string, opts?: { speak?: boolean }) => void;
+  // Abort the in-flight reply turn (LLM stream + TTS) without tearing the mic
+  // session down — the Stop button, and the only way to cut a spoken reply when
+  // the mic is off and there's no barge-in.
+  cancelReply: () => void;
   status: VoiceStatus;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 };
@@ -48,6 +64,8 @@ const IDLE_STATUS: VoiceStatus = {
   partial: "",
   committed: "",
   replyPlaying: false,
+  replyText: "",
+  replyError: null,
 };
 
 // Close the STT socket after this long without voice.
@@ -81,20 +99,52 @@ export function useVoiceSession(): VoiceSession {
     setStatus((s) => ({ ...s, replyPlaying: playing }));
   }, []);
 
-  // A companion turn: stream the LLM reply for the user's transcript, buffer it
-  // whole, then speak it. replyPlaying goes true for the entire turn (from the
-  // first token), so a barge-in onset during generation — not just during
-  // playback — aborts this same controller, cancelling the LLM stream and TTS
-  // together. On an LLM error (e.g. Ollama down) we simply say nothing and the
-  // session stays usable.
-  const startReply = useCallback(
-    (prompt: string): void => {
-      const tts = ttsRef.current;
-      const llm = llmRef.current;
-      if (tts === null || llm === null) return;
+  // The TTS player and LLM client, created on demand. start() makes them when the
+  // mic opens; submitText() makes them for a typed turn so typing works with the
+  // mic off. Both are stashed in refs and torn down in stop().
+  const ensureClients = useCallback((): {
+    tts: TtsPlayer;
+    llm: LlmClient;
+  } | null => {
+    const audioEl = audioRef.current;
+    if (audioEl === null) return null;
+    ttsRef.current ??= createTtsPlayer(audioEl);
+    llmRef.current ??= createLlmClient();
+    return { tts: ttsRef.current, llm: llmRef.current };
+  }, []);
+
+  // Abort the in-flight reply turn (its LLM stream and TTS, via the one
+  // controller) and clear the playing flag. Used by barge-in, the Stop button,
+  // and as the supersede step when a new turn starts.
+  const cancelReply = useCallback((): void => {
+    turnRef.current?.abort();
+    turnRef.current = null;
+    setReplyPlaying(false);
+  }, [setReplyPlaying]);
+
+  // A companion turn on arbitrary text — a typed prompt or a committed
+  // transcript. Stream the LLM reply into status.replyText token-by-token; when
+  // `speak`, buffer the whole reply and hand it to TTS. replyPlaying is true for
+  // the entire turn (from before the first token), so a barge-in or Stop during
+  // generation — not just during playback — aborts this same controller,
+  // cancelling the LLM stream and TTS together. An LLM error surfaces in
+  // status.replyError and the session stays usable.
+  const submitText = useCallback(
+    (text: string, opts?: { speak?: boolean }): void => {
+      const prompt = text.trim();
+      if (prompt === "") return;
+      const clients = ensureClients();
+      if (clients === null) return;
+      const { tts, llm } = clients;
+      const speak = opts?.speak ?? false;
+
+      // Supersede any in-flight turn (its LLM stream + TTS) before starting.
+      turnRef.current?.abort();
       const controller = new AbortController();
       turnRef.current = controller;
+      setStatus((s) => ({ ...s, replyText: "", replyError: null }));
       setReplyPlaying(true);
+
       void (async (): Promise<void> => {
         try {
           let reply = "";
@@ -102,21 +152,32 @@ export function useVoiceSession(): VoiceSession {
             [{ role: "user", content: prompt }],
             { signal: controller.signal },
           )) {
+            if (controller.signal.aborted || turnRef.current !== controller) {
+              return;
+            }
             reply += delta;
+            setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
           }
           if (
             controller.signal.aborted ||
             turnRef.current !== controller ||
-            reply.trim() === ""
+            reply.trim() === "" ||
+            !speak
           ) {
             return;
           }
           await tts.play(reply, ELISE.voiceId, controller.signal);
-        } catch {
-          // Aborted turn or LLM failure: no reply.
+        } catch (e) {
+          // Aborted turns land here too; only surface a real failure.
+          if (!controller.signal.aborted && turnRef.current === controller) {
+            setStatus((s) => ({
+              ...s,
+              replyError: e instanceof Error ? e.message : "LLM request failed",
+            }));
+          }
         } finally {
-          // Only clear if this same turn is still active — a newer turn or a
-          // barge-in may have superseded us before this settled.
+          // Only clear if this same turn is still active — a newer turn, a
+          // barge-in, or Stop may have superseded us before this settled.
           if (turnRef.current === controller) {
             turnRef.current = null;
             setReplyPlaying(false);
@@ -124,7 +185,7 @@ export function useVoiceSession(): VoiceSession {
         }
       })();
     },
-    [setReplyPlaying],
+    [ensureClients, setReplyPlaying],
   );
 
   const start = useCallback((): void => {
@@ -139,14 +200,15 @@ export function useVoiceSession(): VoiceSession {
       startingRef.current = false;
       return;
     }
-    ttsRef.current = createTtsPlayer(audioEl);
-    llmRef.current = createLlmClient();
+    ensureClients();
 
     const stt = createStt({
       onPartial: (text) => setStatus((s) => ({ ...s, partial: text })),
       onCommitted: (text) => {
+        // A committed transcript is a spoken turn: hands-free, so run it as a
+        // "say it" (LLM → speak) without waiting on a button.
         setStatus((s) => ({ ...s, committed: text }));
-        startReply(text);
+        submitText(text, { speak: true });
       },
       onPhase: (phase) => setStatus((s) => ({ ...s, phase })),
     });
@@ -169,9 +231,7 @@ export function useVoiceSession(): VoiceSession {
         vadSpeakingRef.current = true;
         // Barge-in: interrupt the companion's reply mid-sentence.
         if (isBargeIn(replyPlayingRef.current, true)) {
-          turnRef.current?.abort();
-          turnRef.current = null;
-          setReplyPlaying(false);
+          cancelReply();
         }
         // Whether or not it was a barge-in, an onset from a closed socket opens
         // a fresh listening turn, flushing the pre-roll so the opening word
@@ -208,7 +268,7 @@ export function useVoiceSession(): VoiceSession {
     intervalRef.current = setInterval(() => {
       stt.maybeClose(Date.now(), STT_IDLE_TIMEOUT_MS);
     }, MAYBE_CLOSE_INTERVAL_MS);
-  }, [setReplyPlaying, startReply]);
+  }, [ensureClients, submitText, cancelReply]);
 
   const stop = useCallback((): void => {
     if (intervalRef.current !== null) {
@@ -234,5 +294,5 @@ export function useVoiceSession(): VoiceSession {
   // Tear everything down on unmount.
   useEffect(() => stop, [stop]);
 
-  return { start, stop, status, audioRef };
+  return { start, stop, submitText, cancelReply, status, audioRef };
 }
