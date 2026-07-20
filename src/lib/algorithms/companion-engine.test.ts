@@ -91,3 +91,60 @@ describe("CompanionEngine.scale", () => {
     expect(engine.scale(event)).toBe(73);
   });
 });
+
+describe("CompanionEngine.generateNarrationCues", () => {
+  it("fires cues on real template boundaries, labelled and in-window", () => {
+    const engine = new CompanionEngine("medium", "moderate", "off");
+    const speed = engine.generateSpeed(0, 120_000, CTX);
+    const cues = engine.generateNarrationCues(0, 120_000);
+    expect(cues.length).toBeGreaterThan(1); // several across the window
+
+    const speedTimes = new Set(speed.map((e) => e.at));
+    let lastAt = -1;
+    for (const cue of cues) {
+      // A cue always lands on a real boundary — i.e. a generated speed-event time.
+      expect(speedTimes.has(cue.at)).toBe(true);
+      expect(cue.text.length).toBeGreaterThan(0); // labelled
+      expect(cue.at).toBeGreaterThanOrEqual(lastAt); // sorted
+      lastAt = cue.at;
+      expect(cue.at).toBeGreaterThanOrEqual(0);
+      expect(cue.at).toBeLessThan(120_000);
+    }
+  });
+
+  it("draws every label from a small fixed set (the template table)", () => {
+    const engine = new CompanionEngine("high", "intense", "off");
+    engine.generateSpeed(0, 300_000, CTX);
+    const cues = engine.generateNarrationCues(0, 300_000);
+    const distinct = new Set(cues.map((c) => c.text));
+    // Eight templates → at most eight distinct labels, all non-empty.
+    expect(distinct.size).toBeLessThanOrEqual(8);
+    for (const label of distinct) expect(label.length).toBeGreaterThan(0);
+  });
+
+  it("windows cues to [from, until)", () => {
+    const engine = new CompanionEngine("medium", "moderate", "off");
+    engine.generateSpeed(0, 180_000, CTX);
+    const all = engine.generateNarrationCues(0, 180_000);
+    const tail = engine.generateNarrationCues(60_000, 180_000);
+    expect(tail.every((c) => c.at >= 60_000 && c.at < 180_000)).toBe(true);
+    expect(tail.length).toBeLessThan(all.length);
+  });
+
+  it("emits a single finish cue while finishing", () => {
+    const engine = new CompanionEngine("medium", "moderate", "off");
+    engine.beginFinish();
+    const cues = engine.generateNarrationCues(0, 60_000);
+    expect(cues.length).toBe(1);
+    expect(cues[0]!.text.length).toBeGreaterThan(0);
+    expect(cues[0]!.at).toBe(0);
+  });
+
+  it("clears cues on reset()", () => {
+    const engine = new CompanionEngine("medium", "moderate", "off");
+    engine.generateSpeed(0, 120_000, CTX);
+    expect(engine.generateNarrationCues(0, 120_000).length).toBeGreaterThan(0);
+    engine.reset();
+    expect(engine.generateNarrationCues(0, 120_000)).toEqual([]);
+  });
+});
