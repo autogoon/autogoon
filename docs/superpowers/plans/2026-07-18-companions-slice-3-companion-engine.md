@@ -711,15 +711,15 @@ c) In `reset()`, clear the buffer too:
 d) In `generateSpeed`, in the block-tiling loop, push the block's segments as they are built (finish path is unchanged — it records no segments):
 
 ```ts
-    const events: SpeedEvent[] = [];
-    let at = fromTime;
-    while (at < untilTime) {
-      const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
-      events.push(...block.events);
-      this.narrationSegments.push(...block.segments);
-      at = block.endAt;
-    }
-    return events;
+const events: SpeedEvent[] = [];
+let at = fromTime;
+while (at < untilTime) {
+  const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
+  events.push(...block.events);
+  this.narrationSegments.push(...block.segments);
+  at = block.endAt;
+}
+return events;
 ```
 
 e) Add the method (place it after `generateValves`, before `scale`):
