@@ -35,8 +35,8 @@ describe("POST /api/llm/chat/completions", () => {
   const fetchMock = jest.fn<typeof fetch>();
 
   beforeEach(() => {
-    process.env.LLM_URL = "http://ollama.test/v1";
-    process.env.LLM_MODEL = "elise";
+    process.env.LLM_URL = "https://openrouter.test/api/v1";
+    process.env.OPENROUTER_API_KEY = "sk-or-test";
     fetchMock.mockReset();
     global.fetch = fetchMock as unknown as typeof fetch;
   });
@@ -44,7 +44,7 @@ describe("POST /api/llm/chat/completions", () => {
     jest.restoreAllMocks();
   });
 
-  it("forwards to LLM_URL, overrides the model, and streams the body back", async () => {
+  it("forwards to LLM_URL with a bearer key, preserves the client's model, streams the body back", async () => {
     fetchMock.mockResolvedValue(
       new Response(sseBody(), {
         status: 200,
@@ -54,7 +54,7 @@ describe("POST /api/llm/chat/completions", () => {
     const { POST } = await import("./route");
     const res = await POST(
       req({
-        model: "whatever",
+        model: "minimax/minimax-m2:nitro",
         messages: [{ role: "user", content: "hi" }],
         stream: true,
       }),
@@ -64,13 +64,15 @@ describe("POST /api/llm/chat/completions", () => {
     expect(res.headers.get("content-type")).toBe("text/event-stream");
 
     const [urlArg, initArg] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(urlArg).toBe("http://ollama.test/v1/chat/completions");
+    expect(urlArg).toBe("https://openrouter.test/api/v1/chat/completions");
+    const headers = initArg.headers as Record<string, string>;
+    expect(headers.authorization).toBe("Bearer sk-or-test");
     const sent = JSON.parse(initArg.body as string) as {
       model: string;
       messages: unknown;
       stream: boolean;
     };
-    expect(sent.model).toBe("elise"); // overridden, not "whatever"
+    expect(sent.model).toBe("minimax/minimax-m2:nitro"); // NOT overridden
     expect(sent.stream).toBe(true);
     expect(sent.messages).toEqual([{ role: "user", content: "hi" }]);
 
@@ -88,8 +90,8 @@ describe("POST /api/llm/chat/completions", () => {
     expect(initArg.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("503s when LLM_URL or LLM_MODEL is unset", async () => {
-    delete process.env.LLM_URL;
+  it("503s when LLM_URL or OPENROUTER_API_KEY is unset", async () => {
+    delete process.env.OPENROUTER_API_KEY;
     const { POST } = await import("./route");
     const res = await POST(req({ messages: [], stream: true }));
     expect(res.status).toBe(503);
