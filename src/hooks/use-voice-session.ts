@@ -109,7 +109,7 @@ export function useVoiceSession(): VoiceSession {
     const audioEl = audioRef.current;
     if (audioEl === null) return null;
     ttsRef.current ??= createTtsPlayer(audioEl);
-    llmRef.current ??= createLlmClient();
+    llmRef.current ??= createLlmClient(ELISE.model);
     return { tts: ttsRef.current, llm: llmRef.current };
   }, []);
 
@@ -149,7 +149,10 @@ export function useVoiceSession(): VoiceSession {
         try {
           let reply = "";
           for await (const delta of llm.stream(
-            [{ role: "user", content: prompt }],
+            [
+              { role: "system", content: ELISE.systemPrompt },
+              { role: "user", content: prompt },
+            ],
             { signal: controller.signal },
           )) {
             if (controller.signal.aborted || turnRef.current !== controller) {

@@ -170,6 +170,13 @@ sidesteps the echo problem for free.
 
 ### LLM
 
+> As of Slice 4a the backend is **OpenRouter** (OpenAI-compatible), not
+> self-hosted Ollama; the persona lives in the `Companion` config as a
+> client-side system message, and each companion carries its own `model` +
+> `contextWindow`. The rationale below (why not Claude/OpenAI, why an
+> OpenAI-compatible chat shape) still holds — only the hosting changed. See
+> COMPANIONS.md for the current setup.
+
 Claude and OpenAI both restrict explicit adult content (OpenAI's "adult mode"
 was floated in Oct 2025 and **paused indefinitely as of March 2026**), so neither
 frontier API is viable here. We use a **self-hosted uncensored open-weight model
@@ -283,7 +290,10 @@ headphones); proving it de-risks everything else.
      her `generationBias` shapes the program. _Ships:_ pick a persona → the device
      runs *her* program and she talks like herself; the dominant one lays down a
      meaner program than the submissive one. (Interim: a manual `start` — the
-     companion-decides-to-start move lands in 4c.)
+     companion-decides-to-start move lands in 4c.) (4a as built ships one
+     companion — Elise — with a random program and temporary on-screen knobs, and
+     folds in the Ollama→OpenRouter backend swap; the two-persona /
+     `generationBias` mapping is deferred to when companion #2 lands.)
    - **4b — Proactive speech: narration + ambient.** The shared conversation thread
      carrying current + upcoming device state; `generateNarrationCues` consumed by the
      orchestrator and *prompted ahead* so the synthesized speech lands on the beat; the
