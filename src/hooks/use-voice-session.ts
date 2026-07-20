@@ -40,8 +40,8 @@ export type VoiceStatus = {
   // The LLM reply, streamed token-by-token as it generates — the exact text a
   // spoken ("say it") turn buffers and hands to TTS.
   replyText: string;
-  // Surfaced so the panel can show an LLM failure (e.g. Ollama down) instead of
-  // silently saying nothing.
+  // Surfaced so the panel can show an LLM failure (e.g. OpenRouter unreachable)
+  // instead of silently saying nothing.
   replyError: string | null;
   metrics: TurnMetrics;
 };
