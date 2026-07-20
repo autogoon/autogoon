@@ -274,12 +274,13 @@ headphones); proving it de-risks everything else.
    4. _Unit-testable_ like the existing engine tests, no device/LLM.
 
 4. **Integration.** Wiring slices 1–3 into the actual algorithm: the orchestration
-   loop (three speech sources, one thread), the two personas, arming the Player, the
-   agency to act, and the safeword. This is large enough that it ships as **four
-   independently-testable sub-slices**, not one plan — each gets its own spec/plan
-   when we reach it; only the map is fixed here. Unlike Slice 1, the order is
-   **dependency-forced, not risk-first**: the riskiest chunk (4c's action mechanism)
-   can't come first because it needs 4a's armed Player and 4b's shared thread.
+   loop (three speech sources, one thread), the conversation memory, the two
+   personas, arming the Player, the agency to act, and the safeword. This is large
+   enough that it ships as **six independently-testable sub-slices**, not one plan —
+   each gets its own spec/plan when we reach it; only the map is fixed here. Unlike
+   Slice 1, the order is **dependency-forced, not risk-first**: the riskiest chunk
+   (the action mechanism, 4d) can't come first because it needs 4a's armed Player,
+   4b's persisted conversation thread, and 4c's proactive speech.
 
    - **4a — Persona-driven device program.** The full `Companion` shape
      (`systemPrompt` / `generationBias` / `initiative` / `agency`), the two personas
@@ -294,38 +295,65 @@ headphones); proving it de-risks everything else.
      companion — Elise — with a random program and temporary on-screen knobs, and
      folds in the Ollama→OpenRouter backend swap; the two-persona /
      `generationBias` mapping is deferred to when companion #2 lands.)
-   - **4b — Proactive speech: narration + ambient.** The shared conversation thread
-     carrying current + upcoming device state; `generateNarrationCues` consumed by the
+   - **4b — Conversation thread + persistence.** Give the companion memory: keep the
+     full rolling history (user + assistant turns) and pass it back to the LLM on
+     every turn, instead of the stateless single-message turns 4a shipped. Persist
+     the thread to `localStorage` so it survives reloads, and add a **Clear
+     conversation** control that empties it. **No context-window culling yet** — the
+     thread is allowed to grow unbounded; keeping it within the model's window is
+     4f's job. _Ships:_ Elise remembers what was said earlier in the session and
+     across a reload; Clear wipes the slate.
+     **Reasoning preservation:** MiniMax M2 (Elise's model) is a reasoning model —
+     it returns a private "thinking" block (`reasoning_details` on OpenRouter)
+     alongside the visible reply, and it was trained with that reasoning present in
+     the history, so stripping it measurably degrades later turns. So 4b must
+     capture `reasoning_details` from the stream (the client currently keeps only
+     content), store it on each assistant turn, and pass it back verbatim (sequence
+     preserved) in the assistant messages. This is model-specific, so it's gated by
+     a per-companion **`passesReasoning`** flag (Elise = `true`); companions on
+     non-reasoning models leave it off. (Same pattern applies to DeepSeek / Kimi
+     thinking modes to varying degrees; M2 is the emphatic case.)
+   - **4c — Proactive speech: narration + ambient.** Built on 4b's thread. It carries
+     current + upcoming device state; `generateNarrationCues` consumed by the
      orchestrator and *prompted ahead* so the synthesized speech lands on the beat; the
      persona voices each neutral cue label; ambient `initiative`-gated filler talk.
      Both proactive sources are preemptible under barge-in. _Ships:_ she narrates the
      moves in character, on the beat, and fills silences to her initiative.
-   - **4c — Agency &amp; control.** The action mechanism — the LLM triggers device
+   - **4d — Agency &amp; control.** The action mechanism — the LLM triggers device
      actions and can decline (driven by `agency`); `start` becomes the companion's
      move; live knob control (`setSpeedPercent`, `invalidateFuture`, valve controls)
      with in-character refusal. **Open question, resolved when we spec this slice:** how
-     the LLM expresses an action reliably through Ollama/Cydonia — native tool-calls
+     the LLM expresses an action reliably through the model — native tool-calls
      vs. structured markers parsed from the stream — possibly settled with a small
      spike first. _Ships:_ ask her to start / speed up / edge you — she decides in
      character and the device follows, or she refuses.
-   - **4d — Safeword + tuning.** Vosk KWS reserved for the safeword → immediate hard
+   - **4e — Safeword + tuning.** Vosk KWS reserved for the safeword → immediate hard
      stop that also **tears down the voice session (LLM + TTS)**, not just
      `Player.pause()`; the nav/global-word lockdown a running session needs; and
      reconciling the two concurrent mic captures (vosk for the safeword vs. ElevenLabs
      STT for conversation). Plus the deferred tuning: barge-in is too aggressive, and
      replies must stay short for TTS latency. _Ships:_ say the safeword → everything
      stops instantly; the loop feels right on hardware.
+   - **4f — Context compaction / rolling window.** Keep 4b's ever-growing thread
+     within the model's context window (recorded per companion as `contextWindow` in
+     4a — Elise's MiniMax M2 is 196,608). Summarize older turns and/or keep a rolling
+     window of recent turns verbatim, so long sessions stay coherent without
+     overflowing the window or ballooning cost. When `passesReasoning` is on, old
+     turns' `reasoning_details` are trimmed along with the messages they belong to —
+     keeping the recent turns' reasoning intact is what matters. _Ships:_ an
+     hours-long session keeps working; the companion still remembers the gist of
+     earlier context.
 
 ## Deferred to per-slice specs
 
 - The exact label wording per template (authored in Slice 3's template table).
   Cadence is settled: one cue per template boundary.
 - Prompt-ahead lead time and how TTS playback is scheduled against a cue's event
-  time (Slice 4b).
+  time (Slice 4c).
 - Precise STT socket open/close thresholds and the VAD's attack debounce (barge-in
-  tuning: Slice 4d).
+  tuning: Slice 4e).
 - Whether Vosk's global/nav words stay live mid-session, and exactly what the
-  safeword tears down (Slice 4d).
+  safeword tears down (Slice 4e).
 - Persona prompt content and the concrete `generationBias` → Autopilot-params
   mapping (Slice 4a).
 - Reconnect/error handling for the STT and TTS sockets.
