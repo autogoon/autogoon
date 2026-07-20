@@ -44,6 +44,9 @@ export type VoiceStatus = {
   // instead of silently saying nothing.
   replyError: string | null;
   metrics: TurnMetrics;
+  // True from when a spoken reply's TTS request is sent until the first audio
+  // bytes come back — the "waiting for speech" state. Cleared once audio starts.
+  awaitingSpeech: boolean;
 };
 
 export type VoiceSession = {
@@ -73,6 +76,7 @@ const IDLE_STATUS: VoiceStatus = {
   replyText: "",
   replyError: null,
   metrics: { llm: null, tts: null },
+  awaitingSpeech: false,
 };
 
 // Close the STT socket after this long without voice.
@@ -127,6 +131,7 @@ export function useVoiceSession(): VoiceSession {
     turnRef.current?.abort();
     turnRef.current = null;
     setReplyPlaying(false);
+    setStatus((s) => ({ ...s, awaitingSpeech: false }));
   }, [setReplyPlaying]);
 
   // A companion turn on arbitrary text — a typed prompt or a committed
@@ -154,6 +159,7 @@ export function useVoiceSession(): VoiceSession {
         replyText: "",
         replyError: null,
         metrics: { llm: null, tts: null },
+        awaitingSpeech: false,
       }));
       setReplyPlaying(true);
 
@@ -213,8 +219,11 @@ export function useVoiceSession(): VoiceSession {
           }
           const ttsStart = performance.now();
           let ttsTtfbMs: number | null = null;
+          // "Waiting for speech" until the first audio bytes arrive.
+          setStatus((s) => ({ ...s, awaitingSpeech: true }));
           await tts.play(reply, ELISE.voiceId, controller.signal, () => {
             ttsTtfbMs = performance.now() - ttsStart;
+            setStatus((s) => ({ ...s, awaitingSpeech: false }));
           });
           // tts.play resolves even on barge-in/stop, so guard before recording:
           // a superseded turn must not overwrite the current turn's metrics.
@@ -242,6 +251,9 @@ export function useVoiceSession(): VoiceSession {
           if (turnRef.current === controller) {
             turnRef.current = null;
             setReplyPlaying(false);
+            // Catch-all: if TTS resolved without first audio (error/abort) the
+            // "waiting for speech" flag would otherwise stick.
+            setStatus((s) => ({ ...s, awaitingSpeech: false }));
           }
         }
       })();
