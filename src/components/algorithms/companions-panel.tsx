@@ -23,6 +23,7 @@ import {
 } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { LogCard, type LogEntry } from "@/components/log-card";
 import { Segmented } from "@/components/segmented";
 import { SessionControls } from "@/components/session-controls";
 import { Sparkline } from "@/components/sparkline";
@@ -58,21 +59,11 @@ function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
   );
 }
 
-type LogEntry = { id: number; text: string };
-
+// The event log reuses the shared LogCard (monospace, timestamped, colour-by-
+// kind, auto-scrolling, dev-only) so it matches the other algorithms' logs.
+// Memoized on its entries so the ~50 Hz rms churn doesn't reconcile it.
 const EventLog = memo(function EventLog({ entries }: { entries: LogEntry[] }) {
-  if (entries.length === 0) {
-    return <p className="text-muted-foreground text-sm">No events yet.</p>;
-  }
-  return (
-    <ul className="max-h-48 space-y-1 overflow-y-auto font-mono text-xs">
-      {entries.map((e) => (
-        <li key={e.id} className="text-muted-foreground">
-          {e.text}
-        </li>
-      ))}
-    </ul>
-  );
+  return <LogCard title="Events" entries={entries} />;
 });
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -216,15 +207,19 @@ export function CompanionsPanel({
   // Transition log for the acceptance run.
   const [log, setLog] = useState<LogEntry[]>([]);
   const logIdRef = useRef(0);
-  const append = useCallback((text: string) => {
-    setLog((l) => [{ id: logIdRef.current++, text }, ...l].slice(0, 30));
+  // Newest last (LogCard auto-scrolls to the bottom); `kind` picks the colour.
+  const append = useCallback((text: string, kind = "send") => {
+    const time = new Date().toLocaleTimeString(undefined, { hour12: false });
+    setLog((l) =>
+      [...l, { id: logIdRef.current++, time, text, kind }].slice(-50),
+    );
   }, []);
 
   const prevPhase = useRef(status.phase);
   useEffect(() => {
     if (status.phase !== prevPhase.current) {
       prevPhase.current = status.phase;
-      append(`STT ${status.phase}`);
+      append(`STT ${status.phase}`, "info");
     }
   }, [status.phase, append]);
 
@@ -232,7 +227,7 @@ export function CompanionsPanel({
   useEffect(() => {
     if (status.committed !== prevCommitted.current) {
       prevCommitted.current = status.committed;
-      if (status.committed !== "") append(`heard: "${status.committed}"`);
+      if (status.committed !== "") append(`heard: "${status.committed}"`, "hit");
     }
   }, [status.committed, append]);
 
@@ -513,9 +508,7 @@ export function CompanionsPanel({
             )}
           </Card>
 
-          <Card title="Events">
-            <EventLog entries={log} />
-          </Card>
+          <EventLog entries={log} />
         </>
       )}
     </section>
