@@ -266,19 +266,56 @@ headphones); proving it de-risks everything else.
    description). Plain port + labels — persona `generationBias` deferred to Slice
    4. _Unit-testable_ like the existing engine tests, no device/LLM.
 
-4. **Integration.** The orchestration loop (three speech sources, one thread), the
-   two personas, the panel + `ALGORITHMS` entry + navigation, and the safeword —
-   wiring slices 1–3 into the actual algorithm.
+4. **Integration.** Wiring slices 1–3 into the actual algorithm: the orchestration
+   loop (three speech sources, one thread), the two personas, arming the Player, the
+   agency to act, and the safeword. This is large enough that it ships as **four
+   independently-testable sub-slices**, not one plan — each gets its own spec/plan
+   when we reach it; only the map is fixed here. Unlike Slice 1, the order is
+   **dependency-forced, not risk-first**: the riskiest chunk (4c's action mechanism)
+   can't come first because it needs 4a's armed Player and 4b's shared thread.
+
+   - **4a — Persona-driven device program.** The full `Companion` shape
+     (`systemPrompt` / `generationBias` / `initiative` / `agency`), the two personas
+     (one dominant, one submissive, of differing genders), and the `generationBias` →
+     Autopilot-knobs mapping. A companion picker; the panel arms the one Player with a
+     `CompanionEngine`; the play sub-level (`Home › Companions › Play`). The chosen
+     persona's `systemPrompt` starts feeding the LLM so she sounds like herself, and
+     her `generationBias` shapes the program. _Ships:_ pick a persona → the device
+     runs *her* program and she talks like herself; the dominant one lays down a
+     meaner program than the submissive one. (Interim: a manual `start` — the
+     companion-decides-to-start move lands in 4c.)
+   - **4b — Proactive speech: narration + ambient.** The shared conversation thread
+     carrying current + upcoming device state; `generateNarrationCues` consumed by the
+     orchestrator and *prompted ahead* so the synthesized speech lands on the beat; the
+     persona voices each neutral cue label; ambient `initiative`-gated filler talk.
+     Both proactive sources are preemptible under barge-in. _Ships:_ she narrates the
+     moves in character, on the beat, and fills silences to her initiative.
+   - **4c — Agency &amp; control.** The action mechanism — the LLM triggers device
+     actions and can decline (driven by `agency`); `start` becomes the companion's
+     move; live knob control (`setSpeedPercent`, `invalidateFuture`, valve controls)
+     with in-character refusal. **Open question, resolved when we spec this slice:** how
+     the LLM expresses an action reliably through Ollama/Cydonia — native tool-calls
+     vs. structured markers parsed from the stream — possibly settled with a small
+     spike first. _Ships:_ ask her to start / speed up / edge you — she decides in
+     character and the device follows, or she refuses.
+   - **4d — Safeword + tuning.** Vosk KWS reserved for the safeword → immediate hard
+     stop that also **tears down the voice session (LLM + TTS)**, not just
+     `Player.pause()`; the nav/global-word lockdown a running session needs; and
+     reconciling the two concurrent mic captures (vosk for the safeword vs. ElevenLabs
+     STT for conversation). Plus the deferred tuning: barge-in is too aggressive, and
+     replies must stay short for TTS latency. _Ships:_ say the safeword → everything
+     stops instantly; the loop feels right on hardware.
 
 ## Deferred to per-slice specs
 
 - The exact label wording per template (authored in Slice 3's template table).
   Cadence is settled: one cue per template boundary.
 - Prompt-ahead lead time and how TTS playback is scheduled against a cue's event
-  time.
-- Precise STT socket open/close thresholds and the VAD's attack debounce.
+  time (Slice 4b).
+- Precise STT socket open/close thresholds and the VAD's attack debounce (barge-in
+  tuning: Slice 4d).
 - Whether Vosk's global/nav words stay live mid-session, and exactly what the
-  safeword tears down.
+  safeword tears down (Slice 4d).
 - Persona prompt content and the concrete `generationBias` → Autopilot-params
-  mapping (Slice 4).
+  mapping (Slice 4a).
 - Reconnect/error handling for the STT and TTS sockets.
