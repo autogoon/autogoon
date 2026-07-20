@@ -84,6 +84,17 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+// A small inline "in progress" spinner for the pending LLM / TTS states.
+function Spinner() {
+  return (
+    <span
+      role="status"
+      aria-label="loading"
+      className="border-foreground/30 border-t-foreground inline-block h-3 w-3 animate-spin rounded-full border-2"
+    />
+  );
+}
+
 export function CompanionsPanel({
   vacuglide,
   player,
@@ -374,21 +385,6 @@ export function CompanionsPanel({
               only; <strong>Say it</strong> speaks the reply. Stop — or just
               talk over her — to cut it.
             </p>
-            <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
-              <span>STT {status.phase}</span>
-              <span>pre-roll {status.preRollFrames}</span>
-            </div>
-            <p className="min-h-6 text-sm">
-              {status.committed !== "" && <span>{status.committed} </span>}
-              {status.partial !== "" && (
-                <span className="text-muted-foreground">{status.partial}</span>
-              )}
-              {status.committed === "" && status.partial === "" && (
-                <span className="text-muted-foreground">
-                  Nothing heard yet.
-                </span>
-              )}
-            </p>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -428,11 +424,54 @@ export function CompanionsPanel({
             )}
             <div className="mt-2 text-sm">
               <p className="text-muted-foreground mb-1">Response</p>
-              <p className="min-h-6 whitespace-pre-wrap">
-                {status.replyText === "" ? (
-                  <span className="text-muted-foreground">—</span>
+              {status.replyPlaying &&
+              status.replyText === "" &&
+              status.replyError === null ? (
+                // Request sent, no tokens back yet — awaiting the LLM.
+                <p className="text-muted-foreground flex min-h-6 items-center gap-2">
+                  <Spinner />
+                  Thinking…
+                </p>
+              ) : (
+                <p className="min-h-6 whitespace-pre-wrap">
+                  {status.replyText === "" ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    status.replyText
+                  )}
+                </p>
+              )}
+              {status.awaitingSpeech && (
+                <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                  <Spinner />
+                  Waiting for speech…
+                </p>
+              )}
+            </div>
+          </Card>
+
+          <Card title="Audio debug">
+            <div className="text-muted-foreground flex gap-4 text-xs">
+              <span>STT {status.phase}</span>
+              <span>pre-roll {status.preRollFrames}</span>
+            </div>
+            <div className="mt-2 text-sm">
+              <p className="min-h-6">
+                <span className="text-muted-foreground text-xs">finished </span>
+                {status.committed !== "" ? (
+                  status.committed
                 ) : (
-                  status.replyText
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </p>
+              <p className="min-h-6">
+                <span className="text-muted-foreground text-xs">partial </span>
+                {status.partial !== "" ? (
+                  <span className="text-muted-foreground">
+                    {status.partial}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
                 )}
               </p>
             </div>
