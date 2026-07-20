@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-20
+
+- internal: **CompanionEngine + narration overlay** — a self-contained port of Autopilot's template-block generation, plus a narration overlay that emits a cue at each template boundary describing the mini-program starting there. Engine only; not yet wired to device, LLM or panel. ([#13](https://github.com/autogoon/autogoon/pull/13))
+
 ## 2026-07-19
 
 - feature: **Companion replies for real** — the companion now answers what you say with a live, model-generated reply spoken in her own voice, instead of a canned line; cut in any time and she stops. ([#13](https://github.com/autogoon/autogoon/pull/13))
