@@ -1,95 +1,70 @@
 # Companions
 
 Each companion is a distinct persona the app talks to over the LLM backend. This
-doc describes how those personas are hosted: **one Ollama model card per
-companion, built on a shared base model.**
+doc describes how those personas are configured: **one `Companion` config object
+per companion, carrying its own OpenRouter model, context window, voice, and
+persona.**
 
 ## The model
 
-The app uses a **self-hosted, uncensored open-weight model via Ollama** — Claude
-and the OpenAI APIs both restrict explicit content, so neither is viable here. The
-model runs on a **self-hosted machine with enough RAM** (~64 GB is comfortable);
-the app connects to it over the LAN through Ollama's OpenAI-compatible endpoint
-(`LLM_URL`, `…/v1`).
+The app talks to **OpenRouter**'s OpenAI-compatible chat-completions endpoint —
+Claude and the OpenAI APIs both restrict explicit content, so neither is viable
+here. OpenRouter fronts a wide range of hosted models, so each companion can pick
+whichever model suits her persona (and swap it later) without standing up any
+infrastructure. Explicit-content suitability is a property of the **chosen
+model**, not of OpenRouter itself — Elise currently uses a permissive model
+(`minimax/minimax-m2:nitro`) precisely because it doesn't restrict the kind of
+roleplay her persona calls for; picking a different, more restrictive model for a
+future companion would reintroduce that limit for her.
 
-The base model is **Cydonia 24B (v4.3)** — TheDrummer's uncensored roleplay
-finetune of Mistral Small 24B — at **Q6_K** (~19.4 GB):
+Calls go through the app's same-origin **`/api/llm` proxy route**, which forwards
+to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header —
+same-origin for the browser (no CORS juggling), streaming passes straight
+through, and the key never reaches the client.
 
-```
-hf.co/bartowski/TheDrummer_Cydonia-24B-v4.3-GGUF:Q6_K
-```
+## One config object per companion
 
-This replaces the original **MythoMax L2 13B** placeholder, which is a 2023
-Llama-2 model and badly outdated for roleplay. Q6_K is the quality/speed sweet
-spot on a ~64 GB machine; drop to `Q5_K_M` (~16.8 GB) or `Q4_K_M` (~14.3 GB) for more
-headroom or faster tokens. The base is swappable and not load-bearing — the whole
-point of the card-per-companion setup below is that the persona lives in the card,
-not the weights.
+Each companion is a `Companion` entry in `src/lib/companions` (see
+`companions.ts`):
 
-## One model card per companion
-
-Each companion is an **Ollama model** created from a **Modelfile**: `FROM` the
-shared Cydonia base, plus that companion's persona (`SYSTEM`) and sampling
-settings (`PARAMETER`). Because Ollama is content-addressed, every companion card
-**references the same ~19.4 GB weight blob** — a new companion costs only the few
-kilobytes of its manifest, never another copy of the model.
-
-```
-ollama create elise -f elise.Modelfile      # build a companion's card
-ollama run elise                            # smoke-test it directly
-ollama list                                 # each companion appears as its own model
+```ts
+export type Companion = {
+  name: string;
+  gender: "female" | "male" | "nonbinary"; // display-only, shown on the picker
+  voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
+  systemPrompt: string; // persona; sent as the LLM system message
+  model: string; // OpenRouter model slug the client requests for this companion
+  contextWindow: number; // model context window (tokens); recorded for pruning
+};
 ```
 
-The app then requests a companion by its **card name** (e.g. `elise`) as the
-model in each chat-completions call — same `LLM_URL`, different `LLM_MODEL`.
+- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m2:nitro`) —
+  the client sends it directly in each chat-completions call, so different
+  companions can run entirely different models.
+- `contextWindow` records that model's context window in tokens, used to size
+  conversation-history pruning.
+- `voiceId` is an ElevenLabs voice id (not a secret; safe to keep in code).
+- `systemPrompt` is the companion's **persona**, sent as the LLM's `system`
+  message on every turn. It now lives in code rather than in a model card — see
+  `elise-prompt.ts` below.
 
-### Modelfile anatomy
+### Adding a companion
 
-See [`elise.Modelfile`](./elise.Modelfile) for a complete worked example. The
-shape is:
-
-```dockerfile
-FROM hf.co/bartowski/TheDrummer_Cydonia-24B-v4.3-GGUF:Q6_K
-
-# 32k context — long, coherent sessions without eating all the RAM
-PARAMETER num_ctx 32768
-
-# Roleplay-friendly sampling
-PARAMETER temperature 0.9
-PARAMETER min_p 0.05
-PARAMETER repeat_penalty 1.05
-
-SYSTEM """<the companion's persona, scenario, and style guidance>"""
-
-# Optional: seed the opening scene the companion greets with
-MESSAGE assistant """<greeting / scene-setter>"""
-```
-
-**Conventions for a new companion:**
-
-- Name the file `<name>.Modelfile` and create the model as `<name>` (lowercase).
-- Keep `FROM`, `num_ctx`, and the sampling `PARAMETER`s identical across
-  companions unless you have a reason to differ — only the `SYSTEM` (and any
-  seeded `MESSAGE`) should change from one companion to the next.
-- The `SYSTEM` block carries the persona, the setup, and style/formatting rules;
-  keep the companion in character and never let it break the fourth wall.
-
-### Context and RAM notes (~64 GB host)
-
-- `num_ctx 32768` is the default — plenty for long sessions and fast. Weights
-  (~19.4 GB at Q6_K) plus a 32k KV cache stay well within the 64 GB budget with
-  room to spare.
-- For much larger windows (64k–128k, which Cydonia's Mistral-Small base
-  supports), enable KV-cache quantization on the Ollama **server** to keep memory
-  in check: `OLLAMA_FLASH_ATTENTION=1` and `OLLAMA_KV_CACHE_TYPE=q8_0`. In
-  practice roleplay coherence fades long before 128k, so 32k is the recommended
-  working default.
+Add a new `Companion` entry with its own `model`, `contextWindow`, `voiceId`, and
+`systemPrompt`. If the persona text is long (as personas tend to be), give it its
+own module — e.g. `elise-prompt.ts` exports `ELISE_SYSTEM_PROMPT`, a plain
+template-literal string — and import it into `companions.ts`, so the companion
+list itself stays readable.
 
 ## Configuration
 
-Two env vars wire the app to the backend (server-side only; see
+Two env vars wire the app to OpenRouter (server-side only; see
 [`.env.example`](./.env.example)):
 
-- `LLM_URL` — the OpenAI-compatible endpoint, e.g.
-  `http://localhost:11434/v1`.
-- `LLM_MODEL` — the companion card name to request (e.g. `elise`).
+- `LLM_URL` — `https://openrouter.ai/api/v1`.
+- `OPENROUTER_API_KEY` — read only by the `/api/llm` proxy route, which adds it
+  as a Bearer header. Set it in `.env.local` (gitignored); never commit a real
+  key.
+
+There is no `LLM_MODEL` — each companion's `model` field picks the model per
+companion, so there's nothing global to configure.

@@ -36,7 +36,10 @@ export async function POST(request: Request): Promise<Response> {
       signal: request.signal,
     });
   } catch {
-    return Response.json({ error: "LLM upstream unreachable" }, { status: 502 });
+    return Response.json(
+      { error: "LLM upstream unreachable" },
+      { status: 502 },
+    );
   }
 
   if (!upstream.ok || upstream.body === null) {

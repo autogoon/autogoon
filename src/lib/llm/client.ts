@@ -1,7 +1,7 @@
 // The companion's LLM client: a thin wrapper over the openai SDK pointed at our
-// same-origin proxy route (Task 1), which forwards to Ollama and injects the real
-// model server-side. So the SDK's model/apiKey here are placeholders: the route
-// overrides the model, and the proxy is unauthenticated for the local experiment.
+// same-origin proxy route (Task 1), which forwards to OpenRouter. The client now
+// sends the companion's model itself; the route injects only the API key
+// server-side, and the proxy is unauthenticated for the local experiment.
 // openai-node needs an ABSOLUTE baseURL — see createLlmClient for how that's built.
 import OpenAI from "openai";
 
@@ -19,10 +19,7 @@ export type LlmClient = {
   ) => AsyncIterable<string>;
 };
 
-// Overridden server-side by LLM_MODEL — a placeholder only to satisfy the SDK.
-const PLACEHOLDER_MODEL = "companion";
-
-export function createLlmClient(): LlmClient {
+export function createLlmClient(model: string): LlmClient {
   // openai-node needs an ABSOLUTE baseURL. In the browser — the only place this
   // client actually runs — that's the page origin; the fallback just keeps it
   // constructable under the node test env, where the SDK call is mocked.
@@ -41,7 +38,7 @@ export function createLlmClient(): LlmClient {
     opts: { signal: AbortSignal },
   ): AsyncIterable<string> {
     const completion = await client.chat.completions.create(
-      { model: PLACEHOLDER_MODEL, messages, stream: true },
+      { model, messages, stream: true },
       { signal: opts.signal },
     );
     for await (const chunk of completion) {

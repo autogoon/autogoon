@@ -42,7 +42,7 @@ describe("createLlmClient", () => {
   it("yields concatenated token deltas and skips empty ones", async () => {
     createMock.mockResolvedValue(fakeStream(["Hi", undefined, " there", "!"]));
     const { createLlmClient } = await import("./client");
-    const client = createLlmClient();
+    const client = createLlmClient("test-model");
     const tokens = await collect(
       client.stream([{ role: "user", content: "hi" }], {
         signal: new AbortController().signal,
@@ -55,7 +55,7 @@ describe("createLlmClient", () => {
   it("requests a stream with the given messages and forwards the signal", async () => {
     createMock.mockResolvedValue(fakeStream(["ok"]));
     const { createLlmClient } = await import("./client");
-    const client = createLlmClient();
+    const client = createLlmClient("test-model");
     const signal = new AbortController().signal;
     await collect(client.stream([{ role: "user", content: "hi" }], { signal }));
     const [params, options] = createMock.mock.calls[0] as [
