@@ -436,6 +436,42 @@ export function CompanionsPanel({
             </div>
           </Card>
 
+          <Card title="Latency">
+            <p className="text-muted-foreground mb-1 text-xs">LLM</p>
+            {status.metrics.llm === null ? (
+              <p className="text-muted-foreground text-sm">—</p>
+            ) : (
+              <>
+                <Row label="First token">
+                  {Math.round(status.metrics.llm.ttftMs)} ms
+                </Row>
+                <Row label="Throughput">
+                  {status.metrics.llm.tps === null
+                    ? "—"
+                    : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
+                </Row>
+                <Row label="Total">
+                  {Math.round(status.metrics.llm.totalMs)} ms
+                </Row>
+              </>
+            )}
+            <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
+            {status.metrics.tts === null ? (
+              <p className="text-muted-foreground text-sm">—</p>
+            ) : (
+              <>
+                <Row label="First audio">
+                  {status.metrics.tts.ttfbMs === null
+                    ? "—"
+                    : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
+                </Row>
+                <Row label="Total">
+                  {Math.round(status.metrics.tts.totalMs)} ms
+                </Row>
+              </>
+            )}
+          </Card>
+
           <Card title="Events">
             <EventLog entries={log} />
           </Card>

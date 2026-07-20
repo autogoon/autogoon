@@ -23,6 +23,11 @@ import {
   type SttPhase,
 } from "@/lib/voice/session-policy";
 
+export type TurnMetrics = {
+  llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
+  tts: { ttfbMs: number | null; totalMs: number } | null;
+};
+
 export type VoiceStatus = {
   micOn: boolean;
   phase: SttPhase;
@@ -38,6 +43,7 @@ export type VoiceStatus = {
   // Surfaced so the panel can show an LLM failure (e.g. Ollama down) instead of
   // silently saying nothing.
   replyError: string | null;
+  metrics: TurnMetrics;
 };
 
 export type VoiceSession = {
@@ -66,6 +72,7 @@ const IDLE_STATUS: VoiceStatus = {
   replyPlaying: false,
   replyText: "",
   replyError: null,
+  metrics: { llm: null, tts: null },
 };
 
 // Close the STT socket after this long without voice.
@@ -142,24 +149,54 @@ export function useVoiceSession(): VoiceSession {
       turnRef.current?.abort();
       const controller = new AbortController();
       turnRef.current = controller;
-      setStatus((s) => ({ ...s, replyText: "", replyError: null }));
+      setStatus((s) => ({
+        ...s,
+        replyText: "",
+        replyError: null,
+        metrics: { llm: null, tts: null },
+      }));
       setReplyPlaying(true);
 
       void (async (): Promise<void> => {
         try {
           let reply = "";
+          let completionTokens: number | null = null;
+          const llmStart = performance.now();
+          let ttftMs: number | null = null;
           for await (const delta of llm.stream(
             [
               { role: "system", content: ELISE.systemPrompt },
               { role: "user", content: prompt },
             ],
-            { signal: controller.signal },
+            {
+              signal: controller.signal,
+              onUsage: (u) => {
+                completionTokens = u.completionTokens;
+              },
+            },
           )) {
             if (controller.signal.aborted || turnRef.current !== controller) {
               return;
             }
+            if (ttftMs === null) ttftMs = performance.now() - llmStart;
             reply += delta;
             setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
+          }
+          const llmTotalMs = performance.now() - llmStart;
+          if (ttftMs !== null) {
+            const ttft = ttftMs;
+            const tokens = completionTokens;
+            // Output throughput over the decode window (first token → done);
+            // null when the backend didn't return usage.
+            const decodeSec = Math.max((llmTotalMs - ttft) / 1000, 0.001);
+            const tps = tokens !== null ? tokens / decodeSec : null;
+            setStatus((s) => ({
+              ...s,
+              metrics: {
+                ...s.metrics,
+                llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
+              },
+            }));
           }
           if (
             controller.signal.aborted ||
@@ -169,7 +206,18 @@ export function useVoiceSession(): VoiceSession {
           ) {
             return;
           }
-          await tts.play(reply, ELISE.voiceId, controller.signal);
+          const ttsStart = performance.now();
+          let ttsTtfbMs: number | null = null;
+          await tts.play(reply, ELISE.voiceId, controller.signal, () => {
+            ttsTtfbMs = performance.now() - ttsStart;
+          });
+          setStatus((s) => ({
+            ...s,
+            metrics: {
+              ...s.metrics,
+              tts: { ttfbMs: ttsTtfbMs, totalMs: performance.now() - ttsStart },
+            },
+          }));
         } catch (e) {
           // Aborted turns land here too; only surface a real failure.
           if (!controller.signal.aborted && turnRef.current === controller) {

@@ -9,8 +9,14 @@
 // real audio playback); verified in the Task 13 acceptance run.
 
 export type TtsPlayer = {
-  // Resolves when playback ends naturally OR is aborted/stopped.
-  play: (text: string, voiceId: string, signal: AbortSignal) => Promise<void>;
+  // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
+  // fires once, when the TTS response's bytes start arriving (TTFB).
+  play: (
+    text: string,
+    voiceId: string,
+    signal: AbortSignal,
+    onFirstByte?: () => void,
+  ) => Promise<void>;
   // Pause + reset immediately. Idempotent.
   stop: () => void;
 };
@@ -69,6 +75,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
     text: string,
     voiceId: string,
     signal: AbortSignal,
+    onFirstByte?: () => void,
   ): Promise<void> {
     // Barge-in / mutual exclusion: replace any prior playback before starting.
     stop();
@@ -115,6 +122,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
             stop();
             return;
           }
+          onFirstByte?.();
 
           if (canStreamMp3()) {
             // Progressive path: pump the stream into a MediaSource.

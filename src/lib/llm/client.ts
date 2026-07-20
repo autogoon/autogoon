@@ -10,12 +10,15 @@ export type LlmMessage = {
   content: string;
 };
 
+export type LlmUsage = { completionTokens: number };
+
 export type LlmClient = {
   // Streams assistant token deltas for a turn. Abort opts.signal to cancel the
-  // whole generation (barge-in / Stop).
+  // whole generation (barge-in / Stop). onUsage fires once, at the end, with the
+  // model's token accounting (when the backend returns it) — used for tok/s.
   stream: (
     messages: LlmMessage[],
-    opts: { signal: AbortSignal },
+    opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
   ) => AsyncIterable<string>;
 };
 
@@ -35,15 +38,26 @@ export function createLlmClient(model: string): LlmClient {
 
   async function* stream(
     messages: LlmMessage[],
-    opts: { signal: AbortSignal },
+    opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
   ): AsyncIterable<string> {
     const completion = await client.chat.completions.create(
-      { model, messages, stream: true },
+      {
+        model,
+        messages,
+        stream: true,
+        // Ask for a final usage chunk (empty choices + usage) so we can report
+        // output tok/s. Providers that don't send it simply never fire onUsage.
+        stream_options: { include_usage: true },
+      },
       { signal: opts.signal },
     );
     for await (const chunk of completion) {
       const delta = chunk.choices[0]?.delta?.content;
       if (delta) yield delta;
+      const usage = chunk.usage;
+      if (usage != null) {
+        opts.onUsage?.({ completionTokens: usage.completion_tokens });
+      }
     }
   }
 
