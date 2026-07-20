@@ -2,6 +2,7 @@
 
 ## 2026-07-20
 
+- internal: **LLM + TTS latency metrics in the debug panel** — the Companions play view now shows a Latency card: time to first token, output tokens/sec and total generation time for the LLM, and time to first audio and total playback time for TTS, so the voice loop can be tuned. ([#13](https://github.com/autogoon/autogoon/pull/13))
 - internal: **CompanionEngine + narration overlay** — a self-contained port of Autopilot's template-block generation, plus a narration overlay that emits a cue at each template boundary describing the mini-program starting there. Engine only; not yet wired to device, LLM or panel. ([#13](https://github.com/autogoon/autogoon/pull/13))
 
 ## 2026-07-19
