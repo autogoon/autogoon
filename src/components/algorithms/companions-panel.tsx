@@ -1,19 +1,17 @@
 "use client";
 
-// Companions panel: one testing surface over useVoiceSession. It does NOT own an
-// engine or arm the Player — there's no device this slice. It drives the mic
-// session (start/stop), hosts the <audio> element the TTS player plays through,
-// and folds transcription, the LLM, and the reply into a single Conversation
-// card: speak (hands-free) or type, then Send (LLM only) or Say it (LLM → speak).
+// Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
+// LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
+// (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
+// shared Player, so the device runs Elise's program while she talks. Slice 4a:
+// one companion, a random program on fixed default knobs, temporary on-screen
+// knobs (they become LLM-driven tools later), and buttons-only device controls
+// (no vosk words — open dictation to Elise would otherwise transcribe them).
 //
-// Hot-path note: useVoiceSession returns one `status` object that churns ~50×/s
-// (rms/preRollFrames refresh every mic frame), so this component re-renders at
-// that rate whenever the mic is on — unavoidable without changing the committed
-// hook, which owns the single mic session and so must be called exactly once.
-// The response is to keep the render cheap: a tiny static tree, no per-frame
-// allocation or heavy work, the fast bar isolated in its own <RmsMeter>, and the
-// event log (the one non-trivial subtree, a map) split into a memoized child so
-// it isn't reconciled on the frames where only rms moved.
+// Hot-path note: useVoiceSession returns one `status` object that churns ~50x/s
+// while the mic is on; keep the render cheap. The event log is split into a
+// memoized child so the rms churn doesn't reconcile it, and the fast loudness
+// bar is isolated in <RmsMeter>.
 
 import {
   memo,
@@ -25,13 +23,27 @@ import {
 } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { SessionControls } from "@/components/session-controls";
+import { Sparkline } from "@/components/sparkline";
+import type { PlayerView } from "@/hooks/use-player";
+import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
+import { ELISE } from "@/lib/companions/companions";
+import {
+  CompanionEngine,
+  type IntensityLevel,
+  type EdgeControlLevel,
+  type SuctionControlLevel,
+} from "@/lib/algorithms/companion-engine";
 
-// The session's fast-moving loudness bar — the one thing that genuinely wants to
-// repaint every frame. Kept small and on its own.
+// Fixed default knobs for 4a — the program is random within this baseline
+// (generationBias -> knobs is deferred to when companion #2 lands).
+const DEFAULT_INTENSITY: IntensityLevel = "medium";
+const DEFAULT_EDGE: EdgeControlLevel = "moderate";
+const DEFAULT_SUCTION: SuctionControlLevel = "little";
+
+// The session's fast-moving loudness bar — repaints every frame; kept small.
 function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
-  // rms sits around 0.02 (quiet) to ~0.2 (loud speech); ×500 fills the bar
-  // across that range.
   const pct = Math.min(100, Math.round(rms * 500));
   return (
     <div className="bg-foreground/10 h-2 w-full overflow-hidden rounded">
@@ -45,8 +57,6 @@ function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
 
 type LogEntry = { id: number; text: string };
 
-// The event log's map is the priciest part of the tree; memoized on its entries
-// (which change only on a real transition) so the 50 Hz rms churn skips it.
 const EventLog = memo(function EventLog({ entries }: { entries: LogEntry[] }) {
   if (entries.length === 0) {
     return <p className="text-muted-foreground text-sm">No events yet.</p>;
@@ -71,19 +81,80 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function CompanionsPanel({ active }: { active: boolean }) {
-  const { start, stop, submitText, cancelReply, status, audioRef } =
-    useVoiceSession();
+export function CompanionsPanel({
+  vacuglide,
+  player,
+  active,
+  view,
+  onEnterPlay,
+}: {
+  vacuglide: VacuglideDeviceController;
+  player: PlayerView;
+  active: boolean;
+  view: "setup" | "play";
+  onEnterPlay: () => void;
+}) {
+  const device = vacuglide.player;
+  const {
+    start: startListening,
+    stop: stopListening,
+    submitText,
+    cancelReply,
+    status,
+    audioRef,
+  } = useVoiceSession();
 
-  // A hot mic must not linger once you leave the screen. The panels stay mounted
-  // (hidden via CSS), so unmount won't fire — tear the session down when this one
-  // goes inactive. stop() is idempotent, so an inactive mount is harmless.
+  // The device engine — one instance, owned here.
+  const engineRef = useRef<CompanionEngine | null>(null);
+  engineRef.current ??= new CompanionEngine(
+    DEFAULT_INTENSITY,
+    DEFAULT_EDGE,
+    DEFAULT_SUCTION,
+  );
+  const engine = engineRef.current;
+
+  const isCurrent = player.source === engine;
+  const state = isCurrent ? player.state : "armed";
+
+  // Arm the engine when the play view is up and the Player is free — mirrors
+  // Autopilot, but gated to the play level (setup doesn't touch the device).
   useEffect(() => {
-    if (!active) stop();
-  }, [active, stop]);
+    if (
+      active &&
+      view === "play" &&
+      player.state === "armed" &&
+      player.source !== engine
+    ) {
+      device.arm(engine);
+    }
+  }, [active, view, player.state, player.source, device, engine]);
 
-  // A small transition log for the acceptance run. Each source only changes on a
-  // real event, so these effects don't fire on the per-frame rms churn.
+  // A hot mic must not linger once you leave Companions. stop() is idempotent.
+  useEffect(() => {
+    if (!active) stopListening();
+  }, [active, stopListening]);
+
+  // Device transport (the program) — distinct from the mic's start/stop.
+  const startProgram = useCallback(() => {
+    if (device.source !== engine) device.arm(engine);
+    device.play();
+  }, [device, engine]);
+  const stopProgram = useCallback(() => {
+    void device.pause();
+  }, [device]);
+  const reset = useCallback(() => {
+    engine.setIntensity(DEFAULT_INTENSITY);
+    engine.setEdgeControl(DEFAULT_EDGE);
+    engine.setSuctionControl(DEFAULT_SUCTION);
+    device.arm(engine);
+  }, [device, engine]);
+
+  const enterPlay = useCallback(() => {
+    device.arm(engine);
+    onEnterPlay();
+  }, [device, engine, onEnterPlay]);
+
+  // Transition log for the acceptance run.
   const [log, setLog] = useState<LogEntry[]>([]);
   const logIdRef = useRef(0);
   const append = useCallback((text: string) => {
@@ -114,9 +185,6 @@ export function CompanionsPanel({ active }: { active: boolean }) {
     }
   }, [status.replyPlaying, append]);
 
-  // The Conversation box: typed text, or a committed voice transcript dropped in
-  // so you can see what she heard (the hands-free turn has already fired from the
-  // hook). Local state so typing doesn't churn the session.
   const [text, setText] = useState("");
   const prevCommittedForBox = useRef(status.committed);
   useEffect(() => {
@@ -126,123 +194,151 @@ export function CompanionsPanel({ active }: { active: boolean }) {
     }
   }, [status.committed]);
 
+  const connected = vacuglide.connected;
+
   return (
     <section className="flex w-full flex-col gap-8">
-      <Card title="Companions">
-        <p className="text-muted-foreground text-sm">
-          Talk to Elise. Start listening, speak, and she replies in her own
-          voice — cut in any time and she stops.
-        </p>
-        <Button
-          onClick={() => (status.micOn ? stop() : start())}
-          className={`mt-2 w-full rounded-lg px-4 py-3 text-sm font-medium ${
-            status.micOn
-              ? "bg-foreground/10 hover:bg-foreground/20"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {status.micOn ? "Stop listening" : "Start listening"}
-        </Button>
-        {/* The TTS player plays through this element; hidden, but it still plays. */}
-        <audio ref={audioRef} className="hidden" />
-      </Card>
+      {/* TTS element — rendered once, in both views, so audioRef stays stable. */}
+      <audio ref={audioRef} className="hidden" />
 
-      <Card title="Microphone">
-        <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
-        <Row label="Echo cancellation">
-          <span className={status.micOn ? "text-emerald-500" : undefined}>
-            {status.micOn ? "on" : "—"}
-          </span>
-        </Row>
-      </Card>
-
-      <Card title="Voice activity">
-        <Row label="State">
-          <span className={status.vadSpeaking ? "text-emerald-500" : undefined}>
-            {status.vadSpeaking ? "speaking" : "quiet"}
-          </span>
-        </Row>
-        <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
-        <Row label="RMS">{status.rms.toFixed(3)}</Row>
-      </Card>
-
-      <Card title="Conversation">
-        <p className="text-muted-foreground text-sm">
-          Speak (hands-free) or type. <strong>Send</strong> runs the model only;{" "}
-          <strong>Say it</strong> speaks the reply. Stop — or just talk over her
-          — to cut it.
-        </p>
-
-        {/* Live transcription: STT diagnostics + the rolling transcript. */}
-        <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
-          <span>STT {status.phase}</span>
-          <span>pre-roll {status.preRollFrames}</span>
-        </div>
-        <p className="min-h-6 text-sm">
-          {status.committed !== "" && <span>{status.committed} </span>}
-          {status.partial !== "" && (
-            <span className="text-muted-foreground">{status.partial}</span>
-          )}
-          {status.committed === "" && status.partial === "" && (
-            <span className="text-muted-foreground">Nothing heard yet.</span>
-          )}
-        </p>
-
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message, or speak…"
-          className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
-        />
-
-        <div className="mt-2 flex gap-2">
-          <Button
-            onClick={() => submitText(text, { speak: false })}
-            disabled={text.trim() === "" || status.replyPlaying}
-            className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            Send
-          </Button>
-          <Button
-            onClick={() => submitText(text, { speak: true })}
-            disabled={text.trim() === "" || status.replyPlaying}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            Say it
-          </Button>
-          <Button
-            onClick={cancelReply}
-            disabled={!status.replyPlaying}
-            className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-          >
-            Stop
-          </Button>
-          <span className="text-muted-foreground self-center text-sm">
-            {status.replyPlaying ? "working…" : "idle"}
-          </span>
-        </div>
-
-        {status.replyError !== null && (
-          <p className="mt-2 text-sm text-red-500">
-            Error: {status.replyError}
+      {view === "setup" ? (
+        <Card title="Companions">
+          <p className="text-muted-foreground text-sm">
+            Choose a companion. She listens, replies in her own voice, and runs
+            the device while you talk — cut in any time and she stops.
           </p>
-        )}
+          <div className="border-emerald-500 bg-linear-to-br mt-2 rounded-lg border from-emerald-500/15 to-emerald-500/5 p-4">
+            <p className="font-medium">{ELISE.name}</p>
+            <p className="text-muted-foreground text-sm">
+              A high-energy, flirty streamer with a dry, quieter side.
+            </p>
+          </div>
+          {/* No badge — Companions registers no vosk words this slice. */}
+          <Button
+            onClick={enterPlay}
+            className="mt-4 w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white"
+          >
+            Begin
+          </Button>
+        </Card>
+      ) : (
+        <>
+          <SessionControls
+            state={state}
+            connected={connected}
+            onStart={startProgram}
+            onStop={stopProgram}
+            onReset={reset}
+          />
 
-        <div className="mt-2 text-sm">
-          <p className="text-muted-foreground mb-1">Response</p>
-          <p className="min-h-6 whitespace-pre-wrap">
-            {status.replyText === "" ? (
-              <span className="text-muted-foreground">—</span>
-            ) : (
-              status.replyText
+          <Card>
+            <Sparkline
+              points={player.upcoming.speed}
+              valves={player.upcoming.valves}
+            />
+            <div className="text-muted-foreground flex justify-between text-xs">
+              <span>now</span>
+              <span>+60s</span>
+            </div>
+          </Card>
+
+          <Card title="Microphone">
+            <Button
+              onClick={() => (status.micOn ? stopListening() : startListening())}
+              className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
+                status.micOn
+                  ? "bg-foreground/10 hover:bg-foreground/20"
+                  : "bg-blue-600 text-white hover:bg-blue-700"
+              }`}
+            >
+              {status.micOn ? "Stop listening" : "Start listening"}
+            </Button>
+            <div className="mt-2">
+              <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
+              <Row label="State">
+                <span
+                  className={status.vadSpeaking ? "text-emerald-500" : undefined}
+                >
+                  {status.vadSpeaking ? "speaking" : "quiet"}
+                </span>
+              </Row>
+              <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
+            </div>
+          </Card>
+
+          <Card title="Conversation">
+            <p className="text-muted-foreground text-sm">
+              Speak (hands-free) or type. <strong>Send</strong> runs the model
+              only; <strong>Say it</strong> speaks the reply. Stop — or just talk
+              over her — to cut it.
+            </p>
+            <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
+              <span>STT {status.phase}</span>
+              <span>pre-roll {status.preRollFrames}</span>
+            </div>
+            <p className="min-h-6 text-sm">
+              {status.committed !== "" && <span>{status.committed} </span>}
+              {status.partial !== "" && (
+                <span className="text-muted-foreground">{status.partial}</span>
+              )}
+              {status.committed === "" && status.partial === "" && (
+                <span className="text-muted-foreground">Nothing heard yet.</span>
+              )}
+            </p>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type a message, or speak…"
+              className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
+            />
+            <div className="mt-2 flex gap-2">
+              <Button
+                onClick={() => submitText(text, { speak: false })}
+                disabled={text.trim() === "" || status.replyPlaying}
+                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Send
+              </Button>
+              <Button
+                onClick={() => submitText(text, { speak: true })}
+                disabled={text.trim() === "" || status.replyPlaying}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                Say it
+              </Button>
+              <Button
+                onClick={cancelReply}
+                disabled={!status.replyPlaying}
+                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Stop
+              </Button>
+              <span className="text-muted-foreground self-center text-sm">
+                {status.replyPlaying ? "working…" : "idle"}
+              </span>
+            </div>
+            {status.replyError !== null && (
+              <p className="mt-2 text-sm text-red-500">
+                Error: {status.replyError}
+              </p>
             )}
-          </p>
-        </div>
-      </Card>
+            <div className="mt-2 text-sm">
+              <p className="text-muted-foreground mb-1">Response</p>
+              <p className="min-h-6 whitespace-pre-wrap">
+                {status.replyText === "" ? (
+                  <span className="text-muted-foreground">—</span>
+                ) : (
+                  status.replyText
+                )}
+              </p>
+            </div>
+          </Card>
 
-      <Card title="Events">
-        <EventLog entries={log} />
-      </Card>
+          <Card title="Events">
+            <EventLog entries={log} />
+          </Card>
+        </>
+      )}
     </section>
   );
 }

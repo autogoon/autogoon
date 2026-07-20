@@ -404,8 +404,14 @@ function App() {
               active={screen === "autopilot"}
             />
           </div>
-          <div className={screen === "companions" ? undefined : "hidden"}>
-            <CompanionsPanel active={screen === "companions"} />
+          <div className={screenBase === "companions" ? undefined : "hidden"}>
+            <CompanionsPanel
+              vacuglide={vacuglide}
+              player={player}
+              active={screenBase === "companions"}
+              view={atPlayLevel ? "play" : "setup"}
+              onEnterPlay={() => navigate("companions/play")}
+            />
           </div>
           <div className={screen === "changes" ? undefined : "hidden"}>
             <ChangelogPanel />
