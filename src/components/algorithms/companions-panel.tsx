@@ -127,7 +127,9 @@ export function CompanionsPanel({
   const state = isCurrent ? player.state : "armed";
 
   // Arm the engine when the play view is up and the Player is free — mirrors
-  // Autopilot, but gated to the play level (setup doesn't touch the device).
+  // Autopilot. Entering play via Begin also arms directly; arm() is idempotent,
+  // so at most one harmless re-arm happens before the player-view mirror catches
+  // up. The setup view itself renders no device side effects.
   useEffect(() => {
     if (
       active &&
