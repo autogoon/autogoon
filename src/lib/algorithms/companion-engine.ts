@@ -19,6 +19,15 @@ export type IntensityLevel = "warmup" | "low" | "medium" | "high";
 export type EdgeControlLevel = "gentle" | "moderate" | "intense";
 export type SuctionControlLevel = "off" | "little" | "more";
 
+// A narration cue: the program switches to a new mini-program at `at`, described
+// by `text` (a neutral, persona-agnostic label). The persona voices it in Slice
+// 4; here it is plain data. Not part of the AlgorithmEngine contract — the Player
+// doesn't consume cues until Slice 4.
+export interface NarrationCue {
+  at: number;
+  text: string;
+}
+
 interface TemplateStep {
   speed: number;
   duration: number;
@@ -36,6 +45,7 @@ const SPEED_TEMPLATE_MIN = 5;
 const FINISH_HOLD_MS = 1_800_000;
 const TEMPLATES_PER_BLOCK = 10;
 const BLOCK_LEAD_IN_SPEED = 10;
+const FINISH_CUE_LABEL = "the finish — full and relentless";
 
 const LABELLED_TEMPLATES: LabelledTemplate[] = [
   {
@@ -222,22 +232,27 @@ function applyPlateauJitter(speed: number, edge: EdgeControlLevel): number {
 }
 
 // One block: TEMPLATES_PER_BLOCK randomly-chosen templates concatenated behind a
-// lead-in event, each step scaled by intensity/edge. Returns the events plus the
-// time the block ends, so successive blocks chain back to back. (The narration
-// segments this also produces are added in a later task.)
+// lead-in event, each step scaled by intensity/edge. Returns the events, the
+// narration segments (one per template, at the boundary where that template
+// begins — always coincident with a real speed-event time), and the time the
+// block ends so successive blocks chain back to back.
 function buildBlock(
   startAt: number,
   intensity: IntensityLevel,
   edge: EdgeControlLevel,
-): { events: SpeedEvent[]; endAt: number } {
+): { events: SpeedEvent[]; segments: NarrationCue[]; endAt: number } {
   const events: SpeedEvent[] = [
     { kind: "speed", at: startAt, speed: BLOCK_LEAD_IN_SPEED },
   ];
+  const segments: NarrationCue[] = [];
   let at = startAt;
   for (let i = 0; i < TEMPLATES_PER_BLOCK; i++) {
     const template =
       LABELLED_TEMPLATES[Math.floor(Math.random() * LABELLED_TEMPLATES.length)];
     if (template === undefined) continue;
+    // The boundary is the current cursor — the moment before this template's
+    // first step, coincident with the previous event's time (or the lead-in).
+    segments.push({ at, text: template.label });
     for (const step of template.steps) {
       const scaled = scaleSpeedToIntensity(step.speed, intensity);
       const speed = applyPlateauJitter(scaled, edge);
@@ -246,7 +261,7 @@ function buildBlock(
       events.push({ kind: "speed", at, speed });
     }
   }
-  return { events, endAt: at };
+  return { events, segments, endAt: at };
 }
 
 export class CompanionEngine implements AlgorithmEngine {
@@ -255,6 +270,9 @@ export class CompanionEngine implements AlgorithmEngine {
   private suctionControlLevel: SuctionControlLevel;
   private finishing = false;
   private finishEmitted = false;
+  // Narration segments recorded as speed is generated — one per template
+  // boundary. generateNarrationCues reads these; reset() clears them.
+  private narrationSegments: NarrationCue[] = [];
 
   constructor(
     intensity: IntensityLevel,
@@ -269,6 +287,7 @@ export class CompanionEngine implements AlgorithmEngine {
   reset(): void {
     this.finishing = false;
     this.finishEmitted = false;
+    this.narrationSegments = [];
   }
 
   setIntensity(level: IntensityLevel): void {
@@ -315,6 +334,7 @@ export class CompanionEngine implements AlgorithmEngine {
     while (at < untilTime) {
       const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
       events.push(...block.events);
+      this.narrationSegments.push(...block.segments);
       at = block.endAt;
     }
     return events;
@@ -363,6 +383,20 @@ export class CompanionEngine implements AlgorithmEngine {
       lastPulse = ev.at;
     }
     return valves;
+  }
+
+  // Narration overlay: one cue per template boundary in [fromTime, untilTime),
+  // read from the segments recorded as speed was generated (template choice is
+  // random inside generation, so cues can't be re-derived from speed events).
+  // While finishing, a single finish cue. CompanionEngine-only — not on the
+  // AlgorithmEngine contract; the Player consumes cues in Slice 4.
+  generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[] {
+    if (this.finishing) {
+      return [{ at: fromTime, text: FINISH_CUE_LABEL }];
+    }
+    return this.narrationSegments
+      .filter((s) => s.at >= fromTime && s.at < untilTime)
+      .map((s) => ({ at: s.at, text: s.text }));
   }
 
   scale(event: SpeedEvent): number {
