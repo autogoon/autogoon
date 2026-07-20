@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
+import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { Segmented } from "@/components/segmented";
 import { SessionControls } from "@/components/session-controls";
 import { Sparkline } from "@/components/sparkline";
@@ -509,6 +510,12 @@ export function CompanionsPanel({
           </Card>
 
           <EventLog entries={log} />
+
+          <LogCard
+            title="Command log"
+            header={<RateLimitMeter {...vacuglide.rateLimit} />}
+            entries={vacuglide.logEntries}
+          />
         </>
       )}
     </section>
