@@ -23,9 +23,12 @@ import {
 } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Segmented } from "@/components/segmented";
 import { SessionControls } from "@/components/session-controls";
 import { Sparkline } from "@/components/sparkline";
+import { StrokeCard } from "@/components/stroke-card";
 import type { PlayerView } from "@/hooks/use-player";
+import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
 import { ELISE } from "@/lib/companions/companions";
@@ -113,6 +116,13 @@ export function CompanionsPanel({
   );
   const engine = engineRef.current;
 
+  const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
+  const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
+  const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
+  // Manual stroke state only — its `keywords` are intentionally NOT wired to
+  // voice (Companions registers no vosk words this slice).
+  const stroke = useStrokeControls(vacuglide, player);
+
   const isCurrent = player.source === engine;
   const state = isCurrent ? player.state : "armed";
 
@@ -143,8 +153,11 @@ export function CompanionsPanel({
     void device.pause();
   }, [device]);
   const reset = useCallback(() => {
+    setIntensity(DEFAULT_INTENSITY);
     engine.setIntensity(DEFAULT_INTENSITY);
+    setEdge(DEFAULT_EDGE);
     engine.setEdgeControl(DEFAULT_EDGE);
+    setSuction(DEFAULT_SUCTION);
     engine.setSuctionControl(DEFAULT_SUCTION);
     device.arm(engine);
   }, [device, engine]);
@@ -153,6 +166,39 @@ export function CompanionsPanel({
     device.arm(engine);
     onEnterPlay();
   }, [device, engine, onEnterPlay]);
+
+  const changeIntensity = useCallback(
+    (level: IntensityLevel) => {
+      setIntensity(level);
+      engine.setIntensity(level);
+      device.invalidateFuture();
+      vacuglide.log(`intensity → ${level}`);
+    },
+    [device, engine, vacuglide],
+  );
+  const changeEdge = useCallback(
+    (level: EdgeControlLevel) => {
+      setEdge(level);
+      engine.setEdgeControl(level);
+      device.invalidateFuture();
+      vacuglide.log(`edge control → ${level}`);
+    },
+    [device, engine, vacuglide],
+  );
+  const changeSuction = useCallback(
+    (level: SuctionControlLevel) => {
+      setSuction(level);
+      engine.setSuctionControl(level);
+      device.invalidateValves();
+      vacuglide.log(`vacuum maintenance → ${level}`);
+    },
+    [device, engine, vacuglide],
+  );
+
+  const logError = useCallback(
+    (message: string) => vacuglide.log(`error: ${message}`, "error"),
+    [vacuglide],
+  );
 
   // Transition log for the acceptance run.
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -207,7 +253,7 @@ export function CompanionsPanel({
             Choose a companion. She listens, replies in her own voice, and runs
             the device while you talk — cut in any time and she stops.
           </p>
-          <div className="border-emerald-500 bg-linear-to-br mt-2 rounded-lg border from-emerald-500/15 to-emerald-500/5 p-4">
+          <div className="mt-2 rounded-lg border border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 p-4">
             <p className="font-medium">{ELISE.name}</p>
             <p className="text-muted-foreground text-sm">
               A high-energy, flirty streamer with a dry, quieter side.
@@ -242,9 +288,61 @@ export function CompanionsPanel({
             </div>
           </Card>
 
+          <StrokeCard
+            strokeDisabled={!stroke.canStroke}
+            strokePulsing={stroke.strokePulsing}
+            onValvePlus={vacuglide.valvePlus}
+            onValveMinus={vacuglide.valveMinus}
+            onError={logError}
+          />
+
+          {/* Temporary bring-up knobs — Elise will turn these herself via LLM
+              tools in a later slice, at which point they come off the screen. */}
+          <Card title="Intensity">
+            <Segmented
+              options={[
+                { value: "warmup", label: "Warmup" },
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+              ]}
+              value={intensity}
+              onChange={changeIntensity}
+              activeClass="bg-blue-600 text-white"
+            />
+          </Card>
+
+          <Card title="Edge Control">
+            <Segmented
+              options={[
+                { value: "gentle", label: "Gentle" },
+                { value: "moderate", label: "Moderate" },
+                { value: "intense", label: "Intense" },
+              ]}
+              value={edge}
+              onChange={changeEdge}
+              activeClass="bg-orange-500 text-white"
+            />
+          </Card>
+
+          <Card title="Vacuum Maintenance">
+            <Segmented
+              options={[
+                { value: "off", label: "Off" },
+                { value: "little", label: "Light" },
+                { value: "more", label: "Heavy" },
+              ]}
+              value={suction}
+              onChange={changeSuction}
+              activeClass="bg-cyan-600 text-white"
+            />
+          </Card>
+
           <Card title="Microphone">
             <Button
-              onClick={() => (status.micOn ? stopListening() : startListening())}
+              onClick={() =>
+                status.micOn ? stopListening() : startListening()
+              }
               className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
                 status.micOn
                   ? "bg-foreground/10 hover:bg-foreground/20"
@@ -257,7 +355,9 @@ export function CompanionsPanel({
               <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
               <Row label="State">
                 <span
-                  className={status.vadSpeaking ? "text-emerald-500" : undefined}
+                  className={
+                    status.vadSpeaking ? "text-emerald-500" : undefined
+                  }
                 >
                   {status.vadSpeaking ? "speaking" : "quiet"}
                 </span>
@@ -269,8 +369,8 @@ export function CompanionsPanel({
           <Card title="Conversation">
             <p className="text-muted-foreground text-sm">
               Speak (hands-free) or type. <strong>Send</strong> runs the model
-              only; <strong>Say it</strong> speaks the reply. Stop — or just talk
-              over her — to cut it.
+              only; <strong>Say it</strong> speaks the reply. Stop — or just
+              talk over her — to cut it.
             </p>
             <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
               <span>STT {status.phase}</span>
@@ -282,7 +382,9 @@ export function CompanionsPanel({
                 <span className="text-muted-foreground">{status.partial}</span>
               )}
               {status.committed === "" && status.partial === "" && (
-                <span className="text-muted-foreground">Nothing heard yet.</span>
+                <span className="text-muted-foreground">
+                  Nothing heard yet.
+                </span>
               )}
             </p>
             <textarea
