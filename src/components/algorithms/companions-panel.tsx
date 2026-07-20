@@ -228,7 +228,8 @@ export function CompanionsPanel({
   useEffect(() => {
     if (status.committed !== prevCommitted.current) {
       prevCommitted.current = status.committed;
-      if (status.committed !== "") append(`heard: "${status.committed}"`, "hit");
+      if (status.committed !== "")
+        append(`heard: "${status.committed}"`, "hit");
     }
   }, [status.committed, append]);
 
