@@ -975,7 +975,271 @@ git commit -m "Companions: temporary on-screen program knobs + manual stroke con
 
 ---
 
-### Task 5: Full-session verification + changelog
+### Task 5: LLM + TTS latency metrics in the debug panel
+
+Added mid-slice at the user's request: surface per-turn latency in the play-view debug panel so the voice loop can be tuned (4d is latency work). For the LLM: time-to-first-token, output tokens/sec, and total generation time. For the TTS: time-to-first-byte (request → audio starts coming back) and total playback time.
+
+**Files:**
+- Modify: `src/lib/llm/client.ts`
+- Modify: `src/lib/voice/tts.ts`
+- Modify: `src/hooks/use-voice-session.ts`
+- Modify: `src/components/algorithms/companions-panel.tsx`
+- Test (if the assertion breaks): `src/lib/llm/client.test.ts`
+
+**Interfaces:**
+- Consumes: `createLlmClient`, `createTtsPlayer`, `useVoiceSession`'s `status`, the panel's `Row` component.
+- Produces:
+  - `LlmClient.stream(messages, { signal, onUsage? })` — `onUsage?: (usage: { completionTokens: number }) => void`, called once when the usage chunk arrives.
+  - `TtsPlayer.play(text, voiceId, signal, onFirstByte?)` — `onFirstByte?: () => void`, called once when the TTS response's bytes start arriving.
+  - `VoiceStatus.metrics: TurnMetrics` where `TurnMetrics = { llm: { ttftMs: number; totalMs: number; tps: number | null } | null; tts: { ttfbMs: number | null; totalMs: number } | null }`.
+
+- [ ] **Step 1: LLM client — request usage + expose it via a callback**
+
+In `src/lib/llm/client.ts`, add a usage type, extend the `stream` opts, ask OpenRouter for usage, and surface it. Apply these edits:
+
+Add after the `LlmMessage` type:
+```ts
+export type LlmUsage = { completionTokens: number };
+```
+
+Change the `LlmClient` type's `stream` signature to:
+```ts
+export type LlmClient = {
+  // Streams assistant token deltas for a turn. Abort opts.signal to cancel the
+  // whole generation (barge-in / Stop). onUsage fires once, at the end, with the
+  // model's token accounting (when the backend returns it) — used for tok/s.
+  stream: (
+    messages: LlmMessage[],
+    opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
+  ) => AsyncIterable<string>;
+};
+```
+
+Replace the `stream` implementation with:
+```ts
+  async function* stream(
+    messages: LlmMessage[],
+    opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
+  ): AsyncIterable<string> {
+    const completion = await client.chat.completions.create(
+      {
+        model,
+        messages,
+        stream: true,
+        // Ask for a final usage chunk (empty choices + usage) so we can report
+        // output tok/s. Providers that don't send it simply never fire onUsage.
+        stream_options: { include_usage: true },
+      },
+      { signal: opts.signal },
+    );
+    for await (const chunk of completion) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+      const usage = chunk.usage;
+      if (usage) opts.onUsage?.({ completionTokens: usage.completion_tokens });
+    }
+  }
+```
+
+- [ ] **Step 2: Verify the client test still passes; fix only if it asserts exact create args**
+
+Run: `npm test -- client.test.ts`
+Expected: PASS. If it FAILS because it asserts the exact object passed to `chat.completions.create` (now including `stream_options`), update that assertion to include `stream_options: { include_usage: true }` — do not weaken the test to `expect.anything()`. If it passes, change nothing.
+
+- [ ] **Step 3: TTS player — fire a callback at first bytes**
+
+In `src/lib/voice/tts.ts`, extend the `TtsPlayer` type's `play`:
+```ts
+export type TtsPlayer = {
+  // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
+  // fires once, when the TTS response's bytes start arriving (TTFB).
+  play: (
+    text: string,
+    voiceId: string,
+    signal: AbortSignal,
+    onFirstByte?: () => void,
+  ) => Promise<void>;
+  // Pause + reset immediately. Idempotent.
+  stop: () => void;
+};
+```
+
+Change the `play` function signature to accept the callback:
+```ts
+  function play(
+    text: string,
+    voiceId: string,
+    signal: AbortSignal,
+    onFirstByte?: () => void,
+  ): Promise<void> {
+```
+
+Inside `play`, in the async IIFE, right after the response is confirmed good, fire the callback. Find:
+```ts
+          if (!res.ok || res.body === null) {
+            stop();
+            return;
+          }
+```
+and insert immediately after it:
+```ts
+          onFirstByte?.();
+```
+
+- [ ] **Step 4: Session — measure and expose the metrics**
+
+In `src/hooks/use-voice-session.ts`:
+
+Add the metrics type above `VoiceStatus`:
+```ts
+export type TurnMetrics = {
+  llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
+  tts: { ttfbMs: number | null; totalMs: number } | null;
+};
+```
+
+Add `metrics: TurnMetrics;` to the `VoiceStatus` type (put it last, after `replyError`). Add to `IDLE_STATUS`:
+```ts
+  metrics: { llm: null, tts: null },
+```
+
+In `submitText`, reset metrics when the turn starts — find:
+```ts
+      setStatus((s) => ({ ...s, replyText: "", replyError: null }));
+```
+and change it to:
+```ts
+      setStatus((s) => ({
+        ...s,
+        replyText: "",
+        replyError: null,
+        metrics: { llm: null, tts: null },
+      }));
+```
+
+Replace the `try { let reply = ""; for await (...) { ... } ... await tts.play(...) }` region with the instrumented version. Specifically, replace from `let reply = "";` down through the `await tts.play(reply, ELISE.voiceId, controller.signal);` line with:
+```ts
+          let reply = "";
+          let completionTokens: number | null = null;
+          const llmStart = performance.now();
+          let ttftMs: number | null = null;
+          for await (const delta of llm.stream(
+            [
+              { role: "system", content: ELISE.systemPrompt },
+              { role: "user", content: prompt },
+            ],
+            {
+              signal: controller.signal,
+              onUsage: (u) => {
+                completionTokens = u.completionTokens;
+              },
+            },
+          )) {
+            if (controller.signal.aborted || turnRef.current !== controller) {
+              return;
+            }
+            if (ttftMs === null) ttftMs = performance.now() - llmStart;
+            reply += delta;
+            setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
+          }
+          const llmTotalMs = performance.now() - llmStart;
+          if (ttftMs !== null) {
+            const ttft = ttftMs;
+            const tokens = completionTokens;
+            // Output throughput over the decode window (first token → done);
+            // null when the backend didn't return usage.
+            const decodeSec = Math.max((llmTotalMs - ttft) / 1000, 0.001);
+            const tps = tokens !== null ? tokens / decodeSec : null;
+            setStatus((s) => ({
+              ...s,
+              metrics: {
+                ...s.metrics,
+                llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
+              },
+            }));
+          }
+          if (
+            controller.signal.aborted ||
+            turnRef.current !== controller ||
+            reply.trim() === "" ||
+            !speak
+          ) {
+            return;
+          }
+          const ttsStart = performance.now();
+          let ttsTtfbMs: number | null = null;
+          await tts.play(reply, ELISE.voiceId, controller.signal, () => {
+            ttsTtfbMs = performance.now() - ttsStart;
+          });
+          setStatus((s) => ({
+            ...s,
+            metrics: {
+              ...s.metrics,
+              tts: { ttfbMs: ttsTtfbMs, totalMs: performance.now() - ttsStart },
+            },
+          }));
+```
+
+(The `completionTokens`/`ttsTtfbMs` reads after their closures are typed `number | null` — TypeScript does not narrow across a closure, so the `!== null` guards compile without complaint. `const ttft = ttftMs` / `const tokens = completionTokens` capture the narrowed/current values for the setStatus closure.)
+
+- [ ] **Step 5: Panel — a Latency card in the play view**
+
+In `src/components/algorithms/companions-panel.tsx`, add a `Latency` card in the play view, immediately before the `Events` card. `Row` is already defined in this file:
+```tsx
+          <Card title="Latency">
+            <p className="text-muted-foreground mb-1 text-xs">LLM</p>
+            {status.metrics.llm === null ? (
+              <p className="text-muted-foreground text-sm">—</p>
+            ) : (
+              <>
+                <Row label="First token">
+                  {Math.round(status.metrics.llm.ttftMs)} ms
+                </Row>
+                <Row label="Throughput">
+                  {status.metrics.llm.tps === null
+                    ? "—"
+                    : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
+                </Row>
+                <Row label="Total">
+                  {Math.round(status.metrics.llm.totalMs)} ms
+                </Row>
+              </>
+            )}
+            <p className="text-muted-foreground mb-1 mt-3 text-xs">TTS</p>
+            {status.metrics.tts === null ? (
+              <p className="text-muted-foreground text-sm">—</p>
+            ) : (
+              <>
+                <Row label="First audio">
+                  {status.metrics.tts.ttfbMs === null
+                    ? "—"
+                    : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
+                </Row>
+                <Row label="Total">
+                  {Math.round(status.metrics.tts.totalMs)} ms
+                </Row>
+              </>
+            )}
+          </Card>
+```
+
+- [ ] **Step 6: Gate**
+
+Run: `npm run typecheck && npm run lint && npm run build && npm test`
+Expected: all clean; tests pass.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/lib/llm/client.ts src/lib/voice/tts.ts src/hooks/use-voice-session.ts src/components/algorithms/companions-panel.tsx src/lib/llm/client.test.ts
+git commit -m "Companions: LLM + TTS latency metrics in the debug panel"
+```
+
+(Include `client.test.ts` in the add only if Step 2 changed it; otherwise drop it from the `git add`.)
+
+---
+
+### Task 6: Full-session verification + changelog
 
 **Files:**
 - Modify: `CHANGELOG.md`
@@ -989,7 +1253,7 @@ git commit -m "Companions: temporary on-screen program knobs + manual stroke con
 With `.env.local` populated and `npm run dev` running:
 1. Home → Companions → setup view shows Elise → **Begin** → `Home › Companions › Play`.
 2. **Start** the program → device runs (sparkline advances / hardware moves if connected); breadcrumb locked while playing.
-3. **Start listening** → speak → your words are transcribed → Elise replies in her own voice **over OpenRouter** (check the network tab hits `/api/llm/...` and streams).
+3. **Start listening** → speak → your words are transcribed → Elise replies in her own voice **over OpenRouter** (check the network tab hits `/api/llm/...` and streams). The **Latency** card fills in: LLM first-token / tok-s / total, and TTS first-audio / total.
 4. **Barge in** (talk over her) → she stops mid-sentence.
 5. Adjust **Intensity / Edge / Vacuum Maintenance** → the upcoming program changes accordingly.
 6. Say the **safe word** while playing → the device stops (the voice session staying up is expected; teardown is 4d).
@@ -1001,6 +1265,7 @@ In `CHANGELOG.md`, under today's date (`## 2026-07-20`, create the heading if ab
 
 ```
 - feature: **Companions runs the device** — pick Elise, enter Play, and the device runs her program while she talks; tune the program with on-screen Intensity, Edge and Vacuum controls. ([#N](https://github.com/autogoon/autogoon/pull/N))
+- enhancement: **Voice latency readout** — the Companions debug panel shows per-turn LLM latency (time to first token, output tok/s, total) and TTS latency (time to first audio, total). ([#N](https://github.com/autogoon/autogoon/pull/N))
 - internal: **Companions LLM on OpenRouter** — the companion backend moved from local Ollama to OpenRouter (OpenAI-compatible); the persona now lives in the companion config as a system message and each companion carries its own model + context window. ([#N](https://github.com/autogoon/autogoon/pull/N))
 ```
 
