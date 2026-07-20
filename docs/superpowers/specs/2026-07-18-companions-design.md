@@ -71,24 +71,34 @@ gender), not just the words.
 
 ### Engine and program
 
-A new **`CompanionEngine`** generates a **Groove-shaped program** — a schedule of
-timed speed/valve events — flavoured by the persona's `generationBias`. It is
-random within the persona's style but **deterministic once generated**. It owns
-its own generation code rather than importing Groove's, consistent with the
-project's convention that engines are self-contained (Goon deliberately
-duplicates Groove's generation rather than sharing a module).
+A new **`CompanionEngine`** generates an **Autopilot-shaped program** — a
+schedule of timed speed/valve events built by concatenating Autopilot's discrete
+**template "mini-programs"** into blocks. It is random within its style but
+**deterministic once generated**. It owns its own generation code rather than
+importing Autopilot's, consistent with the project's convention that engines are
+self-contained (Goon deliberately duplicates Groove's generation rather than
+sharing a module).
+
+Autopilot's template blocks — rather than a bespoke Groove-style generator — are
+the base because each template is a discrete, recognisable pattern with a clear
+**boundary** where the next one begins: exactly the hook narration needs (below).
+The persona's `generationBias` flavouring the choice of program lands in **Slice
+4**; Slice 3 drives generation with Autopilot's own knobs (intensity / edge /
+suction).
 
 ### Narration is a pure overlay
 
-Groove already generates speed as a stateful backbone with valves as a **pure
-overlay** laid across it (`generateValves`). Narration becomes a **third pure
-overlay**: `generateNarrationCues` tags the timeline with _semantic_ events —
-"speeding up", "deep dip approaching", "crawling at the bottom", "climbing back",
-"stroke lengthening". The generator already knows a dip is deep vs. a gentle bob,
-so it can mark _meaning_, not just raw numbers. Being an overlay, cues regenerate
-with the future for free: change a knob → `invalidateFuture()` → the upcoming cues
-re-lay along with the speed. The on-screen Sparkline already renders
-`player.upcoming`; we're handing that same lookahead to the LLM.
+The engine generates speed as a backbone with valves as a **pure overlay** laid
+across it (`generateValves`). Narration becomes a **third overlay**:
+`generateNarrationCues` fires one cue at **every template boundary** — the moment
+the program switches to the next mini-program — carrying that template's
+**neutral semantic label** (e.g. "slamming between dead slow and full tilt",
+"teasing climbs, each one higher", "a long slow sweep up and back down"). Each
+template in the table is authored with its label, so a cue marks _meaning_, not
+raw numbers; the label is persona-agnostic — the persona _voices_ it in Slice 4.
+Cues regenerate with the future for free: change a knob → `invalidateFuture()` →
+the upcoming cues re-lay along with the speed. The on-screen Sparkline already
+renders `player.upcoming`; we're handing that same lookahead to the LLM.
 
 ### Orchestration: one thread, three speech sources
 
@@ -250,9 +260,11 @@ headphones); proving it de-risks everything else.
    `LLMClient` over the OpenAI chat shape. _Testable standalone:_ send a prompt,
    get streamed, abortable tokens.
 
-3. **CompanionEngine + narration overlay.** Groove-style generation flavoured by
-   `generationBias`; `generateNarrationCues` overlay. _Unit-testable_ like the
-   existing engine tests, no device/LLM.
+3. **CompanionEngine + narration overlay.** A self-contained port of Autopilot's
+   template-block generation, plus a `generateNarrationCues` overlay firing a cue
+   at each template boundary (each template labelled with a neutral semantic
+   description). Plain port + labels — persona `generationBias` deferred to Slice
+   4. _Unit-testable_ like the existing engine tests, no device/LLM.
 
 4. **Integration.** The orchestration loop (three speech sources, one thread), the
    two personas, the panel + `ALGORITHMS` entry + navigation, and the safeword —
@@ -260,11 +272,13 @@ headphones); proving it de-risks everything else.
 
 ## Deferred to per-slice specs
 
-- Exact narration-cue vocabulary and how densely cues fire (chattiness).
+- The exact label wording per template (authored in Slice 3's template table).
+  Cadence is settled: one cue per template boundary.
 - Prompt-ahead lead time and how TTS playback is scheduled against a cue's event
   time.
 - Precise STT socket open/close thresholds and the VAD's attack debounce.
 - Whether Vosk's global/nav words stay live mid-session, and exactly what the
   safeword tears down.
-- Persona prompt content and the concrete `generationBias` → Groove-params mapping.
+- Persona prompt content and the concrete `generationBias` → Autopilot-params
+  mapping (Slice 4).
 - Reconnect/error handling for the STT and TTS sockets.
