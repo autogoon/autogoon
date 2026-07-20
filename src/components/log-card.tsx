@@ -43,7 +43,7 @@ export function LogCard({
   if (process.env.NODE_ENV !== "development") return null;
 
   return (
-    <Card title={title} className={className}>
+    <Card title={title} className={className} bordered>
       {header}
       <div
         ref={boxRef}

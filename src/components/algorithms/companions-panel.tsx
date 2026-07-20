@@ -445,7 +445,7 @@ export function CompanionsPanel({
             </div>
           </Card>
 
-          <Card title="STT debug">
+          <Card title="STT debug" bordered>
             <div className="text-muted-foreground flex gap-4 text-xs">
               <span>STT {status.phase}</span>
               <span>pre-roll {status.preRollFrames}</span>
@@ -472,7 +472,7 @@ export function CompanionsPanel({
             </div>
           </Card>
 
-          <Card title="Latency">
+          <Card title="Latency" bordered>
             <p className="text-muted-foreground mb-1 text-xs">LLM</p>
             {status.metrics.llm === null ? (
               <p className="text-muted-foreground text-sm">—</p>
