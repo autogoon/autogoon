@@ -303,6 +303,7 @@ export function CompanionsPanel({
             onValvePlus={vacuglide.valvePlus}
             onValveMinus={vacuglide.valveMinus}
             onError={logError}
+            voice={false}
           />
 
           {/* Temporary bring-up knobs — Elise will turn these herself via LLM
