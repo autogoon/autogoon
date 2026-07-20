@@ -450,7 +450,7 @@ export function CompanionsPanel({
             </div>
           </Card>
 
-          <Card title="Audio debug">
+          <Card title="STT debug">
             <div className="text-muted-foreground flex gap-4 text-xs">
               <span>STT {status.phase}</span>
               <span>pre-roll {status.preRollFrames}</span>
