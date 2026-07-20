@@ -2,6 +2,8 @@
 
 ## 2026-07-20
 
+- feature: **Companions runs the device** — pick Elise and enter Play, and the device runs her program while you talk to her; a live Sparkline previews what's coming, and on-screen Intensity, Edge and Vacuum controls (plus manual stroke) let you shape it. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- internal: **Companions LLM on OpenRouter** — the companion backend moved from local Ollama to OpenRouter (OpenAI-compatible); the persona now lives in the companion config as a system message, and each companion carries its own model and context window. ([#13](https://github.com/autogoon/autogoon/pull/13))
 - internal: **LLM + TTS latency metrics in the debug panel** — the Companions play view now shows a Latency card: time to first token, output tokens/sec and total generation time for the LLM, and time to first audio and total playback time for TTS, so the voice loop can be tuned. ([#13](https://github.com/autogoon/autogoon/pull/13))
 - internal: **CompanionEngine + narration overlay** — a self-contained port of Autopilot's template-block generation, plus a narration overlay that emits a cue at each template boundary describing the mini-program starting there. Engine only; not yet wired to device, LLM or panel. ([#13](https://github.com/autogoon/autogoon/pull/13))
 
