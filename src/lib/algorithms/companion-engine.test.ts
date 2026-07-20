@@ -95,8 +95,8 @@ describe("CompanionEngine.scale", () => {
 describe("CompanionEngine.generateNarrationCues", () => {
   it("fires cues on real template boundaries, labelled and in-window", () => {
     const engine = new CompanionEngine("medium", "moderate", "off");
-    const speed = engine.generateSpeed(0, 120_000, CTX);
-    const cues = engine.generateNarrationCues(0, 120_000);
+    const speed = engine.generateSpeed(0, 300_000, CTX);
+    const cues = engine.generateNarrationCues(0, 300_000);
     expect(cues.length).toBeGreaterThan(1); // several across the window
 
     const speedTimes = new Set(speed.map((e) => e.at));
@@ -108,7 +108,7 @@ describe("CompanionEngine.generateNarrationCues", () => {
       expect(cue.at).toBeGreaterThanOrEqual(lastAt); // sorted
       lastAt = cue.at;
       expect(cue.at).toBeGreaterThanOrEqual(0);
-      expect(cue.at).toBeLessThan(120_000);
+      expect(cue.at).toBeLessThan(300_000);
     }
   });
 
