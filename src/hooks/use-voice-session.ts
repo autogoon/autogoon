@@ -183,6 +183,11 @@ export function useVoiceSession(): VoiceSession {
             setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
           }
           const llmTotalMs = performance.now() - llmStart;
+          // A turn superseded/aborted during the final read must not write its
+          // stale metrics over the successor's; mirror the loop's guard.
+          if (controller.signal.aborted || turnRef.current !== controller) {
+            return;
+          }
           if (ttftMs !== null) {
             const ttft = ttftMs;
             const tokens = completionTokens;
@@ -211,6 +216,11 @@ export function useVoiceSession(): VoiceSession {
           await tts.play(reply, ELISE.voiceId, controller.signal, () => {
             ttsTtfbMs = performance.now() - ttsStart;
           });
+          // tts.play resolves even on barge-in/stop, so guard before recording:
+          // a superseded turn must not overwrite the current turn's metrics.
+          if (controller.signal.aborted || turnRef.current !== controller) {
+            return;
+          }
           setStatus((s) => ({
             ...s,
             metrics: {
