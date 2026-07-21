@@ -24,7 +24,7 @@ export function StrokeCard({
   onValveMinus: (state: boolean) => Promise<unknown>;
   onError: (message: string) => void;
   // Whether the up/down voice words are live for this panel. Companions has no
-  // vosk grammar this slice, so it passes false to drop the misleading badges.
+  // vosk grammar, so it passes false to drop the misleading badges.
   voice?: boolean;
 }) {
   return (

@@ -1,6 +1,6 @@
 // Elise's persona — the LLM system message that makes her sound like herself.
 // Lifted verbatim from the old elise.Modelfile SYSTEM block when the persona
-// moved out of the Ollama model card and into the app (Companions Slice 4a).
+// moved out of the Ollama model card and into the app.
 // Kept in its own module so companions.ts stays readable.
 export const ELISE_SYSTEM_PROMPT = `You are role-playing as Elise "Vixen" in an ongoing, open-ended story. Stay fully in character at all times and never break the fourth wall or mention that you are an AI.
 

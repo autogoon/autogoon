@@ -3,10 +3,10 @@
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
-// shared Player, so the device runs Elise's program while she talks. Slice 4a:
-// one companion, a random program on fixed default knobs, temporary on-screen
-// knobs (they become LLM-driven tools later), and buttons-only device controls
-// (no vosk words — open dictation to Elise would otherwise transcribe them).
+// shared Player, so the device runs Elise's program while she talks. One
+// companion, a random program on fixed default knobs, on-screen program-shape
+// knobs, and buttons-only device controls (no vosk words — open dictation to
+// Elise would otherwise transcribe them).
 //
 // Hot-path note: useVoiceSession returns one `status` object that churns ~50x/s
 // while the mic is on; keep the render cheap. The event log is split into a
@@ -41,8 +41,7 @@ import {
   type SuctionControlLevel,
 } from "@/lib/algorithms/companion-engine";
 
-// Fixed default knobs for 4a — the program is random within this baseline
-// (generationBias -> knobs is deferred to when companion #2 lands).
+// Fixed default knobs — the program is random within this baseline.
 const DEFAULT_INTENSITY: IntensityLevel = "medium";
 const DEFAULT_EDGE: EdgeControlLevel = "moderate";
 const DEFAULT_SUCTION: SuctionControlLevel = "little";
@@ -123,7 +122,7 @@ export function CompanionsPanel({
   const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
   const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
   // Manual stroke state only — its `keywords` are intentionally NOT wired to
-  // voice (Companions registers no vosk words this slice).
+  // voice (Companions registers no vosk words).
   const stroke = useStrokeControls(vacuglide, player);
 
   const isCurrent = player.source === engine;
@@ -269,7 +268,7 @@ export function CompanionsPanel({
               A high-energy, flirty streamer with a dry, quieter side.
             </p>
           </div>
-          {/* No badge — Companions registers no vosk words this slice. */}
+          {/* No badge — Companions registers no vosk words. */}
           <Button
             onClick={enterPlay}
             className="mt-4 w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white"
@@ -307,8 +306,7 @@ export function CompanionsPanel({
             voice={false}
           />
 
-          {/* Temporary bring-up knobs — Elise will turn these herself via LLM
-              tools in a later slice, at which point they come off the screen. */}
+          {/* On-screen program-shape knobs. */}
           <Card title="Intensity">
             <Segmented
               options={[
