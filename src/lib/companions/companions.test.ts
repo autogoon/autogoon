@@ -10,4 +10,8 @@ describe("Elise", () => {
     expect(ELISE.gender).toBe("female");
     expect(ELISE.name).toBe("Elise");
   });
+
+  it("passes reasoning back to the model (M2 is a reasoning model)", () => {
+    expect(ELISE.passesReasoning).toBe(true);
+  });
 });
