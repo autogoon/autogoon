@@ -45,7 +45,7 @@ button.
   appends `text`. Reassembly is provider-specific and confirmed against live M2
   `:nitro` output during bring-up.
 - **No per-phase changelog.** `CHANGELOG.md` is updated only when the feature
-  ships (merges to `main`), not per implementation phase — Phase 5 adds no
+  ships (merges to `main`), not per implementation phase — this phase adds no
   changelog entry.
 
 ---
@@ -674,7 +674,7 @@ import {
 Below the timeout constants (after line 84) add:
 
 ```ts
-// Per-companion persistence key, so a second companion (Phase 12) gets its own
+// Persistence key, namespaced per companion so each keeps its own
 // thread.
 const THREAD_KEY = `companions:thread:${ELISE.name.toLowerCase()}`;
 ```
@@ -1004,8 +1004,8 @@ Run `npm run dev`, open http://localhost:8931 → Companions → Begin. Verify:
 - With the mic on: barge-in mid-playback → the completed turn is in the
   transcript. Barge-in mid-generation → no partial assistant bubble is committed
   (a dangling user turn is expected/accepted this phase).
-- Confirm multi-turn coherence is noticeably better than Phase 4's stateless
-  turns, and (with M2) that reasoning replay is in effect.
+- Confirm multi-turn coherence is noticeably better than the device integration
+  phase's stateless turns, and (with M2) that reasoning replay is in effect.
 
 - [ ] **Step 7: Commit**
 
@@ -1068,11 +1068,12 @@ the field is simply never sent.
 
 - [ ] **Step 3: Confirm the shared design doc's phase map is consistent**
 
-Open `docs/superpowers/specs/2026-07-18-companions-design.md`; confirm the Phase
-5 entry and the phase map already describe this phase and Phases 9–12 (they were
-updated in an earlier commit). If any wording still contradicts this spec (e.g.
-reply-length tuning left in Phase 8, or the old two-field persona model), fix
-that line to match. No change is needed if it already reads correctly.
+Open `docs/superpowers/specs/2026-07-18-companions-design.md`; confirm this
+phase's entry and the phase map already describe this phase and the remaining
+later phases (they were updated in an earlier commit). If any wording still
+contradicts this spec (e.g. reply-length tuning left for a later phase, or the
+old two-field persona model), fix that line to match. No change is needed if it
+already reads correctly.
 
 - [ ] **Step 4: Format and commit**
 

@@ -268,7 +268,7 @@ git commit -m "Companions: point the LLM proxy at OpenRouter (bearer key, client
 - Delete: `elise.Modelfile`
 - Rewrite: `COMPANIONS.md`
 - Modify: `docs/superpowers/specs/2026-07-18-companions-design.md` (LLM/Secrets
-  note + Phase 4 bullet)
+  note + this phase's Build order bullet)
 
 **Interfaces:**
 
@@ -290,7 +290,7 @@ directive in `elise.Modelfile` (do this before Step 8 deletes that file). Create
 ```ts
 // Elise's persona — the LLM system message that makes her sound like herself.
 // Lifted verbatim from the old elise.Modelfile SYSTEM block when the persona
-// moved out of the Ollama model card and into the app (Companions Phase 4).
+// moved out of the Ollama model card and into the app (this phase).
 // Kept in its own module so companions.ts stays readable.
 export const ELISE_SYSTEM_PROMPT = `<paste the exact SYSTEM block text from elise.Modelfile here>`;
 ```
@@ -312,8 +312,8 @@ export type Companion = {
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
-  contextWindow: number; // model context window (tokens); recorded for Phase 5 pruning
-  // generationBias / initiative / agency arrive in later phases.
+  contextWindow: number; // model context window (tokens); recorded for later pruning
+  // The four traits arrive in later phases.
 };
 
 export const ELISE: Companion = {
@@ -324,7 +324,7 @@ export const ELISE: Companion = {
   systemPrompt: ELISE_SYSTEM_PROMPT,
   model: "minimax/minimax-m2:nitro",
   // MiniMax M2 is 204,800 nominal, but :nitro may route to a ~196,608 provider;
-  // record the conservative value so Phase 5's pruning is safe whichever serves it.
+  // record the conservative value so later pruning is safe whichever serves it.
   contextWindow: 196608,
 };
 ```
@@ -468,15 +468,16 @@ git rm elise.Modelfile
 
 In `docs/superpowers/specs/2026-07-18-companions-design.md`:
 
-- At the top of the **### LLM** subsection, add a one-line note: as of Phase 4
-  the backend is **OpenRouter** (OpenAI-compatible), not self-hosted Ollama; the
-  persona lives in the `Companion` config as a client-side system message, and
-  each companion carries its own `model` + `contextWindow`. (Leave the
-  historical rationale prose; this is a pointer.)
-- In the **Phase 4** bullet of the "Build order" section, add a parenthetical
-  that Phase 4 as built ships one companion (Elise) with a random program and
-  temporary on-screen knobs, and folds in the Ollama→OpenRouter swap; the
-  two-persona / `generationBias` mapping is deferred to when companion #2 lands.
+- At the top of the **### LLM** subsection, add a one-line note: as of this
+  phase the backend is **OpenRouter** (OpenAI-compatible), not self-hosted
+  Ollama; the persona lives in the `Companion` config as a client-side system
+  message, and each companion carries its own `model` + `contextWindow`. (Leave
+  the historical rationale prose; this is a pointer.)
+- In the bullet for this phase in the "Build order" section, add a parenthetical
+  noting that this phase as built ships one companion (Elise) with a random
+  program and temporary on-screen knobs, and folds in the Ollama→OpenRouter
+  swap; the two-persona / trait-to-knob mapping is deferred to when companion #2
+  lands.
 
 - [ ] **Step 9: Gate and commit (persona/config/env/docs)**
 
@@ -555,8 +556,8 @@ across the switch. (Knob cards + stroke are added in Task 4.)
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
-// shared Player, so the device runs Elise's program while she talks. Phase 4:
-// one companion, a random program on fixed default knobs, temporary on-screen
+// shared Player, so the device runs Elise's program while she talks. This
+// phase: one companion, a random program on fixed default knobs, temporary on-screen
 // knobs (they become LLM-driven tools later), and buttons-only device controls
 // (no vosk words — open dictation to Elise would otherwise transcribe them).
 //
@@ -588,8 +589,8 @@ import {
   type SuctionControlLevel,
 } from "@/lib/algorithms/companion-engine";
 
-// Fixed default knobs for Phase 4 — the program is random within this baseline
-// (generationBias -> knobs is deferred to when companion #2 lands).
+// Fixed default knobs for this phase — the program is random within this baseline
+// (persona traits -> knobs is deferred to when companion #2 lands).
 const DEFAULT_INTENSITY: IntensityLevel = "medium";
 const DEFAULT_EDGE: EdgeControlLevel = "moderate";
 const DEFAULT_SUCTION: SuctionControlLevel = "little";
@@ -1099,10 +1100,10 @@ git commit -m "Companions: temporary on-screen program knobs + manual stroke con
 ### Task 5: LLM + TTS latency metrics in the debug panel
 
 Added mid-phase at the user's request: surface per-turn latency in the play-view
-debug panel so the voice loop can be tuned (Phase 7 is latency work). For the
-LLM: time-to-first-token, output tokens/sec, and total generation time. For the
-TTS: time-to-first-byte (request → audio starts coming back) and total playback
-time.
+debug panel so the voice loop can be tuned (deeper latency work comes with a
+later phase). For the LLM: time-to-first-token, output tokens/sec, and total
+generation time. For the TTS: time-to-first-byte (request → audio starts coming
+back) and total playback time.
 
 **Files:**
 
@@ -1436,7 +1437,8 @@ With `.env.local` populated and `npm run dev` running:
 5. Adjust **Intensity / Edge / Vacuum Maintenance** → the upcoming program
    changes accordingly.
 6. Say the **safe word** while playing → the device stops (the voice session
-   staying up is expected; teardown is Phase 7).
+   staying up is expected; hard-stop teardown lands with the safeword + barge-in
+   tuning work).
 7. **Stop**, then confirm you can now leave via the breadcrumb.
 
 - [ ] **Step 2: Add the changelog entry**
@@ -1474,8 +1476,9 @@ git commit -m "Companions: changelog for Phase 4 (device integration + OpenRoute
   and Task 2 Step 9 checks `git status` shows no `.env.local`. If either check
   fails, stop.
 - **No vosk words in Companions** is deliberate and load-bearing for this phase
-  (avoids the two-mic collision deferred to Phase 7); the panel never calls
-  `useVoiceCommands`, and stroke `keywords` are unused on purpose.
+  (avoids the two-mic collision the safeword + barge-in tuning work reconciles);
+  the panel never calls `useVoiceCommands`, and stroke `keywords` are unused on
+  purpose.
 - **The `<audio>` element is rendered once, outside the view branch**, so TTS
   survives a setup↔play switch.
 - **Knob semantics** match Autopilot exactly: intensity/edge →

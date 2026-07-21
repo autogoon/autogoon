@@ -7,8 +7,8 @@
 
 **Goal:** Give the companion a real, model-generated reply — a same-origin proxy
 route to Ollama plus a streaming, abortable `LLMClient`, consumed by a decoupled
-LLM lab and by the Phase 1 voice loop (transcript → LLM → TTS, replacing the
-canned reply).
+LLM lab and by the voice I/O foundation's loop (transcript → LLM → TTS,
+replacing the canned reply).
 
 **Architecture:** The browser talks to Ollama only through a Next proxy route
 (`/api/llm/chat/completions`) that injects `LLM_MODEL` server-side and streams
@@ -448,7 +448,7 @@ self-contained — its own state, its own controller, no dependency on the voice
 session):
 
 ```tsx
-// A decoupled lab for Phase 2's LLMClient: type a prompt, watch tokens stream in,
+// A decoupled lab for this phase's LLMClient: type a prompt, watch tokens stream in,
 // press Stop to abort mid-generation. Not wired to the mic — this is the raw
 // client proof. The voice loop uses the same client (see use-voice-session).
 function LlmLab() {
@@ -708,8 +708,8 @@ any leftover import.
 
 In `CHANGELOG.md`, add a **new** heading for the day this lands at the very top
 of the file — `## 2026-07-19` (the current date; the existing top heading is
-`## 2026-07-18` from Phase 1, so this is a fresh section above it). Under it add
-— as a `feature` (the only line for the day so far):
+`## 2026-07-18` from the voice I/O foundation work, so this is a fresh section
+above it). Under it add — as a `feature` (the only line for the day so far):
 
 ```markdown
 - feature: **Companion replies for real** — the companion now answers what you
@@ -750,8 +750,8 @@ On speakers, no headphones:
 1. **LLM lab:** type a prompt → tokens stream in → **Stop** aborts mid-stream; a
    wrong `LLM_URL` shows an `Error:` line without breaking the panel.
 2. **Voice:** click **Start listening**, say a sentence → a committed transcript
-   appears (Phase 1 STT) → Elise speaks a **model-generated** reply (not the old
-   canned line).
+   appears (the voice I/O foundation's STT) → Elise speaks a **model-generated**
+   reply (not the old canned line).
 3. **Barge-in:** speak over the reply → it **cuts within a beat**, your opening
    word intact; barge-in **during generation** (before audio starts) also stops
    the turn — no late reply arrives.
@@ -760,6 +760,6 @@ On speakers, no headphones:
 
 - [ ] **Step 3: Confirm the PR description**
 
-This phase lands on the existing `companions` branch / draft PR #13. Update the
-PR description's phase checklist to mark Phase 2 done (per the per-phase PR
-convention). Do not merge — the whole feature merges together after Phase 12.
+This phase lands on the existing `companions` branch / draft PR #13. Tick the PR
+checklist entry for this work (per the per-phase PR convention). Do not merge —
+the whole feature merges together once the final companion lands.

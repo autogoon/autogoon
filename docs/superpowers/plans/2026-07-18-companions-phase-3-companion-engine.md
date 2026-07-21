@@ -32,8 +32,8 @@ windowed. Nothing consumes the cues yet — that is a later phase.
   don't import each other (ARCHITECTURE.md; Goon duplicates Groove).
 - `generateNarrationCues` is a **CompanionEngine-only** method — do **not** add
   it to the `AlgorithmEngine` interface in `program.ts`.
-- No personas, no `generationBias`, no device/LLM/panel wiring, no Player arming
-  (all later phases).
+- No personas, no trait-to-knob mapping, no device/LLM/panel wiring, no Player
+  arming (all later phases).
 - Tests are colocated `*.test.ts`, node environment, import from
   `@jest/globals`; contract-style (generation is random — assert guarantees, not
   exact output).
@@ -854,9 +854,10 @@ git commit -m "Companions: formatting"
 - [ ] **Step 4: Update the draft PR #13 description**
 
 This phase lands on the existing `companions` branch / draft PR #13. In the PR
-description's phase roadmap, tick **Phase 3 — CompanionEngine + narration
-overlay** and flesh out its bullet (per the per-phase PR convention). **Do not
-merge** — the whole feature merges together after Phase 12.
+description's phase roadmap, tick the checklist entry for this phase
+(CompanionEngine + narration overlay) and flesh out its bullet (per the
+per-phase PR convention). **Do not merge** — the whole feature merges together
+once the final companion lands.
 
 - [ ] **Step 5: Manual acceptance (unit-level — no device/LLM/app)**
 
