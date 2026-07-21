@@ -1,26 +1,5 @@
 # Changelog
 
-## 2026-07-21
-
-- feature: **Companion can start and stop the toy** — Elise can begin or pause the device herself when you ask (or when she decides to), saying so as she does it, and she always knows whether it's currently running. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- enhancement: **Chat-style Companions conversation** — talking to Elise now works like a chat app: a scrolling transcript pinned to the newest message, the message box fixed at the bottom (Enter to send, Shift+Enter for a new line), your live dictation shown in the box as you speak, and the device, mic and program-preview controls tidied into Session, Controls and Debug tabs. ([#13](https://github.com/autogoon/autogoon/pull/13))
-
-## 2026-07-20
-
-- feature: **Companions runs the device** — pick Elise and enter Play, and the device runs her program while you talk to her; a live Sparkline previews what's coming, and on-screen Intensity, Edge and Vacuum controls (plus manual stroke) let you shape it. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- internal: **Companions LLM on OpenRouter** — the companion backend moved from local Ollama to OpenRouter (OpenAI-compatible); the persona now lives in the companion config as a system message, and each companion carries its own model and context window. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- internal: **LLM + TTS latency metrics in the debug panel** — the Companions play view now shows a Latency card: time to first token, output tokens/sec and total generation time for the LLM, and time to first audio and total playback time for TTS, so the voice loop can be tuned. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- internal: **CompanionEngine + narration overlay** — a self-contained port of Autopilot's template-block generation, plus a narration overlay that emits a cue at each template boundary describing the mini-program starting there. Engine only; not yet wired to device, LLM or panel. ([#13](https://github.com/autogoon/autogoon/pull/13))
-
-## 2026-07-19
-
-- feature: **Companion replies for real** — the companion now answers what you say with a live, model-generated reply spoken in her own voice, instead of a canned line; cut in any time and she stops. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- enhancement: **Type or speak to Elise** — the Companions screen now takes typed messages as well as voice, in one Conversation view: Send runs the model and shows the streamed reply, Say it also speaks it, and speaking still works hands-free. ([#13](https://github.com/autogoon/autogoon/pull/13))
-
-## 2026-07-18
-
-- feature: **Companions (voice)** — talk to Elise: live transcription of what you say, a spoken reply in her own voice, and interrupt-to-barge-in — cut in over her and she stops. Pick Companions from home, start the mic, and speak. ([#13](https://github.com/autogoon/autogoon/pull/13))
-
 ## 2026-07-17
 
 - feature: **Voice words for the after-play ticks** — Goon's four after-play outcomes now answer to voice in setup: say `gentle` (wind-down), `torture`, `stay` or `eject` to tick or untick one. Each row shows its word and flashes when heard, just like a button. ([#12](https://github.com/autogoon/autogoon/pull/12))
