@@ -86,6 +86,32 @@ function Spinner() {
   );
 }
 
+// One transcript row: user turns right-aligned in the accent colour, Elise's
+// left-aligned and muted. `pending` dims the in-progress reply until it folds
+// into the thread.
+function ChatBubble({
+  role,
+  text,
+  pending = false,
+}: {
+  role: "user" | "assistant";
+  text: string;
+  pending?: boolean;
+}) {
+  const isUser = role === "user";
+  return (
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      <div
+        className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
+          isUser ? "bg-blue-600 text-white" : "bg-foreground/10"
+        } ${pending ? "opacity-70" : ""}`}
+      >
+        {text}
+      </div>
+    </div>
+  );
+}
+
 export function CompanionsPanel({
   vacuglide,
   player,
@@ -105,6 +131,7 @@ export function CompanionsPanel({
     stop: stopListening,
     submitText,
     cancelReply,
+    clearThread,
     status,
     audioRef,
   } = useVoiceSession();
@@ -409,6 +436,13 @@ export function CompanionsPanel({
               >
                 Stop
               </Button>
+              <Button
+                onClick={clearThread}
+                disabled={status.replyPlaying || status.thread.length === 0}
+                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+              >
+                Clear
+              </Button>
               <span className="text-muted-foreground self-center text-sm">
                 {status.replyPlaying ? "working…" : "idle"}
               </span>
@@ -418,23 +452,30 @@ export function CompanionsPanel({
                 Error: {status.replyError}
               </p>
             )}
-            <div className="mt-2 text-sm">
-              <p className="text-muted-foreground mb-1">Response</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {status.thread.map((turn, i) => (
+                <ChatBubble key={i} role={turn.role} text={turn.content} />
+              ))}
+              {/* In-progress reply: a live, dimmed Elise bubble that folds into
+                  the thread on completion (replyPlaying flips false and the
+                  committed assistant turn takes its place). */}
+              {status.replyPlaying && status.replyText !== "" && (
+                <ChatBubble role="assistant" text={status.replyText} pending />
+              )}
+              {/* Pre-first-token gap: the existing Thinking… spinner. */}
               {status.replyPlaying &&
-              status.replyText === "" &&
-              status.replyError === null ? (
-                // Request sent, no tokens back yet — awaiting the LLM.
-                <p className="text-muted-foreground flex min-h-6 items-center gap-2">
-                  <Spinner />
-                  Thinking…
-                </p>
-              ) : (
-                <p className="min-h-6 whitespace-pre-wrap">
-                  {status.replyText === "" ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    status.replyText
-                  )}
+                status.replyText === "" &&
+                status.replyError === null && (
+                  <div className="flex justify-start">
+                    <p className="text-muted-foreground flex min-h-6 items-center gap-2 rounded-2xl px-3 py-2 text-sm">
+                      <Spinner />
+                      Thinking…
+                    </p>
+                  </div>
+                )}
+              {status.thread.length === 0 && !status.replyPlaying && (
+                <p className="text-muted-foreground text-sm">
+                  No messages yet.
                 </p>
               )}
               {status.awaitingSpeech && (
