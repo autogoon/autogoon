@@ -147,6 +147,10 @@ export function useVoiceSession(): VoiceSession {
   }, []);
 
   const clearThread = useCallback((): void => {
+    // A full reset also tears down any live turn, so an in-flight reply can't
+    // commit an assistant turn back into the just-cleared thread (mirrors stop()).
+    turnRef.current?.abort();
+    turnRef.current = null;
     threadRef.current = [];
     setStatus((s) => ({ ...s, thread: [] }));
     try {
