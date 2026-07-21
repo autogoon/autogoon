@@ -7,6 +7,7 @@
 // otherwise we buffer the whole (short, fixed) reply into a Blob URL, which
 // still stops instantly on pause(). Integration code — no unit test (needs
 // real audio playback); verified in the Task 13 acceptance run.
+import { ACCESS_HEADER, getAccessId } from "@/lib/companions/access";
 
 export type TtsPlayer = {
   // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
@@ -113,7 +114,10 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
         try {
           const res = await fetch("/api/tts", {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: {
+              "content-type": "application/json",
+              [ACCESS_HEADER]: getAccessId(),
+            },
             body: JSON.stringify({ text, voiceId }),
             signal,
           });

@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
+const req = (): Request =>
+  new Request("http://localhost/api/stt-token", { method: "POST" });
+
 describe("POST /api/stt-token", () => {
   beforeEach(() => {
     process.env.ELEVENLABS_API_KEY = "sk_test_key";
+    // next/jest loads .env, which may set the access gate; these tests cover the
+    // ungated route, so clear it (the gate has its own tests).
+    delete process.env.COMPANIONS_ACCESS_IDS;
   });
 
   it("returns a token from the upstream single-use-token endpoint", async () => {
@@ -14,7 +20,7 @@ describe("POST /api/stt-token", () => {
       fetchMock as unknown as typeof fetch;
 
     const { POST } = await import("./route");
-    const res = await POST();
+    const res = await POST(req());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ token: "sutkn_abc" });
 
@@ -34,7 +40,7 @@ describe("POST /api/stt-token", () => {
     (global as unknown as { fetch: typeof fetch }).fetch =
       fetchMock as unknown as typeof fetch;
     const { POST } = await import("./route");
-    const res = await POST();
+    const res = await POST(req());
     expect(res.status).toBe(503);
     expect(fetchMock).not.toHaveBeenCalled();
   });

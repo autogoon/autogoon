@@ -5,11 +5,17 @@
 // multi-companion picker with differing models needs the client to name the model
 // (model slugs aren't secret; only the key is). Abortable: the request's signal is
 // forwarded upstream, so a client abort (barge-in / Stop) tears down generation.
-// Intentionally unauthenticated for the local experiment — see the design's
-// "Pre-deployment hardening" note (doubly relevant now it fronts a paid key).
+// Gated by the Companion access ID (checkAccess) when COMPANIONS_ACCESS_IDS is
+// set, so a shared demo can't have this paid key hammered by anyone with the URL.
+import { checkAccess } from "@/lib/companions/access-check";
+
 export const runtime = "nodejs";
 
 export async function POST(request: Request): Promise<Response> {
+  if (!checkAccess(request).ok) {
+    return Response.json({ error: "access denied" }, { status: 401 });
+  }
+
   const url = process.env.LLM_URL;
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!url || !apiKey) {

@@ -6,7 +6,9 @@
 // setup view instead).
 
 import { useEffect, useState } from "react";
+import type { CompanionsAccess } from "@/hooks/use-companions-access";
 import { Card } from "@/components/card";
+import { CompanionAccessCard } from "@/components/companion-access-card";
 import { SafeWordField } from "@/components/safe-word-field";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -23,10 +25,12 @@ export function SettingsPanel({
   safeWord,
   sanitizeSafeWord,
   onSaveSafeWord,
+  access,
 }: {
   safeWord: string;
   sanitizeSafeWord: (input: string) => string | null;
   onSaveSafeWord: (word: string) => void;
+  access: CompanionsAccess;
 }) {
   // Local-time build stamp, resolved after mount (see the note above).
   const [builtAt, setBuiltAt] = useState<string | null>(null);
@@ -59,6 +63,8 @@ export function SettingsPanel({
           onSave={onSaveSafeWord}
         />
       </Card>
+
+      <CompanionAccessCard access={access} />
 
       <Card title="Info">
         <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">

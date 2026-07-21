@@ -30,6 +30,9 @@ function req(body: unknown): Request {
 describe("POST /api/tts", () => {
   beforeEach(() => {
     process.env.ELEVENLABS_API_KEY = "sk_test_key";
+    // next/jest loads .env, which may set the access gate; these tests cover the
+    // ungated route, so clear it (the gate has its own tests).
+    delete process.env.COMPANIONS_ACCESS_IDS;
     streamMock.mockReset();
   });
 

@@ -37,6 +37,9 @@ describe("POST /api/llm/chat/completions", () => {
   beforeEach(() => {
     process.env.LLM_URL = "https://openrouter.test/api/v1";
     process.env.OPENROUTER_API_KEY = "sk-or-test";
+    // next/jest loads .env, which may set the access gate; these tests cover the
+    // ungated route, so clear it (the gate has its own tests).
+    delete process.env.COMPANIONS_ACCESS_IDS;
     fetchMock.mockReset();
     global.fetch = fetchMock as unknown as typeof fetch;
   });
