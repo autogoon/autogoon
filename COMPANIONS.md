@@ -35,6 +35,7 @@ export type Companion = {
   systemPrompt: string; // persona; sent as the LLM system message
   model: string; // OpenRouter model slug the client requests for this companion
   contextWindow: number; // model context window (tokens); recorded for pruning
+  passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
 };
 ```
 
@@ -47,6 +48,21 @@ export type Companion = {
 - `systemPrompt` is the companion's **persona**, sent as the LLM's `system`
   message on every turn. It now lives in code rather than in a model card — see
   `elise-prompt.ts` below.
+
+## Conversation memory
+
+The app keeps a **rolling conversation thread** — every user and assistant turn
+— and replays it to the model on each turn, so the companion remembers what was
+said earlier. The thread is persisted to `localStorage` under a per-companion
+key (`companions:thread:elise`), so it survives a reload; **Clear conversation**
+in the panel wipes it (button-only — Companions registers no spoken words).
+
+`passesReasoning` marks a **reasoning model**: MiniMax M2 (Elise's model)
+returns a private thinking block (`reasoning_details`) alongside its reply and
+was trained with that reasoning present in history, so the app captures it from
+the stream and replays it verbatim on Elise's stored turns. Elise carries
+`passesReasoning: true`; a future non-reasoning companion sets it `false` and
+the field is simply never sent.
 
 ### Adding a companion
 
