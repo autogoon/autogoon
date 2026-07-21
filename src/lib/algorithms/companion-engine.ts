@@ -6,7 +6,7 @@
 // over Autopilot is that each template carries a `label` — a neutral, present-
 // tense description of what that mini-program does — which the narration overlay
 // reads (see generateNarrationCues). Pure event generation/scaling: no React, no
-// device, no LLM, no personas (those ride on top in Slice 4).
+// device, no LLM, no personas.
 
 import {
   type PlayerContext,
@@ -20,9 +20,8 @@ export type EdgeControlLevel = "gentle" | "moderate" | "intense";
 export type SuctionControlLevel = "off" | "little" | "more";
 
 // A narration cue: the program switches to a new mini-program at `at`, described
-// by `text` (a neutral, persona-agnostic label). The persona voices it in Slice
-// 4; here it is plain data. Not part of the AlgorithmEngine contract — the Player
-// doesn't consume cues until Slice 4.
+// by `text` (a neutral, persona-agnostic label); here it is plain data. Not part
+// of the AlgorithmEngine contract — CompanionEngine-only.
 export interface NarrationCue {
   at: number;
   text: string;
@@ -34,7 +33,7 @@ interface TemplateStep {
 }
 
 // A pattern template plus its narration label. The label is neutral and
-// persona-agnostic — the persona voices it in Slice 4; here it is plain data.
+// persona-agnostic; here it is plain data.
 interface LabelledTemplate {
   steps: TemplateStep[];
   label: string;
@@ -389,7 +388,7 @@ export class CompanionEngine implements AlgorithmEngine {
   // read from the segments recorded as speed was generated (template choice is
   // random inside generation, so cues can't be re-derived from speed events).
   // While finishing, a single finish cue. CompanionEngine-only — not on the
-  // AlgorithmEngine contract; the Player consumes cues in Slice 4.
+  // AlgorithmEngine contract.
   generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[] {
     if (this.finishing) {
       return [{ at: fromTime, text: FINISH_CUE_LABEL }];
