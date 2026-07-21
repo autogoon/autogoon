@@ -1,10 +1,14 @@
 # Companions — Design & Context
 
-> **Status:** design agreed, not yet implemented. This is the shared context for
-> a long-running, multi-phase feature. It records **what we're building, how it
-> works, and why we chose each path** — so any later phase's spec/plan can lean
-> on it. Per-phase specs live beside this file; implementation plans live under
-> `docs/superpowers/plans/`.
+> **Status:** partially shipped. Phases 1–5, the Phase 6 `start`/`stop` tools
+> slice, barge-in tuning (word + energy gate), and a shared-secret demo access
+> gate landed on `main` in [#13](https://github.com/autogoon/autogoon/pull/13).
+> The remaining work — Phase 6's speed/shape/valve tools and Phases 7–12 —
+> continues in [#14](https://github.com/autogoon/autogoon/pull/14). This is the
+> shared context for a long-running, multi-phase feature. It records **what
+> we're building, how it works, and why we chose each path** — so any later
+> phase's spec/plan can lean on it. Per-phase specs live beside this file;
+> implementation plans live under `docs/superpowers/plans/`.
 
 ## Goal
 
