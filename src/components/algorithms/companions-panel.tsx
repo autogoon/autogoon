@@ -633,14 +633,20 @@ export function CompanionsPanel({
                   />
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => submitText(text, { speak: false })}
+                      onClick={() => {
+                        submitText(text, { speak: false });
+                        setText("");
+                      }}
                       disabled={text.trim() === "" || status.replyPlaying}
                       className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
                     >
                       Send
                     </Button>
                     <Button
-                      onClick={() => submitText(text, { speak: true })}
+                      onClick={() => {
+                        submitText(text, { speak: true });
+                        setText("");
+                      }}
                       disabled={text.trim() === "" || status.replyPlaying}
                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                     >
