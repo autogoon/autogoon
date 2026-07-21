@@ -22,6 +22,15 @@ import {
   shouldOpenSocket,
   type SttPhase,
 } from "@/lib/voice/session-policy";
+import {
+  appendAssistant,
+  appendUser,
+  parse,
+  serialize,
+  toLlmMessages,
+  type Thread,
+  type ThreadTurn,
+} from "@/lib/companions/conversation";
 
 export type TurnMetrics = {
   llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
@@ -47,6 +56,9 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
+  // The rolling conversation transcript, mirrored from threadRef so the panel
+  // can render it. Reset to [] on Clear, but preserved across Stop-listening.
+  thread: ThreadTurn[];
 };
 
 export type VoiceSession = {
@@ -60,6 +72,9 @@ export type VoiceSession = {
   // session down — the Stop button, and the only way to cut a spoken reply when
   // the mic is off and there's no barge-in.
   cancelReply: () => void;
+  // Wipe the conversation: empties the live thread, the mirror, and the
+  // localStorage key. Button-only (no spoken word), instant, no confirm.
+  clearThread: () => void;
   status: VoiceStatus;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 };
@@ -77,11 +92,16 @@ const IDLE_STATUS: VoiceStatus = {
   replyError: null,
   metrics: { llm: null, tts: null },
   awaitingSpeech: false,
+  thread: [],
 };
 
 // Close the STT socket after this long without voice.
 const STT_IDLE_TIMEOUT_MS = 8000;
 const MAYBE_CLOSE_INTERVAL_MS = 500;
+
+// Per-companion persistence key, so a second companion (Phase 12) gets its own
+// thread.
+const THREAD_KEY = `companions:thread:${ELISE.name.toLowerCase()}`;
 
 export function useVoiceSession(): VoiceSession {
   const [status, setStatus] = useState<VoiceStatus>(IDLE_STATUS);
@@ -104,10 +124,44 @@ export function useVoiceSession(): VoiceSession {
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // The live conversation thread — source of truth, read/written inside the
+  // once-created callbacks like the other live refs, mirrored into status.thread.
+  const threadRef = useRef<Thread>([]);
 
   const setReplyPlaying = useCallback((playing: boolean): void => {
     replyPlayingRef.current = playing;
     setStatus((s) => ({ ...s, replyPlaying: playing }));
+  }, []);
+
+  // Write-through persistence: every thread mutation updates the ref, the
+  // mirror, and localStorage together. Storage failures (quota/unavailable) are
+  // swallowed — the in-memory thread still works for this session.
+  const persistThread = useCallback((thread: Thread): void => {
+    threadRef.current = thread;
+    setStatus((s) => ({ ...s, thread }));
+    try {
+      localStorage.setItem(THREAD_KEY, serialize(thread));
+    } catch {
+      // ignore: storage full or unavailable
+    }
+  }, []);
+
+  const clearThread = useCallback((): void => {
+    threadRef.current = [];
+    setStatus((s) => ({ ...s, thread: [] }));
+    try {
+      localStorage.removeItem(THREAD_KEY);
+    } catch {
+      // ignore: storage unavailable
+    }
+  }, []);
+
+  // Restore a persisted conversation on mount so a reload keeps the memory.
+  // localStorage is browser-only, so this runs in an effect, not at ref init.
+  useEffect(() => {
+    const seeded = parse(localStorage.getItem(THREAD_KEY));
+    threadRef.current = seeded;
+    setStatus((s) => ({ ...s, thread: seeded }));
   }, []);
 
   // The TTS player and LLM client, created on demand. start() makes them when the
@@ -150,6 +204,9 @@ export function useVoiceSession(): VoiceSession {
       const { tts, llm } = clients;
       const speak = opts?.speak ?? false;
 
+      // Commit the user turn the moment it's submitted (ref + state + persist).
+      persistThread(appendUser(threadRef.current, prompt));
+
       // Supersede any in-flight turn (its LLM stream + TTS) before starting.
       turnRef.current?.abort();
       const controller = new AbortController();
@@ -166,18 +223,23 @@ export function useVoiceSession(): VoiceSession {
       void (async (): Promise<void> => {
         try {
           let reply = "";
+          let reasoning: unknown[] | undefined;
           let completionTokens: number | null = null;
           const llmStart = performance.now();
           let ttftMs: number | null = null;
           for await (const delta of llm.stream(
-            [
-              { role: "system", content: ELISE.systemPrompt },
-              { role: "user", content: prompt },
-            ],
+            toLlmMessages(
+              threadRef.current,
+              ELISE.systemPrompt,
+              ELISE.passesReasoning,
+            ),
             {
               signal: controller.signal,
               onUsage: (u) => {
                 completionTokens = u.completionTokens;
+              },
+              onReasoning: (d) => {
+                reasoning = d;
               },
             },
           )) {
@@ -208,6 +270,20 @@ export function useVoiceSession(): VoiceSession {
                 llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
               },
             }));
+          }
+          // Generation completed under this turn's guard (a mid-generation cut
+          // returned earlier), so the full reply + full reasoning are in hand:
+          // commit the assistant turn. reasoning is replayed only when the
+          // companion passes it; a superseded/aborted turn never reaches here,
+          // so no truncated reasoning block is ever stored.
+          if (reply.trim() !== "") {
+            persistThread(
+              appendAssistant(
+                threadRef.current,
+                reply,
+                ELISE.passesReasoning ? reasoning : undefined,
+              ),
+            );
           }
           if (
             controller.signal.aborted ||
@@ -258,7 +334,7 @@ export function useVoiceSession(): VoiceSession {
         }
       })();
     },
-    [ensureClients, setReplyPlaying],
+    [ensureClients, setReplyPlaying, persistThread],
   );
 
   const start = useCallback((): void => {
@@ -361,11 +437,21 @@ export function useVoiceSession(): VoiceSession {
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
     startingRef.current = false;
-    setStatus(IDLE_STATUS);
+    // The conversation persists across Stop-listening — only Clear (or a fresh
+    // load) resets it — so re-seed the mirror from the intact threadRef.
+    setStatus({ ...IDLE_STATUS, thread: threadRef.current });
   }, []);
 
   // Tear everything down on unmount.
   useEffect(() => stop, [stop]);
 
-  return { start, stop, submitText, cancelReply, status, audioRef };
+  return {
+    start,
+    stop,
+    submitText,
+    cancelReply,
+    clearThread,
+    status,
+    audioRef,
+  };
 }
