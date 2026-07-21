@@ -2,16 +2,17 @@
 
 > **Status:** design agreed, not yet implemented. Builds on
 > [companions-design.md](./2026-07-18-companions-design.md) (the shared context)
-> and the completed Phases 1–3. This spec covers **Phase 4 only**. Where Phase
-> 4's scope diverges from the map in the shared design doc, this spec wins; the
-> shared doc is updated to match.
+> and the completed voice I/O foundation, LLM client, and CompanionEngine work.
+> This spec covers **this phase only**. Where this phase's scope diverges from
+> the map in the shared design doc, this spec wins; the shared doc is updated to
+> match.
 
-## What Phase 4 is
+## What this phase is
 
-The first integration phase: wire Phases 1–3 into a working session where **the
-device actually runs a program while Elise talks to you**, and swap the LLM
-backend from local Ollama to **OpenRouter**. Concretely, Phase 4 ships two
-tracks:
+The first integration phase: wire the voice I/O foundation, the LLM client, and
+the CompanionEngine into a working session where **the device actually runs a
+program while Elise talks to you**, and swap the LLM backend from local Ollama
+to **OpenRouter**. Concretely, this phase ships two tracks:
 
 1. **Device + nav integration.** The Companions panel arms the one Player with a
    `CompanionEngine`, so picking Elise and entering Play runs _her_ program on
@@ -31,47 +32,48 @@ is small and there is no value in a throwaway intermediate step.
 
 - **One companion.** Only Elise this phase. The two-persona goal (proving
   personality bends the program) and a real multi-entry picker are deferred to
-  the second companion (Phase 12). The picker is built as structure but lists
-  only Elise.
+  the second companion. The picker is built as structure but lists only Elise.
 - **The program stays random.** `CompanionEngine` already chooses templates with
-  `Math.random`; the persona → knobs mapping (`traits`) remains deferred to
-  Phase 11. Phase 4 arms the engine with a **fixed default knob config** and
-  lets template randomness supply the variety.
+  `Math.random`; the persona → knobs mapping (`traits`) remains deferred to when
+  the persona shapes the program. This phase arms the engine with a **fixed
+  default knob config** and lets template randomness supply the variety.
 - **Knobs are exposed — temporarily.** The program-shape controls (intensity /
   edge / suction) render as on-screen segmented controls this phase so the
   program is tunable during bring-up. **They are transitional:** the end-state
-  is that _the LLM turns these knobs itself via tools_ (the action mechanism
-  from Phase 6 onward), at which point the manual controls are hidden. This is
-  recorded so we don't mistake the temporary UI for the intended design.
+  is that _the LLM turns these knobs itself via tools_ (the action mechanism,
+  once tools & control land), at which point the manual controls are hidden.
+  This is recorded so we don't mistake the temporary UI for the intended design.
 - **Device controls are buttons only — no vosk command words.** Companions runs
   open dictation to Elise over ElevenLabs STT, so a spoken keyword like "start"
   would both fire a command _and_ be transcribed into her chat. The two-mic
-  reconciliation (vosk keyword-spotting vs. ElevenLabs STT) is explicitly Phase
-  7 work. Until then, Companions registers **no** algorithm words; every device
-  control is an on-screen button, and vosk carries only the existing global
-  words (`connect` / `exit` / the safeword). This is a deliberate, documented
-  departure from the project's "give every control a word" convention, justified
-  by the dictation interaction model.
+  reconciliation (vosk keyword-spotting vs. ElevenLabs STT) is explicitly
+  deferred until the safeword and barge-in tuning work lands. Until then,
+  Companions registers **no** algorithm words; every device control is an
+  on-screen button, and vosk carries only the existing global words (`connect` /
+  `exit` / the safeword). This is a deliberate, documented departure from the
+  project's "give every control a word" convention, justified by the dictation
+  interaction model.
 
 ### Explicitly deferred (unchanged from the shared design)
 
-- **Narration & ambient speech → Phase 7.** In Phase 4 the device program and
-  Elise's chat are two parallel tracks: the program plays deterministically; she
-  chats reactively as she does today. She does **not** narrate the moves yet.
-- **Conversation memory → Phase 5.** Turns in Phase 4 stay stateless (a single
+- **Narration & ambient speech (proactive speech), later.** In this phase the
+  device program and Elise's chat are two parallel tracks: the program plays
+  deterministically; she chats reactively as she does today. She does **not**
+  narrate the moves yet.
+- **Conversation memory, later.** Turns in this phase stay stateless (a single
   user message), so the rolling history and **conversation pruning are not
-  needed yet**; Phase 4 only _records_ each companion's `contextWindow` for
+  needed yet**; this phase only _records_ each companion's `contextWindow` for
   later use.
-- **Tools / the action mechanism → Phase 6.** Elise cannot trigger device
-  actions in Phase 4. `start` is a manual button (the "companion decides to
-  start" move is Phase 6). Because there is no LLM-triggered device action yet,
-  barge-in only needs to cancel the LLM stream + TTS (already implemented);
-  there is nothing new for it to cancel.
-- **Safeword teardown & nav lockdown → Phase 8.** In Phase 4 the existing global
+- **Tools / the action mechanism (tools & control), later.** Elise cannot
+  trigger device actions in this phase. `start` is a manual button (the
+  "companion decides to start" move comes later, with tools & control). Because
+  there is no LLM-triggered device action yet, barge-in only needs to cancel the
+  LLM stream + TTS (already implemented); there is nothing new for it to cancel.
+- **Safeword teardown & nav lockdown, later.** In this phase the existing global
   safeword already pauses the Player (the device stops), which is now meaningful
   because the Player actually runs. It does **not** yet tear down the voice
-  session (LLM + TTS) — that hardening, plus the two-mic reconciliation, is
-  Phase 8.
+  session (LLM + TTS) — that hardening, plus the two-mic reconciliation, comes
+  with the safeword and barge-in tuning work.
 
 ## Design
 
@@ -136,17 +138,17 @@ Play-view furniture (mirrors the other panels, **buttons only**):
 - Three temporary knob cards: Intensity, Edge Control, Vacuum Maintenance
   (Autopilot's controls), each flagged in a comment as transitional (to become
   LLM-driven tools).
-- No `useVoiceCommands` call — Companions registers no algorithm words in
-  Phase 4.
+- No `useVoiceCommands` call — Companions registers no algorithm words in this
+  phase.
 
 ### 3. Device start — separate & manual
 
 "Start listening" (mic on, converse with Elise) and "Start" (begin the device
 program) are **distinct controls**. The mic session opens the conversation; the
 device program is started separately by the manual Start button. This mirrors
-the eventual flow — you talk first, and later (Phase 6) _Elise_ decides to begin
-the device — so Phase 6 only has to swap the manual trigger for her decision,
-not re-separate two coupled things.
+the eventual flow — you talk first, and later _Elise_ decides to begin the
+device — so the tools & control work only has to swap the manual trigger for her
+decision, not re-separate two coupled things.
 
 `start` arms the engine if needed and calls `device.play()`; `stop` calls
 `device.pause()`; `reset` restores default knobs and re-arms. Standard Player
@@ -158,8 +160,8 @@ The engine is armed with a fixed default knob config (proposed:
 `intensity: "medium"`, `edge: "moderate"`, `suction: "little"` — a moderate
 baseline; tune during bring-up). Template selection inside `CompanionEngine` is
 already random, so successive blocks vary without any persona input. The
-`traits → knobs` mapping stays deferred to Phase 11; when it lands it will set
-these knobs from the persona instead of a constant.
+`traits → knobs` mapping stays deferred to when the persona shapes the program;
+when it lands it will set these knobs from the persona instead of a constant.
 
 ### 5. LLM backend → OpenRouter
 
@@ -213,7 +215,7 @@ export type Companion = {
   voiceId: string; // ElevenLabs voice id (not a secret)
   systemPrompt: string; // persona; sent as the LLM system message
   model: string; // OpenRouter model slug, e.g. "minimax/minimax-m2:nitro"
-  contextWindow: number; // model's context window in tokens (unused in Phase 4)
+  contextWindow: number; // model's context window in tokens (unused this phase)
 };
 ```
 
@@ -226,24 +228,25 @@ Elise is populated with:
 - `model`: `"minimax/minimax-m2:nitro"`.
 - `contextWindow`: `196608` — the conservative window. MiniMax M2 is 204,800
   nominal, but `:nitro` may route to a ~196,608 provider, so we record the
-  smaller guaranteed value; later pruning (Phase 9) is then safe whichever
-  provider serves the turn. (Unused in Phase 4 — recorded for later.)
+  smaller guaranteed value; later pruning (context compaction) is then safe
+  whichever provider serves the turn. (Unused this phase — recorded for later.)
 
 **Deletions / doc updates:** `elise.Modelfile` is deleted. `COMPANIONS.md` is
 rewritten to describe the OpenRouter model (persona in code, per-companion
 `model` + `contextWindow`, the `OPENROUTER_API_KEY` secret) instead of the
 Ollama card-per-companion setup. The shared design doc's LLM and Secrets
-sections get a note that the backend is OpenRouter as of Phase 4; the deeper
+sections get a note that the backend is OpenRouter as of this phase; the deeper
 rewrite of that section's rationale can follow.
 
 ### 7. Barge-in & safeword (interim)
 
 - **Barge-in** is unchanged — it cancels the LLM stream + TTS via the single
-  per-turn `AbortController`. No device action exists for it to cancel in
-  Phase 4.
+  per-turn `AbortController`. No device action exists for it to cancel in this
+  phase.
 - **Safeword** uses the existing global path (`page.tsx` routes it to
   `player.pause()`), which now stops the running `CompanionEngine`. It does not
-  yet tear down the voice session — deferred to Phase 7.
+  yet tear down the voice session — deferred until the safeword and barge-in
+  tuning work lands.
 
 ## Testing
 
@@ -254,8 +257,8 @@ hardware-driven, so behaviour is verified by driving it):
   for the new behaviour: sends `Authorization: Bearer` from the env key;
   forwards the client's `model` without overriding it; 503 when the key or
   `LLM_URL` is absent. No live OpenRouter call.
-- **Engine.** `CompanionEngine` is already unit-tested; Phase 4 doesn't change
-  it.
+- **Engine.** `CompanionEngine` is already unit-tested; this phase doesn't
+  change it.
 - **Typecheck / lint / build** stay green (zero-warning repo).
 - **Manual bring-up** (the real gate): pick Elise → Begin → Play; press Start
   and confirm the device runs a program (sparkline advances, hardware moves if
@@ -270,11 +273,11 @@ hardware-driven, so behaviour is verified by driving it):
   `.env.local`.
 - **`:nitro` context spread.** MiniMax M2 is 204,800 tokens nominal, but nitro
   routing may hit a ~196,608 provider, so `contextWindow` records the
-  conservative 196,608. Recorded for later pruning (Phase 9), not acted on in
-  Phase 4.
+  conservative 196,608. Recorded for later pruning (context compaction), not
+  acted on in this phase.
 - **Temporary knobs.** The Intensity / Edge / Suction controls are placeholder
   UI for bring-up; they are slated to become LLM-driven tools and be hidden from
-  the user (Phase 6 onward).
+  the user (once tools & control land).
 
 ```
 

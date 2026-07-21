@@ -5,8 +5,9 @@
 > this phase adds the **LLM client**: a same-origin proxy route to Ollama and an
 > `LLMClient` over the OpenAI chat-completions shape (streaming + abort). It is
 > consumed in two places — a decoupled **LLM lab** in the Companions panel, and
-> the **voice loop** from Phase 1, where a streamed LLM reply now **replaces the
-> canned reply**. No engine/device, no orchestration thread, no personas yet.
+> the **voice loop** from the voice I/O foundation, where a streamed LLM reply
+> now **replaces the canned reply**. No engine/device, no orchestration thread,
+> no personas yet.
 
 ## Goal
 
@@ -15,10 +16,10 @@ provable surfaces:
 
 1. **LLM lab** (decoupled): type a prompt → watch tokens **stream** in → press
    **Stop** and the stream **aborts** mid-flight.
-2. **Voice loop** (wired): speak → you're transcribed (Phase 1 STT) → the
+2. **Voice loop** (wired): speak → you're transcribed (the STT loop) → the
    transcript goes to the LLM → the **full reply is buffered, then spoken** in
-   Elise's voice (Phase 1 TTS) → **barge-in cuts the reply** as before, now also
-   cancelling the in-flight LLM turn.
+   Elise's voice (the TTS loop) → **barge-in cuts the reply** as before, now
+   also cancelling the in-flight LLM turn.
 
 ## In scope
 
@@ -49,14 +50,15 @@ provable surfaces:
   shared rolling history (design: "one thread, three speech sources") is a later
   phase.
 - **Sentence-streaming into TTS.** The reply is buffered to one string and
-  spoken as a single utterance (exactly like Phase 1's canned reply).
+  spoken as a single utterance (exactly like the earlier canned reply).
   Sentence-chunked streaming into a TTS queue is orchestration for a later
   phase.
 - **Per-companion model selection.** One `LLM_MODEL` for now; the route
   overrides any client-sent model with it. Choosing a card per companion is a
   later phase.
 - **Reconnect / retry** for the stream (design defers this per-phase).
-- Any **engine / device / program / narration** — Phase 3.
+- Any **engine / device / program / narration** — deferred until the
+  CompanionEngine and narration-cue generation land.
 
 ## External API decisions (pinned)
 
@@ -121,8 +123,8 @@ provable surfaces:
   still instant).
 - **Barge-in.** Onset while the reply is playing → the turn's `abort()` now
   cancels **both** the LLM stream (if still generating) **and** TTS playback,
-  and a fresh STT turn opens with pre-roll flushed — same primitive as Phase 1,
-  one more thing hanging off the one controller.
+  and a fresh STT turn opens with pre-roll flushed — same primitive as the voice
+  I/O foundation, one more thing hanging off the one controller.
 - **LLM error (e.g. Ollama down).** Lab: show the error. Voice: log/skip — no
   reply is spoken, the session stays usable. (Reconnect/retry is out of scope.)
 

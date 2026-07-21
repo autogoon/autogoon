@@ -2,15 +2,15 @@
 
 > **Status:** design agreed, not yet implemented. Builds on
 > [companions-design.md](./2026-07-18-companions-design.md) (the shared context)
-> and the completed Phase 4. This spec covers **Phase 5 only**. Where Phase 5's
-> scope diverges from the map in the shared design doc, this spec wins; the
-> shared doc is updated to match.
+> and the completed device integration + OpenRouter backend work. This spec
+> covers **this phase only**. Where this phase's scope diverges from the map in
+> the shared design doc, this spec wins; the shared doc is updated to match.
 
-## What Phase 5 is
+## What this phase is
 
-Give Elise **memory**. Phase 4's turns are stateless — each `submitText` sends a
-fresh `[system, user]` pair, so she never remembers what was said a moment ago.
-Phase 5 keeps a **rolling conversation thread** (every user + assistant turn)
+Give Elise **memory**. The earlier stateless turns sent a fresh `[system, user]`
+pair on every `submitText`, so she never remembered what was said a moment ago.
+This phase keeps a **rolling conversation thread** (every user + assistant turn)
 and passes it back to the LLM on every turn, **persists** it to `localStorage`
 so it survives a reload, renders it as a real **chat transcript**, and adds a
 **Clear conversation** control.
@@ -18,18 +18,18 @@ so it survives a reload, renders it as a real **chat transcript**, and adds a
 MiniMax M2 (Elise's model) is a **reasoning model**: it returns a private
 thinking block (`reasoning_details` on OpenRouter) alongside the visible reply,
 and it was trained with that reasoning present in the history — stripping it
-measurably degrades later turns. So Phase 5 also **captures `reasoning_details`
-from the stream** (the client currently keeps only content), stores it on each
-assistant turn, and **replays it verbatim** in the assistant messages. This is
-model-specific, gated by a per-companion **`passesReasoning`** flag (Elise =
-`true`).
+measurably degrades later turns. So this phase also **captures
+`reasoning_details` from the stream** (the client currently keeps only content),
+stores it on each assistant turn, and **replays it verbatim** in the assistant
+messages. This is model-specific, gated by a per-companion **`passesReasoning`**
+flag (Elise = `true`).
 
 ### Scope decisions (agreed)
 
 - **No context-window culling.** The thread grows unbounded this phase; keeping
-  it within the model's `contextWindow` is Phase 9's job. Phase 5 only records
-  nothing new — it relies on Phase 4's recorded `contextWindow` being consumed
-  later.
+  it within the model's `contextWindow` is context compaction's job, later. This
+  phase records nothing new — it relies on the earlier recorded `contextWindow`
+  being consumed later.
 - **Interrupted-turn commit rule.** The **user** turn is committed to the thread
   the moment it is submitted; the **assistant** turn is committed only when its
   LLM generation completes (guarded against supersession). A barge-in or Stop
@@ -39,24 +39,25 @@ model-specific, gated by a per-companion **`passesReasoning`** flag (Elise =
   turn, leaving the user turn dangling (two user turns can then sit
   back-to-back, which the API tolerates). This rule keeps a **truncated
   `reasoning_details` block from ever being replayed to M2**. Whether this feels
-  right on hardware is reviewed in **Phase 10**.
-- **Clear is a button, instant, no confirm.** Consistent with Phase 4's
+  right on hardware is reviewed later, in the turn-commit review and
+  reply-length tuning pass.
+- **Clear is a button, instant, no confirm.** Consistent with the earlier
   no-vosk-words rule for Companions, Clear has no spoken word. With the
   transcript visible the effect is obvious, so no confirmation dialog.
 - **Persistence key is per-companion.** Keyed on the companion
-  (`companions:thread:elise`) so a second companion (Phase 12) gets its own
-  thread. One companion exists now.
+  (`companions:thread:elise`) so a second companion gets its own thread. One
+  companion exists now.
 
 ### Explicitly deferred (unchanged from the shared design)
 
-- **Reply-length tuning & the interrupted-turn review → Phase 10.** Phase 5
-  ships the commit rule above; whether it (and reply length) feel right on
-  hardware is Phase 10.
-- **Context compaction → Phase 9.** The unbounded thread is trimmed there; when
+- **Reply-length tuning & the interrupted-turn review, later.** This phase ships
+  the commit rule above; whether it (and reply length) feel right on hardware is
+  reviewed in that later tuning pass.
+- **Context compaction, later.** The unbounded thread is trimmed there; when
   `passesReasoning` is on, old turns' `reasoning_details` are trimmed with the
   messages they belong to.
-- **Tools & control → Phase 6**, **proactive speech → Phase 7**, **safeword
-  teardown → Phase 8** — all unchanged.
+- **Tools & control**, **proactive speech**, **safeword teardown** — all
+  unchanged, all later.
 
 ## Design
 
@@ -185,11 +186,11 @@ frontend-design skill.
 
 ### 6. Doc updates
 
-- Shared design doc's Phase 5 entry already describes this phase; the phase map
-  is updated for the new **Phase 10** (turn-commit review + reply-length
-  tuning + Elise prompt polish), **Phase 11** (persona shapes Elise's program),
-  and **Phase 12** (contrasting second companion), with reply-length tuning
-  removed from Phase 8 and the persona model reworked to the four `traits`.
+- Shared design doc's entry for this phase already describes it; the phase map
+  is updated for the new turn-commit review, reply-length tuning & prompt polish
+  work; the persona shaping Elise's program; and the second contrasting
+  companion — with reply-length tuning removed from the safeword and barge-in
+  tuning work and the persona model reworked to the four `traits`.
 - `COMPANIONS.md` gains a short note that Elise carries `passesReasoning: true`
   and that the conversation persists in `localStorage` (Clear to reset).
 
@@ -210,13 +211,14 @@ frontend-design skill.
   transcript and memory are wiped; barge-in mid-playback and confirm the
   completed turn is in the thread; barge-in mid-generation and confirm no
   partial assistant turn is stored. With M2, confirm multi-turn coherence is
-  noticeably better than Phase 4's stateless turns.
+  noticeably better than the earlier stateless turns.
 
 ## Open items / notes
 
 - **Reasoning reassembly** against live M2 `:nitro` output — confirm the chunk
   shape and adjust the merge rule if needed (see §2).
 - **Dangling user turns** from mid-generation cuts are accepted this phase; the
-  interrupted-turn rule is reviewed on hardware in Phase 10.
-- **Unbounded growth** is intentional; Phase 9 adds compaction before long
-  sessions can overflow M2's window.
+  interrupted-turn rule is reviewed on hardware in the later turn-commit review
+  pass.
+- **Unbounded growth** is intentional; context compaction is added later, before
+  long sessions can overflow M2's window.

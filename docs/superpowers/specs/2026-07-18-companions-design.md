@@ -11,9 +11,8 @@
 A new algorithm in which a **persona-driven AI companion** rides on top of a
 deterministic, Groove-style device program. The companion **narrates** the
 device's moves, **chats** with you (and it can get explicit), and can **turn the
-same knobs you can** — with the agency to decline. You talk to them hands-free;
-they talk back with a real voice and can interrupt themselves the instant you
-speak.
+same knobs you can** — and can refuse. You talk to them hands-free; they talk
+back with a real voice and can interrupt themselves the instant you speak.
 
 The feature is **gender-neutral by construction** — nothing structural is
 gendered. A companion's presentation rides on its prompt and voice; `gender` is
@@ -75,12 +74,12 @@ does to the **toy** (read by the engine / her tools):
 | **chattiness** | quiet ↔ vocal          | sparse ↔ constant dirty-talk / narration          | ambient-talk _cadence_ — how often she speaks into a silence                                                 |
 | **variety**    | steady ↔ restless      | —                                                 | segment length / how often the pattern mixes up before she changes it                                        |
 
-There is no separate `agency` field: whether she does what you ask is a
-disposition **written into her `systemPrompt`** (and exercised through Phase 6's
-tools), not a scalar the code branches on. **Responsiveness** — how much she
-reacts to _your_ moans / barge-ins vs. does her own thing — is a likely
-**future** trait, deferred until her behaviour actually hooks into your vocal
-cues (Phases 6/7); until then it reads as `dominance`.
+Whether she does what you ask is a disposition **written into her
+`systemPrompt`** (and exercised through Phase 6's tools), not something the code
+branches on. **Responsiveness** — how much she reacts to _your_ moans /
+barge-ins vs. does her own thing — is a likely **future** trait, deferred until
+her behaviour actually hooks into your vocal cues (Phases 6/7); until then it
+reads as `dominance`.
 
 The traits arrive with the phases that first consume them (`chattiness` in Phase
 7, `intensity` + `variety` in Phase 11, `dominance` across the prompt and Phase
@@ -351,12 +350,12 @@ here.
    step** of a session, which is why the action mechanism lands before the
    proactive narration that rides on the running program. Whether she acts on
    your request or **declines** is a disposition written into her `systemPrompt`
-   (there is no `agency` scalar) — the code exposes and runs the tools; her
-   personality decides use. **Open question, resolved when we spec this phase:**
-   how the LLM expresses an action reliably through the model — native
-   tool-calls vs. structured markers parsed from the stream — possibly settled
-   with a small spike first. _Ships:_ ask her to start / speed up / edge you —
-   she decides in character and the device follows, or she refuses.
+   — the code exposes and runs the tools; her personality decides use. **Open
+   question, resolved when we spec this phase:** how the LLM expresses an action
+   reliably through the model — native tool-calls vs. structured markers parsed
+   from the stream — possibly settled with a small spike first. _Ships:_ ask her
+   to start / speed up / edge you — she decides in character and the device
+   follows, or she refuses.
 
 7. **Proactive speech: narration + ambient.** Built on Phase 5's thread and
    Phase 6's companion-driven control. The thread carries current + upcoming
