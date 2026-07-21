@@ -325,6 +325,7 @@ export function CompanionsPanel({
     tools,
     getDeviceState,
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, "hit"),
+    onLog: (text, kind) => append(text, kind),
   });
 
   // Manual stroke state only — its `keywords` are intentionally NOT wired to
