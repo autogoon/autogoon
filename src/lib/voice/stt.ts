@@ -7,6 +7,7 @@
 // there); verified in the Task 13 acceptance run.
 import { pcm16ToBase64 } from "./audio-encoding";
 import { type SttPhase, shouldCloseSocket } from "./session-policy";
+import { ACCESS_HEADER, getAccessId } from "@/lib/companions/access";
 
 export type SttEvents = {
   onPartial: (text: string) => void;
@@ -73,7 +74,10 @@ export function createStt(events: SttEvents): Stt {
 
     let token: string;
     try {
-      const res = await fetch("/api/stt-token", { method: "POST" });
+      const res = await fetch("/api/stt-token", {
+        method: "POST",
+        headers: { [ACCESS_HEADER]: getAccessId() },
+      });
       if (!res.ok) throw new Error(`stt-token ${res.status}`);
       ({ token } = (await res.json()) as { token: string });
     } catch (err) {

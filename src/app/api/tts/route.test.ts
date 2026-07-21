@@ -23,13 +23,17 @@ function req(body: unknown): Request {
   return new Request("http://localhost/api/tts", {
     method: "POST",
     body: JSON.stringify(body),
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-access-id": "test-key" },
   });
 }
 
 describe("POST /api/tts", () => {
   beforeEach(() => {
     process.env.ELEVENLABS_API_KEY = "sk_test_key";
+    // The gate is fail-closed, so the route needs a valid access context; these
+    // tests exercise the route's own logic with access already granted (the gate
+    // itself has its own tests). req() sends the matching x-access-id header.
+    process.env.COMPANIONS_ACCESS_IDS = "test-key";
     streamMock.mockReset();
   });
 

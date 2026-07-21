@@ -4,6 +4,7 @@
 // server-side, and the proxy is unauthenticated for the local experiment.
 // openai-node needs an ABSOLUTE baseURL — see createLlmClient for how that's built.
 import OpenAI from "openai";
+import { ACCESS_HEADER, getAccessId } from "@/lib/companions/access";
 
 export type LlmMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -180,7 +181,9 @@ export function createLlmClient(model: string): LlmClient {
           ? { tools: opts.tools }
           : {}),
       },
-      { signal: opts.signal },
+      // Attach the Companion access ID (read fresh so a later unlock applies) —
+      // ignored by the proxy unless COMPANIONS_ACCESS_IDS is set.
+      { signal: opts.signal, headers: { [ACCESS_HEADER]: getAccessId() } },
     );
     const reasoning: ReasoningEntry[] = [];
     const toolCalls: AssembledCall[] = [];

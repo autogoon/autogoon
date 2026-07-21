@@ -26,7 +26,7 @@ function req(body: unknown, signal?: AbortSignal): Request {
   return new Request("http://localhost/api/llm/chat/completions", {
     method: "POST",
     body: JSON.stringify(body),
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-access-id": "test-key" },
     signal,
   });
 }
@@ -37,6 +37,10 @@ describe("POST /api/llm/chat/completions", () => {
   beforeEach(() => {
     process.env.LLM_URL = "https://openrouter.test/api/v1";
     process.env.OPENROUTER_API_KEY = "sk-or-test";
+    // The gate is fail-closed, so the route needs a valid access context; these
+    // tests exercise the route's own logic with access already granted (the gate
+    // itself has its own tests). req() sends the matching x-access-id header.
+    process.env.COMPANIONS_ACCESS_IDS = "test-key";
     fetchMock.mockReset();
     global.fetch = fetchMock as unknown as typeof fetch;
   });
