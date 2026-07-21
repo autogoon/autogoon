@@ -22,6 +22,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ChevronDown, ChevronRight, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
@@ -318,16 +319,44 @@ export function CompanionsPanel({
   }, [status.replyPlaying, append]);
 
   const [text, setText] = useState("");
+  // A final (committed) transcript is added to the chat by the voice session,
+  // so clear the composer rather than dropping the transcript back into it.
   const prevCommittedForBox = useRef(status.committed);
   useEffect(() => {
     if (status.committed !== prevCommittedForBox.current) {
       prevCommittedForBox.current = status.committed;
-      if (status.committed !== "") setText(status.committed);
+      if (status.committed !== "") setText("");
     }
   }, [status.committed]);
 
+  // True while the user is dictating: the VAD hears voice, or interim (partial)
+  // STT results are present. The composer shows the live partial and is locked.
+  const dictating = status.vadSpeaking || status.partial !== "";
+
   // Play-view sub-tabs. Session (mic + conversation) opens first.
   const [tab, setTab] = useState<"session" | "controls" | "debug">("session");
+  // The pinned program preview (Sparkline + Reset) is collapsed by default.
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Keep the chat transcript scrolled to the newest message/streamed reply.
+  const messagesRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = messagesRef.current;
+    if (el !== null) el.scrollTop = el.scrollHeight;
+  }, [
+    status.thread,
+    status.replyText,
+    status.replyPlaying,
+    status.awaitingSpeech,
+  ]);
+
+  // Focus the composer when the chat becomes visible (on load / entering Play).
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  useEffect(() => {
+    if (active && view === "play" && tab === "session") {
+      composerRef.current?.focus();
+    }
+  }, [active, view, tab]);
 
   const connected = vacuglide.connected;
 
@@ -358,43 +387,70 @@ export function CompanionsPanel({
         </Card>
       ) : (
         <>
-          {/* Sparkline pinned above the tabs — the program preview stays
-              visible on every tab. */}
-          <Card>
-            <Sparkline
-              points={player.upcoming.speed}
-              valves={player.upcoming.valves}
-            />
-            <div className="text-muted-foreground flex justify-between text-xs">
-              <span>now</span>
-              <span>+60s</span>
-            </div>
-          </Card>
-
-          {/* Sub-tabs — the top-level nav's underline style. No badges:
-              Companions registers no vosk words. */}
-          <nav className="flex gap-6 border-b">
-            {(
-              [
-                { id: "session", label: "Session" },
-                { id: "controls", label: "Controls" },
-                { id: "debug", label: "Debug" },
-              ] as const
-            ).map((t) => (
+          {/* Collapsible program preview, grouped tightly with the tabs so the
+              collapsed toggle doesn't leave a big gap above them. */}
+          <div className="flex flex-col gap-3">
+            <Card>
               <Button
-                key={t.id}
                 flash={false}
-                onClick={() => setTab(t.id)}
-                className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                  tab === t.id
-                    ? "border-foreground text-foreground"
-                    : "text-muted-foreground hover:text-foreground border-transparent"
-                }`}
+                onClick={() => setPreviewOpen((o) => !o)}
+                aria-expanded={previewOpen}
+                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 text-sm font-medium"
               >
-                {t.label}
+                {previewOpen ? (
+                  <ChevronDown className="size-4" />
+                ) : (
+                  <ChevronRight className="size-4" />
+                )}
+                Program preview
               </Button>
-            ))}
-          </nav>
+              {previewOpen && (
+                <div className="mt-3">
+                  <div className="mb-2 flex justify-end">
+                    <Button
+                      onClick={reset}
+                      className="bg-secondary rounded-md px-3 py-1 text-xs font-medium"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                  <Sparkline
+                    points={player.upcoming.speed}
+                    valves={player.upcoming.valves}
+                  />
+                  <div className="text-muted-foreground flex justify-between text-xs">
+                    <span>now</span>
+                    <span>+60s</span>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            {/* Sub-tabs — the top-level nav's underline style. No badges:
+              Companions registers no vosk words. */}
+            <nav className="flex gap-6 border-b">
+              {(
+                [
+                  { id: "session", label: "Session" },
+                  { id: "controls", label: "Controls" },
+                  { id: "debug", label: "Debug" },
+                ] as const
+              ).map((t) => (
+                <Button
+                  key={t.id}
+                  flash={false}
+                  onClick={() => setTab(t.id)}
+                  className={`-mb-px border-b-2 py-3 text-sm font-medium ${
+                    tab === t.id
+                      ? "border-foreground text-foreground"
+                      : "text-muted-foreground hover:text-foreground border-transparent"
+                  }`}
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </nav>
+          </div>
 
           {tab === "controls" && (
             <>
@@ -460,94 +516,54 @@ export function CompanionsPanel({
           )}
 
           {tab === "session" && (
-            <>
-              <Button
-                onClick={reset}
-                className="bg-secondary w-full rounded-lg px-6 py-3.5 text-lg font-bold"
-                badge="reset"
-              >
-                Reset
-              </Button>
-
-              <Card title="Microphone">
-                <Button
-                  onClick={() =>
-                    status.micOn ? stopListening() : startListening()
-                  }
-                  className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
-                    status.micOn
-                      ? "bg-foreground/10 hover:bg-foreground/20"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                  }`}
-                >
-                  {status.micOn ? "Stop listening" : "Start listening"}
-                </Button>
-                <div className="mt-2">
-                  <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
-                  <Row label="State">
-                    <span
-                      className={
-                        status.vadSpeaking ? "text-emerald-500" : undefined
-                      }
-                    >
-                      {status.vadSpeaking ? "speaking" : "quiet"}
-                    </span>
-                  </Row>
-                  <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
+            <div className="-mt-6 flex h-[calc(100dvh-13.5rem)] min-h-0 flex-col gap-3">
+              <Card className="shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Row label="State">
+                      <span
+                        className={
+                          status.vadSpeaking ? "text-emerald-500" : undefined
+                        }
+                      >
+                        {status.vadSpeaking ? "speaking" : "quiet"}
+                      </span>
+                    </Row>
+                    <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
+                  </div>
+                  <Button
+                    onClick={() =>
+                      status.micOn ? stopListening() : startListening()
+                    }
+                    aria-label={
+                      status.micOn ? "Stop listening" : "Start listening"
+                    }
+                    title={status.micOn ? "Stop listening" : "Start listening"}
+                    className={`flex shrink-0 items-center justify-center rounded-lg p-3 ${
+                      status.micOn
+                        ? "bg-foreground/10 hover:bg-foreground/20"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
+                    {status.micOn ? (
+                      <MicOff className="size-5" />
+                    ) : (
+                      <Mic className="size-5" />
+                    )}
+                  </Button>
                 </div>
               </Card>
 
-              <Card title="Conversation">
-                <p className="text-muted-foreground text-sm">
-                  Speak (hands-free) or type. <strong>Send</strong> runs the
-                  model only; <strong>Say it</strong> speaks the reply. Stop —
-                  or just talk over her — to cut it.
-                </p>
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Type a message, or speak…"
-                  className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
-                />
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    onClick={() => submitText(text, { speak: false })}
-                    disabled={text.trim() === "" || status.replyPlaying}
-                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                  >
-                    Send
-                  </Button>
-                  <Button
-                    onClick={() => submitText(text, { speak: true })}
-                    disabled={text.trim() === "" || status.replyPlaying}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Say it
-                  </Button>
-                  <Button
-                    onClick={cancelReply}
-                    disabled={!status.replyPlaying}
-                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                  >
-                    Stop
-                  </Button>
-                  <Button
-                    onClick={clearThread}
-                    disabled={status.replyPlaying || status.thread.length === 0}
-                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                  >
-                    Clear
-                  </Button>
-                  <span className="text-muted-foreground self-center text-sm">
-                    {status.replyPlaying ? "working…" : "idle"}
-                  </span>
-                </div>
-                {status.replyError !== null && (
-                  <p className="mt-2 text-sm text-red-500">
-                    Error: {status.replyError}
-                  </p>
-                )}
-                <div className="mt-3 flex flex-col gap-2">
+              <Card
+                title="Conversation"
+                className="flex min-h-0 flex-1 flex-col"
+              >
+                {/* Scrolling transcript — fills the space; newest at the bottom
+                    (auto-scrolled via messagesRef). */}
+                <div
+                  ref={messagesRef}
+                  className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
+                >
                   {status.thread.map((turn, i) => (
                     <ChatBubble key={i} role={turn.role} text={turn.content} />
                   ))}
@@ -587,8 +603,72 @@ export function CompanionsPanel({
                     </p>
                   )}
                 </div>
+
+                {/* Composer — pinned at the bottom. */}
+                <div className="shrink-0 space-y-2 border-t pt-2">
+                  {status.replyError !== null && (
+                    <p className="text-sm text-red-500">
+                      Error: {status.replyError}
+                    </p>
+                  )}
+                  <textarea
+                    ref={composerRef}
+                    value={dictating ? status.partial : text}
+                    disabled={dictating}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                      // Enter says it (speaks the reply); Shift+Enter inserts a newline.
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (text.trim() !== "" && !status.replyPlaying) {
+                          submitText(text, { speak: true });
+                          setText("");
+                        }
+                      }
+                    }}
+                    placeholder={
+                      dictating ? "Listening…" : "Type a message, or speak…"
+                    }
+                    className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 text-sm disabled:opacity-70"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => submitText(text, { speak: false })}
+                      disabled={text.trim() === "" || status.replyPlaying}
+                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      Send
+                    </Button>
+                    <Button
+                      onClick={() => submitText(text, { speak: true })}
+                      disabled={text.trim() === "" || status.replyPlaying}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      Say it
+                    </Button>
+                    <Button
+                      onClick={cancelReply}
+                      disabled={!status.replyPlaying}
+                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      Stop
+                    </Button>
+                    <Button
+                      onClick={clearThread}
+                      disabled={
+                        status.replyPlaying || status.thread.length === 0
+                      }
+                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                    >
+                      Clear
+                    </Button>
+                    <span className="text-muted-foreground self-center text-sm">
+                      {status.replyPlaying ? "working…" : "idle"}
+                    </span>
+                  </div>
+                </div>
               </Card>
-            </>
+            </div>
           )}
 
           {tab === "debug" && (
