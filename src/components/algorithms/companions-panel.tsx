@@ -459,9 +459,15 @@ export function CompanionsPanel({
               {/* In-progress reply: a live, dimmed Elise bubble that folds into
                   the thread on completion (replyPlaying flips false and the
                   committed assistant turn takes its place). */}
-              {status.replyPlaying && status.replyText !== "" && (
-                <ChatBubble role="assistant" text={status.replyText} pending />
-              )}
+              {status.replyPlaying &&
+                status.replyText !== "" &&
+                status.thread.at(-1)?.role !== "assistant" && (
+                  <ChatBubble
+                    role="assistant"
+                    text={status.replyText}
+                    pending
+                  />
+                )}
               {/* Pre-first-token gap: the existing Thinking… spinner. */}
               {status.replyPlaying &&
                 status.replyText === "" &&
