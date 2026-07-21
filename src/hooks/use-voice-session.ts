@@ -25,6 +25,7 @@ import { createStt, type Stt } from "@/lib/voice/stt";
 import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
 import {
   isBargeIn,
+  partialHasWord,
   shouldOpenSocket,
   type SttPhase,
 } from "@/lib/voice/session-policy";
@@ -113,6 +114,9 @@ export function useVoiceSession(opts?: {
   tools?: CompanionTool[];
   getDeviceState?: () => string;
   onToolRun?: (name: string, result: string) => void;
+  // Debug hook: emit a line into the panel's event log. Wired to the same
+  // append() as tool dispatch, for tracing the LLM/barge-in round-trip.
+  onLog?: (text: string, kind?: string) => void;
 }): VoiceSession {
   const [status, setStatus] = useState<VoiceStatus>(IDLE_STATUS);
 
@@ -133,6 +137,10 @@ export function useVoiceSession(opts?: {
     ((name: string, result: string) => void) | undefined
   >(opts?.onToolRun);
   onToolRunRef.current = opts?.onToolRun;
+  const onLogRef = useRef<((text: string, kind?: string) => void) | undefined>(
+    opts?.onLog,
+  );
+  onLogRef.current = opts?.onLog;
 
   // Live values read inside the once-created mic/STT callbacks — refs, not
   // state, so those callbacks never see a stale closure.
@@ -255,6 +263,7 @@ export function useVoiceSession(opts?: {
         const runLlm = async (
           messages: LlmMessage[],
           withTools: boolean,
+          label: string,
         ): Promise<{
           content: string;
           reasoning: unknown[] | undefined;
@@ -266,6 +275,8 @@ export function useVoiceSession(opts?: {
           let completionTokens: number | null = null;
           const start = performance.now();
           let ttftMs: number | null = null;
+          let deltas = 0;
+          onLogRef.current?.(`LLM ${label}: request sent`, "send");
           for await (const delta of llm.stream(messages, {
             signal: controller.signal,
             tools: withTools ? toRequestTools(toolsRef.current) : undefined,
@@ -280,16 +291,32 @@ export function useVoiceSession(opts?: {
             },
           })) {
             if (controller.signal.aborted || turnRef.current !== controller) {
+              onLogRef.current?.(
+                `LLM ${label}: aborted after ${deltas} delta(s)`,
+                "info",
+              );
               return null;
             }
-            if (ttftMs === null) ttftMs = performance.now() - start;
+            if (ttftMs === null) {
+              ttftMs = performance.now() - start;
+              onLogRef.current?.(`LLM ${label}: first token`, "recv");
+            }
+            deltas += 1;
             content += delta;
             setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
           }
           const totalMs = performance.now() - start;
           if (controller.signal.aborted || turnRef.current !== controller) {
+            onLogRef.current?.(
+              `LLM ${label}: aborted at stream end (${deltas} delta(s))`,
+              "info",
+            );
             return null;
           }
+          onLogRef.current?.(
+            `LLM ${label}: complete — ${deltas} delta(s), ${content.length} char(s), ${toolCalls.length} tool call(s)`,
+            "recv",
+          );
           if (ttftMs !== null) {
             const ttft = ttftMs;
             const decodeSec = Math.max((totalMs - ttft) / 1000, 0.001);
@@ -351,7 +378,7 @@ export function useVoiceSession(opts?: {
 
           // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
           // pre-tool line ("mm, let me get you going") and the call in one turn.
-          const r1 = await runLlm(baseMessages, true);
+          const r1 = await runLlm(baseMessages, true, "call-1");
           if (r1 === null) return;
 
           let reply = r1.content;
@@ -416,7 +443,7 @@ export function useVoiceSession(opts?: {
             // The reaction is the second spoken block; clear the streamed
             // pre-tool text so it streams fresh.
             setStatus((s) => ({ ...s, replyText: "" }));
-            const r2 = await runLlm(call2, false);
+            const r2 = await runLlm(call2, false, "call-2");
             if (r2 === null) return;
             reply = r2.content;
             reasoning = r2.reasoning;
@@ -482,7 +509,21 @@ export function useVoiceSession(opts?: {
     ensureClients();
 
     const stt = createStt({
-      onPartial: (text) => setStatus((s) => ({ ...s, partial: text })),
+      onPartial: (text) => {
+        setStatus((s) => ({ ...s, partial: text }));
+        // Barge-in fires here, not on VAD onset: cut the companion off only once
+        // the STT has decoded a real word, so raw mic energy (a cough, a thump,
+        // her voice leaking past AEC) no longer interrupts her mid-sentence.
+        // Barge-in needs BOTH a decoded word AND live mic energy: a partial on
+        // its own can be an STT phantom (a token hallucinated on near-silence
+        // when the socket opens), which would cut her off mid-reply though no one
+        // spoke. Requiring vadSpeaking too means only real speech interrupts her.
+        const speechConfirmed = partialHasWord(text) && vadSpeakingRef.current;
+        if (isBargeIn(replyPlayingRef.current, speechConfirmed)) {
+          onLogRef.current?.(`barge-in: cut reply on "${text}"`, "info");
+          cancelReply();
+        }
+      },
       onCommitted: (text) => {
         // A committed transcript is a spoken turn: hands-free, so run it as a
         // "say it" (LLM → speak) without waiting on a button. Clear the interim
@@ -509,13 +550,10 @@ export function useVoiceSession(opts?: {
       },
       onOnset: () => {
         vadSpeakingRef.current = true;
-        // Barge-in: interrupt the companion's reply mid-sentence.
-        if (isBargeIn(replyPlayingRef.current, true)) {
-          cancelReply();
-        }
-        // Whether or not it was a barge-in, an onset from a closed socket opens
-        // a fresh listening turn, flushing the pre-roll so the opening word
-        // isn't clipped.
+        // Onset no longer cuts the reply — that waits for a decoded word in
+        // onPartial. It still opens a fresh listening turn from a closed socket,
+        // flushing the pre-roll so the opening word isn't clipped (this is also
+        // what starts the audio flowing so a partial can arrive to barge in on).
         if (shouldOpenSocket(stt.phase(), true)) {
           const preRoll = micHandleRef.current?.preRoll.flush() ?? [];
           void stt.open(preRoll).catch(() => {});

@@ -3,6 +3,7 @@ import {
   shouldOpenSocket,
   shouldCloseSocket,
   isBargeIn,
+  partialHasWord,
 } from "./session-policy";
 
 describe("session-policy", () => {
@@ -19,9 +20,17 @@ describe("session-policy", () => {
     expect(shouldCloseSocket("closed", 0, 999999, 8000)).toBe(false);
   });
 
-  it("is a barge-in only when a reply is playing and speech onsets", () => {
+  it("is a barge-in only when a reply is playing and speech is confirmed", () => {
     expect(isBargeIn(true, true)).toBe(true);
     expect(isBargeIn(false, true)).toBe(false);
     expect(isBargeIn(true, false)).toBe(false);
+  });
+
+  it("counts a partial as a word only once it holds a real word", () => {
+    expect(partialHasWord("stop")).toBe(true);
+    expect(partialHasWord("  hey ")).toBe(true);
+    expect(partialHasWord("")).toBe(false);
+    expect(partialHasWord("  ")).toBe(false);
+    expect(partialHasWord("...")).toBe(false);
   });
 });
