@@ -326,6 +326,9 @@ export function CompanionsPanel({
     }
   }, [status.committed]);
 
+  // Play-view sub-tabs. Session (mic + conversation) opens first.
+  const [tab, setTab] = useState<"session" | "controls" | "debug">("session");
+
   const connected = vacuglide.connected;
 
   return (
@@ -355,14 +358,8 @@ export function CompanionsPanel({
         </Card>
       ) : (
         <>
-          <SessionControls
-            state={state}
-            connected={connected}
-            onStart={startProgram}
-            onStop={stopProgram}
-            onReset={reset}
-          />
-
+          {/* Sparkline pinned above the tabs — the program preview stays
+              visible on every tab. */}
           <Card>
             <Sparkline
               points={player.upcoming.speed}
@@ -374,246 +371,304 @@ export function CompanionsPanel({
             </div>
           </Card>
 
-          <StrokeCard
-            strokeDisabled={!stroke.canStroke}
-            strokePulsing={stroke.strokePulsing}
-            onValvePlus={vacuglide.valvePlus}
-            onValveMinus={vacuglide.valveMinus}
-            onError={logError}
-            voice={false}
-          />
+          {/* Sub-tabs — the top-level nav's underline style. No badges:
+              Companions registers no vosk words. */}
+          <nav className="flex gap-6 border-b">
+            {(
+              [
+                { id: "session", label: "Session" },
+                { id: "controls", label: "Controls" },
+                { id: "debug", label: "Debug" },
+              ] as const
+            ).map((t) => (
+              <Button
+                key={t.id}
+                flash={false}
+                onClick={() => setTab(t.id)}
+                className={`-mb-px border-b-2 py-3 text-sm font-medium ${
+                  tab === t.id
+                    ? "border-foreground text-foreground"
+                    : "text-muted-foreground hover:text-foreground border-transparent"
+                }`}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </nav>
 
-          {/* On-screen program-shape knobs. */}
-          <Card title="Intensity">
-            <Segmented
-              options={[
-                { value: "warmup", label: "Warmup" },
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
-              ]}
-              value={intensity}
-              onChange={changeIntensity}
-              activeClass="bg-blue-600 text-white"
-            />
-          </Card>
+          {tab === "controls" && (
+            <>
+              <SessionControls
+                state={state}
+                connected={connected}
+                onStart={startProgram}
+                onStop={stopProgram}
+                onReset={reset}
+                showReset={false}
+              />
 
-          <Card title="Edge Control">
-            <Segmented
-              options={[
-                { value: "gentle", label: "Gentle" },
-                { value: "moderate", label: "Moderate" },
-                { value: "intense", label: "Intense" },
-              ]}
-              value={edge}
-              onChange={changeEdge}
-              activeClass="bg-orange-500 text-white"
-            />
-          </Card>
+              <StrokeCard
+                strokeDisabled={!stroke.canStroke}
+                strokePulsing={stroke.strokePulsing}
+                onValvePlus={vacuglide.valvePlus}
+                onValveMinus={vacuglide.valveMinus}
+                onError={logError}
+                voice={false}
+              />
 
-          <Card title="Vacuum Maintenance">
-            <Segmented
-              options={[
-                { value: "off", label: "Off" },
-                { value: "little", label: "Light" },
-                { value: "more", label: "Heavy" },
-              ]}
-              value={suction}
-              onChange={changeSuction}
-              activeClass="bg-cyan-600 text-white"
-            />
-          </Card>
+              {/* On-screen program-shape knobs. */}
+              <Card title="Intensity">
+                <Segmented
+                  options={[
+                    { value: "warmup", label: "Warmup" },
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                  ]}
+                  value={intensity}
+                  onChange={changeIntensity}
+                  activeClass="bg-blue-600 text-white"
+                />
+              </Card>
 
-          <Card title="Microphone">
-            <Button
-              onClick={() =>
-                status.micOn ? stopListening() : startListening()
-              }
-              className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
-                status.micOn
-                  ? "bg-foreground/10 hover:bg-foreground/20"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-            >
-              {status.micOn ? "Stop listening" : "Start listening"}
-            </Button>
-            <div className="mt-2">
-              <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
-              <Row label="State">
-                <span
-                  className={
-                    status.vadSpeaking ? "text-emerald-500" : undefined
+              <Card title="Edge Control">
+                <Segmented
+                  options={[
+                    { value: "gentle", label: "Gentle" },
+                    { value: "moderate", label: "Moderate" },
+                    { value: "intense", label: "Intense" },
+                  ]}
+                  value={edge}
+                  onChange={changeEdge}
+                  activeClass="bg-orange-500 text-white"
+                />
+              </Card>
+
+              <Card title="Vacuum Maintenance">
+                <Segmented
+                  options={[
+                    { value: "off", label: "Off" },
+                    { value: "little", label: "Light" },
+                    { value: "more", label: "Heavy" },
+                  ]}
+                  value={suction}
+                  onChange={changeSuction}
+                  activeClass="bg-cyan-600 text-white"
+                />
+              </Card>
+            </>
+          )}
+
+          {tab === "session" && (
+            <>
+              <Button
+                onClick={reset}
+                className="bg-secondary w-full rounded-lg px-6 py-3.5 text-lg font-bold"
+                badge="reset"
+              >
+                Reset
+              </Button>
+
+              <Card title="Microphone">
+                <Button
+                  onClick={() =>
+                    status.micOn ? stopListening() : startListening()
                   }
+                  className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
+                    status.micOn
+                      ? "bg-foreground/10 hover:bg-foreground/20"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
                 >
-                  {status.vadSpeaking ? "speaking" : "quiet"}
-                </span>
-              </Row>
-              <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
-            </div>
-          </Card>
+                  {status.micOn ? "Stop listening" : "Start listening"}
+                </Button>
+                <div className="mt-2">
+                  <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
+                  <Row label="State">
+                    <span
+                      className={
+                        status.vadSpeaking ? "text-emerald-500" : undefined
+                      }
+                    >
+                      {status.vadSpeaking ? "speaking" : "quiet"}
+                    </span>
+                  </Row>
+                  <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
+                </div>
+              </Card>
 
-          <Card title="Conversation">
-            <p className="text-muted-foreground text-sm">
-              Speak (hands-free) or type. <strong>Send</strong> runs the model
-              only; <strong>Say it</strong> speaks the reply. Stop — or just
-              talk over her — to cut it.
-            </p>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Type a message, or speak…"
-              className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
-            />
-            <div className="mt-2 flex gap-2">
-              <Button
-                onClick={() => submitText(text, { speak: false })}
-                disabled={text.trim() === "" || status.replyPlaying}
-                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Send
-              </Button>
-              <Button
-                onClick={() => submitText(text, { speak: true })}
-                disabled={text.trim() === "" || status.replyPlaying}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                Say it
-              </Button>
-              <Button
-                onClick={cancelReply}
-                disabled={!status.replyPlaying}
-                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Stop
-              </Button>
-              <Button
-                onClick={clearThread}
-                disabled={status.replyPlaying || status.thread.length === 0}
-                className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-              >
-                Clear
-              </Button>
-              <span className="text-muted-foreground self-center text-sm">
-                {status.replyPlaying ? "working…" : "idle"}
-              </span>
-            </div>
-            {status.replyError !== null && (
-              <p className="mt-2 text-sm text-red-500">
-                Error: {status.replyError}
-              </p>
-            )}
-            <div className="mt-3 flex flex-col gap-2">
-              {status.thread.map((turn, i) => (
-                <ChatBubble key={i} role={turn.role} text={turn.content} />
-              ))}
-              {/* In-progress reply: a live, dimmed Elise bubble shown only until
+              <Card title="Conversation">
+                <p className="text-muted-foreground text-sm">
+                  Speak (hands-free) or type. <strong>Send</strong> runs the
+                  model only; <strong>Say it</strong> speaks the reply. Stop —
+                  or just talk over her — to cut it.
+                </p>
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Type a message, or speak…"
+                  className="bg-foreground/5 mt-2 min-h-16 w-full rounded-lg p-2 text-sm"
+                />
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    onClick={() => submitText(text, { speak: false })}
+                    disabled={text.trim() === "" || status.replyPlaying}
+                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    Send
+                  </Button>
+                  <Button
+                    onClick={() => submitText(text, { speak: true })}
+                    disabled={text.trim() === "" || status.replyPlaying}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Say it
+                  </Button>
+                  <Button
+                    onClick={cancelReply}
+                    disabled={!status.replyPlaying}
+                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    Stop
+                  </Button>
+                  <Button
+                    onClick={clearThread}
+                    disabled={status.replyPlaying || status.thread.length === 0}
+                    className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  >
+                    Clear
+                  </Button>
+                  <span className="text-muted-foreground self-center text-sm">
+                    {status.replyPlaying ? "working…" : "idle"}
+                  </span>
+                </div>
+                {status.replyError !== null && (
+                  <p className="mt-2 text-sm text-red-500">
+                    Error: {status.replyError}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-col gap-2">
+                  {status.thread.map((turn, i) => (
+                    <ChatBubble key={i} role={turn.role} text={turn.content} />
+                  ))}
+                  {/* In-progress reply: a live, dimmed Elise bubble shown only until
                   the assistant turn commits — once the thread's last turn is the
                   assistant turn (the tail check below), the committed bubble
                   replaces it, even while a spoken reply is still playing. */}
-              {status.replyPlaying &&
-                status.replyText !== "" &&
-                status.thread.at(-1)?.role !== "assistant" && (
-                  <ChatBubble
-                    role="assistant"
-                    text={status.replyText}
-                    pending
-                  />
-                )}
-              {/* Pre-first-token gap: the existing Thinking… spinner. */}
-              {status.replyPlaying &&
-                status.replyText === "" &&
-                status.replyError === null && (
-                  <div className="flex justify-start">
-                    <p className="text-muted-foreground flex min-h-6 items-center gap-2 rounded-2xl px-3 py-2 text-sm">
-                      <Spinner />
-                      Thinking…
+                  {status.replyPlaying &&
+                    status.replyText !== "" &&
+                    status.thread.at(-1)?.role !== "assistant" && (
+                      <ChatBubble
+                        role="assistant"
+                        text={status.replyText}
+                        pending
+                      />
+                    )}
+                  {/* Pre-first-token gap: the existing Thinking… spinner. */}
+                  {status.replyPlaying &&
+                    status.replyText === "" &&
+                    status.replyError === null && (
+                      <div className="flex justify-start">
+                        <p className="text-muted-foreground flex min-h-6 items-center gap-2 rounded-2xl px-3 py-2 text-sm">
+                          <Spinner />
+                          Thinking…
+                        </p>
+                      </div>
+                    )}
+                  {status.thread.length === 0 && !status.replyPlaying && (
+                    <p className="text-muted-foreground text-sm">
+                      No messages yet.
                     </p>
-                  </div>
-                )}
-              {status.thread.length === 0 && !status.replyPlaying && (
-                <p className="text-muted-foreground text-sm">
-                  No messages yet.
-                </p>
-              )}
-              {status.awaitingSpeech && (
-                <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
-                  <Spinner />
-                  Waiting for speech…
-                </p>
-              )}
-            </div>
-          </Card>
+                  )}
+                  {status.awaitingSpeech && (
+                    <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
+                      <Spinner />
+                      Waiting for speech…
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </>
+          )}
 
-          <Card title="STT debug" bordered>
-            <div className="text-muted-foreground flex gap-4 text-xs">
-              <span>STT {status.phase}</span>
-              <span>pre-roll {status.preRollFrames}</span>
-            </div>
-            <div className="mt-2 text-sm">
-              <p className="min-h-6">
-                <span className="text-muted-foreground text-xs">finished </span>
-                {status.committed !== "" ? (
-                  status.committed
+          {tab === "debug" && (
+            <>
+              <Card title="STT debug" bordered>
+                <div className="text-muted-foreground flex gap-4 text-xs">
+                  <span>STT {status.phase}</span>
+                  <span>pre-roll {status.preRollFrames}</span>
+                </div>
+                <div className="mt-2 text-sm">
+                  <p className="min-h-6">
+                    <span className="text-muted-foreground text-xs">
+                      finished{" "}
+                    </span>
+                    {status.committed !== "" ? (
+                      status.committed
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </p>
+                  <p className="min-h-6">
+                    <span className="text-muted-foreground text-xs">
+                      partial{" "}
+                    </span>
+                    {status.partial !== "" ? (
+                      <span className="text-muted-foreground">
+                        {status.partial}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </p>
+                </div>
+              </Card>
+
+              <Card title="Latency" bordered>
+                <p className="text-muted-foreground mb-1 text-xs">LLM</p>
+                {status.metrics.llm === null ? (
+                  <p className="text-muted-foreground text-sm">—</p>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <>
+                    <Row label="First token">
+                      {Math.round(status.metrics.llm.ttftMs)} ms
+                    </Row>
+                    <Row label="Throughput">
+                      {status.metrics.llm.tps === null
+                        ? "—"
+                        : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
+                    </Row>
+                    <Row label="Total">
+                      {Math.round(status.metrics.llm.totalMs)} ms
+                    </Row>
+                  </>
                 )}
-              </p>
-              <p className="min-h-6">
-                <span className="text-muted-foreground text-xs">partial </span>
-                {status.partial !== "" ? (
-                  <span className="text-muted-foreground">
-                    {status.partial}
-                  </span>
+                <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
+                {status.metrics.tts === null ? (
+                  <p className="text-muted-foreground text-sm">—</p>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <>
+                    <Row label="First audio">
+                      {status.metrics.tts.ttfbMs === null
+                        ? "—"
+                        : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
+                    </Row>
+                    <Row label="Total">
+                      {Math.round(status.metrics.tts.totalMs)} ms
+                    </Row>
+                  </>
                 )}
-              </p>
-            </div>
-          </Card>
+              </Card>
 
-          <Card title="Latency" bordered>
-            <p className="text-muted-foreground mb-1 text-xs">LLM</p>
-            {status.metrics.llm === null ? (
-              <p className="text-muted-foreground text-sm">—</p>
-            ) : (
-              <>
-                <Row label="First token">
-                  {Math.round(status.metrics.llm.ttftMs)} ms
-                </Row>
-                <Row label="Throughput">
-                  {status.metrics.llm.tps === null
-                    ? "—"
-                    : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
-                </Row>
-                <Row label="Total">
-                  {Math.round(status.metrics.llm.totalMs)} ms
-                </Row>
-              </>
-            )}
-            <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
-            {status.metrics.tts === null ? (
-              <p className="text-muted-foreground text-sm">—</p>
-            ) : (
-              <>
-                <Row label="First audio">
-                  {status.metrics.tts.ttfbMs === null
-                    ? "—"
-                    : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
-                </Row>
-                <Row label="Total">
-                  {Math.round(status.metrics.tts.totalMs)} ms
-                </Row>
-              </>
-            )}
-          </Card>
+              <EventLog entries={log} />
 
-          <EventLog entries={log} />
-
-          <LogCard
-            title="Command log"
-            header={<RateLimitMeter {...vacuglide.rateLimit} />}
-            entries={vacuglide.logEntries}
-          />
+              <LogCard
+                title="Command log"
+                header={<RateLimitMeter {...vacuglide.rateLimit} />}
+                entries={vacuglide.logEntries}
+              />
+            </>
+          )}
         </>
       )}
     </section>
