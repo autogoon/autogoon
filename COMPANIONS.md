@@ -80,12 +80,13 @@ and `stop`), and when she calls one the panel runs the same device transport the
 manual buttons use. Whether she acts on a request or declines is a disposition
 written into her `systemPrompt`, not a code gate.
 
-The device's **current state is folded into her system message every turn** —
-whether the toy is connected, and whether it's running or stopped — so she
-always knows the state without a status tool (this is also the groundwork for
-the upcoming/narration device-state the thread will carry). Tool calls are
-executed as a side effect of a turn and are **not** persisted into the
-conversation thread; only her spoken reply (and reasoning) is stored, as before.
+The device's **current state is folded into her system message every turn**, as
+**two independent axes** — whether the toy is **connected** to the app (what "is
+it on?" asks) and whether the **program** is running/started vs stopped — so she
+always knows both without a status tool (this is also the groundwork for the
+upcoming/narration device-state the thread will carry). Tool calls are executed
+as a side effect of a turn and are **not** persisted into the conversation
+thread; only her spoken reply (and reasoning) is stored, as before.
 
 ## Configuration
 

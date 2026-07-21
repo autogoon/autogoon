@@ -36,13 +36,14 @@ personality decides use.
   **ambient device-state context** (next decision) carries the outcome into the
   next turn. She can return spoken `content` **and** a tool call in the same
   turn ("Mm, let's get you going" + `start`), so there is no added latency.
-- **Device state is ambient context, not a tool.** She always knows whether the
-  toy is connected and running because the current state is folded into her
-  **system message every turn** — there is **no `status` tool**. This serves the
-  goal (she can tell/remember if it's running) with zero round-trips and no
-  chance of her starting an already-running toy, and it is exactly the
-  current+upcoming device state the proactive-speech phase already plans to
-  carry on the thread — groundwork built early, not a throwaway.
+- **Device state is ambient context, not a tool.** She always knows both the
+  toy's **connection** and whether the **program** is running because the
+  current state is folded into her **system message every turn** — there is **no
+  `status` tool**. This serves the goal (she can tell/remember if it's connected
+  and if it's running) with zero round-trips and no chance of her starting an
+  already-running toy, and it is exactly the current+upcoming device state the
+  proactive-speech phase already plans to carry on the thread — groundwork built
+  early, not a throwaway.
 - **Tool calls are not persisted.** Only spoken `content` (+
   `reasoning_details`) is committed to the rolling thread, exactly as now. The
   persisted history stays clean `user`/`assistant` content — no `tool` role
@@ -165,14 +166,21 @@ and rare.
 
 The panel already holds everything the line needs — `player.state` (via the
 `isCurrent` check) and `vacuglide.connected`. It passes `getDeviceState` reading
-those live, yielding one of:
+those live. The line reports **two independent axes**, always both — the
+**connection** (is the toy linked to the app, i.e. what "is it on?" asks) and
+the **program** (running/started vs stopped) — since they are orthogonal
+(connected but stopped is a normal state):
 
-- `Device state: the toy is connected and running.`
-- `Device state: the toy is connected and stopped.`
-- `Device state: the toy is not connected.`
+- `Device state: the toy is connected to the app; the program is running.`
+- `Device state: the toy is connected to the app; the program is stopped.`
+- `Device state: the toy is not connected to the app; the program is stopped.`
+  (and the `not connected` + `running` combination if the program is playing
+  while the link is down)
 
 Wording is plain English so it reads naturally as context to the model; the
-exact phrasing is settled during bring-up against how M2 reacts.
+exact phrasing is settled during bring-up against how M2 reacts. Elise's prompt
+teaches her the two axes so she maps "on/connected" and "running/started"
+correctly.
 
 ### 5. Tool declaration + wiring in the panel
 
@@ -252,9 +260,11 @@ first").
 - **Manual bring-up** (the real gate): with the device connected, ask Elise to
   start — confirm the program runs, `SessionControls` flips to playing, and the
   Events log shows the `start`. Ask her to stop — confirm it pauses. Confirm she
-  _knows_ the state (ask "is it on?" and she answers from context without a tool
-  call). Barge-in / Stop mid-generation and confirm **no** tool fires and no
-  partial turn commits. Confirm the manual buttons still work and stay in sync.
+  _knows_ both axes from context, without a tool call: ask "is it connected?"
+  (connection) and "is it running?" (started/stopped) and check each answer
+  tracks the real state. Barge-in / Stop mid-generation and confirm **no** tool
+  fires and no partial turn commits. Confirm the manual buttons still work and
+  stay in sync.
 
 ## Open items / notes
 
