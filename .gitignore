@@ -9,7 +9,7 @@ test-results/
 playwright-report/
 
 # Env files — NEVER commit secrets (this repo is public). Real keys live in
-# .env.local, which is ignored here; .env.example is a committed, secret-free
+# .env, which is ignored here; .env.example is a committed, secret-free
 # template.
 .env
 .env.*

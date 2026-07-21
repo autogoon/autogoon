@@ -30,7 +30,7 @@ Playwright (e2e).
   each commit; run `npm run build` (it runs `tsc`, catching RSC issues the dev
   server tolerates) for tasks touching the panel/page.
 - **No secret in any committed file.** The repo is public. The OpenRouter key
-  lives **only** in `.env.local` (gitignored via `.env.*`). Never put it in
+  lives **only** in `.env` (gitignored via `.env.*`). Never put it in
   `.env.example`, the plan, the spec, the changelog, code, or a commit message.
 - **No Co-Authored-By lines in commits.**
 - **Engines don't import each other.** `CompanionEngine` is already
@@ -264,7 +264,7 @@ git commit -m "Companions: point the LLM proxy at OpenRouter (bearer key, client
 - Modify: `src/lib/llm/client.ts`
 - Modify: `src/hooks/use-voice-session.ts`
 - Modify: `.env.example`
-- Create: `.env.local` (gitignored — do NOT commit)
+- Create: `.env` (gitignored — do NOT commit)
 - Delete: `elise.Modelfile`
 - Rewrite: `COMPANIONS.md`
 - Modify: `docs/superpowers/specs/2026-07-18-companions-design.md` (LLM/Secrets
@@ -418,15 +418,15 @@ Replace the `LLM_URL` / `LLM_MODEL` block in `.env.example` with:
 LLM_URL=https://openrouter.ai/api/v1
 
 # OpenRouter API key — read server-side only (the /api/llm proxy route adds it as
-# a Bearer header). NEVER commit a real key; it belongs only in .env.local.
+# a Bearer header). NEVER commit a real key; it belongs only in .env.
 OPENROUTER_API_KEY=
 ```
 
 Leave the `ELEVENLABS_API_KEY` block and the file's header comments unchanged.
 
-- [ ] **Step 6: Create `.env.local` with the real values (do NOT commit)**
+- [ ] **Step 6: Create `.env` with the real values (do NOT commit)**
 
-Create `.env.local` (already matched by `.env.*` in `.gitignore`) containing:
+Create `.env` (already matched by `.env.*` in `.gitignore`) containing:
 
 - `LLM_URL=https://openrouter.ai/api/v1`
 - `OPENROUTER_API_KEY=` set to the `sk-or-…` key the user provided in the
@@ -435,7 +435,7 @@ Create `.env.local` (already matched by `.env.*` in `.gitignore`) containing:
 
 Verify it is ignored:
 
-Run: `git check-ignore .env.local` Expected: prints `.env.local` (i.e. it is
+Run: `git check-ignore .env` Expected: prints `.env` (i.e. it is
 ignored). If it prints nothing, STOP — do not proceed; the key must never be
 staged.
 
@@ -450,7 +450,7 @@ cards. It should cover:
 - The app talks to OpenRouter's OpenAI-compatible endpoint via the same-origin
   `/api/llm` proxy, which injects `OPENROUTER_API_KEY` server-side.
 - Configuration: `LLM_URL` (`https://openrouter.ai/api/v1`) and
-  `OPENROUTER_API_KEY` in `.env.local`; no `LLM_MODEL` (per-companion).
+  `OPENROUTER_API_KEY` in `.env`; no `LLM_MODEL` (per-companion).
 - Adding a companion: add a `Companion` entry with its
   model/context/voice/persona; put a long persona in its own `*-prompt.ts`
   module.
@@ -488,11 +488,11 @@ build succeeds.
 git add src/lib/companions/elise-prompt.ts src/lib/companions/companions.ts \
   src/lib/llm/client.ts src/hooks/use-voice-session.ts .env.example \
   COMPANIONS.md docs/superpowers/specs/2026-07-18-companions-design.md
-git status   # confirm .env.local is NOT listed
+git status   # confirm .env is NOT listed
 git commit -m "Companions: move persona into config + per-companion model/context; drop the Ollama Modelfile"
 ```
 
-> After this task, manually verify the LLM path end-to-end (needs `.env.local`):
+> After this task, manually verify the LLM path end-to-end (needs `.env`):
 > `npm run dev`, open Companions, type a message, press **Send** — Elise should
 > reply as herself over OpenRouter. (Full session verification is Task 5.)
 
@@ -1423,7 +1423,7 @@ it from the `git add`.)
 
 - [ ] **Step 1: Drive the whole phase end-to-end**
 
-With `.env.local` populated and `npm run dev` running:
+With `.env` populated and `npm run dev` running:
 
 1. Home → Companions → setup view shows Elise → **Begin** →
    `Home › Companions › Play`.
@@ -1471,9 +1471,9 @@ git commit -m "Companions: changelog for Phase 4 (device integration + OpenRoute
 
 ## Self-Review notes (for the implementer)
 
-- **Secret discipline is the top risk.** `.env.local` is the only home for the
+- **Secret discipline is the top risk.** `.env` is the only home for the
   key; Step 6 of Task 2 verifies `git check-ignore` before anything is staged,
-  and Task 2 Step 9 checks `git status` shows no `.env.local`. If either check
+  and Task 2 Step 9 checks `git status` shows no `.env`. If either check
   fails, stop.
 - **No vosk words in Companions** is deliberate and load-bearing for this phase
   (avoids the two-mic collision the safeword + barge-in tuning work reconciles);

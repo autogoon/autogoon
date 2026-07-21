@@ -12,6 +12,14 @@ code in this repository.
 - `npm run lint` — `eslint --max-warnings 0`.
 - `npm run format` — Prettier over `src` and root config/docs.
 
+## Secrets / environment
+
+Real keys live in **`.env`** (gitignored via `.env` / `.env.*`), **not**
+`.env.local`. Copy [`.env.example`](./.env.example) to `.env` and fill in real
+values; never commit a real key (the repo is public). All secret-bearing vars
+(`ELEVENLABS_API_KEY`, `OPENROUTER_API_KEY`, `LLM_URL`) are read server-side
+only — none are `NEXT_PUBLIC_*`.
+
 ## Verifying changes
 
 - `npm test` — Jest unit tests (`src/**/*.test.ts`, colocated, node environment,
