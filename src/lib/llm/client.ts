@@ -107,7 +107,7 @@ export function createLlmClient(model: string): LlmClient {
       if (delta) yield delta;
       const rd = (choice?.delta as DeltaWithReasoning | undefined)
         ?.reasoning_details;
-      if (rd !== undefined) mergeReasoning(reasoning, rd);
+      if (rd != null) mergeReasoning(reasoning, rd);
       const usage = chunk.usage;
       if (usage != null) {
         opts.onUsage?.({ completionTokens: usage.completion_tokens });
