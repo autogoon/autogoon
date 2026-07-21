@@ -9,18 +9,18 @@ persona.**
 
 The app talks to **OpenRouter**'s OpenAI-compatible chat-completions endpoint —
 Claude and the OpenAI APIs both restrict explicit content, so neither is viable
-here. OpenRouter fronts a wide range of hosted models, so each companion can pick
-whichever model suits her persona (and swap it later) without standing up any
-infrastructure. Explicit-content suitability is a property of the **chosen
+here. OpenRouter fronts a wide range of hosted models, so each companion can
+pick whichever model suits her persona (and swap it later) without standing up
+any infrastructure. Explicit-content suitability is a property of the **chosen
 model**, not of OpenRouter itself — Elise currently uses a permissive model
 (`minimax/minimax-m2:nitro`) precisely because it doesn't restrict the kind of
-roleplay her persona calls for; picking a different, more restrictive model for a
-future companion would reintroduce that limit for her.
+roleplay her persona calls for; picking a different, more restrictive model for
+a future companion would reintroduce that limit for her.
 
-Calls go through the app's same-origin **`/api/llm` proxy route**, which forwards
-to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header —
-same-origin for the browser (no CORS juggling), streaming passes straight
-through, and the key never reaches the client.
+Calls go through the app's same-origin **`/api/llm` proxy route**, which
+forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
+header — same-origin for the browser (no CORS juggling), streaming passes
+straight through, and the key never reaches the client.
 
 ## One config object per companion
 
@@ -50,11 +50,11 @@ export type Companion = {
 
 ### Adding a companion
 
-Add a new `Companion` entry with its own `model`, `contextWindow`, `voiceId`, and
-`systemPrompt`. If the persona text is long (as personas tend to be), give it its
-own module — e.g. `elise-prompt.ts` exports `ELISE_SYSTEM_PROMPT`, a plain
-template-literal string — and import it into `companions.ts`, so the companion
-list itself stays readable.
+Add a new `Companion` entry with its own `model`, `contextWindow`, `voiceId`,
+and `systemPrompt`. If the persona text is long (as personas tend to be), give
+it its own module — e.g. `elise-prompt.ts` exports `ELISE_SYSTEM_PROMPT`, a
+plain template-literal string — and import it into `companions.ts`, so the
+companion list itself stays readable.
 
 ## Configuration
 
