@@ -712,12 +712,17 @@ const tools = useMemo<CompanionTool[]>(
 Alongside the other callbacks:
 
 ```ts
+// Two independent axes, always both reported: connection (is the toy linked to
+// the app — what "is it on?" asks) and the program (running/started vs stopped).
 const getDeviceState = useCallback((): string => {
-  if (!vacuglide.connected) return "Device state: the toy is not connected.";
-  const running = player.source === engine && player.state === "playing";
-  return running
-    ? "Device state: the toy is connected and running."
-    : "Device state: the toy is connected and stopped.";
+  const connection = vacuglide.connected
+    ? "the toy is connected to the app"
+    : "the toy is not connected to the app";
+  const program =
+    player.source === engine && player.state === "playing"
+      ? "the program is running"
+      : "the program is stopped";
+  return `Device state: ${connection}; ${program}.`;
 }, [vacuglide.connected, player.source, player.state, engine]);
 ```
 
@@ -763,8 +768,9 @@ connected:
    `SessionControls` flips to playing, the Events log shows
    `tool: start → started`, and her spoken line plays.
 3. Ask her to stop. Confirm it pauses and logs `tool: stop → stopped`.
-4. Ask "is it still going?" — confirm she answers correctly **without** a tool
-   call (she reads it from the injected state line).
+4. Ask about each axis separately — "is it connected?" (connection) and "is it
+   running?" (started/stopped) — and confirm each answer tracks the real state,
+   **without** a tool call (she reads both from the injected state line).
 5. Ask her to start, then **barge-in / Stop mid-generation** — confirm no tool
    fires and no partial assistant turn commits.
 6. Confirm the manual Start/Stop buttons still work and stay in sync with

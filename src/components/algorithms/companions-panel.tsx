@@ -187,12 +187,17 @@ export function CompanionsPanel({
     [startProgram, stopProgram],
   );
 
+  // Two independent axes, always both reported: connection (is the toy linked to
+  // the app — what "is it on?" asks) and the program (running/started vs stopped).
   const getDeviceState = useCallback((): string => {
-    if (!vacuglide.connected) return "Device state: the toy is not connected.";
-    const running = player.source === engine && player.state === "playing";
-    return running
-      ? "Device state: the toy is connected and running."
-      : "Device state: the toy is connected and stopped.";
+    const connection = vacuglide.connected
+      ? "the toy is connected to the app"
+      : "the toy is not connected to the app";
+    const program =
+      player.source === engine && player.state === "playing"
+        ? "the program is running"
+        : "the program is stopped";
+    return `Device state: ${connection}; ${program}.`;
   }, [vacuglide.connected, player.source, player.state, engine]);
 
   const {
