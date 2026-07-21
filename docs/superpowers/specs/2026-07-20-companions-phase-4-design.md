@@ -55,16 +55,16 @@ is small and there is no value in a throwaway intermediate step.
 
 ### Explicitly deferred (unchanged from the shared design)
 
-- **Narration & ambient speech → Phase 6.** In Phase 4 the device program and
+- **Narration & ambient speech → Phase 7.** In Phase 4 the device program and
   Elise's chat are two parallel tracks: the program plays deterministically; she
   chats reactively as she does today. She does **not** narrate the moves yet.
 - **Conversation memory → Phase 5.** Turns in Phase 4 stay stateless (a single
   user message), so the rolling history and **conversation pruning are not
   needed yet**; Phase 4 only _records_ each companion's `contextWindow` for
   later use.
-- **Tools / the action mechanism → Phase 7.** Elise cannot trigger device
+- **Tools / the action mechanism → Phase 6.** Elise cannot trigger device
   actions in Phase 4. `start` is a manual button (the "companion decides to
-  start" move is Phase 7). Because there is no LLM-triggered device action yet,
+  start" move is Phase 6). Because there is no LLM-triggered device action yet,
   barge-in only needs to cancel the LLM stream + TTS (already implemented);
   there is nothing new for it to cancel.
 - **Safeword teardown & nav lockdown → Phase 8.** In Phase 4 the existing global

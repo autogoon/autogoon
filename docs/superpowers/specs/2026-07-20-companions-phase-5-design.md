@@ -55,7 +55,7 @@ model-specific, gated by a per-companion **`passesReasoning`** flag (Elise =
 - **Context compaction → Phase 9.** The unbounded thread is trimmed there; when
   `passesReasoning` is on, old turns' `reasoning_details` are trimmed with the
   messages they belong to.
-- **Proactive speech → Phase 6**, **tools & control → Phase 7**, **safeword
+- **Tools & control → Phase 6**, **proactive speech → Phase 7**, **safeword
   teardown → Phase 8** — all unchanged.
 
 ## Design

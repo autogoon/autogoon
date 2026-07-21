@@ -76,15 +76,15 @@ does to the **toy** (read by the engine / her tools):
 | **variety**    | steady ↔ restless      | —                                                 | segment length / how often the pattern mixes up before she changes it                                        |
 
 There is no separate `agency` field: whether she does what you ask is a
-disposition **written into her `systemPrompt`** (and exercised through Phase 7's
+disposition **written into her `systemPrompt`** (and exercised through Phase 6's
 tools), not a scalar the code branches on. **Responsiveness** — how much she
 reacts to _your_ moans / barge-ins vs. does her own thing — is a likely
 **future** trait, deferred until her behaviour actually hooks into your vocal
 cues (Phases 6/7); until then it reads as `dominance`.
 
 The traits arrive with the phases that first consume them (`chattiness` in Phase
-6, `intensity` + `variety` in Phase 11, `dominance` across the prompt and Phase
-7's tools), not all at once. **v1's end goal is two contrasting personas** —
+7, `intensity` + `variety` in Phase 11, `dominance` across the prompt and Phase
+6's tools), not all at once. **v1's end goal is two contrasting personas** —
 proving personality bends _both_ the chat _and_ the generated program, not just
 the words — delivered when the second companion lands (Phase 12).
 
@@ -117,7 +117,7 @@ moment the program switches to the next mini-program — carrying that template'
 **neutral semantic label** (e.g. "slamming between dead slow and full tilt",
 "teasing climbs, each one higher", "a long slow sweep up and back down"). Each
 template in the table is authored with its label, so a cue marks _meaning_, not
-raw numbers; the label is persona-agnostic — the persona _voices_ it in Phase 6.
+raw numbers; the label is persona-agnostic — the persona _voices_ it in Phase 7.
 Cues regenerate with the future for free: change a knob → `invalidateFuture()` →
 the upcoming cues re-lay along with the speed. The on-screen Sparkline already
 renders `player.upcoming`; we're handing that same lookahead to the LLM.
@@ -144,7 +144,7 @@ already has** — `setSpeedPercent` (live), `invalidateFuture` (shape knobs), an
 the stroke controls (`valvePlus`/`valveMinus`). She is not authoring raw device
 events; she is a conversational hand on the existing knobs.
 
-**Starting is the companion's move (Phase 7).** The device program does **not**
+**Starting is the companion's move (Phase 6).** The device program does **not**
 auto-start. The user opens a session by starting to listen and talking to the
 companion; the timeline and the device only begin moving when the _companion_
 decides to start play — starting is itself one of the companion's actions, not a
@@ -280,9 +280,12 @@ components (voice I/O, LLM client, engine) that touch nothing else; **Phases
 because it is the **riskiest and most novel** part (echo-resistant barge-in on
 speakers, no headphones); proving it de-risks everything else. From Phase 4 on
 the order is **dependency-forced, not risk-first**: the action mechanism
-(Phase 7) can't come first because it needs Phase 4's armed Player, Phase 5's
-persisted conversation thread, and Phase 6's proactive speech. Each phase gets
-its own spec/plan when we reach it; only the map is fixed here.
+(Phase 6) needs Phase 4's armed Player and Phase 5's persisted conversation
+thread, and it comes _before_ proactive speech (Phase 7) — getting the companion
+to **start the toy** is the first move of a session, and only a running,
+companion-driven program gives the narration cues something to describe on the
+beat. Each phase gets its own spec/plan when we reach it; only the map is fixed
+here.
 
 1. **Voice I/O foundation + algorithm shell.** Explicit AEC on the mic;
    ElevenLabs realtime STT in; ElevenLabs streaming TTS out (SDK server-side);
@@ -341,25 +344,28 @@ its own spec/plan when we reach it; only the map is fixed here.
    pattern applies to DeepSeek / Kimi thinking modes to varying degrees; M2 is
    the emphatic case.)
 
-6. **Proactive speech: narration + ambient.** Built on Phase 5's thread. It
-   carries current + upcoming device state; `generateNarrationCues` consumed by
-   the orchestrator and _prompted ahead_ so the synthesized speech lands on the
-   beat; the persona voices each neutral cue label; ambient filler talk whose
-   cadence is gated by her **`chattiness`** trait (introduced here). Both
-   proactive sources are preemptible under barge-in. _Ships:_ she narrates the
-   moves in character, on the beat, and fills silences to her chattiness.
-
-7. **Tools & control.** The action mechanism — the app gives her **tools** to
+6. **Tools & control.** The action mechanism — the app gives her **tools** to
    drive the device (`setSpeedPercent`, `invalidateFuture`, valve controls, and
    `start`) and executes them when she calls them; `start` becomes the
-   companion's move. Whether she acts on your request or **declines** is a
-   disposition written into her `systemPrompt` (there is no `agency` scalar) —
-   the code exposes and runs the tools; her personality decides use. **Open
-   question, resolved when we spec this phase:** how the LLM expresses an action
-   reliably through the model — native tool-calls vs. structured markers parsed
-   from the stream — possibly settled with a small spike first. _Ships:_ ask her
-   to start / speed up / edge you — she decides in character and the device
-   follows, or she refuses.
+   companion's move. **Getting the companion to start the toy is the first
+   step** of a session, which is why the action mechanism lands before the
+   proactive narration that rides on the running program. Whether she acts on
+   your request or **declines** is a disposition written into her `systemPrompt`
+   (there is no `agency` scalar) — the code exposes and runs the tools; her
+   personality decides use. **Open question, resolved when we spec this phase:**
+   how the LLM expresses an action reliably through the model — native
+   tool-calls vs. structured markers parsed from the stream — possibly settled
+   with a small spike first. _Ships:_ ask her to start / speed up / edge you —
+   she decides in character and the device follows, or she refuses.
+
+7. **Proactive speech: narration + ambient.** Built on Phase 5's thread and
+   Phase 6's companion-driven control. The thread carries current + upcoming
+   device state; `generateNarrationCues` consumed by the orchestrator and
+   _prompted ahead_ so the synthesized speech lands on the beat; the persona
+   voices each neutral cue label; ambient filler talk whose cadence is gated by
+   her **`chattiness`** trait (introduced here). Both proactive sources are
+   preemptible under barge-in. _Ships:_ she narrates the moves in character, on
+   the beat, and fills silences to her chattiness.
 
 8. **Safeword + barge-in tuning.** Vosk KWS reserved for the safeword →
    immediate hard stop that also **tears down the voice session (LLM + TTS)**,
@@ -412,7 +418,7 @@ its own spec/plan when we reach it; only the map is fixed here.
 - The exact label wording per template (authored in Phase 3's template table).
   Cadence is settled: one cue per template boundary.
 - Prompt-ahead lead time and how TTS playback is scheduled against a cue's event
-  time (Phase 6).
+  time (Phase 7).
 - Precise STT socket open/close thresholds and the VAD's attack debounce
   (barge-in tuning: Phase 8).
 - Whether Vosk's global/nav words stay live mid-session, and exactly what the
