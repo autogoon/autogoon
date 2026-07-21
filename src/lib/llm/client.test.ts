@@ -195,6 +195,42 @@ describe("createLlmClient", () => {
     ]);
   });
 
+  it("maps assistant toolCalls and tool messages to the wire shape", async () => {
+    createMock.mockResolvedValue(fakeStream(["ok"]));
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    await collect(
+      client.stream(
+        [
+          { role: "user", content: "start it" },
+          {
+            role: "assistant",
+            content: "",
+            toolCalls: [{ id: "call_1", name: "start", arguments: "{}" }],
+          },
+          { role: "tool", content: "started", toolCallId: "call_1" },
+        ],
+        { signal: new AbortController().signal },
+      ),
+    );
+    const [params] = createMock.mock.calls[0] as [{ messages: unknown[] }];
+    expect(params.messages).toEqual([
+      { role: "user", content: "start it" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: "call_1",
+            type: "function",
+            function: { name: "start", arguments: "{}" },
+          },
+        ],
+      },
+      { role: "tool", content: "started", tool_call_id: "call_1" },
+    ]);
+  });
+
   it("fires onToolCalls once with tool_calls merged by index", async () => {
     createMock.mockResolvedValue(
       fakeToolCallStream([

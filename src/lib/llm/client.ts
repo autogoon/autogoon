@@ -6,9 +6,11 @@
 import OpenAI from "openai";
 
 export type LlmMessage = {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string;
-  reasoningDetails?: unknown[]; // assistant turns only; mapped to reasoning_details
+  reasoningDetails?: unknown[]; // assistant only; mapped to reasoning_details
+  toolCalls?: ToolCall[]; // assistant only; the calls it made (for the reaction turn)
+  toolCallId?: string; // tool only; which call this result answers
 };
 
 export type LlmUsage = { completionTokens: number };
@@ -62,11 +64,40 @@ type OutgoingMessage = {
   role: LlmMessage["role"];
   content: string;
   reasoning_details?: unknown[];
+  tool_calls?: {
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }[];
+  tool_call_id?: string;
 };
+
+// Map our LlmMessage to the OpenAI wire shape: assistant messages can carry
+// tool_calls (the reaction turn's history), and tool-role messages carry the
+// result of one call keyed by tool_call_id.
+function toOutgoing(m: LlmMessage): OutgoingMessage {
+  if (m.role === "tool") {
+    return { role: "tool", content: m.content, tool_call_id: m.toolCallId };
+  }
+  const out: OutgoingMessage = { role: m.role, content: m.content };
+  if (m.role === "assistant") {
+    if (m.reasoningDetails !== undefined) {
+      out.reasoning_details = m.reasoningDetails;
+    }
+    if (m.toolCalls !== undefined && m.toolCalls.length > 0) {
+      out.tool_calls = m.toolCalls.map((tc) => ({
+        id: tc.id,
+        type: "function",
+        function: { name: tc.name, arguments: tc.arguments },
+      }));
+    }
+  }
+  return out;
+}
 
 // Merge streamed reasoning_details deltas into one ordered array: entries
 // sharing an index are folded together, appending their text. Provider-specific
-// (M2 :nitro) — confirmed against live output during bring-up.
+// shape ({type, text, index}) — confirmed against live MiniMax output.
 function mergeReasoning(acc: ReasoningEntry[], deltas: ReasoningEntry[]): void {
   for (const d of deltas) {
     const idx = typeof d.index === "number" ? d.index : acc.length;
@@ -124,15 +155,7 @@ export function createLlmClient(model: string): LlmClient {
       onToolCalls?: (calls: ToolCall[]) => void;
     },
   ): AsyncIterable<string> {
-    const outgoing: OutgoingMessage[] = messages.map((m) =>
-      m.role === "assistant" && m.reasoningDetails !== undefined
-        ? {
-            role: m.role,
-            content: m.content,
-            reasoning_details: m.reasoningDetails,
-          }
-        : { role: m.role, content: m.content },
-    );
+    const outgoing: OutgoingMessage[] = messages.map(toOutgoing);
     const completion = await client.chat.completions.create(
       {
         model,

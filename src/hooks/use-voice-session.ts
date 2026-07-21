@@ -17,6 +17,7 @@ import { toRequestTools, type CompanionTool } from "@/lib/companions/tools";
 import {
   createLlmClient,
   type LlmClient,
+  type LlmMessage,
   type ToolCall,
 } from "@/lib/llm/client";
 import { startMic, type MicHandle } from "@/lib/voice/mic";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/voice/session-policy";
 import {
   appendAssistant,
+  appendTool,
   appendUser,
   parse,
   serialize,
@@ -247,13 +249,61 @@ export function useVoiceSession(opts?: {
       setReplyPlaying(true);
 
       void (async (): Promise<void> => {
-        try {
-          let reply = "";
+        // One LLM call: stream deltas into replyText, capture content / reasoning
+        // / tool calls / timing, and record the LLM latency. Returns null if the
+        // turn was aborted or superseded mid-stream (the caller then bails).
+        const runLlm = async (
+          messages: LlmMessage[],
+          withTools: boolean,
+        ): Promise<{
+          content: string;
+          reasoning: unknown[] | undefined;
+          toolCalls: ToolCall[];
+        } | null> => {
+          let content = "";
           let reasoning: unknown[] | undefined;
-          let completionTokens: number | null = null;
           let toolCalls: ToolCall[] = [];
-          const llmStart = performance.now();
+          let completionTokens: number | null = null;
+          const start = performance.now();
           let ttftMs: number | null = null;
+          for await (const delta of llm.stream(messages, {
+            signal: controller.signal,
+            tools: withTools ? toRequestTools(toolsRef.current) : undefined,
+            onUsage: (u) => {
+              completionTokens = u.completionTokens;
+            },
+            onReasoning: (d) => {
+              reasoning = d;
+            },
+            onToolCalls: (c) => {
+              toolCalls = c;
+            },
+          })) {
+            if (controller.signal.aborted || turnRef.current !== controller) {
+              return null;
+            }
+            if (ttftMs === null) ttftMs = performance.now() - start;
+            content += delta;
+            setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
+          }
+          const totalMs = performance.now() - start;
+          if (controller.signal.aborted || turnRef.current !== controller) {
+            return null;
+          }
+          if (ttftMs !== null) {
+            const ttft = ttftMs;
+            const decodeSec = Math.max((totalMs - ttft) / 1000, 0.001);
+            const tps =
+              completionTokens !== null ? completionTokens / decodeSec : null;
+            setStatus((s) => ({
+              ...s,
+              metrics: { ...s.metrics, llm: { ttftMs: ttft, totalMs, tps } },
+            }));
+          }
+          return { content, reasoning, toolCalls };
+        };
+
+        try {
           const deviceState = getDeviceStateRef.current();
           // Inject the live toy status at the {{TOY_STATUS}} marker (bottom of
           // the prompt's CONTROL section) so it's the last thing she reads. A
@@ -262,71 +312,63 @@ export function useVoiceSession(opts?: {
             "{{TOY_STATUS}}",
             deviceState === "" ? "unknown" : deviceState,
           );
-          for await (const delta of llm.stream(
-            toLlmMessages(
+          const baseMessages = toLlmMessages(
+            threadRef.current,
+            systemPrompt,
+            ELISE.passesReasoning,
+          );
+
+          // Call 1 — offer the tools. She typically EITHER speaks OR calls a
+          // tool (silently), rarely both, so we don't rely on her speaking here.
+          const r1 = await runLlm(baseMessages, true);
+          if (r1 === null) return;
+
+          let reply = r1.content;
+          let reasoning = r1.reasoning;
+
+          if (r1.toolCalls.length > 0) {
+            // Persist the full agentic sequence: first the assistant tool-call
+            // turn (carrying the calls + any Call-1 reasoning), then each tool
+            // result linked back by id. This is what later turns replay so she
+            // sees she has actually called tools before — without it she drifts
+            // back to narrating "*starting*" instead of calling.
+            let next = appendAssistant(
               threadRef.current,
-              systemPrompt,
-              ELISE.passesReasoning,
-            ),
-            {
-              signal: controller.signal,
-              tools: toRequestTools(toolsRef.current),
-              onUsage: (u) => {
-                completionTokens = u.completionTokens;
-              },
-              onReasoning: (d) => {
-                reasoning = d;
-              },
-              onToolCalls: (c) => {
-                toolCalls = c;
-              },
-            },
-          )) {
+              r1.content,
+              ELISE.passesReasoning ? r1.reasoning : undefined,
+              r1.toolCalls,
+            );
+            for (const call of r1.toolCalls) {
+              const tool = toolsRef.current.find((t) => t.name === call.name);
+              const result = tool === undefined ? "unknown tool" : tool.run();
+              onToolRunRef.current?.(call.name, result);
+              next = appendTool(next, call.name, result, call.id);
+            }
+            persistThread(next);
             if (controller.signal.aborted || turnRef.current !== controller) {
               return;
             }
-            if (ttftMs === null) ttftMs = performance.now() - llmStart;
-            reply += delta;
-            setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
+
+            // Call 2 — feed the tool results back so she reacts to them in
+            // words. Rebuilt from the just-persisted thread (which now holds the
+            // tool-call turn + results), so the request and the stored history
+            // are one and the same. No tools this call: it's her spoken
+            // reaction, not a place to chain more actions.
+            const call2 = toLlmMessages(
+              threadRef.current,
+              systemPrompt,
+              ELISE.passesReasoning,
+            );
+            // The reaction replaces any (usually empty) first-call text.
+            setStatus((s) => ({ ...s, replyText: "" }));
+            const r2 = await runLlm(call2, false);
+            if (r2 === null) return;
+            reply = r2.content;
+            reasoning = r2.reasoning;
           }
-          const llmTotalMs = performance.now() - llmStart;
-          // A turn superseded/aborted during the final read must not write its
-          // stale metrics over the successor's; mirror the loop's guard.
-          if (controller.signal.aborted || turnRef.current !== controller) {
-            return;
-          }
-          // Dispatch any tool calls the model returned, so the device acts as
-          // she speaks. Guarded above: an aborted/superseded turn never reaches
-          // here, so nothing dispatches on stale/cancelled generations.
-          for (const call of toolCalls) {
-            const tool = toolsRef.current.find((t) => t.name === call.name);
-            if (tool === undefined) {
-              onToolRunRef.current?.(call.name, "unknown tool");
-              continue;
-            }
-            const result = tool.run();
-            onToolRunRef.current?.(call.name, result);
-          }
-          if (ttftMs !== null) {
-            const ttft = ttftMs;
-            const tokens = completionTokens;
-            // Output throughput over the decode window (first token → done);
-            // null when the backend didn't return usage.
-            const decodeSec = Math.max((llmTotalMs - ttft) / 1000, 0.001);
-            const tps = tokens !== null ? tokens / decodeSec : null;
-            setStatus((s) => ({
-              ...s,
-              metrics: {
-                ...s.metrics,
-                llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
-              },
-            }));
-          }
-          // Generation completed under this turn's guard (a mid-generation cut
-          // returned earlier), so the full reply + full reasoning are in hand:
-          // commit the assistant turn. reasoning is replayed only when the
-          // companion passes it; a superseded/aborted turn never reaches here,
-          // so no truncated reasoning block is ever stored.
+
+          // Commit the spoken reply — the reaction when she acted, else her
+          // plain reply. reasoning is replayed only when the companion passes it.
           if (reply.trim() !== "") {
             persistThread(
               appendAssistant(

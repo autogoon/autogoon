@@ -22,7 +22,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ChevronDown, ChevronRight, Mic, MicOff } from "lucide-react";
+import { ChevronDown, ChevronRight, Cog, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
@@ -109,8 +109,23 @@ function ChatBubble({
           isUser ? "bg-blue-600 text-white" : "bg-foreground/10"
         } ${pending ? "opacity-70" : ""}`}
       >
-        {text}
+        {/* Trim leading/trailing whitespace (M3 often opens with a blank line)
+            while keeping internal paragraph breaks under whitespace-pre-wrap. */}
+        {text.trim()}
       </div>
+    </div>
+  );
+}
+
+// A centered "action" chip marking a tool call Elise made (start/stop), so it's
+// visible in the transcript whether she actually called it.
+function ToolChip({ name, result }: { name: string; result: string }) {
+  return (
+    <div className="flex justify-center">
+      <span className="text-muted-foreground bg-foreground/5 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs">
+        <Cog className="size-3" />
+        {name} → {result}
+      </span>
     </div>
   );
 }
@@ -170,7 +185,7 @@ export function CompanionsPanel({
       {
         name: "start",
         description:
-          "Start the device program running for the user. Call this when you decide to begin play.",
+          "Start the toy for the user — actually makes it begin. Call this whenever you want the toy to start.",
         run: () => {
           startProgram();
           return "started";
@@ -178,7 +193,8 @@ export function CompanionsPanel({
       },
       {
         name: "stop",
-        description: "Stop the device program. Call this to pause play.",
+        description:
+          "Stop the toy — actually pauses it. Call this whenever you want the toy to stop.",
         run: () => {
           stopProgram();
           return "stopped";
@@ -386,10 +402,12 @@ export function CompanionsPanel({
           </Button>
         </Card>
       ) : (
-        <>
-          {/* Collapsible program preview, grouped tightly with the tabs so the
-              collapsed toggle doesn't leave a big gap above them. */}
-          <div className="flex flex-col gap-3">
+        // Viewport-height column: the preview+tabs cluster is fixed height and
+        // the active tab's content flexes — so expanding the preview shrinks the
+        // conversation rather than pushing the composer off the bottom.
+        <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-3">
+          {/* Collapsible program preview, grouped tightly with the tabs. */}
+          <div className="flex shrink-0 flex-col gap-3">
             <Card>
               <Button
                 flash={false}
@@ -453,7 +471,7 @@ export function CompanionsPanel({
           </div>
 
           {tab === "controls" && (
-            <>
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
               <SessionControls
                 state={state}
                 connected={connected}
@@ -512,11 +530,11 @@ export function CompanionsPanel({
                   activeClass="bg-cyan-600 text-white"
                 />
               </Card>
-            </>
+            </div>
           )}
 
           {tab === "session" && (
-            <div className="-mt-6 flex h-[calc(100dvh-13.5rem)] min-h-0 flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-3">
               <Card className="shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
@@ -564,16 +582,25 @@ export function CompanionsPanel({
                   ref={messagesRef}
                   className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
                 >
-                  {status.thread.map((turn, i) => (
-                    <ChatBubble key={i} role={turn.role} text={turn.content} />
-                  ))}
+                  {status.thread.map((turn, i) =>
+                    turn.role === "tool" ? (
+                      <ToolChip key={i} name={turn.name} result={turn.result} />
+                    ) : (
+                      <ChatBubble
+                        key={i}
+                        role={turn.role}
+                        text={turn.content}
+                      />
+                    ),
+                  )}
                   {/* In-progress reply: a live, dimmed Elise bubble shown only until
                   the assistant turn commits — once the thread's last turn is the
                   assistant turn (the tail check below), the committed bubble
                   replaces it, even while a spoken reply is still playing. */}
                   {status.replyPlaying &&
                     status.replyText !== "" &&
-                    status.thread.at(-1)?.role !== "assistant" && (
+                    [...status.thread].reverse().find((t) => t.role !== "tool")
+                      ?.role !== "assistant" && (
                       <ChatBubble
                         role="assistant"
                         text={status.replyText}
@@ -678,7 +705,7 @@ export function CompanionsPanel({
           )}
 
           {tab === "debug" && (
-            <>
+            <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">
               <Card title="STT debug" bordered>
                 <div className="text-muted-foreground flex gap-4 text-xs">
                   <span>STT {status.phase}</span>
@@ -753,9 +780,9 @@ export function CompanionsPanel({
                 header={<RateLimitMeter {...vacuglide.rateLimit} />}
                 entries={vacuglide.logEntries}
               />
-            </>
+            </div>
           )}
-        </>
+        </div>
       )}
     </section>
   );
