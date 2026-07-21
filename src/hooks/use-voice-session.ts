@@ -255,10 +255,13 @@ export function useVoiceSession(opts?: {
           const llmStart = performance.now();
           let ttftMs: number | null = null;
           const deviceState = getDeviceStateRef.current();
-          const systemPrompt =
-            deviceState === ""
-              ? ELISE.systemPrompt
-              : `${ELISE.systemPrompt}\n\n${deviceState}`;
+          // Inject the live toy status at the {{TOY_STATUS}} marker (bottom of
+          // the prompt's CONTROL section) so it's the last thing she reads. A
+          // companion whose prompt lacks the marker is unaffected.
+          const systemPrompt = ELISE.systemPrompt.replace(
+            "{{TOY_STATUS}}",
+            deviceState === "" ? "unknown" : deviceState,
+          );
           for await (const delta of llm.stream(
             toLlmMessages(
               threadRef.current,
