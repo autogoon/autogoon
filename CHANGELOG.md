@@ -3,6 +3,7 @@
 ## 2026-07-21
 
 - feature: **Companion can start and stop the toy** — Elise can begin or pause the device herself when you ask (or when she decides to), saying so as she does it, and she always knows whether it's currently running. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- enhancement: **Chat-style Companions conversation** — talking to Elise now works like a chat app: a scrolling transcript pinned to the newest message, the message box fixed at the bottom (Enter to send, Shift+Enter for a new line), your live dictation shown in the box as you speak, and the device, mic and program-preview controls tidied into Session, Controls and Debug tabs. ([#13](https://github.com/autogoon/autogoon/pull/13))
 
 ## 2026-07-20
 

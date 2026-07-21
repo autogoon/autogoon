@@ -403,8 +403,9 @@ export function useVoiceSession(opts?: {
       onPartial: (text) => setStatus((s) => ({ ...s, partial: text })),
       onCommitted: (text) => {
         // A committed transcript is a spoken turn: hands-free, so run it as a
-        // "say it" (LLM → speak) without waiting on a button.
-        setStatus((s) => ({ ...s, committed: text }));
+        // "say it" (LLM → speak) without waiting on a button. Clear the interim
+        // partial — the STT never emits an empty one — so "dictating" releases.
+        setStatus((s) => ({ ...s, committed: text, partial: "" }));
         submitText(text, { speak: true });
       },
       onPhase: (phase) => setStatus((s) => ({ ...s, phase })),
