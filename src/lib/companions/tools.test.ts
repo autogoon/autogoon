@@ -27,6 +27,47 @@ describe("toRequestTools", () => {
     ]);
   });
 
+  it("passes a declared parameter schema through unchanged", () => {
+    const tools: CompanionTool[] = [
+      {
+        name: "intensity",
+        description: "Set intensity.",
+        parameters: {
+          type: "object",
+          properties: {
+            level: {
+              type: "string",
+              enum: ["warmup", "low", "medium", "high"],
+              description: "warmup = gentlest",
+            },
+          },
+          required: ["level"],
+        },
+        run: (args) => `intensity → ${String(args.level)}`,
+      },
+    ];
+    expect(toRequestTools(tools)).toEqual([
+      {
+        type: "function",
+        function: {
+          name: "intensity",
+          description: "Set intensity.",
+          parameters: {
+            type: "object",
+            properties: {
+              level: {
+                type: "string",
+                enum: ["warmup", "low", "medium", "high"],
+                description: "warmup = gentlest",
+              },
+            },
+            required: ["level"],
+          },
+        },
+      },
+    ]);
+  });
+
   it("returns [] for no tools", () => {
     expect(toRequestTools([])).toEqual([]);
   });

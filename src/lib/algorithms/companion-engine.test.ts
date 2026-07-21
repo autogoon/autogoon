@@ -50,10 +50,22 @@ describe("CompanionEngine.generateSpeed", () => {
 });
 
 describe("CompanionEngine.generateValves", () => {
-  it("emits no valves when suction is off", () => {
-    const engine = new CompanionEngine("medium", "moderate", "off");
+  it("emits only the start stroke-minus tease when suction is off", () => {
+    const engine = new CompanionEngine("warmup", "gentle", "off");
     const speed = engine.generateSpeed(0, 60_000, CTX);
-    expect(engine.generateValves(speed, 0, 60_000, CTX)).toEqual([]);
+    // A one-shot stroke-minus held for the first 10s, and nothing else (the
+    // tease fires regardless of vacuum maintenance).
+    expect(engine.generateValves(speed, 0, 60_000, CTX)).toEqual([
+      { kind: "valve", at: 0, valve: "minus", open: true },
+      { kind: "valve", at: 10_000, valve: "minus", open: false },
+    ]);
+  });
+
+  it("does not repeat the tease on a mid-session re-lay", () => {
+    const engine = new CompanionEngine("warmup", "gentle", "off");
+    // A window that does not cover program start (fromTime > 0) gets no tease,
+    // and with suction off, nothing at all.
+    expect(engine.generateValves([], 60_000, 120_000, CTX)).toEqual([]);
   });
 
   it("pulses stroke-minus on moves when suction is on, respecting the interval", () => {

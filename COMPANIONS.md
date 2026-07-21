@@ -40,8 +40,8 @@ export type Companion = {
 };
 ```
 
-- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m3`) —
-  the client sends it directly in each chat-completions call, so different
+- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m3`) — the
+  client sends it directly in each chat-completions call, so different
   companions can run entirely different models.
 - `contextWindow` records that model's context window in tokens, used to size
   conversation-history pruning.
@@ -75,19 +75,30 @@ companion list itself stays readable.
 
 ## Device control
 
-A companion can **start and stop the device herself** through LLM tools. Each
-turn the app offers the model a small set of function tools (currently `start`
-and `stop`), and when she calls one the panel runs the same device transport the
-manual buttons use. Whether she acts on a request or declines is a disposition
-written into her `systemPrompt`, not a code gate.
+A companion **drives the device through LLM tools**. Each turn the app offers
+the model a set of function tools — currently `start`, `stop`, `intensity`
+(`warmup` / `low` / `medium` / `high`) and `edge_control` (`gentle` / `moderate`
+/ `intense`) — and when she calls one the panel runs the same transport and
+knobs the on-screen controls use. `intensity` and `edge_control` take a `level`
+argument; `start`/`stop` take none. Whether she acts on a request or declines is
+a disposition written into her `systemPrompt`, not a code gate. Companions
+default to a **gentle baseline** — warmup intensity, gentle edging, no vacuum
+maintenance, plus a one-shot stroke-minus tease at session start — and she
+builds up from there.
 
-The device's **current state is folded into her system message every turn**, as
-**two independent axes** — whether the toy is **connected** to the app (what "is
-it on?" asks) and whether the **program** is running/started vs stopped — so she
-always knows both without a status tool (this is also the groundwork for the
-upcoming/narration device-state the thread will carry). Tool calls are executed
-as a side effect of a turn and are **not** persisted into the conversation
-thread; only her spoken reply (and reasoning) is stored, as before.
+The device's **current state is folded into her system message every turn** —
+whether the toy is **connected** to the app, whether it is **running**, and its
+current **intensity and edging level** — so she always knows all of it without a
+status tool, and stays in sync even when a level is changed via the on-screen
+knobs rather than her own tools. The wording is plain and avoids the in-app term
+"program."
+
+**Tool calls are persisted and replayed.** Her `tool_calls` and their results
+are stored on the conversation thread and replayed to the model as a proper
+agentic sequence (assistant-with-`tool_calls` → `tool` result → spoken
+reaction), so she sees her own prior actions — without which the model drifts
+back to narrating actions instead of taking them. After a tool runs, its result
+is fed back for a **second round-trip** so she reacts in words to what happened.
 
 ## Configuration
 

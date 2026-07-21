@@ -340,7 +340,22 @@ export function useVoiceSession(opts?: {
             );
             for (const call of r1.toolCalls) {
               const tool = toolsRef.current.find((t) => t.name === call.name);
-              const result = tool === undefined ? "unknown tool" : tool.run();
+              // Parse the tool-call arguments (`{}` for zero-arg tools like
+              // start/stop; e.g. `{ level: "warmup" }` for intensity/edge). A
+              // malformed blob runs the tool with no args — the tool validates.
+              let args: Record<string, unknown> = {};
+              try {
+                const parsed: unknown = call.arguments
+                  ? JSON.parse(call.arguments)
+                  : {};
+                if (parsed !== null && typeof parsed === "object") {
+                  args = parsed as Record<string, unknown>;
+                }
+              } catch {
+                // ignore: malformed arguments → run with no args
+              }
+              const result =
+                tool === undefined ? "unknown tool" : tool.run(args);
               onToolRunRef.current?.(call.name, result);
               next = appendTool(next, call.name, result, call.id);
             }
