@@ -435,9 +435,8 @@ Create `.env` (already matched by `.env.*` in `.gitignore`) containing:
 
 Verify it is ignored:
 
-Run: `git check-ignore .env` Expected: prints `.env` (i.e. it is
-ignored). If it prints nothing, STOP — do not proceed; the key must never be
-staged.
+Run: `git check-ignore .env` Expected: prints `.env` (i.e. it is ignored). If it
+prints nothing, STOP — do not proceed; the key must never be staged.
 
 - [ ] **Step 7: Rewrite `COMPANIONS.md` for OpenRouter**
 
@@ -1471,10 +1470,10 @@ git commit -m "Companions: changelog for Phase 4 (device integration + OpenRoute
 
 ## Self-Review notes (for the implementer)
 
-- **Secret discipline is the top risk.** `.env` is the only home for the
-  key; Step 6 of Task 2 verifies `git check-ignore` before anything is staged,
-  and Task 2 Step 9 checks `git status` shows no `.env`. If either check
-  fails, stop.
+- **Secret discipline is the top risk.** `.env` is the only home for the key;
+  Step 6 of Task 2 verifies `git check-ignore` before anything is staged, and
+  Task 2 Step 9 checks `git status` shows no `.env`. If either check fails,
+  stop.
 - **No vosk words in Companions** is deliberate and load-bearing for this phase
   (avoids the two-mic collision the safeword + barge-in tuning work reconciles);
   the panel never calls `useVoiceCommands`, and stroke `keywords` are unused on

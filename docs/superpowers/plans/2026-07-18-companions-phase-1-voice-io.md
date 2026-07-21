@@ -1148,9 +1148,8 @@ mic, and confirm against the spec's acceptance criteria:
    while you're quiet.
 5. The STT socket closes after ~8 s of silence and reopens on the next onset.
 
-Tune the VAD thresholds (Task 9) if onset is too eager/sluggish. Requires
-`.env` with `ELEVENLABS_API_KEY` (and Ollama vars are irrelevant this
-phase).
+Tune the VAD thresholds (Task 9) if onset is too eager/sluggish. Requires `.env`
+with `ELEVENLABS_API_KEY` (and Ollama vars are irrelevant this phase).
 
 - [ ] **Step 4: Changelog + commit**
 

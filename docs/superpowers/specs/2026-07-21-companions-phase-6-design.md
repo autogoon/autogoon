@@ -28,27 +28,28 @@ personality decides use.
   through the model's real `tool_calls` (the OpenAI-compatible `tools` request
   field), not a marker parsed out of her speech. Reliability matters for device
   actions, and MiniMax M2 is a tool-use-oriented model. The one uncertain part —
-  that M2 `:nitro` streams `tool_call` deltas cleanly alongside its `content` and
-  `reasoning_details` — is de-risked with a **small spike first** (below).
+  that M2 `:nitro` streams `tool_call` deltas cleanly alongside its `content`
+  and `reasoning_details` — is de-risked with a **small spike first** (below).
 - **Single round-trip.** A turn executes tool calls as a side effect after the
   stream completes; there is **no** second LLM call to let her react to a tool
   result. `start`/`stop` don't need a verbal reaction to their result — the
   **ambient device-state context** (next decision) carries the outcome into the
-  next turn. She can return spoken `content` **and** a tool call in the same turn
-  ("Mm, let's get you going" + `start`), so there is no added latency.
+  next turn. She can return spoken `content` **and** a tool call in the same
+  turn ("Mm, let's get you going" + `start`), so there is no added latency.
 - **Device state is ambient context, not a tool.** She always knows whether the
   toy is connected and running because the current state is folded into her
   **system message every turn** — there is **no `status` tool**. This serves the
   goal (she can tell/remember if it's running) with zero round-trips and no
   chance of her starting an already-running toy, and it is exactly the
-  current+upcoming device state the proactive-speech phase already plans to carry
-  on the thread — groundwork built early, not a throwaway.
-- **Tool calls are not persisted.** Only spoken `content` (+ `reasoning_details`)
-  is committed to the rolling thread, exactly as now. The persisted history stays
-  clean `user`/`assistant` content — no `tool` role messages, no `tool_calls` on
-  stored turns — so every conversation-thread invariant (reasoning replay,
-  tolerant codec) holds untouched. The model doesn't need to see its past calls;
-  the ambient state line tells it the current running status.
+  current+upcoming device state the proactive-speech phase already plans to
+  carry on the thread — groundwork built early, not a throwaway.
+- **Tool calls are not persisted.** Only spoken `content` (+
+  `reasoning_details`) is committed to the rolling thread, exactly as now. The
+  persisted history stays clean `user`/`assistant` content — no `tool` role
+  messages, no `tool_calls` on stored turns — so every conversation-thread
+  invariant (reasoning replay, tolerant codec) holds untouched. The model
+  doesn't need to see its past calls; the ambient state line tells it the
+  current running status.
 - **Manual Start/Stop stay.** The existing `SessionControls` buttons remain
   alongside her tools — a fallback/debug lever while the tool path is proven.
   Both paths call the same `device.play()`/`device.pause()`, so state stays
@@ -62,8 +63,8 @@ personality decides use.
 ### Explicitly deferred
 
 - **Companion-only start** (removing the manual Start button) — later polish.
-- **Proactive narration + ambient talk** riding on the running program — the next
-  phase, built on this control path.
+- **Proactive narration + ambient talk** riding on the running program — the
+  next phase, built on this control path.
 - **A verbal reaction to a tool result** (a second round-trip) is not built;
   `start`/`stop` don't need it.
 
@@ -87,11 +88,11 @@ export type CompanionTool = {
 export function toRequestTools(tools: CompanionTool[]): RequestTool[];
 ```
 
-`start` and `stop` take **no arguments**, so each maps to a function tool with an
-empty-object `parameters` schema. `run` returns a short result string that is
+`start` and `stop` take **no arguments**, so each maps to a function tool with
+an empty-object `parameters` schema. `run` returns a short result string that is
 logged to the Events panel; the return type is there so a tool's outcome is
-always surfaced, even though a device action's effect is also visible in the next
-turn's ambient state.
+always surfaced, even though a device action's effect is also visible in the
+next turn's ambient state.
 
 ### 2. LLM client — request `tools`, assemble `tool_calls`
 
@@ -100,10 +101,10 @@ turn's ambient state.
 - **Send side.** A new `tools?: RequestTool[]` in `opts`, passed straight into
   `chat.completions.create({ ..., tools })` when present. Omitted when empty, so
   a tool-less turn is byte-for-byte what it is today.
-- **Read side.** Accumulate streamed `tool_call` deltas the same way reasoning is
-  merged — fold by `index`, appending each call's `function.arguments` and taking
-  `id` / `function.name` as they arrive — and surface the assembled calls **once
-  at natural completion** via a new callback:
+- **Read side.** Accumulate streamed `tool_call` deltas the same way reasoning
+  is merged — fold by `index`, appending each call's `function.arguments` and
+  taking `id` / `function.name` as they arrive — and surface the assembled calls
+  **once at natural completion** via a new callback:
 
   ```ts
   opts: {
@@ -115,15 +116,16 @@ turn's ambient state.
   }
   ```
 
-  Like `onReasoning`, `onToolCalls` **does not fire on an early break** (barge-in
-  / abort calls the generator's `return()` and skips it), so a half-streamed tool
-  call is never handed back. The `openai` SDK's streamed delta type doesn't model
-  everything we read, so this is the same narrow local-augmented-type cast at the
-  boundary already used for `reasoning_details` — never `any` on the whole call.
+  Like `onReasoning`, `onToolCalls` **does not fire on an early break**
+  (barge-in / abort calls the generator's `return()` and skips it), so a
+  half-streamed tool call is never handed back. The `openai` SDK's streamed
+  delta type doesn't model everything we read, so this is the same narrow
+  local-augmented-type cast at the boundary already used for `reasoning_details`
+  — never `any` on the whole call.
 
 The client stays model-agnostic: it forwards whatever `tools` it's given and
-surfaces whatever `tool_calls` come back; the panel decides what the tools *are*
-and what they *do*.
+surfaces whatever `tool_calls` come back; the panel decides what the tools _are_
+and what they _do_.
 
 ### 3. Turn flow in `use-voice-session.ts` — single round-trip
 
@@ -139,15 +141,15 @@ useVoiceSession({
 `submitText` changes minimally:
 
 - **Build the request** with `toRequestTools(tools)` passed through to
-  `llm.stream(..., { tools, onToolCalls })`, capturing the assembled calls into a
-  turn-local like `reasoning` already is.
-- **After the stream completes**, *inside the existing abort guard* (`aborted ||
-  turnRef.current !== controller`) — the same guard that gates the assistant-turn
-  commit — **dispatch** each returned call to the matching `tool.run()`, in
-  order, and log each to the panel's event log via a callback. An aborted or
-  superseded turn dispatches nothing.
+  `llm.stream(..., { tools, onToolCalls })`, capturing the assembled calls into
+  a turn-local like `reasoning` already is.
+- **After the stream completes**, _inside the existing abort guard_
+  (`aborted || turnRef.current !== controller`) — the same guard that gates the
+  assistant-turn commit — **dispatch** each returned call to the matching
+  `tool.run()`, in order, and log each to the panel's event log via a callback.
+  An aborted or superseded turn dispatches nothing.
 - **Commit the assistant turn** (spoken `content` + `reasoning`) and **TTS** the
-  content exactly as now. Tool dispatch happens *before* TTS resolves, so the
+  content exactly as now. Tool dispatch happens _before_ TTS resolves, so the
   device acts roughly as she speaks (fine-tuning the beat is a later phase).
 - **Ambient state.** Build the per-turn system message as
   `ELISE.systemPrompt + "\n\n" + getDeviceState()`, read live at submit time
@@ -178,10 +180,27 @@ exact phrasing is settled during bring-up against how M2 reacts.
 transport, memoized so the array identity is stable:
 
 ```ts
-const tools: CompanionTool[] = useMemo(() => [
-  { name: "start", description: "…", run: () => { startProgram(); return "started"; } },
-  { name: "stop",  description: "…", run: () => { stopProgram();  return "stopped"; } },
-], [startProgram, stopProgram]);
+const tools: CompanionTool[] = useMemo(
+  () => [
+    {
+      name: "start",
+      description: "…",
+      run: () => {
+        startProgram();
+        return "started";
+      },
+    },
+    {
+      name: "stop",
+      description: "…",
+      run: () => {
+        stopProgram();
+        return "stopped";
+      },
+    },
+  ],
+  [startProgram, stopProgram],
+);
 ```
 
 and passes `tools` + `getDeviceState` (+ the event-log callback) into
@@ -194,22 +213,23 @@ actions.
 ### 6. Elise's prompt — she can start & stop
 
 `elise-prompt.ts` gains a short section telling her she can **start and stop the
-toy herself**, and *when* — she decides in character (an eager companion starts
+toy herself**, and _when_ — she decides in character (an eager companion starts
 readily; a reluctant or domineering one may make you ask). It preserves the "no
 command syntax, she just says it" voice already established for intensity: the
-tool fires structurally while she speaks naturally. It also notes she is told the
-device's current state, so she shouldn't start an already-running toy or claim to
-start one that isn't connected.
+tool fires structurally while she speaks naturally. It also notes she is told
+the device's current state, so she shouldn't start an already-running toy or
+claim to start one that isn't connected.
 
 ### 7. The spike (first, throwaway)
 
-Before building the above, a minimal spike confirms the one uncertain assumption:
-wire a single `start` tool to M2 `:nitro` through the real proxy and verify M2
-(a) reliably emits the `tool_call` when asked to start, (b) streams `tool_call`
-deltas in a shape the merge-by-`index` rule assembles, and (c) does so cleanly
-alongside `content` and `reasoning_details` in one stream. If the delta shape
-differs, the merge rule is adjusted before the full build — exactly as the shared
-design doc anticipated ("possibly settled with a small spike first").
+Before building the above, a minimal spike confirms the one uncertain
+assumption: wire a single `start` tool to M2 `:nitro` through the real proxy and
+verify M2 (a) reliably emits the `tool_call` when asked to start, (b) streams
+`tool_call` deltas in a shape the merge-by-`index` rule assembles, and (c) does
+so cleanly alongside `content` and `reasoning_details` in one stream. If the
+delta shape differs, the merge rule is adjusted before the full build — exactly
+as the shared design doc anticipated ("possibly settled with a small spike
+first").
 
 ### 8. Doc updates
 
@@ -232,7 +252,7 @@ design doc anticipated ("possibly settled with a small spike first").
 - **Manual bring-up** (the real gate): with the device connected, ask Elise to
   start — confirm the program runs, `SessionControls` flips to playing, and the
   Events log shows the `start`. Ask her to stop — confirm it pauses. Confirm she
-  *knows* the state (ask "is it on?" and she answers from context without a tool
+  _knows_ the state (ask "is it on?" and she answers from context without a tool
   call). Barge-in / Stop mid-generation and confirm **no** tool fires and no
   partial turn commits. Confirm the manual buttons still work and stay in sync.
 
@@ -240,8 +260,8 @@ design doc anticipated ("possibly settled with a small spike first").
 
 - **Tool-call delta shape** against live M2 `:nitro` output — confirm in the
   spike and adjust the merge rule if the streamed shape differs (see §7).
-- **Beat alignment** — the device acts as the stream completes, slightly ahead of
-  TTS first-audio. Whether that feels right (and whether to gate the action on
-  TTS onset) is left to the proactive-speech / tuning phases.
+- **Beat alignment** — the device acts as the stream completes, slightly ahead
+  of TTS first-audio. Whether that feels right (and whether to gate the action
+  on TTS onset) is left to the proactive-speech / tuning phases.
 - **Dangling user turns** from mid-generation cuts are unchanged from the
   conversation-thread phase and still accepted.
