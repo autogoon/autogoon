@@ -17,6 +17,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -34,6 +35,7 @@ import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
 import { ELISE } from "@/lib/companions/companions";
+import type { CompanionTool } from "@/lib/companions/tools";
 import {
   CompanionEngine,
   type IntensityLevel,
@@ -126,6 +128,73 @@ export function CompanionsPanel({
   onEnterPlay: () => void;
 }) {
   const device = vacuglide.player;
+
+  // The device engine — one instance, owned here. Defined before the voice
+  // session because the session's tools/device-state callback both close over
+  // it (and the transport below).
+  const engineRef = useRef<CompanionEngine | null>(null);
+  engineRef.current ??= new CompanionEngine(
+    DEFAULT_INTENSITY,
+    DEFAULT_EDGE,
+    DEFAULT_SUCTION,
+  );
+  const engine = engineRef.current;
+
+  // Device transport (the program) — distinct from the mic's start/stop. Also
+  // needed before the voice session: the "start"/"stop" tools dispatch here.
+  const startProgram = useCallback(() => {
+    if (device.source !== engine) device.arm(engine);
+    device.play();
+  }, [device, engine]);
+  const stopProgram = useCallback(() => {
+    void device.pause();
+  }, [device]);
+
+  // Transition log for the acceptance run. Hoisted above the voice session
+  // (rather than left with the other status-derived effects below) because
+  // its `append` is the tool-dispatch log callback passed into useVoiceSession.
+  const [log, setLog] = useState<LogEntry[]>([]);
+  const logIdRef = useRef(0);
+  // Newest last (LogCard auto-scrolls to the bottom); `kind` picks the colour.
+  const append = useCallback((text: string, kind = "send") => {
+    const time = new Date().toLocaleTimeString(undefined, { hour12: false });
+    setLog((l) =>
+      [...l, { id: logIdRef.current++, time, text, kind }].slice(-50),
+    );
+  }, []);
+
+  // The tools Elise can call, and the live device-state line injected each turn.
+  const tools = useMemo<CompanionTool[]>(
+    () => [
+      {
+        name: "start",
+        description:
+          "Start the device program running for the user. Call this when you decide to begin play.",
+        run: () => {
+          startProgram();
+          return "started";
+        },
+      },
+      {
+        name: "stop",
+        description: "Stop the device program. Call this to pause play.",
+        run: () => {
+          stopProgram();
+          return "stopped";
+        },
+      },
+    ],
+    [startProgram, stopProgram],
+  );
+
+  const getDeviceState = useCallback((): string => {
+    if (!vacuglide.connected) return "Device state: the toy is not connected.";
+    const running = player.source === engine && player.state === "playing";
+    return running
+      ? "Device state: the toy is connected and running."
+      : "Device state: the toy is connected and stopped.";
+  }, [vacuglide.connected, player.source, player.state, engine]);
+
   const {
     start: startListening,
     stop: stopListening,
@@ -134,16 +203,11 @@ export function CompanionsPanel({
     clearThread,
     status,
     audioRef,
-  } = useVoiceSession();
-
-  // The device engine — one instance, owned here.
-  const engineRef = useRef<CompanionEngine | null>(null);
-  engineRef.current ??= new CompanionEngine(
-    DEFAULT_INTENSITY,
-    DEFAULT_EDGE,
-    DEFAULT_SUCTION,
-  );
-  const engine = engineRef.current;
+  } = useVoiceSession({
+    tools,
+    getDeviceState,
+    onToolRun: (name, result) => append(`tool: ${name} → ${result}`, "hit"),
+  });
 
   const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
   const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
@@ -175,14 +239,6 @@ export function CompanionsPanel({
     if (!active) stopListening();
   }, [active, stopListening]);
 
-  // Device transport (the program) — distinct from the mic's start/stop.
-  const startProgram = useCallback(() => {
-    if (device.source !== engine) device.arm(engine);
-    device.play();
-  }, [device, engine]);
-  const stopProgram = useCallback(() => {
-    void device.pause();
-  }, [device]);
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
     engine.setIntensity(DEFAULT_INTENSITY);
@@ -230,17 +286,6 @@ export function CompanionsPanel({
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
     [vacuglide],
   );
-
-  // Transition log for the acceptance run.
-  const [log, setLog] = useState<LogEntry[]>([]);
-  const logIdRef = useRef(0);
-  // Newest last (LogCard auto-scrolls to the bottom); `kind` picks the colour.
-  const append = useCallback((text: string, kind = "send") => {
-    const time = new Date().toLocaleTimeString(undefined, { hour12: false });
-    setLog((l) =>
-      [...l, { id: logIdRef.current++, time, text, kind }].slice(-50),
-    );
-  }, []);
 
   const prevPhase = useRef(status.phase);
   useEffect(() => {
