@@ -65,7 +65,9 @@ export function createStt(events: SttEvents): Stt {
 
     const url =
       `wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=${encodeURIComponent(token)}` +
-      `&audio_format=pcm_16000&commit_strategy=vad`;
+      // Pin the language to English — without it Scribe auto-detects per
+      // utterance and often drifts to Russian/Polish on short English speech.
+      `&audio_format=pcm_16000&commit_strategy=vad&language_code=en`;
     const socket = new WebSocket(url);
     ws = socket;
 
