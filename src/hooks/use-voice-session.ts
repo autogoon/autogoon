@@ -13,7 +13,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ELISE } from "@/lib/companions/companions";
-import { createLlmClient, type LlmClient } from "@/lib/llm/client";
+import { toRequestTools, type CompanionTool } from "@/lib/companions/tools";
+import {
+  createLlmClient,
+  type LlmClient,
+  type ToolCall,
+} from "@/lib/llm/client";
 import { startMic, type MicHandle } from "@/lib/voice/mic";
 import { createStt, type Stt } from "@/lib/voice/stt";
 import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
@@ -102,12 +107,30 @@ const MAYBE_CLOSE_INTERVAL_MS = 500;
 // Persistence key, namespaced per companion so each keeps its own thread.
 const THREAD_KEY = `companions:thread:${ELISE.name.toLowerCase()}`;
 
-export function useVoiceSession(): VoiceSession {
+export function useVoiceSession(opts?: {
+  tools?: CompanionTool[];
+  getDeviceState?: () => string;
+  onToolRun?: (name: string, result: string) => void;
+}): VoiceSession {
   const [status, setStatus] = useState<VoiceStatus>(IDLE_STATUS);
 
   // Panel attaches this to a rendered <audio> element; the TTS player plays
   // through it.
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Live values for the device tools, refreshed every render (matching the
+  // ref pattern below) so submitText's once-created callback reads the active
+  // panel's tools/state/handler without being recreated when they change.
+  const toolsRef = useRef<CompanionTool[]>(opts?.tools ?? []);
+  toolsRef.current = opts?.tools ?? [];
+  const getDeviceStateRef = useRef<() => string>(
+    opts?.getDeviceState ?? (() => ""),
+  );
+  getDeviceStateRef.current = opts?.getDeviceState ?? (() => "");
+  const onToolRunRef = useRef<
+    ((name: string, result: string) => void) | undefined
+  >(opts?.onToolRun);
+  onToolRunRef.current = opts?.onToolRun;
 
   // Live values read inside the once-created mic/STT callbacks — refs, not
   // state, so those callbacks never see a stale closure.
@@ -228,21 +251,31 @@ export function useVoiceSession(): VoiceSession {
           let reply = "";
           let reasoning: unknown[] | undefined;
           let completionTokens: number | null = null;
+          let toolCalls: ToolCall[] = [];
           const llmStart = performance.now();
           let ttftMs: number | null = null;
+          const deviceState = getDeviceStateRef.current();
+          const systemPrompt =
+            deviceState === ""
+              ? ELISE.systemPrompt
+              : `${ELISE.systemPrompt}\n\n${deviceState}`;
           for await (const delta of llm.stream(
             toLlmMessages(
               threadRef.current,
-              ELISE.systemPrompt,
+              systemPrompt,
               ELISE.passesReasoning,
             ),
             {
               signal: controller.signal,
+              tools: toRequestTools(toolsRef.current),
               onUsage: (u) => {
                 completionTokens = u.completionTokens;
               },
               onReasoning: (d) => {
                 reasoning = d;
+              },
+              onToolCalls: (c) => {
+                toolCalls = c;
               },
             },
           )) {
@@ -258,6 +291,18 @@ export function useVoiceSession(): VoiceSession {
           // stale metrics over the successor's; mirror the loop's guard.
           if (controller.signal.aborted || turnRef.current !== controller) {
             return;
+          }
+          // Dispatch any tool calls the model returned, so the device acts as
+          // she speaks. Guarded above: an aborted/superseded turn never reaches
+          // here, so nothing dispatches on stale/cancelled generations.
+          for (const call of toolCalls) {
+            const tool = toolsRef.current.find((t) => t.name === call.name);
+            if (tool === undefined) {
+              onToolRunRef.current?.(call.name, "unknown tool");
+              continue;
+            }
+            const result = tool.run();
+            onToolRunRef.current?.(call.name, result);
           }
           if (ttftMs !== null) {
             const ttft = ttftMs;
