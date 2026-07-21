@@ -16,6 +16,10 @@ export type SttEvents = {
 
 type IncomingMessage = { message_type?: string; text?: string };
 
+// Cap the connecting-window buffer so a socket that never starts can't grow it
+// without bound. ~10s at 20 ms/frame — far more than a normal open (1–2s).
+const MAX_PENDING_FRAMES = 500;
+
 export type Stt = {
   open: (preRoll: Int16Array[]) => Promise<void>;
   sendFrame: (base64Pcm: string) => void;
@@ -29,6 +33,11 @@ export function createStt(events: SttEvents): Stt {
   let ws: WebSocket | null = null;
   let phase: SttPhase = "closed";
   let lastVoiceAtMs = 0;
+  // Frames captured after open() is called but before the socket is live
+  // (session_started) — the token fetch + WebSocket handshake, often 1–2s.
+  // Without this they'd be dropped, losing the opening seconds of speech; they
+  // are flushed in capture order once the session starts.
+  let pending: string[] = [];
 
   function setPhase(next: SttPhase): void {
     if (next === phase) return;
@@ -36,9 +45,8 @@ export function createStt(events: SttEvents): Stt {
     events.onPhase(phase);
   }
 
-  function sendFrame(base64Pcm: string): void {
-    if (ws?.readyState !== WebSocket.OPEN) return;
-    ws.send(
+  function rawSend(base64Pcm: string): void {
+    ws?.send(
       JSON.stringify({
         message_type: "input_audio_chunk",
         audio_base_64: base64Pcm,
@@ -47,10 +55,21 @@ export function createStt(events: SttEvents): Stt {
     );
   }
 
+  function sendFrame(base64Pcm: string): void {
+    if (phase === "open" && ws?.readyState === WebSocket.OPEN) {
+      rawSend(base64Pcm);
+    } else if (phase === "connecting" && pending.length < MAX_PENDING_FRAMES) {
+      // Buffer while the socket comes up; flushed on session_started.
+      pending.push(base64Pcm);
+    }
+    // closed/closing: no active listening turn — drop.
+  }
+
   async function open(preRoll: Int16Array[]): Promise<void> {
     // Guard double-open: only start from a fully closed socket.
     if (phase !== "closed") return;
     setPhase("connecting");
+    pending = [];
 
     let token: string;
     try {
@@ -81,8 +100,11 @@ export function createStt(events: SttEvents): Stt {
       switch (msg.message_type) {
         case "session_started": {
           setPhase("open");
-          // Flush buffered pre-roll audio so the first words aren't clipped.
-          for (const frame of preRoll) sendFrame(pcm16ToBase64(frame));
+          // Opening audio in capture order: the pre-roll ring (just before
+          // onset), then everything captured while the socket was connecting.
+          for (const frame of preRoll) rawSend(pcm16ToBase64(frame));
+          for (const frame of pending) rawSend(frame);
+          pending = [];
           break;
         }
         case "partial_transcript": {
@@ -100,6 +122,7 @@ export function createStt(events: SttEvents): Stt {
 
     socket.addEventListener("close", () => {
       if (ws === socket) ws = null;
+      pending = [];
       setPhase("closed");
     });
 
