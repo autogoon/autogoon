@@ -1,22 +1,46 @@
-# Companions Slice 2 — LLM Client Implementation Plan
+# Companions Phase 2 — LLM Client Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give the companion a real, model-generated reply — a same-origin proxy route to Ollama plus a streaming, abortable `LLMClient`, consumed by a decoupled LLM lab and by the Slice 1 voice loop (transcript → LLM → TTS, replacing the canned reply).
+**Goal:** Give the companion a real, model-generated reply — a same-origin proxy
+route to Ollama plus a streaming, abortable `LLMClient`, consumed by a decoupled
+LLM lab and by the Phase 1 voice loop (transcript → LLM → TTS, replacing the
+canned reply).
 
-**Architecture:** The browser talks to Ollama only through a Next proxy route (`/api/llm/chat/completions`) that injects `LLM_MODEL` server-side and streams the SSE response straight back. A thin `LLMClient` wraps the `openai` SDK pointed at that same-origin route, exposing `stream(messages, { signal })` that yields token deltas. The voice loop buffers the whole reply, then speaks it via the existing TTS path; the turn's single `AbortController` now cancels the LLM stream and TTS together.
+**Architecture:** The browser talks to Ollama only through a Next proxy route
+(`/api/llm/chat/completions`) that injects `LLM_MODEL` server-side and streams
+the SSE response straight back. A thin `LLMClient` wraps the `openai` SDK
+pointed at that same-origin route, exposing `stream(messages, { signal })` that
+yields token deltas. The voice loop buffers the whole reply, then speaks it via
+the existing TTS path; the turn's single `AbortController` now cancels the LLM
+stream and TTS together.
 
-**Tech Stack:** Next.js (App Router, `runtime="nodejs"` routes), React client hooks, the `openai` npm SDK, Ollama (OpenAI-compatible endpoint), Jest (`@jest/globals`, node env).
+**Tech Stack:** Next.js (App Router, `runtime="nodejs"` routes), React client
+hooks, the `openai` npm SDK, Ollama (OpenAI-compatible endpoint), Jest
+(`@jest/globals`, node env).
 
 ## Global Constraints
 
-- Read the design first: `docs/superpowers/specs/2026-07-18-companions-design.md`; this slice's spec: `docs/superpowers/specs/2026-07-18-companions-slice-2-llm-client.md`.
-- Secrets stay server-side: `LLM_URL` / `LLM_MODEL` read **only** in the route, never `NEXT_PUBLIC_`, never in the client bundle.
-- Model detail stays server-side: the route **overrides** the client-sent `model` with `LLM_MODEL`.
-- No persona system prompt, no rolling history, no sentence-streaming into TTS this slice (all Slice 4). Each turn sends only `[{ role: "user", content: <text> }]`.
-- Tests are colocated `*.test.ts`, node environment, import from `@jest/globals`.
-- Zero-warning outfit: finish with `npm run typecheck`, `npm run lint` (`--max-warnings 0`) and `npm run build` all clean; run `npm run format` before finishing.
-- Do not commit specs or plans (they stay uncommitted on disk). Commit only code/test/changelog changes, and only when asked.
+- Read the design first:
+  `docs/superpowers/specs/2026-07-18-companions-design.md`; this phase's spec:
+  `docs/superpowers/specs/2026-07-18-companions-phase-2-llm-client.md`.
+- Secrets stay server-side: `LLM_URL` / `LLM_MODEL` read **only** in the route,
+  never `NEXT_PUBLIC_`, never in the client bundle.
+- Model detail stays server-side: the route **overrides** the client-sent
+  `model` with `LLM_MODEL`.
+- No persona system prompt, no rolling history, no sentence-streaming into TTS
+  this phase (all later phases). Each turn sends only
+  `[{ role: "user", content: <text> }]`.
+- Tests are colocated `*.test.ts`, node environment, import from
+  `@jest/globals`.
+- Zero-warning outfit: finish with `npm run typecheck`, `npm run lint`
+  (`--max-warnings 0`) and `npm run build` all clean; run `npm run format`
+  before finishing.
+- Do not commit specs or plans (they stay uncommitted on disk). Commit only
+  code/test/changelog changes, and only when asked.
 
 ---
 
@@ -30,7 +54,11 @@
 **Interfaces:**
 
 - Consumes: nothing (leaf).
-- Produces: `POST /api/llm/chat/completions` — accepts an OpenAI chat-completions request body `{ model?, messages, stream, ... }`, overrides `model` with `LLM_MODEL`, forwards to `` `${LLM_URL}/chat/completions` `` and streams the SSE body back with `content-type: text/event-stream`. 503 when env unset; 502 on upstream failure.
+- Produces: `POST /api/llm/chat/completions` — accepts an OpenAI
+  chat-completions request body `{ model?, messages, stream, ... }`, overrides
+  `model` with `LLM_MODEL`, forwards to `` `${LLM_URL}/chat/completions` `` and
+  streams the SSE body back with `content-type: text/event-stream`. 503 when env
+  unset; 502 on upstream failure.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -145,8 +173,8 @@ describe("POST /api/llm/chat/completions", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `npm test -- src/app/api/llm/chat/completions/route.test.ts`
-Expected: FAIL — `Cannot find module './route'`.
+Run: `npm test -- src/app/api/llm/chat/completions/route.test.ts` Expected: FAIL
+— `Cannot find module './route'`.
 
 - [ ] **Step 3: Write the route**
 
@@ -201,8 +229,8 @@ export async function POST(request: Request): Promise<Response> {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `npm test -- src/app/api/llm/chat/completions/route.test.ts`
-Expected: PASS (4 tests).
+Run: `npm test -- src/app/api/llm/chat/completions/route.test.ts` Expected: PASS
+(4 tests).
 
 - [ ] **Step 5: Commit**
 
@@ -223,16 +251,18 @@ git commit -m "Companions: LLM proxy route to Ollama (streaming, abortable)"
 
 **Interfaces:**
 
-- Consumes: the `POST /api/llm/chat/completions` route from Task 1 (via the SDK's `baseURL`).
+- Consumes: the `POST /api/llm/chat/completions` route from Task 1 (via the
+  SDK's `baseURL`).
 - Produces:
   - `type LlmMessage = { role: "system" | "user" | "assistant"; content: string }`
   - `type LlmClient = { stream: (messages: LlmMessage[], opts: { signal: AbortSignal }) => AsyncIterable<string> }`
-  - `function createLlmClient(): LlmClient` — yields assistant token deltas; abort via `opts.signal`.
+  - `function createLlmClient(): LlmClient` — yields assistant token deltas;
+    abort via `opts.signal`.
 
 - [ ] **Step 1: Install the `openai` dependency**
 
-Run: `npm install openai`
-Expected: `openai` added to `package.json` dependencies; `package-lock.json` updated.
+Run: `npm install openai` Expected: `openai` added to `package.json`
+dependencies; `package-lock.json` updated.
 
 - [ ] **Step 2: Write the failing test**
 
@@ -312,8 +342,8 @@ describe("createLlmClient", () => {
 
 - [ ] **Step 3: Run the test to verify it fails**
 
-Run: `npm test -- src/lib/llm/client.test.ts`
-Expected: FAIL — `Cannot find module './client'`.
+Run: `npm test -- src/lib/llm/client.test.ts` Expected: FAIL —
+`Cannot find module './client'`.
 
 - [ ] **Step 4: Write the client**
 
@@ -379,8 +409,7 @@ export function createLlmClient(): LlmClient {
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `npm test -- src/lib/llm/client.test.ts`
-Expected: PASS (2 tests).
+Run: `npm test -- src/lib/llm/client.test.ts` Expected: PASS (2 tests).
 
 - [ ] **Step 6: Commit**
 
@@ -395,25 +424,31 @@ git commit -m "Companions: LLMClient over the openai SDK (streaming, abortable)"
 
 **Files:**
 
-- Modify: `src/components/algorithms/companions-panel.tsx` (add a new `Card`, below the existing cards, before the closing `</section>`)
+- Modify: `src/components/algorithms/companions-panel.tsx` (add a new `Card`,
+  below the existing cards, before the closing `</section>`)
 
 **Interfaces:**
 
 - Consumes: `createLlmClient` / `LlmClient` from Task 2.
-- Produces: no exported API — an in-panel diagnostic surface (prompt input, Send, streamed output, Stop) using the client directly, with its own `AbortController`. Independent of the mic session.
+- Produces: no exported API — an in-panel diagnostic surface (prompt input,
+  Send, streamed output, Stop) using the client directly, with its own
+  `AbortController`. Independent of the mic session.
 
 - [ ] **Step 1: Add the LlmLab component and its imports**
 
-At the top of `src/components/algorithms/companions-panel.tsx`, add to the existing imports:
+At the top of `src/components/algorithms/companions-panel.tsx`, add to the
+existing imports:
 
 ```tsx
 import { createLlmClient } from "@/lib/llm/client";
 ```
 
-Then add this component just above `export function CompanionsPanel` (it is self-contained — its own state, its own controller, no dependency on the voice session):
+Then add this component just above `export function CompanionsPanel` (it is
+self-contained — its own state, its own controller, no dependency on the voice
+session):
 
 ```tsx
-// A decoupled lab for Slice 2's LLMClient: type a prompt, watch tokens stream in,
+// A decoupled lab for Phase 2's LLMClient: type a prompt, watch tokens stream in,
 // press Stop to abort mid-generation. Not wired to the mic — this is the raw
 // client proof. The voice loop uses the same client (see use-voice-session).
 function LlmLab() {
@@ -494,7 +529,7 @@ function LlmLab() {
       {error !== null && (
         <p className="mt-2 text-sm text-red-500">Error: {error}</p>
       )}
-      <p className="mt-2 min-h-6 whitespace-pre-wrap text-sm">
+      <p className="mt-2 min-h-6 text-sm whitespace-pre-wrap">
         {output === "" ? (
           <span className="text-muted-foreground">—</span>
         ) : (
@@ -508,7 +543,8 @@ function LlmLab() {
 
 - [ ] **Step 2: Render the lab in the panel**
 
-In `CompanionsPanel`'s returned JSX, add `<LlmLab />` just before the closing `</section>` (after the `Events` card):
+In `CompanionsPanel`'s returned JSX, add `<LlmLab />` just before the closing
+`</section>` (after the `Events` card):
 
 ```tsx
       <Card title="Events">
@@ -521,16 +557,19 @@ In `CompanionsPanel`'s returned JSX, add `<LlmLab />` just before the closing `<
 
 - [ ] **Step 3: Verify typecheck and lint are clean**
 
-Run: `npm run typecheck && npm run lint`
-Expected: no output (clean). If `useState`/`useCallback`/`useRef` are already imported at the top of the file (they are), no import changes are needed beyond `createLlmClient`.
+Run: `npm run typecheck && npm run lint` Expected: no output (clean). If
+`useState`/`useCallback`/`useRef` are already imported at the top of the file
+(they are), no import changes are needed beyond `createLlmClient`.
 
 - [ ] **Step 4: Manual check**
 
-Run `npm run dev`, open http://localhost:8931, go to **Companions**, scroll to **LLM lab**. With Ollama running and `.env.local` set:
+Run `npm run dev`, open http://localhost:8931, go to **Companions**, scroll to
+**LLM lab**. With Ollama running and `.env.local` set:
 
 - Type a prompt, click **Send** → tokens stream into the output area.
 - While streaming, click **Stop** → output stops growing within a beat.
-- Stop Ollama (or leave `LLM_URL` wrong) → Send shows an `Error:` line, panel stays usable.
+- Stop Ollama (or leave `LLM_URL` wrong) → Send shows an `Error:` line, panel
+  stays usable.
 
 - [ ] **Step 5: Commit**
 
@@ -546,17 +585,22 @@ git commit -m "Companions: LLM lab panel section (streaming + abort)"
 **Files:**
 
 - Modify: `src/hooks/use-voice-session.ts`
-- Modify: `src/lib/companions/companions.ts` (remove the now-unused `CANNED_REPLY`)
+- Modify: `src/lib/companions/companions.ts` (remove the now-unused
+  `CANNED_REPLY`)
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
 
-- Consumes: `createLlmClient` / `LlmClient` (Task 2); the existing `TtsPlayer.play` and the turn `AbortController`.
-- Produces: no new exported API — the committed transcript now drives an LLM turn whose full reply is spoken via TTS; the turn's single `AbortController` cancels both.
+- Consumes: `createLlmClient` / `LlmClient` (Task 2); the existing
+  `TtsPlayer.play` and the turn `AbortController`.
+- Produces: no new exported API — the committed transcript now drives an LLM
+  turn whose full reply is spoken via TTS; the turn's single `AbortController`
+  cancels both.
 
 - [ ] **Step 1: Import the client and add a ref**
 
-In `src/hooks/use-voice-session.ts`, update the imports — drop `CANNED_REPLY`, add the client:
+In `src/hooks/use-voice-session.ts`, update the imports — drop `CANNED_REPLY`,
+add the client:
 
 ```ts
 import { ELISE } from "@/lib/companions/companions";
@@ -621,9 +665,11 @@ const startReply = useCallback(
 );
 ```
 
-- [ ] **Step 3: Create the client in `start()` and pass the transcript to `startReply`**
+- [ ] **Step 3: Create the client in `start()` and pass the transcript to
+      `startReply`**
 
-In `start()`, where `ttsRef.current = createTtsPlayer(audioEl);` is set, add the client just after it:
+In `start()`, where `ttsRef.current = createTtsPlayer(audioEl);` is set, add the
+client just after it:
 
 ```ts
 ttsRef.current = createTtsPlayer(audioEl);
@@ -649,19 +695,27 @@ llmRef.current = null;
 
 - [ ] **Step 5: Remove the now-unused `CANNED_REPLY`**
 
-In `src/lib/companions/companions.ts`, delete the `CANNED_REPLY` export (the canned string and its comment). Leave `ELISE` and the `Companion` type intact.
+In `src/lib/companions/companions.ts`, delete the `CANNED_REPLY` export (the
+canned string and its comment). Leave `ELISE` and the `Companion` type intact.
 
 - [ ] **Step 6: Verify typecheck, lint, and unit tests**
 
-Run: `npm run typecheck && npm run lint && npm test`
-Expected: all clean; no reference to `CANNED_REPLY` remains (typecheck fails loudly if one does). Fix any leftover import.
+Run: `npm run typecheck && npm run lint && npm test` Expected: all clean; no
+reference to `CANNED_REPLY` remains (typecheck fails loudly if one does). Fix
+any leftover import.
 
 - [ ] **Step 7: Update the changelog**
 
-In `CHANGELOG.md`, add a **new** heading for the day this lands at the very top of the file — `## 2026-07-19` (the current date; the existing top heading is `## 2026-07-18` from Slice 1, so this is a fresh section above it). Under it add — as a `feature` (the only line for the day so far):
+In `CHANGELOG.md`, add a **new** heading for the day this lands at the very top
+of the file — `## 2026-07-19` (the current date; the existing top heading is
+`## 2026-07-18` from Phase 1, so this is a fresh section above it). Under it add
+— as a `feature` (the only line for the day so far):
 
 ```markdown
-- feature: **Companion replies for real** — the companion now answers what you say with a live, model-generated reply spoken in her own voice, instead of a canned line; cut in any time and she stops. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- feature: **Companion replies for real** — the companion now answers what you
+  say with a live, model-generated reply spoken in her own voice, instead of a
+  canned line; cut in any time and she stops.
+  ([#13](https://github.com/autogoon/autogoon/pull/13))
 ```
 
 - [ ] **Step 8: Commit**
@@ -673,30 +727,39 @@ git commit -m "Companions: speak a live LLM reply for the user's transcript"
 
 ---
 
-### Task 5: Full-slice verification
+### Task 5: Full-phase verification
 
 **Files:** none (verification only).
 
 - [ ] **Step 1: Format, then run every gate**
 
-Run: `npm run format`
-Then: `npm run typecheck && npm run lint && npm test && npm run build`
-Expected: all clean. If `format` changed files, commit them:
+Run: `npm run format` Then:
+`npm run typecheck && npm run lint && npm test && npm run build` Expected: all
+clean. If `format` changed files, commit them:
 
 ```bash
 git add -A
 git commit -m "Companions: formatting"
 ```
 
-- [ ] **Step 2: Manual acceptance (needs `.env.local` with `ELEVENLABS_API_KEY`, `LLM_URL`, `LLM_MODEL`, and Ollama running the companion card)**
+- [ ] **Step 2: Manual acceptance (needs `.env.local` with `ELEVENLABS_API_KEY`,
+      `LLM_URL`, `LLM_MODEL`, and Ollama running the companion card)**
 
 On speakers, no headphones:
 
-1. **LLM lab:** type a prompt → tokens stream in → **Stop** aborts mid-stream; a wrong `LLM_URL` shows an `Error:` line without breaking the panel.
-2. **Voice:** click **Start listening**, say a sentence → a committed transcript appears (Slice 1 STT) → Elise speaks a **model-generated** reply (not the old canned line).
-3. **Barge-in:** speak over the reply → it **cuts within a beat**, your opening word intact; barge-in **during generation** (before audio starts) also stops the turn — no late reply arrives.
-4. Ollama unreachable → the voice session stays usable: you're still transcribed, just no reply.
+1. **LLM lab:** type a prompt → tokens stream in → **Stop** aborts mid-stream; a
+   wrong `LLM_URL` shows an `Error:` line without breaking the panel.
+2. **Voice:** click **Start listening**, say a sentence → a committed transcript
+   appears (Phase 1 STT) → Elise speaks a **model-generated** reply (not the old
+   canned line).
+3. **Barge-in:** speak over the reply → it **cuts within a beat**, your opening
+   word intact; barge-in **during generation** (before audio starts) also stops
+   the turn — no late reply arrives.
+4. Ollama unreachable → the voice session stays usable: you're still
+   transcribed, just no reply.
 
 - [ ] **Step 3: Confirm the PR description**
 
-This slice lands on the existing `companions` branch / draft PR #13. Update the PR description's slice checklist to mark Slice 2 done (per the per-slice PR convention). Do not merge — the whole feature merges together after Slice 4.
+This phase lands on the existing `companions` branch / draft PR #13. Update the
+PR description's phase checklist to mark Phase 2 done (per the per-phase PR
+convention). Do not merge — the whole feature merges together after Phase 12.

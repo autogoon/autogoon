@@ -1,34 +1,63 @@
-# Companions — Slice 1 (Voice I/O Foundation) Implementation Plan
+# Companions — Phase 1 (Voice I/O Foundation) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship a real `Companions` algorithm screen that proves the voice loop — speak → live ElevenLabs transcript → Elise's ~11 s canned reply → barge-in cuts it within a beat, opening word intact — on speakers with no headphones.
+**Goal:** Ship a real `Companions` algorithm screen that proves the voice loop —
+speak → live ElevenLabs transcript → Elise's ~11 s canned reply → barge-in cuts
+it within a beat, opening word intact — on speakers with no headphones.
 
-**Architecture:** Pure, unit-tested logic (audio encoding, pre-roll ring buffer, energy-VAD state machine, session-policy decisions) is separated from the effectful integration (AudioWorklet capture, `getUserMedia`, the STT WebSocket, MediaSource TTS playback, the orchestrator hook, the panel) — mirroring the repo's engine/Player split. Secrets stay in two server routes; the client uses a single-use STT token and a TTS proxy. The panel is a degenerate algorithm panel: it hosts the voice-lab UI and does **not** arm the Player.
+**Architecture:** Pure, unit-tested logic (audio encoding, pre-roll ring buffer,
+energy-VAD state machine, session-policy decisions) is separated from the
+effectful integration (AudioWorklet capture, `getUserMedia`, the STT WebSocket,
+MediaSource TTS playback, the orchestrator hook, the panel) — mirroring the
+repo's engine/Player split. Secrets stay in two server routes; the client uses a
+single-use STT token and a TTS proxy. The panel is a degenerate algorithm panel:
+it hosts the voice-lab UI and does **not** arm the Player.
 
-**Tech Stack:** Next 16 (App Router) · React 19 · TypeScript · `@elevenlabs/elevenlabs-js` (server-side) · Web Audio / AudioWorklet · raw browser `WebSocket` · Jest (`@jest/globals`, node env).
+**Tech Stack:** Next 16 (App Router) · React 19 · TypeScript ·
+`@elevenlabs/elevenlabs-js` (server-side) · Web Audio / AudioWorklet · raw
+browser `WebSocket` · Jest (`@jest/globals`, node env).
 
 ## Global Constraints
 
-- Read the specs first: `docs/superpowers/specs/2026-07-18-companions-design.md` and `docs/superpowers/specs/2026-07-18-companions-slice-1-voice-io.md`. This section restates the load-bearing constraints; those docs are the source of truth.
+- Read the specs first: `docs/superpowers/specs/2026-07-18-companions-design.md`
+  and `docs/superpowers/specs/2026-07-18-companions-phase-1-voice-io.md`. This
+  section restates the load-bearing constraints; those docs are the source of
+  truth.
 - Branch: **`companions`** (already checked out). Never commit to `main`.
-- **Secrets:** `ELEVENLABS_API_KEY` is read **only** in server route handlers. Never `NEXT_PUBLIC_*`; never referenced in a client component or a file that ships to the browser bundle. The repo is public.
-- **Zero-warning:** `npm run lint` (`--max-warnings 0`) and `npm run typecheck` must both be completely clean before any commit. Fix every warning, including incidental ones.
-- **Tests:** Jest, colocated `*.test.ts`, node environment, import from `@jest/globals`. Cover pure logic only.
-- **Verification beyond tests:** `npm run build` (runs `tsc`), then drive the app in the browser for the acceptance bar. Hardware/audio behaviour is not unit-tested.
-- **Format:** run `npm run format` before committing; commit any files it changes.
-- **Changelog:** add a `feature` entry under `## 2026-07-18` before the slice is considered done.
-- **TTS model** is `eleven_v3`; **STT** uses `commit_strategy=vad`; **silence-close** is 8 s; Elise's `voiceId` is `exHJXWRRhHzWYCoZrSF1`.
+- **Secrets:** `ELEVENLABS_API_KEY` is read **only** in server route handlers.
+  Never `NEXT_PUBLIC_*`; never referenced in a client component or a file that
+  ships to the browser bundle. The repo is public.
+- **Zero-warning:** `npm run lint` (`--max-warnings 0`) and `npm run typecheck`
+  must both be completely clean before any commit. Fix every warning, including
+  incidental ones.
+- **Tests:** Jest, colocated `*.test.ts`, node environment, import from
+  `@jest/globals`. Cover pure logic only.
+- **Verification beyond tests:** `npm run build` (runs `tsc`), then drive the
+  app in the browser for the acceptance bar. Hardware/audio behaviour is not
+  unit-tested.
+- **Format:** run `npm run format` before committing; commit any files it
+  changes.
+- **Changelog:** add a `feature` entry under `## 2026-07-18` before the phase is
+  considered done.
+- **TTS model** is `eleven_v3`; **STT** uses `commit_strategy=vad`;
+  **silence-close** is 8 s; Elise's `voiceId` is `exHJXWRRhHzWYCoZrSF1`.
 
 ## File Structure
 
 **Pure logic (unit-tested):**
 
-- `src/lib/companions/companions.ts` — `Companion` type + `ELISE` + `CANNED_REPLY`.
-- `src/lib/voice/audio-encoding.ts` — `downsampleTo16k`, `floatTo16BitPcm`, `pcm16ToBase64`.
+- `src/lib/companions/companions.ts` — `Companion` type + `ELISE` +
+  `CANNED_REPLY`.
+- `src/lib/voice/audio-encoding.ts` — `downsampleTo16k`, `floatTo16BitPcm`,
+  `pcm16ToBase64`.
 - `src/lib/voice/pre-roll.ts` — `PreRollBuffer` ring buffer.
 - `src/lib/voice/vad.ts` — `initVadState`, `vadStep` energy-VAD state machine.
-- `src/lib/voice/session-policy.ts` — `shouldOpenSocket`, `shouldCloseSocket`, `isBargeIn`.
+- `src/lib/voice/session-policy.ts` — `shouldOpenSocket`, `shouldCloseSocket`,
+  `isBargeIn`.
 
 **Server routes (tested with mocks):**
 
@@ -37,13 +66,16 @@
 
 **Integration (build + manual acceptance):**
 
-- `public/companion-audio-worklet.js` — capture worklet (downsample + energy + ring buffer).
+- `public/companion-audio-worklet.js` — capture worklet (downsample + energy +
+  ring buffer).
 - `src/lib/voice/mic.ts` — `getUserMedia` (AEC) + worklet wiring + event stream.
 - `src/lib/voice/stt.ts` — STT socket lifecycle (uses `session-policy`).
 - `src/lib/voice/tts.ts` — MediaSource playback + `stop()`.
-- `src/hooks/use-voice-session.ts` — orchestrator (one `AbortController` per turn).
+- `src/hooks/use-voice-session.ts` — orchestrator (one `AbortController` per
+  turn).
 - `src/components/algorithms/companions-panel.tsx` — the voice-lab panel.
-- `src/app/page.tsx` — register the `companions` `ALGORITHMS` entry + render the panel.
+- `src/app/page.tsx` — register the `companions` `ALGORITHMS` entry + render the
+  panel.
 
 ---
 
@@ -56,7 +88,9 @@
 
 **Interfaces:**
 
-- Produces: `type Companion = { name: string; gender: "female" | "male" | "nonbinary"; voiceId: string }`; `const ELISE: Companion`; `const CANNED_REPLY: string`.
+- Produces:
+  `type Companion = { name: string; gender: "female" | "male" | "nonbinary"; voiceId: string }`;
+  `const ELISE: Companion`; `const CANNED_REPLY: string`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -81,8 +115,8 @@ describe("Elise", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/lib/companions/companions.test.ts`
-Expected: FAIL — cannot find module `./companions`.
+Run: `npx jest src/lib/companions/companions.test.ts` Expected: FAIL — cannot
+find module `./companions`.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -92,7 +126,7 @@ export type Companion = {
   name: string;
   gender: "female" | "male" | "nonbinary";
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
-  // systemPrompt / generationBias / initiative / agency arrive in later slices.
+  // systemPrompt / generationBias / initiative / agency arrive in later phases.
 };
 
 export const ELISE: Companion = {
@@ -101,7 +135,7 @@ export const ELISE: Companion = {
   voiceId: "exHJXWRRhHzWYCoZrSF1",
 };
 
-// A fixed reply for Slice 1 (no LLM yet). ~33 words ≈ 11s spoken.
+// A fixed reply for Phase 1 (no LLM yet). ~33 words ≈ 11s spoken.
 export const CANNED_REPLY =
   "Mmm, hi baby. I was starting to think you'd forgotten about me. " +
   "Don't keep me waiting like that — you know I get restless. " +
@@ -110,8 +144,7 @@ export const CANNED_REPLY =
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/lib/companions/companions.test.ts`
-Expected: PASS.
+Run: `npx jest src/lib/companions/companions.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -132,9 +165,14 @@ git commit -m "Companions: Elise config and canned reply"
 **Interfaces:**
 
 - Produces:
-  - `downsampleTo16k(input: Float32Array, inputRate: number): Float32Array` — decimating resample to 16 kHz; returns `input` unchanged if `inputRate === 16000`.
-  - `floatTo16BitPcm(input: Float32Array): Int16Array` — clamps to [-1, 1], scales to int16.
-  - `pcm16ToBase64(pcm: Int16Array): string` — little-endian bytes, base64. Uses `Buffer` (node) or `btoa` fallback; in the browser worklet path we only need `floatTo16BitPcm` — base64 happens on the main thread where `btoa` exists.
+  - `downsampleTo16k(input: Float32Array, inputRate: number): Float32Array` —
+    decimating resample to 16 kHz; returns `input` unchanged if
+    `inputRate === 16000`.
+  - `floatTo16BitPcm(input: Float32Array): Int16Array` — clamps to [-1, 1],
+    scales to int16.
+  - `pcm16ToBase64(pcm: Int16Array): string` — little-endian bytes, base64. Uses
+    `Buffer` (node) or `btoa` fallback; in the browser worklet path we only need
+    `floatTo16BitPcm` — base64 happens on the main thread where `btoa` exists.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -184,8 +222,8 @@ describe("audio-encoding", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/lib/voice/audio-encoding.test.ts`
-Expected: FAIL — cannot find module.
+Run: `npx jest src/lib/voice/audio-encoding.test.ts` Expected: FAIL — cannot
+find module.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -233,8 +271,7 @@ export function pcm16ToBase64(pcm: Int16Array): string {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/lib/voice/audio-encoding.test.ts`
-Expected: PASS.
+Run: `npx jest src/lib/voice/audio-encoding.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -254,7 +291,9 @@ git commit -m "Companions: audio encoding (downsample, pcm16, base64)"
 
 **Interfaces:**
 
-- Produces: `class PreRollBuffer` — `constructor(maxFrames: number)`, `push(frame: Int16Array): void`, `flush(): Int16Array[]` (oldest-first, then clears), `get length(): number`.
+- Produces: `class PreRollBuffer` — `constructor(maxFrames: number)`,
+  `push(frame: Int16Array): void`, `flush(): Int16Array[]` (oldest-first, then
+  clears), `get length(): number`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -287,8 +326,8 @@ describe("PreRollBuffer", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/lib/voice/pre-roll.test.ts`
-Expected: FAIL — cannot find module.
+Run: `npx jest src/lib/voice/pre-roll.test.ts` Expected: FAIL — cannot find
+module.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -319,8 +358,7 @@ export class PreRollBuffer {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/lib/voice/pre-roll.test.ts`
-Expected: PASS.
+Run: `npx jest src/lib/voice/pre-roll.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -344,7 +382,10 @@ git commit -m "Companions: pre-roll ring buffer"
   - `type VadConfig = { onRms: number; offRms: number; attackFrames: number; hangoverFrames: number }`
   - `type VadState = { speaking: boolean; above: number; below: number }`
   - `initVadState(): VadState`
-  - `vadStep(state: VadState, rms: number, cfg: VadConfig): { state: VadState; onset: boolean; offset: boolean }` — pure; `onset` true on the frame speech is confirmed, `offset` true on the frame silence is confirmed. Hysteresis via separate on/off thresholds + attack/hangover frame counts.
+  - `vadStep(state: VadState, rms: number, cfg: VadConfig): { state: VadState; onset: boolean; offset: boolean }`
+    — pure; `onset` true on the frame speech is confirmed, `offset` true on the
+    frame silence is confirmed. Hysteresis via separate on/off thresholds +
+    attack/hangover frame counts.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -398,8 +439,7 @@ describe("vadStep", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/lib/voice/vad.test.ts`
-Expected: FAIL — cannot find module.
+Run: `npx jest src/lib/voice/vad.test.ts` Expected: FAIL — cannot find module.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -453,8 +493,7 @@ export function vadStep(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/lib/voice/vad.test.ts`
-Expected: PASS.
+Run: `npx jest src/lib/voice/vad.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -515,8 +554,8 @@ describe("session-policy", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/lib/voice/session-policy.test.ts`
-Expected: FAIL — cannot find module.
+Run: `npx jest src/lib/voice/session-policy.test.ts` Expected: FAIL — cannot
+find module.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -546,8 +585,7 @@ export function isBargeIn(replyPlaying: boolean, onset: boolean): boolean {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/lib/voice/session-policy.test.ts`
-Expected: PASS.
+Run: `npx jest src/lib/voice/session-policy.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -568,9 +606,13 @@ git commit -m "Companions: session-policy (open/close/barge-in) decisions"
 **Interfaces:**
 
 - Consumes: `ELEVENLABS_API_KEY` from `process.env`.
-- Produces: `POST` handler returning `Response` with JSON `{ token: string }` (200), or `{ error }` (500 on upstream failure, 503 if the key is missing). Never includes the api key in the response.
+- Produces: `POST` handler returning `Response` with JSON `{ token: string }`
+  (200), or `{ error }` (500 on upstream failure, 503 if the key is missing).
+  Never includes the api key in the response.
 
-**Note:** implemented with a direct `fetch` to keep the handler independent of SDK surface changes; the SDK is used for TTS (Task 7). The test mocks `global.fetch`.
+**Note:** implemented with a direct `fetch` to keep the handler independent of
+SDK surface changes; the SDK is used for TTS (Task 7). The test mocks
+`global.fetch`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -618,8 +660,8 @@ describe("POST /api/stt-token", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/app/api/stt-token/route.test.ts`
-Expected: FAIL — cannot find module `./route`.
+Run: `npx jest src/app/api/stt-token/route.test.ts` Expected: FAIL — cannot find
+module `./route`.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -649,8 +691,7 @@ export async function POST(): Promise<Response> {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/app/api/stt-token/route.test.ts`
-Expected: PASS.
+Run: `npx jest src/app/api/stt-token/route.test.ts` Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -670,10 +711,18 @@ git commit -m "Companions: STT single-use-token route"
 
 **Interfaces:**
 
-- Consumes: `ELEVENLABS_API_KEY`; request body `{ text: string; voiceId: string }`.
-- Produces: `POST` handler streaming `audio/mpeg`. Uses `new ElevenLabsClient({ apiKey }).textToSpeech.stream(voiceId, { modelId: "eleven_v3", text, outputFormat: "mp3_44100_128" })`, piping the async-iterable chunks into a `ReadableStream` body. 400 on missing body fields, 503 on missing key.
+- Consumes: `ELEVENLABS_API_KEY`; request body
+  `{ text: string; voiceId: string }`.
+- Produces: `POST` handler streaming `audio/mpeg`. Uses
+  `new ElevenLabsClient({ apiKey }).textToSpeech.stream(voiceId, { modelId: "eleven_v3", text, outputFormat: "mp3_44100_128" })`,
+  piping the async-iterable chunks into a `ReadableStream` body. 400 on missing
+  body fields, 503 on missing key.
 
-**Note:** the test mocks `@elevenlabs/elevenlabs-js` so no network is hit. Confirm the exact SDK stream method name against the installed version (`node -e "console.log(Object.keys(require('@elevenlabs/elevenlabs-js')))"` and inspect `textToSpeech`) and adjust `textToSpeech.stream` if the installed 2.58.0 names it `convertAsStream`.
+**Note:** the test mocks `@elevenlabs/elevenlabs-js` so no network is hit.
+Confirm the exact SDK stream method name against the installed version
+(`node -e "console.log(Object.keys(require('@elevenlabs/elevenlabs-js')))"` and
+inspect `textToSpeech`) and adjust `textToSpeech.stream` if the installed 2.58.0
+names it `convertAsStream`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -733,8 +782,8 @@ describe("POST /api/tts", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npx jest src/app/api/tts/route.test.ts`
-Expected: FAIL — cannot find module `./route`.
+Run: `npx jest src/app/api/tts/route.test.ts` Expected: FAIL — cannot find
+module `./route`.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -784,8 +833,9 @@ export async function POST(request: Request): Promise<Response> {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npx jest src/app/api/tts/route.test.ts`
-Expected: PASS. If it fails on the SDK method name, correct `textToSpeech.stream` per the version note above and re-run.
+Run: `npx jest src/app/api/tts/route.test.ts` Expected: PASS. If it fails on the
+SDK method name, correct `textToSpeech.stream` per the version note above and
+re-run.
 
 - [ ] **Step 5: Commit**
 
@@ -804,9 +854,18 @@ git commit -m "Companions: TTS proxy route (eleven_v3 streaming via SDK)"
 
 **Interfaces:**
 
-- Produces: an `AudioWorkletProcessor` registered as `"companion-capture"`. Each render quantum: accumulates mono input, and on ~20 ms boundaries computes the frame RMS and posts `{ samples: Float32Array, rms: number }` (the raw input-rate mono frame, transferring the buffer). The **downsample → PCM16 → base64 DSP happens on the main thread** via `audio-encoding.ts` (Task 2) — the worklet does not duplicate it, so that tested code is the single runtime implementation. It also emits `capture.connect(destination)` silence upstream, matching the existing `kws-audio-worklet.js` pattern so the graph pulls it.
+- Produces: an `AudioWorkletProcessor` registered as `"companion-capture"`. Each
+  render quantum: accumulates mono input, and on ~20 ms boundaries computes the
+  frame RMS and posts `{ samples: Float32Array, rms: number }` (the raw
+  input-rate mono frame, transferring the buffer). The **downsample → PCM16 →
+  base64 DSP happens on the main thread** via `audio-encoding.ts` (Task 2) — the
+  worklet does not duplicate it, so that tested code is the single runtime
+  implementation. It also emits `capture.connect(destination)` silence upstream,
+  matching the existing `kws-audio-worklet.js` pattern so the graph pulls it.
 
-**Verification:** integration — no unit test. Verified in Task 13's acceptance run (frames arrive; RMS tracks speech). Mirror the structure of `public/kws-audio-worklet.js`.
+**Verification:** integration — no unit test. Verified in Task 13's acceptance
+run (frames arrive; RMS tracks speech). Mirror the structure of
+`public/kws-audio-worklet.js`.
 
 - [ ] **Step 1: Implement the worklet**
 
@@ -827,7 +886,9 @@ class CompanionCapture extends AudioWorkletProcessor {
     if (ch) {
       for (let i = 0; i < ch.length; i++) this._buf.push(ch[i]);
       while (this._buf.length >= this._frameSamples) {
-        const frame = Float32Array.from(this._buf.splice(0, this._frameSamples));
+        const frame = Float32Array.from(
+          this._buf.splice(0, this._frameSamples),
+        );
         let sumSq = 0;
         for (let i = 0; i < frame.length; i++) sumSq += frame[i] * frame[i];
         const rms = Math.sqrt(sumSq / frame.length);
@@ -843,8 +904,8 @@ registerProcessor("companion-capture", CompanionCapture);
 
 - [ ] **Step 2: Type/lint gate**
 
-Run: `npm run typecheck && npm run lint`
-Expected: clean (the `.js` worklet is not typechecked; ensure nothing else regressed).
+Run: `npm run typecheck && npm run lint` Expected: clean (the `.js` worklet is
+not typechecked; ensure nothing else regressed).
 
 - [ ] **Step 3: Commit**
 
@@ -863,7 +924,8 @@ git commit -m "Companions: capture worklet (16k downsample + RMS frames)"
 
 **Interfaces:**
 
-- Consumes: `PreRollBuffer` (Task 3), `initVadState`/`vadStep` (Task 4), `downsampleTo16k`/`floatTo16BitPcm`/`pcm16ToBase64` (Task 2).
+- Consumes: `PreRollBuffer` (Task 3), `initVadState`/`vadStep` (Task 4),
+  `downsampleTo16k`/`floatTo16BitPcm`/`pcm16ToBase64` (Task 2).
 - Produces:
   ```ts
   type MicEvents = {
@@ -875,16 +937,29 @@ git commit -m "Companions: capture worklet (16k downsample + RMS frames)"
   async function startMic(events: MicEvents): Promise<MicHandle>;
   type MicHandle = { preRoll: PreRollBuffer; stop: () => void };
   ```
-  `startMic` opens `getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })`, loads the worklet, and on each `{ samples, rms }`: does the DSP on the main thread via Task 2 — `const pcm16 = floatTo16BitPcm(downsampleTo16k(samples, audioContext.sampleRate))` — pushes `pcm16` to `preRoll`, calls `onRms(rms)`, runs `vadStep` on `rms` (firing `onOnset`/`onOffset`), and calls `onFrame(pcm16ToBase64(pcm16))`. This keeps `audio-encoding.ts` as the single, tested DSP path (the worklet does not reimplement it).
+  `startMic` opens
+  `getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } })`,
+  loads the worklet, and on each `{ samples, rms }`: does the DSP on the main
+  thread via Task 2 —
+  `const pcm16 = floatTo16BitPcm(downsampleTo16k(samples, audioContext.sampleRate))`
+  — pushes `pcm16` to `preRoll`, calls `onRms(rms)`, runs `vadStep` on `rms`
+  (firing `onOnset`/`onOffset`), and calls `onFrame(pcm16ToBase64(pcm16))`. This
+  keeps `audio-encoding.ts` as the single, tested DSP path (the worklet does not
+  reimplement it).
 
-**Verification:** integration — no unit test (needs a real mic + worklet). Verified in Task 13.
+**Verification:** integration — no unit test (needs a real mic + worklet).
+Verified in Task 13.
 
-- [ ] **Step 1: Implement** (VAD config: `{ onRms: 0.05, offRms: 0.02, attackFrames: 3, hangoverFrames: 5 }` — tune during acceptance). Pre-roll capacity: `Math.ceil(500 / 20)` = 25 frames (~500 ms). Follow `keyword-spotter.tsx:238-273` for the AudioContext/worklet lifecycle (resume the context; connect capture → destination). Load module from `/companion-audio-worklet.js`.
+- [ ] **Step 1: Implement** (VAD config:
+      `{ onRms: 0.05, offRms: 0.02, attackFrames: 3, hangoverFrames: 5 }` — tune
+      during acceptance). Pre-roll capacity: `Math.ceil(500 / 20)` = 25 frames
+      (~500 ms). Follow `keyword-spotter.tsx:238-273` for the
+      AudioContext/worklet lifecycle (resume the context; connect capture →
+      destination). Load module from `/companion-audio-worklet.js`.
 
 - [ ] **Step 2: Gate**
 
-Run: `npm run typecheck && npm run lint`
-Expected: clean.
+Run: `npm run typecheck && npm run lint` Expected: clean.
 
 - [ ] **Step 3: Commit**
 
@@ -920,16 +995,22 @@ git commit -m "Companions: mic capture with AEC + VAD + pre-roll"
     phase: () => SttPhase;
   };
   ```
-  `open` POSTs `/api/stt-token`, connects to `wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=…&audio_format=pcm_16000&commit_strategy=vad`, and on `session_started` flushes the pre-roll frames (each via `sendFrame`). Parses `partial_transcript` / `committed_transcript` messages.
+  `open` POSTs `/api/stt-token`, connects to
+  `wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=…&audio_format=pcm_16000&commit_strategy=vad`,
+  and on `session_started` flushes the pre-roll frames (each via `sendFrame`).
+  Parses `partial_transcript` / `committed_transcript` messages.
 
-**Verification:** integration — no unit test (the pure decisions it relies on are already tested in Task 5). Verified in Task 13.
+**Verification:** integration — no unit test (the pure decisions it relies on
+are already tested in Task 5). Verified in Task 13.
 
-- [ ] **Step 1: Implement.** Message send shape: `JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: base64Pcm, commit: false })`. On incoming message, switch on `message_type`. Call `onPhase` on every transition. Guard `sendFrame` on `ws.readyState === WebSocket.OPEN`.
+- [ ] **Step 1: Implement.** Message send shape:
+      `JSON.stringify({ message_type: "input_audio_chunk", audio_base_64: base64Pcm, commit: false })`.
+      On incoming message, switch on `message_type`. Call `onPhase` on every
+      transition. Guard `sendFrame` on `ws.readyState === WebSocket.OPEN`.
 
 - [ ] **Step 2: Gate**
 
-Run: `npm run typecheck && npm run lint`
-Expected: clean.
+Run: `npm run typecheck && npm run lint` Expected: clean.
 
 - [ ] **Step 3: Commit**
 
@@ -956,16 +1037,22 @@ git commit -m "Companions: realtime STT socket client"
     stop: () => void; // pause + reset immediately
   };
   ```
-  `play` POSTs `/api/tts` with `{ text, voiceId }` and `signal`, feeds the streamed mp3 into a `MediaSource` attached to `audioEl` (append chunks to a `SourceBuffer`), and `audioEl.play()`s. `signal.aborted` → `stop()` (pause, clear `src`, abort the fetch). Progressive playback; instant stop.
+  `play` POSTs `/api/tts` with `{ text, voiceId }` and `signal`, feeds the
+  streamed mp3 into a `MediaSource` attached to `audioEl` (append chunks to a
+  `SourceBuffer`), and `audioEl.play()`s. `signal.aborted` → `stop()` (pause,
+  clear `src`, abort the fetch). Progressive playback; instant stop.
 
-**Verification:** integration — no unit test. Verified in Task 13. If MediaSource mp3 buffering proves fiddly, fall back to buffering the full response into a Blob URL for Slice 1 (still stops instantly on `pause()`); note which path was used.
+**Verification:** integration — no unit test. Verified in Task 13. If
+MediaSource mp3 buffering proves fiddly, fall back to buffering the full
+response into a Blob URL for Phase 1 (still stops instantly on `pause()`); note
+which path was used.
 
-- [ ] **Step 1: Implement** with the MediaSource append loop reading the fetch `body.getReader()`; on `signal`, `reader.cancel()` + `stop()`.
+- [ ] **Step 1: Implement** with the MediaSource append loop reading the fetch
+      `body.getReader()`; on `signal`, `reader.cancel()` + `stop()`.
 
 - [ ] **Step 2: Gate**
 
-Run: `npm run typecheck && npm run lint`
-Expected: clean.
+Run: `npm run typecheck && npm run lint` Expected: clean.
 
 - [ ] **Step 3: Commit**
 
@@ -984,23 +1071,32 @@ git commit -m "Companions: streaming TTS playback with hard stop"
 
 **Interfaces:**
 
-- Consumes: `startMic` (9), `createStt` (10), `createTtsPlayer` (11), `session-policy` (5), `ELISE`/`CANNED_REPLY` (1).
-- Produces: `useVoiceSession()` returning `{ start, stop, status }` where `status` exposes `{ micOn, phase, vadSpeaking, rms, preRollFrames, partial, committed, replyPlaying }` for the panel.
+- Consumes: `startMic` (9), `createStt` (10), `createTtsPlayer` (11),
+  `session-policy` (5), `ELISE`/`CANNED_REPLY` (1).
+- Produces: `useVoiceSession()` returning `{ start, stop, status }` where
+  `status` exposes
+  `{ micOn, phase, vadSpeaking, rms, preRollFrames, partial, committed, replyPlaying }`
+  for the panel.
 - Behaviour, one `AbortController` per turn:
-  - `onOnset`: if `isBargeIn(replyPlaying, true)` → `controller.abort()` (stops TTS) then open a fresh turn; else if `shouldOpenSocket(phase, true)` → open STT (flush pre-roll), record `lastVoiceAt`.
+  - `onOnset`: if `isBargeIn(replyPlaying, true)` → `controller.abort()` (stops
+    TTS) then open a fresh turn; else if `shouldOpenSocket(phase, true)` → open
+    STT (flush pre-roll), record `lastVoiceAt`.
   - `onFrame`: `sendFrame` while open.
   - `onRms`/`noteVoice`: update `lastVoiceAt` when `vadSpeaking`.
-  - `onCommitted`: create a new `AbortController`, set `replyPlaying`, `ttsPlayer.play(CANNED_REPLY, ELISE.voiceId, signal)`, clear `replyPlaying` on resolve.
+  - `onCommitted`: create a new `AbortController`, set `replyPlaying`,
+    `ttsPlayer.play(CANNED_REPLY, ELISE.voiceId, signal)`, clear `replyPlaying`
+    on resolve.
   - A `setInterval(500ms)` tick calls `maybeClose(now, 8000)`.
 
-**Verification:** integration — no unit test (decisions tested in Task 5). Verified in Task 13.
+**Verification:** integration — no unit test (decisions tested in Task 5).
+Verified in Task 13.
 
-- [ ] **Step 1: Implement** the hook, wiring the four modules; keep all timers/subscriptions cleaned up in the `stop()` path and on unmount.
+- [ ] **Step 1: Implement** the hook, wiring the four modules; keep all
+      timers/subscriptions cleaned up in the `stop()` path and on unmount.
 
 - [ ] **Step 2: Gate**
 
-Run: `npm run typecheck && npm run lint`
-Expected: clean.
+Run: `npm run typecheck && npm run lint` Expected: clean.
 
 - [ ] **Step 3: Commit**
 
@@ -1016,31 +1112,45 @@ git commit -m "Companions: voice-session orchestrator (single AbortController pe
 **Files:**
 
 - Create: `src/components/algorithms/companions-panel.tsx`
-- Modify: `src/app/page.tsx` (add the `companions` `ALGORITHMS` entry + render/import the panel — follow `DEVELOPERS.md#adding-an-algorithm`, minus the engine).
+- Modify: `src/app/page.tsx` (add the `companions` `ALGORITHMS` entry +
+  render/import the panel — follow `DEVELOPERS.md#adding-an-algorithm`, minus
+  the engine).
 
 **Interfaces:**
 
 - Consumes: `useVoiceSession` (12).
-- Produces: `CompanionsPanel` — a start/stop mic toggle plus the live status readout (AEC-on, VAD state + RMS meter, STT phase + pre-roll frames, partial/committed transcript, reply playing + elapsed, an event log). Does **not** arm the Player. The `ALGORITHMS` entry: `{ id: "companions", label: "Companions", description: "…", accent: "…" }` — pick an accent distinct from the others.
+- Produces: `CompanionsPanel` — a start/stop mic toggle plus the live status
+  readout (AEC-on, VAD state + RMS meter, STT phase + pre-roll frames,
+  partial/committed transcript, reply playing + elapsed, an event log). Does
+  **not** arm the Player. The `ALGORITHMS` entry:
+  `{ id: "companions", label: "Companions", description: "…", accent: "…" }` —
+  pick an accent distinct from the others.
 
-- [ ] **Step 1: Implement** the panel + register the entry in `page.tsx`. Match the panel signature the other panels use where relevant, but omit engine/Player wiring.
+- [ ] **Step 1: Implement** the panel + register the entry in `page.tsx`. Match
+      the panel signature the other panels use where relevant, but omit
+      engine/Player wiring.
 
 - [ ] **Step 2: Gate — full suite**
 
-Run: `npm test && npm run typecheck && npm run lint && npm run build`
-Expected: all clean.
+Run: `npm test && npm run typecheck && npm run lint && npm run build` Expected:
+all clean.
 
 - [ ] **Step 3: Manual acceptance (the real bar — speakers, no headphones)**
 
-Run: `npm run dev`, open `http://localhost:8931`, go to **Companions**, start mic, and confirm against the spec's acceptance criteria:
+Run: `npm run dev`, open `http://localhost:8931`, go to **Companions**, start
+mic, and confirm against the spec's acceptance criteria:
 
 1. Speaking yields a committed transcript.
 2. Elise's ~11 s reply plays in her voice.
-3. Speaking over it cuts within ~250 ms; the new words transcribe with no lost opening word.
-4. Elise's own voice never appears in the transcript and never falsely barges-in while you're quiet.
+3. Speaking over it cuts within ~250 ms; the new words transcribe with no lost
+   opening word.
+4. Elise's own voice never appears in the transcript and never falsely barges-in
+   while you're quiet.
 5. The STT socket closes after ~8 s of silence and reopens on the next onset.
 
-Tune the VAD thresholds (Task 9) if onset is too eager/sluggish. Requires `.env.local` with `ELEVENLABS_API_KEY` (and Ollama vars are irrelevant this slice).
+Tune the VAD thresholds (Task 9) if onset is too eager/sluggish. Requires
+`.env.local` with `ELEVENLABS_API_KEY` (and Ollama vars are irrelevant this
+phase).
 
 - [ ] **Step 4: Changelog + commit**
 
@@ -1059,10 +1169,24 @@ git commit -m "Companions: voice-lab panel + algorithm registration"
 
 ## Self-Review
 
-**Spec coverage:** AEC (Task 9), realtime STT + token (6, 10), streaming TTS eleven_v3 (7, 11), local energy-VAD (4, 9), pre-roll (3, 9), STT lifecycle + 8 s close (5, 10, 12), single-AbortController barge-in (12), algorithm shell (13), Elise + canned reply (1), key safety (6, 7), acceptance bar (13). All present.
+**Spec coverage:** AEC (Task 9), realtime STT + token (6, 10), streaming TTS
+eleven_v3 (7, 11), local energy-VAD (4, 9), pre-roll (3, 9), STT lifecycle + 8 s
+close (5, 10, 12), single-AbortController barge-in (12), algorithm shell (13),
+Elise + canned reply (1), key safety (6, 7), acceptance bar (13). All present.
 
-**Placeholder scan:** integration tasks (8–13) intentionally carry implementation guidance + interfaces rather than full code where the code is browser-audio/socket wiring that must be verified against real APIs; each still names exact files, signatures, message shapes, and a concrete verification step. No `TODO`/`handle errors`-style hand-waves in the pure-logic tasks (1–7), which carry complete code + tests.
+**Placeholder scan:** integration tasks (8–13) intentionally carry
+implementation guidance + interfaces rather than full code where the code is
+browser-audio/socket wiring that must be verified against real APIs; each still
+names exact files, signatures, message shapes, and a concrete verification step.
+No `TODO`/`handle errors`-style hand-waves in the pure-logic tasks (1–7), which
+carry complete code + tests.
 
-**Type consistency:** `SttPhase` is defined once (Task 5) and consumed by 10/12. `PreRollBuffer.flush()` returns `Int16Array[]`, consumed by `stt.open(preRoll)` (10) and produced by mic (9). `pcm16ToBase64` (2) feeds `onFrame` (9) → `sendFrame` (10). `AbortSignal` flows from the hook (12) into `ttsPlayer.play` (11). Consistent.
+**Type consistency:** `SttPhase` is defined once (Task 5) and consumed by 10/12.
+`PreRollBuffer.flush()` returns `Int16Array[]`, consumed by `stt.open(preRoll)`
+(10) and produced by mic (9). `pcm16ToBase64` (2) feeds `onFrame` (9) →
+`sendFrame` (10). `AbortSignal` flows from the hook (12) into `ttsPlayer.play`
+(11). Consistent.
 
-**Open risk flagged in-plan:** the SDK stream method name (`textToSpeech.stream` vs `convertAsStream`) is verified against 2.58.0 in Task 7; MediaSource mp3 has a documented Blob fallback in Task 11.
+**Open risk flagged in-plan:** the SDK stream method name (`textToSpeech.stream`
+vs `convertAsStream`) is verified against 2.58.0 in Task 7; MediaSource mp3 has
+a documented Blob fallback in Task 11.

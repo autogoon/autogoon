@@ -1,35 +1,66 @@
-# Companions Slice 4a Implementation Plan
+# Companions Phase 4 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Wire slices 1–3 into a working Companions session — the device runs Elise's program while she talks — and move the LLM backend from local Ollama to OpenRouter.
+**Goal:** Wire Phases 1–3 into a working Companions session — the device runs
+Elise's program while she talks — and move the LLM backend from local Ollama to
+OpenRouter.
 
-**Architecture:** The `CompanionsPanel` becomes a device-arming panel (like Autopilot) *and* keeps its `useVoiceSession` mic loop: it arms the one Player with a `CompanionEngine`, gains a `Home › Companions › Play` sub-level with a minimal one-companion picker, and exposes temporary program-shape knobs. The LLM proxy route is repointed at OpenRouter with a server-side `Authorization: Bearer` key; the persona leaves the (deleted) Ollama model card and becomes a client-side system message carried on the `Companion` config.
+**Architecture:** The `CompanionsPanel` becomes a device-arming panel (like
+Autopilot) _and_ keeps its `useVoiceSession` mic loop: it arms the one Player
+with a `CompanionEngine`, gains a `Home › Companions › Play` sub-level with a
+minimal one-companion picker, and exposes temporary program-shape knobs. The LLM
+proxy route is repointed at OpenRouter with a server-side
+`Authorization: Bearer` key; the persona leaves the (deleted) Ollama model card
+and becomes a client-side system message carried on the `Companion` config.
 
-**Tech Stack:** Next.js (App Router, RSC), TypeScript, React, Tailwind, the `openai` SDK (OpenAI-compatible → OpenRouter), Jest (`@jest/globals`, node env), Playwright (e2e).
+**Tech Stack:** Next.js (App Router, RSC), TypeScript, React, Tailwind, the
+`openai` SDK (OpenAI-compatible → OpenRouter), Jest (`@jest/globals`, node env),
+Playwright (e2e).
 
 ## Global Constraints
 
-- **Zero-warning repo.** `npm run lint` runs `--max-warnings 0`; fix every lint/typecheck warning before finishing a task, including ones you didn't cause.
-- **Gate on clean `npm run typecheck` AND `npm run lint`** (no output) before each commit; run `npm run build` (it runs `tsc`, catching RSC issues the dev server tolerates) for tasks touching the panel/page.
-- **No secret in any committed file.** The repo is public. The OpenRouter key lives **only** in `.env.local` (gitignored via `.env.*`). Never put it in `.env.example`, the plan, the spec, the changelog, code, or a commit message.
+- **Zero-warning repo.** `npm run lint` runs `--max-warnings 0`; fix every
+  lint/typecheck warning before finishing a task, including ones you didn't
+  cause.
+- **Gate on clean `npm run typecheck` AND `npm run lint`** (no output) before
+  each commit; run `npm run build` (it runs `tsc`, catching RSC issues the dev
+  server tolerates) for tasks touching the panel/page.
+- **No secret in any committed file.** The repo is public. The OpenRouter key
+  lives **only** in `.env.local` (gitignored via `.env.*`). Never put it in
+  `.env.example`, the plan, the spec, the changelog, code, or a commit message.
 - **No Co-Authored-By lines in commits.**
-- **Engines don't import each other.** `CompanionEngine` is already self-contained; don't refactor it into shared modules.
-- **Commit style:** newest-first CHANGELOG entries; commit-style bold summaries. Update `CHANGELOG.md` as part of the work when a user-notable change lands (see Task 5).
-- **Already on the `companions` branch** — do not branch again; do not commit to `main`.
-- **Companions registers NO vosk algorithm words this slice.** Every device control is an on-screen button; vosk carries only the existing global words. Do not call `useVoiceCommands` in the panel, and do not wire `useStrokeControls`'s `keywords` to voice.
+- **Engines don't import each other.** `CompanionEngine` is already
+  self-contained; don't refactor it into shared modules.
+- **Commit style:** newest-first CHANGELOG entries; commit-style bold summaries.
+  Update `CHANGELOG.md` as part of the work when a user-notable change lands
+  (see Task 5).
+- **Already on the `companions` branch** — do not branch again; do not commit to
+  `main`.
+- **Companions registers NO vosk algorithm words this phase.** Every device
+  control is an on-screen button; vosk carries only the existing global words.
+  Do not call `useVoiceCommands` in the panel, and do not wire
+  `useStrokeControls`'s `keywords` to voice.
 
 ---
 
 ### Task 1: Repoint the LLM proxy route at OpenRouter
 
 **Files:**
+
 - Modify: `src/app/api/llm/chat/completions/route.ts`
 - Test: `src/app/api/llm/chat/completions/route.test.ts`
 
 **Interfaces:**
+
 - Consumes: env `LLM_URL`, `OPENROUTER_API_KEY`.
-- Produces: a `POST(request: Request): Promise<Response>` that forwards to `${LLM_URL}/chat/completions` with an `Authorization: Bearer` header, **without** overriding `body.model` (the client now chooses the model per-companion).
+- Produces: a `POST(request: Request): Promise<Response>` that forwards to
+  `${LLM_URL}/chat/completions` with an `Authorization: Bearer` header,
+  **without** overriding `body.model` (the client now chooses the model
+  per-companion).
 
 - [ ] **Step 1: Update the route test to the OpenRouter contract**
 
@@ -146,8 +177,9 @@ describe("POST /api/llm/chat/completions", () => {
 
 - [ ] **Step 2: Run the test, verify it fails**
 
-Run: `npm test -- route.test.ts`
-Expected: FAIL — the current route reads `LLM_MODEL`, overrides `body.model`, and sends no `authorization` header, so the model-preservation and header assertions fail.
+Run: `npm test -- route.test.ts` Expected: FAIL — the current route reads
+`LLM_MODEL`, overrides `body.model`, and sends no `authorization` header, so the
+model-preservation and header assertions fail.
 
 - [ ] **Step 3: Rewrite the route for OpenRouter**
 
@@ -192,7 +224,10 @@ export async function POST(request: Request): Promise<Response> {
       signal: request.signal,
     });
   } catch {
-    return Response.json({ error: "LLM upstream unreachable" }, { status: 502 });
+    return Response.json(
+      { error: "LLM upstream unreachable" },
+      { status: 502 },
+    );
   }
 
   if (!upstream.ok || upstream.body === null) {
@@ -207,13 +242,11 @@ export async function POST(request: Request): Promise<Response> {
 
 - [ ] **Step 4: Run the test, verify it passes**
 
-Run: `npm test -- route.test.ts`
-Expected: PASS (4 tests).
+Run: `npm test -- route.test.ts` Expected: PASS (4 tests).
 
 - [ ] **Step 5: Gate and commit**
 
-Run: `npm run typecheck && npm run lint`
-Expected: no output.
+Run: `npm run typecheck && npm run lint` Expected: no output.
 
 ```bash
 git add src/app/api/llm/chat/completions/route.ts src/app/api/llm/chat/completions/route.test.ts
@@ -225,6 +258,7 @@ git commit -m "Companions: point the LLM proxy at OpenRouter (bearer key, client
 ### Task 2: Persona to code + per-companion model/context + env & docs
 
 **Files:**
+
 - Create: `src/lib/companions/elise-prompt.ts`
 - Modify: `src/lib/companions/companions.ts`
 - Modify: `src/lib/llm/client.ts`
@@ -233,28 +267,37 @@ git commit -m "Companions: point the LLM proxy at OpenRouter (bearer key, client
 - Create: `.env.local` (gitignored — do NOT commit)
 - Delete: `elise.Modelfile`
 - Rewrite: `COMPANIONS.md`
-- Modify: `docs/superpowers/specs/2026-07-18-companions-design.md` (LLM/Secrets note + 4a bullet)
+- Modify: `docs/superpowers/specs/2026-07-18-companions-design.md` (LLM/Secrets
+  note + Phase 4 bullet)
 
 **Interfaces:**
-- Consumes: nothing from earlier tasks (Task 1's route is exercised at runtime, not imported).
+
+- Consumes: nothing from earlier tasks (Task 1's route is exercised at runtime,
+  not imported).
 - Produces:
-  - `Companion` type with `systemPrompt: string`, `model: string`, `contextWindow: number`.
+  - `Companion` type with `systemPrompt: string`, `model: string`,
+    `contextWindow: number`.
   - `ELISE: Companion` populated with the OpenRouter model + persona.
-  - `createLlmClient(model: string): LlmClient` — the model is now a required arg.
+  - `createLlmClient(model: string): LlmClient` — the model is now a required
+    arg.
 
 - [ ] **Step 1: Capture Elise's persona, then create the prompt module**
 
-Copy the **exact text between the triple quotes** of the `SYSTEM """…"""` directive in `elise.Modelfile` (do this before Step 8 deletes that file). Create `src/lib/companions/elise-prompt.ts`:
+Copy the **exact text between the triple quotes** of the `SYSTEM """…"""`
+directive in `elise.Modelfile` (do this before Step 8 deletes that file). Create
+`src/lib/companions/elise-prompt.ts`:
 
 ```ts
 // Elise's persona — the LLM system message that makes her sound like herself.
 // Lifted verbatim from the old elise.Modelfile SYSTEM block when the persona
-// moved out of the Ollama model card and into the app (Companions Slice 4a).
+// moved out of the Ollama model card and into the app (Companions Phase 4).
 // Kept in its own module so companions.ts stays readable.
 export const ELISE_SYSTEM_PROMPT = `<paste the exact SYSTEM block text from elise.Modelfile here>`;
 ```
 
-Use a backtick template literal; if the persona text contains a backtick or `${`, escape it (`` \` ``, `\${`). Otherwise reproduce it character-for-character.
+Use a backtick template literal; if the persona text contains a backtick or
+`${`, escape it (`` \` ``, `\${`). Otherwise reproduce it
+character-for-character.
 
 - [ ] **Step 2: Extend the Companion type and Elise's config**
 
@@ -269,8 +312,8 @@ export type Companion = {
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
-  contextWindow: number; // model context window (tokens); recorded for 4b pruning
-  // generationBias / initiative / agency arrive in later slices.
+  contextWindow: number; // model context window (tokens); recorded for Phase 5 pruning
+  // generationBias / initiative / agency arrive in later phases.
 };
 
 export const ELISE: Companion = {
@@ -281,61 +324,77 @@ export const ELISE: Companion = {
   systemPrompt: ELISE_SYSTEM_PROMPT,
   model: "minimax/minimax-m2:nitro",
   // MiniMax M2 is 204,800 nominal, but :nitro may route to a ~196,608 provider;
-  // record the conservative value so 4b's pruning is safe whichever serves it.
+  // record the conservative value so Phase 5's pruning is safe whichever serves it.
   contextWindow: 196608,
 };
 ```
 
 - [ ] **Step 3: Make `createLlmClient` take the model**
 
-In `src/lib/llm/client.ts`: delete the `PLACEHOLDER_MODEL` constant and its comment, change the factory signature, and send the passed model. Apply these edits:
+In `src/lib/llm/client.ts`: delete the `PLACEHOLDER_MODEL` constant and its
+comment, change the factory signature, and send the passed model. Apply these
+edits:
 
 Replace:
+
 ```ts
 // Overridden server-side by LLM_MODEL — a placeholder only to satisfy the SDK.
 const PLACEHOLDER_MODEL = "companion";
 
 export function createLlmClient(): LlmClient {
 ```
+
 with:
+
 ```ts
 export function createLlmClient(model: string): LlmClient {
 ```
 
 Replace:
+
 ```ts
-    const completion = await client.chat.completions.create(
-      { model: PLACEHOLDER_MODEL, messages, stream: true },
-      { signal: opts.signal },
-    );
-```
-with:
-```ts
-    const completion = await client.chat.completions.create(
-      { model, messages, stream: true },
-      { signal: opts.signal },
-    );
+const completion = await client.chat.completions.create(
+  { model: PLACEHOLDER_MODEL, messages, stream: true },
+  { signal: opts.signal },
+);
 ```
 
-Also update the top-of-file comment: the model is no longer injected server-side — the client sends the companion's model; only the API key is server-side. Change the first comment paragraph's "the route overrides the model, and the proxy is unauthenticated" to note the client now sends the model and the route injects only the key.
+with:
+
+```ts
+const completion = await client.chat.completions.create(
+  { model, messages, stream: true },
+  { signal: opts.signal },
+);
+```
+
+Also update the top-of-file comment: the model is no longer injected server-side
+— the client sends the companion's model; only the API key is server-side.
+Change the first comment paragraph's "the route overrides the model, and the
+proxy is unauthenticated" to note the client now sends the model and the route
+injects only the key.
 
 - [ ] **Step 4: Feed Elise's model + persona through the session**
 
 In `src/hooks/use-voice-session.ts`:
 
 Change `ensureClients` to pass the model:
+
 ```ts
-    llmRef.current ??= createLlmClient(ELISE.model);
+llmRef.current ??= createLlmClient(ELISE.model);
 ```
 
 In `submitText`, prepend the system message to every turn — replace:
+
 ```ts
           for await (const delta of llm.stream(
             [{ role: "user", content: prompt }],
             { signal: controller.signal },
           )) {
 ```
+
 with:
+
 ```ts
           for await (const delta of llm.stream(
             [
@@ -368,40 +427,61 @@ Leave the `ELEVENLABS_API_KEY` block and the file's header comments unchanged.
 - [ ] **Step 6: Create `.env.local` with the real values (do NOT commit)**
 
 Create `.env.local` (already matched by `.env.*` in `.gitignore`) containing:
+
 - `LLM_URL=https://openrouter.ai/api/v1`
-- `OPENROUTER_API_KEY=` set to the `sk-or-…` key the user provided in the session.
+- `OPENROUTER_API_KEY=` set to the `sk-or-…` key the user provided in the
+  session.
 - Carry over any existing `ELEVENLABS_API_KEY` value if one was already set.
 
 Verify it is ignored:
 
-Run: `git check-ignore .env.local`
-Expected: prints `.env.local` (i.e. it is ignored). If it prints nothing, STOP — do not proceed; the key must never be staged.
+Run: `git check-ignore .env.local` Expected: prints `.env.local` (i.e. it is
+ignored). If it prints nothing, STOP — do not proceed; the key must never be
+staged.
 
 - [ ] **Step 7: Rewrite `COMPANIONS.md` for OpenRouter**
 
-Replace `COMPANIONS.md` so it describes the OpenRouter model instead of Ollama cards. It should cover:
-- Each companion is a config object (`src/lib/companions`) carrying its own OpenRouter `model` slug, `contextWindow`, `voiceId`, and `systemPrompt` (the persona — now in code, e.g. `elise-prompt.ts`, not a model card).
-- The app talks to OpenRouter's OpenAI-compatible endpoint via the same-origin `/api/llm` proxy, which injects `OPENROUTER_API_KEY` server-side.
-- Configuration: `LLM_URL` (`https://openrouter.ai/api/v1`) and `OPENROUTER_API_KEY` in `.env.local`; no `LLM_MODEL` (per-companion).
-- Adding a companion: add a `Companion` entry with its model/context/voice/persona; put a long persona in its own `*-prompt.ts` module.
-- Note that explicit-content suitability depends on the chosen OpenRouter model (why a permissive model is used).
+Replace `COMPANIONS.md` so it describes the OpenRouter model instead of Ollama
+cards. It should cover:
+
+- Each companion is a config object (`src/lib/companions`) carrying its own
+  OpenRouter `model` slug, `contextWindow`, `voiceId`, and `systemPrompt` (the
+  persona — now in code, e.g. `elise-prompt.ts`, not a model card).
+- The app talks to OpenRouter's OpenAI-compatible endpoint via the same-origin
+  `/api/llm` proxy, which injects `OPENROUTER_API_KEY` server-side.
+- Configuration: `LLM_URL` (`https://openrouter.ai/api/v1`) and
+  `OPENROUTER_API_KEY` in `.env.local`; no `LLM_MODEL` (per-companion).
+- Adding a companion: add a `Companion` entry with its
+  model/context/voice/persona; put a long persona in its own `*-prompt.ts`
+  module.
+- Note that explicit-content suitability depends on the chosen OpenRouter model
+  (why a permissive model is used).
 
 Remove all Ollama/Modelfile/Cydonia card mechanics.
 
-- [ ] **Step 8: Delete the Modelfile and note the backend switch in the shared design doc**
+- [ ] **Step 8: Delete the Modelfile and note the backend switch in the shared
+      design doc**
 
 ```bash
 git rm elise.Modelfile
 ```
 
 In `docs/superpowers/specs/2026-07-18-companions-design.md`:
-- At the top of the **### LLM** subsection, add a one-line note: as of Slice 4a the backend is **OpenRouter** (OpenAI-compatible), not self-hosted Ollama; the persona lives in the `Companion` config as a client-side system message, and each companion carries its own `model` + `contextWindow`. (Leave the historical rationale prose; this is a pointer.)
-- In the **4a** bullet of the "Build order" section, add a parenthetical that 4a as built ships one companion (Elise) with a random program and temporary on-screen knobs, and folds in the Ollama→OpenRouter swap; the two-persona / `generationBias` mapping is deferred to when companion #2 lands.
+
+- At the top of the **### LLM** subsection, add a one-line note: as of Phase 4
+  the backend is **OpenRouter** (OpenAI-compatible), not self-hosted Ollama; the
+  persona lives in the `Companion` config as a client-side system message, and
+  each companion carries its own `model` + `contextWindow`. (Leave the
+  historical rationale prose; this is a pointer.)
+- In the **Phase 4** bullet of the "Build order" section, add a parenthetical
+  that Phase 4 as built ships one companion (Elise) with a random program and
+  temporary on-screen knobs, and folds in the Ollama→OpenRouter swap; the
+  two-persona / `generationBias` mapping is deferred to when companion #2 lands.
 
 - [ ] **Step 9: Gate and commit (persona/config/env/docs)**
 
-Run: `npm run typecheck && npm run lint && npm run build`
-Expected: all clean, build succeeds.
+Run: `npm run typecheck && npm run lint && npm run build` Expected: all clean,
+build succeeds.
 
 ```bash
 git add src/lib/companions/elise-prompt.ts src/lib/companions/companions.ts \
@@ -411,47 +491,63 @@ git status   # confirm .env.local is NOT listed
 git commit -m "Companions: move persona into config + per-companion model/context; drop the Ollama Modelfile"
 ```
 
-> After this task, manually verify the LLM path end-to-end (needs `.env.local`): `npm run dev`, open Companions, type a message, press **Send** — Elise should reply as herself over OpenRouter. (Full session verification is Task 5.)
+> After this task, manually verify the LLM path end-to-end (needs `.env.local`):
+> `npm run dev`, open Companions, type a message, press **Send** — Elise should
+> reply as herself over OpenRouter. (Full session verification is Task 5.)
 
 ---
 
 ### Task 3: Companions nav sub-level + panel arms the Player
 
 **Files:**
+
 - Modify: `src/app/page.tsx:407-409` (the Companions render block)
 - Modify: `src/components/algorithms/companions-panel.tsx`
 
 **Interfaces:**
-- Consumes: `ELISE` (config), `useVoiceSession`, `CompanionEngine`, the shared `PlayerView` (`player`) and `VacuglideDeviceController` (`vacuglide`), `SessionControls`, `Sparkline`, `Card`, `Button`.
-- Produces: `CompanionsPanel({ vacuglide, player, active, view, onEnterPlay })` — a device-arming panel with a setup view (Elise picker + Begin) and a play view (device transport + sparkline + the existing conversation UI).
+
+- Consumes: `ELISE` (config), `useVoiceSession`, `CompanionEngine`, the shared
+  `PlayerView` (`player`) and `VacuglideDeviceController` (`vacuglide`),
+  `SessionControls`, `Sparkline`, `Card`, `Button`.
+- Produces: `CompanionsPanel({ vacuglide, player, active, view, onEnterPlay })`
+  — a device-arming panel with a setup view (Elise picker + Begin) and a play
+  view (device transport + sparkline + the existing conversation UI).
 
 - [ ] **Step 1: Pass the device + nav props from the page**
 
 In `src/app/page.tsx`, replace the Companions render block:
 
 ```tsx
-          <div className={screen === "companions" ? undefined : "hidden"}>
-            <CompanionsPanel active={screen === "companions"} />
-          </div>
-```
-with:
-```tsx
-          <div className={screenBase === "companions" ? undefined : "hidden"}>
-            <CompanionsPanel
-              vacuglide={vacuglide}
-              player={player}
-              active={screenBase === "companions"}
-              view={atPlayLevel ? "play" : "setup"}
-              onEnterPlay={() => navigate("companions/play")}
-            />
-          </div>
+<div className={screen === "companions" ? undefined : "hidden"}>
+  <CompanionsPanel active={screen === "companions"} />
+</div>
 ```
 
-(`screenBase`, `atPlayLevel`, `navigate`, `vacuglide`, `player` are all already in scope in `App`. The breadcrumb, nav-lock, and `/play` popstate handling are already generic over any algorithm, so no other page change is needed.)
+with:
+
+```tsx
+<div className={screenBase === "companions" ? undefined : "hidden"}>
+  <CompanionsPanel
+    vacuglide={vacuglide}
+    player={player}
+    active={screenBase === "companions"}
+    view={atPlayLevel ? "play" : "setup"}
+    onEnterPlay={() => navigate("companions/play")}
+  />
+</div>
+```
+
+(`screenBase`, `atPlayLevel`, `navigate`, `vacuglide`, `player` are all already
+in scope in `App`. The breadcrumb, nav-lock, and `/play` popstate handling are
+already generic over any algorithm, so no other page change is needed.)
 
 - [ ] **Step 2: Rewrite the panel — device arming + setup/play views**
 
-Replace `src/components/algorithms/companions-panel.tsx` with the following. It keeps the single `useVoiceSession` call and the memoized hot-path pieces, adds the `CompanionEngine` + Player transport, and splits setup/play. The hidden `<audio>` is rendered once, outside the view branch, so its ref stays stable across the switch. (Knob cards + stroke are added in Task 4.)
+Replace `src/components/algorithms/companions-panel.tsx` with the following. It
+keeps the single `useVoiceSession` call and the memoized hot-path pieces, adds
+the `CompanionEngine` + Player transport, and splits setup/play. The hidden
+`<audio>` is rendered once, outside the view branch, so its ref stays stable
+across the switch. (Knob cards + stroke are added in Task 4.)
 
 ```tsx
 "use client";
@@ -459,7 +555,7 @@ Replace `src/components/algorithms/companions-panel.tsx` with the following. It 
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
-// shared Player, so the device runs Elise's program while she talks. Slice 4a:
+// shared Player, so the device runs Elise's program while she talks. Phase 4:
 // one companion, a random program on fixed default knobs, temporary on-screen
 // knobs (they become LLM-driven tools later), and buttons-only device controls
 // (no vosk words — open dictation to Elise would otherwise transcribe them).
@@ -492,7 +588,7 @@ import {
   type SuctionControlLevel,
 } from "@/lib/algorithms/companion-engine";
 
-// Fixed default knobs for 4a — the program is random within this baseline
+// Fixed default knobs for Phase 4 — the program is random within this baseline
 // (generationBias -> knobs is deferred to when companion #2 lands).
 const DEFAULT_INTENSITY: IntensityLevel = "medium";
 const DEFAULT_EDGE: EdgeControlLevel = "moderate";
@@ -663,13 +759,13 @@ export function CompanionsPanel({
             Choose a companion. She listens, replies in her own voice, and runs
             the device while you talk — cut in any time and she stops.
           </p>
-          <div className="border-emerald-500 bg-linear-to-br mt-2 rounded-lg border from-emerald-500/15 to-emerald-500/5 p-4">
+          <div className="mt-2 rounded-lg border border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 p-4">
             <p className="font-medium">{ELISE.name}</p>
             <p className="text-muted-foreground text-sm">
               A high-energy, flirty streamer with a dry, quieter side.
             </p>
           </div>
-          {/* No badge — Companions registers no vosk words this slice. */}
+          {/* No badge — Companions registers no vosk words this phase. */}
           <Button
             onClick={enterPlay}
             className="mt-4 w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white"
@@ -700,7 +796,9 @@ export function CompanionsPanel({
 
           <Card title="Microphone">
             <Button
-              onClick={() => (status.micOn ? stopListening() : startListening())}
+              onClick={() =>
+                status.micOn ? stopListening() : startListening()
+              }
               className={`w-full rounded-lg px-4 py-3 text-sm font-medium ${
                 status.micOn
                   ? "bg-foreground/10 hover:bg-foreground/20"
@@ -713,7 +811,9 @@ export function CompanionsPanel({
               <Row label="Mic">{status.micOn ? "on" : "off"}</Row>
               <Row label="State">
                 <span
-                  className={status.vadSpeaking ? "text-emerald-500" : undefined}
+                  className={
+                    status.vadSpeaking ? "text-emerald-500" : undefined
+                  }
                 >
                   {status.vadSpeaking ? "speaking" : "quiet"}
                 </span>
@@ -725,8 +825,8 @@ export function CompanionsPanel({
           <Card title="Conversation">
             <p className="text-muted-foreground text-sm">
               Speak (hands-free) or type. <strong>Send</strong> runs the model
-              only; <strong>Say it</strong> speaks the reply. Stop — or just talk
-              over her — to cut it.
+              only; <strong>Say it</strong> speaks the reply. Stop — or just
+              talk over her — to cut it.
             </p>
             <div className="text-muted-foreground mt-2 flex gap-4 text-xs">
               <span>STT {status.phase}</span>
@@ -738,7 +838,9 @@ export function CompanionsPanel({
                 <span className="text-muted-foreground">{status.partial}</span>
               )}
               {status.committed === "" && status.partial === "" && (
-                <span className="text-muted-foreground">Nothing heard yet.</span>
+                <span className="text-muted-foreground">
+                  Nothing heard yet.
+                </span>
               )}
             </p>
             <textarea
@@ -802,12 +904,16 @@ export function CompanionsPanel({
 
 - [ ] **Step 3: Gate and build**
 
-Run: `npm run typecheck && npm run lint && npm run build`
-Expected: all clean.
+Run: `npm run typecheck && npm run lint && npm run build` Expected: all clean.
 
 - [ ] **Step 4: Manually verify the nav + device track**
 
-Run `npm run dev`. Home → say/click **Companions** → the setup view shows Elise + **Begin** → click Begin → URL becomes `#companions/play`, breadcrumb reads `Home › Companions › Play`. Press **Start**: `player.state` goes to `playing`, the sparkline advances, and (if a device is connected) the hardware moves. Confirm the breadcrumb's Home/back is disabled while playing. Press **Stop**. Confirm **Start listening** still opens the mic and Elise replies.
+Run `npm run dev`. Home → say/click **Companions** → the setup view shows
+Elise + **Begin** → click Begin → URL becomes `#companions/play`, breadcrumb
+reads `Home › Companions › Play`. Press **Start**: `player.state` goes to
+`playing`, the sparkline advances, and (if a device is connected) the hardware
+moves. Confirm the breadcrumb's Home/back is disabled while playing. Press
+**Stop**. Confirm **Start listening** still opens the mic and Elise replies.
 
 - [ ] **Step 5: Commit**
 
@@ -821,15 +927,21 @@ git commit -m "Companions: arm the Player with CompanionEngine + add the Play su
 ### Task 4: Temporary device controls — stroke + program-shape knobs
 
 **Files:**
+
 - Modify: `src/components/algorithms/companions-panel.tsx`
 
 **Interfaces:**
-- Consumes: `useStrokeControls`, `StrokeCard`, `Segmented`, `CompanionEngine`'s `setIntensity`/`setEdgeControl`/`setSuctionControl`, `device.invalidateFuture`/`device.invalidateValves`.
-- Produces: no new exports — extends the panel's play view with a stroke card and three knob cards.
+
+- Consumes: `useStrokeControls`, `StrokeCard`, `Segmented`, `CompanionEngine`'s
+  `setIntensity`/`setEdgeControl`/`setSuctionControl`,
+  `device.invalidateFuture`/`device.invalidateValves`.
+- Produces: no new exports — extends the panel's play view with a stroke card
+  and three knob cards.
 
 - [ ] **Step 1: Add stroke + knob state, imports, and handlers**
 
-In `src/components/algorithms/companions-panel.tsx`, add these imports alongside the existing ones:
+In `src/components/algorithms/companions-panel.tsx`, add these imports alongside
+the existing ones:
 
 ```tsx
 import { Segmented } from "@/components/segmented";
@@ -837,71 +949,77 @@ import { StrokeCard } from "@/components/stroke-card";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 ```
 
-Inside `CompanionsPanel`, after `const engine = engineRef.current;`, add the knob state (initialised to the fixed defaults):
+Inside `CompanionsPanel`, after `const engine = engineRef.current;`, add the
+knob state (initialised to the fixed defaults):
 
 ```tsx
-  const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
-  const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
-  const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
-  // Manual stroke state only — its `keywords` are intentionally NOT wired to
-  // voice (Companions registers no vosk words this slice).
-  const stroke = useStrokeControls(vacuglide, player);
+const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
+const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
+const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
+// Manual stroke state only — its `keywords` are intentionally NOT wired to
+// voice (Companions registers no vosk words this phase).
+const stroke = useStrokeControls(vacuglide, player);
 ```
 
-Update `reset` to also restore the React knob state (it already resets the engine):
+Update `reset` to also restore the React knob state (it already resets the
+engine):
 
 ```tsx
-  const reset = useCallback(() => {
-    setIntensity(DEFAULT_INTENSITY);
-    engine.setIntensity(DEFAULT_INTENSITY);
-    setEdge(DEFAULT_EDGE);
-    engine.setEdgeControl(DEFAULT_EDGE);
-    setSuction(DEFAULT_SUCTION);
-    engine.setSuctionControl(DEFAULT_SUCTION);
-    device.arm(engine);
-  }, [device, engine]);
+const reset = useCallback(() => {
+  setIntensity(DEFAULT_INTENSITY);
+  engine.setIntensity(DEFAULT_INTENSITY);
+  setEdge(DEFAULT_EDGE);
+  engine.setEdgeControl(DEFAULT_EDGE);
+  setSuction(DEFAULT_SUCTION);
+  engine.setSuctionControl(DEFAULT_SUCTION);
+  device.arm(engine);
+}, [device, engine]);
 ```
 
-Add the knob handlers (place them after `enterPlay`), mirroring Autopilot — intensity/edge reshape the script (`invalidateFuture`), suction is a valve-only overlay (`invalidateValves`):
+Add the knob handlers (place them after `enterPlay`), mirroring Autopilot —
+intensity/edge reshape the script (`invalidateFuture`), suction is a valve-only
+overlay (`invalidateValves`):
 
 ```tsx
-  const changeIntensity = useCallback(
-    (level: IntensityLevel) => {
-      setIntensity(level);
-      engine.setIntensity(level);
-      device.invalidateFuture();
-      vacuglide.log(`intensity → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
-  const changeEdge = useCallback(
-    (level: EdgeControlLevel) => {
-      setEdge(level);
-      engine.setEdgeControl(level);
-      device.invalidateFuture();
-      vacuglide.log(`edge control → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
-  const changeSuction = useCallback(
-    (level: SuctionControlLevel) => {
-      setSuction(level);
-      engine.setSuctionControl(level);
-      device.invalidateValves();
-      vacuglide.log(`vacuum maintenance → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
+const changeIntensity = useCallback(
+  (level: IntensityLevel) => {
+    setIntensity(level);
+    engine.setIntensity(level);
+    device.invalidateFuture();
+    vacuglide.log(`intensity → ${level}`);
+  },
+  [device, engine, vacuglide],
+);
+const changeEdge = useCallback(
+  (level: EdgeControlLevel) => {
+    setEdge(level);
+    engine.setEdgeControl(level);
+    device.invalidateFuture();
+    vacuglide.log(`edge control → ${level}`);
+  },
+  [device, engine, vacuglide],
+);
+const changeSuction = useCallback(
+  (level: SuctionControlLevel) => {
+    setSuction(level);
+    engine.setSuctionControl(level);
+    device.invalidateValves();
+    vacuglide.log(`vacuum maintenance → ${level}`);
+  },
+  [device, engine, vacuglide],
+);
 
-  const logError = useCallback(
-    (message: string) => vacuglide.log(`error: ${message}`, "error"),
-    [vacuglide],
-  );
+const logError = useCallback(
+  (message: string) => vacuglide.log(`error: ${message}`, "error"),
+  [vacuglide],
+);
 ```
 
 - [ ] **Step 2: Add the cards to the play view**
 
-In the play-view `<>…</>`, insert the stroke and knob cards after the `Sparkline` `Card` and before the `Microphone` `Card`. Wrap the knobs in a note that they are transitional:
+In the play-view `<>…</>`, insert the stroke and knob cards after the
+`Sparkline` `Card` and before the `Microphone` `Card`. Wrap the knobs in a note
+that they are transitional:
 
 ```tsx
           <StrokeCard
@@ -913,7 +1031,7 @@ In the play-view `<>…</>`, insert the stroke and knob cards after the `Sparkli
           />
 
           {/* Temporary bring-up knobs — Elise will turn these herself via LLM
-              tools in a later slice, at which point they come off the screen. */}
+              tools in a later phase, at which point they come off the screen. */}
           <Card title="Intensity">
             <Segmented
               options={[
@@ -955,16 +1073,19 @@ In the play-view `<>…</>`, insert the stroke and knob cards after the `Sparkli
           </Card>
 ```
 
-(No `badge` props on the `Segmented` options — badges advertise a voice word, and these have none this slice.)
+(No `badge` props on the `Segmented` options — badges advertise a voice word,
+and these have none this phase.)
 
 - [ ] **Step 3: Gate and build**
 
-Run: `npm run typecheck && npm run lint && npm run build`
-Expected: all clean.
+Run: `npm run typecheck && npm run lint && npm run build` Expected: all clean.
 
 - [ ] **Step 4: Manually verify the knobs**
 
-`npm run dev` → Companions → Begin → Start. Change **Intensity** and **Edge Control**: the sparkline's upcoming shape regenerates. Change **Vacuum Maintenance**: the valve overlay re-lays without disturbing the speed line. The stroke ± buttons pulse when connected.
+`npm run dev` → Companions → Begin → Start. Change **Intensity** and **Edge
+Control**: the sparkline's upcoming shape regenerates. Change **Vacuum
+Maintenance**: the valve overlay re-lays without disturbing the speed line. The
+stroke ± buttons pulse when connected.
 
 - [ ] **Step 5: Commit**
 
@@ -977,9 +1098,14 @@ git commit -m "Companions: temporary on-screen program knobs + manual stroke con
 
 ### Task 5: LLM + TTS latency metrics in the debug panel
 
-Added mid-slice at the user's request: surface per-turn latency in the play-view debug panel so the voice loop can be tuned (4d is latency work). For the LLM: time-to-first-token, output tokens/sec, and total generation time. For the TTS: time-to-first-byte (request → audio starts coming back) and total playback time.
+Added mid-phase at the user's request: surface per-turn latency in the play-view
+debug panel so the voice loop can be tuned (Phase 7 is latency work). For the
+LLM: time-to-first-token, output tokens/sec, and total generation time. For the
+TTS: time-to-first-byte (request → audio starts coming back) and total playback
+time.
 
 **Files:**
+
 - Modify: `src/lib/llm/client.ts`
 - Modify: `src/lib/voice/tts.ts`
 - Modify: `src/hooks/use-voice-session.ts`
@@ -987,22 +1113,32 @@ Added mid-slice at the user's request: surface per-turn latency in the play-view
 - Test (if the assertion breaks): `src/lib/llm/client.test.ts`
 
 **Interfaces:**
-- Consumes: `createLlmClient`, `createTtsPlayer`, `useVoiceSession`'s `status`, the panel's `Row` component.
+
+- Consumes: `createLlmClient`, `createTtsPlayer`, `useVoiceSession`'s `status`,
+  the panel's `Row` component.
 - Produces:
-  - `LlmClient.stream(messages, { signal, onUsage? })` — `onUsage?: (usage: { completionTokens: number }) => void`, called once when the usage chunk arrives.
-  - `TtsPlayer.play(text, voiceId, signal, onFirstByte?)` — `onFirstByte?: () => void`, called once when the TTS response's bytes start arriving.
-  - `VoiceStatus.metrics: TurnMetrics` where `TurnMetrics = { llm: { ttftMs: number; totalMs: number; tps: number | null } | null; tts: { ttfbMs: number | null; totalMs: number } | null }`.
+  - `LlmClient.stream(messages, { signal, onUsage? })` —
+    `onUsage?: (usage: { completionTokens: number }) => void`, called once when
+    the usage chunk arrives.
+  - `TtsPlayer.play(text, voiceId, signal, onFirstByte?)` —
+    `onFirstByte?: () => void`, called once when the TTS response's bytes start
+    arriving.
+  - `VoiceStatus.metrics: TurnMetrics` where
+    `TurnMetrics = { llm: { ttftMs: number; totalMs: number; tps: number | null } | null; tts: { ttfbMs: number | null; totalMs: number } | null }`.
 
 - [ ] **Step 1: LLM client — request usage + expose it via a callback**
 
-In `src/lib/llm/client.ts`, add a usage type, extend the `stream` opts, ask OpenRouter for usage, and surface it. Apply these edits:
+In `src/lib/llm/client.ts`, add a usage type, extend the `stream` opts, ask
+OpenRouter for usage, and surface it. Apply these edits:
 
 Add after the `LlmMessage` type:
+
 ```ts
 export type LlmUsage = { completionTokens: number };
 ```
 
 Change the `LlmClient` type's `stream` signature to:
+
 ```ts
 export type LlmClient = {
   // Streams assistant token deltas for a turn. Abort opts.signal to cancel the
@@ -1016,39 +1152,45 @@ export type LlmClient = {
 ```
 
 Replace the `stream` implementation with:
+
 ```ts
-  async function* stream(
-    messages: LlmMessage[],
-    opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
-  ): AsyncIterable<string> {
-    const completion = await client.chat.completions.create(
-      {
-        model,
-        messages,
-        stream: true,
-        // Ask for a final usage chunk (empty choices + usage) so we can report
-        // output tok/s. Providers that don't send it simply never fire onUsage.
-        stream_options: { include_usage: true },
-      },
-      { signal: opts.signal },
-    );
-    for await (const chunk of completion) {
-      const delta = chunk.choices[0]?.delta?.content;
-      if (delta) yield delta;
-      const usage = chunk.usage;
-      if (usage) opts.onUsage?.({ completionTokens: usage.completion_tokens });
-    }
+async function* stream(
+  messages: LlmMessage[],
+  opts: { signal: AbortSignal; onUsage?: (usage: LlmUsage) => void },
+): AsyncIterable<string> {
+  const completion = await client.chat.completions.create(
+    {
+      model,
+      messages,
+      stream: true,
+      // Ask for a final usage chunk (empty choices + usage) so we can report
+      // output tok/s. Providers that don't send it simply never fire onUsage.
+      stream_options: { include_usage: true },
+    },
+    { signal: opts.signal },
+  );
+  for await (const chunk of completion) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) yield delta;
+    const usage = chunk.usage;
+    if (usage) opts.onUsage?.({ completionTokens: usage.completion_tokens });
   }
+}
 ```
 
-- [ ] **Step 2: Verify the client test still passes; fix only if it asserts exact create args**
+- [ ] **Step 2: Verify the client test still passes; fix only if it asserts
+      exact create args**
 
-Run: `npm test -- client.test.ts`
-Expected: PASS. If it FAILS because it asserts the exact object passed to `chat.completions.create` (now including `stream_options`), update that assertion to include `stream_options: { include_usage: true }` — do not weaken the test to `expect.anything()`. If it passes, change nothing.
+Run: `npm test -- client.test.ts` Expected: PASS. If it FAILS because it asserts
+the exact object passed to `chat.completions.create` (now including
+`stream_options`), update that assertion to include
+`stream_options: { include_usage: true }` — do not weaken the test to
+`expect.anything()`. If it passes, change nothing.
 
 - [ ] **Step 3: TTS player — fire a callback at first bytes**
 
 In `src/lib/voice/tts.ts`, extend the `TtsPlayer` type's `play`:
+
 ```ts
 export type TtsPlayer = {
   // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
@@ -1065,6 +1207,7 @@ export type TtsPlayer = {
 ```
 
 Change the `play` function signature to accept the callback:
+
 ```ts
   function play(
     text: string,
@@ -1074,16 +1217,20 @@ Change the `play` function signature to accept the callback:
   ): Promise<void> {
 ```
 
-Inside `play`, in the async IIFE, right after the response is confirmed good, fire the callback. Find:
+Inside `play`, in the async IIFE, right after the response is confirmed good,
+fire the callback. Find:
+
 ```ts
-          if (!res.ok || res.body === null) {
-            stop();
-            return;
-          }
+if (!res.ok || res.body === null) {
+  stop();
+  return;
+}
 ```
+
 and insert immediately after it:
+
 ```ts
-          onFirstByte?.();
+onFirstByte?.();
 ```
 
 - [ ] **Step 4: Session — measure and expose the metrics**
@@ -1091,6 +1238,7 @@ and insert immediately after it:
 In `src/hooks/use-voice-session.ts`:
 
 Add the metrics type above `VoiceStatus`:
+
 ```ts
 export type TurnMetrics = {
   llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
@@ -1098,145 +1246,156 @@ export type TurnMetrics = {
 };
 ```
 
-Add `metrics: TurnMetrics;` to the `VoiceStatus` type (put it last, after `replyError`). Add to `IDLE_STATUS`:
+Add `metrics: TurnMetrics;` to the `VoiceStatus` type (put it last, after
+`replyError`). Add to `IDLE_STATUS`:
+
 ```ts
   metrics: { llm: null, tts: null },
 ```
 
 In `submitText`, reset metrics when the turn starts — find:
+
 ```ts
-      setStatus((s) => ({ ...s, replyText: "", replyError: null }));
+setStatus((s) => ({ ...s, replyText: "", replyError: null }));
 ```
+
 and change it to:
+
 ```ts
-      setStatus((s) => ({
-        ...s,
-        replyText: "",
-        replyError: null,
-        metrics: { llm: null, tts: null },
-      }));
+setStatus((s) => ({
+  ...s,
+  replyText: "",
+  replyError: null,
+  metrics: { llm: null, tts: null },
+}));
 ```
 
-Replace the `try { let reply = ""; for await (...) { ... } ... await tts.play(...) }` region with the instrumented version. Specifically, replace from `let reply = "";` down through the `await tts.play(reply, ELISE.voiceId, controller.signal);` line with:
+Replace the
+`try { let reply = ""; for await (...) { ... } ... await tts.play(...) }` region
+with the instrumented version. Specifically, replace from `let reply = "";` down
+through the `await tts.play(reply, ELISE.voiceId, controller.signal);` line
+with:
+
 ```ts
-          let reply = "";
-          let completionTokens: number | null = null;
-          const llmStart = performance.now();
-          let ttftMs: number | null = null;
-          for await (const delta of llm.stream(
-            [
-              { role: "system", content: ELISE.systemPrompt },
-              { role: "user", content: prompt },
-            ],
-            {
-              signal: controller.signal,
-              onUsage: (u) => {
-                completionTokens = u.completionTokens;
-              },
-            },
-          )) {
-            if (controller.signal.aborted || turnRef.current !== controller) {
-              return;
-            }
-            if (ttftMs === null) ttftMs = performance.now() - llmStart;
-            reply += delta;
-            setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
-          }
-          const llmTotalMs = performance.now() - llmStart;
-          // A turn superseded/aborted during the final read must not write its
-          // stale metrics over the successor's; mirror the loop's guard.
-          if (controller.signal.aborted || turnRef.current !== controller) {
-            return;
-          }
-          if (ttftMs !== null) {
-            const ttft = ttftMs;
-            const tokens = completionTokens;
-            // Output throughput over the decode window (first token → done);
-            // null when the backend didn't return usage.
-            const decodeSec = Math.max((llmTotalMs - ttft) / 1000, 0.001);
-            const tps = tokens !== null ? tokens / decodeSec : null;
-            setStatus((s) => ({
-              ...s,
-              metrics: {
-                ...s.metrics,
-                llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
-              },
-            }));
-          }
-          if (
-            controller.signal.aborted ||
-            turnRef.current !== controller ||
-            reply.trim() === "" ||
-            !speak
-          ) {
-            return;
-          }
-          const ttsStart = performance.now();
-          let ttsTtfbMs: number | null = null;
-          await tts.play(reply, ELISE.voiceId, controller.signal, () => {
-            ttsTtfbMs = performance.now() - ttsStart;
-          });
-          // tts.play resolves even on barge-in/stop, so guard before recording:
-          // a superseded turn must not overwrite the current turn's metrics.
-          if (controller.signal.aborted || turnRef.current !== controller) {
-            return;
-          }
-          setStatus((s) => ({
-            ...s,
-            metrics: {
-              ...s.metrics,
-              tts: { ttfbMs: ttsTtfbMs, totalMs: performance.now() - ttsStart },
-            },
-          }));
+let reply = "";
+let completionTokens: number | null = null;
+const llmStart = performance.now();
+let ttftMs: number | null = null;
+for await (const delta of llm.stream(
+  [
+    { role: "system", content: ELISE.systemPrompt },
+    { role: "user", content: prompt },
+  ],
+  {
+    signal: controller.signal,
+    onUsage: (u) => {
+      completionTokens = u.completionTokens;
+    },
+  },
+)) {
+  if (controller.signal.aborted || turnRef.current !== controller) {
+    return;
+  }
+  if (ttftMs === null) ttftMs = performance.now() - llmStart;
+  reply += delta;
+  setStatus((s) => ({ ...s, replyText: s.replyText + delta }));
+}
+const llmTotalMs = performance.now() - llmStart;
+// A turn superseded/aborted during the final read must not write its
+// stale metrics over the successor's; mirror the loop's guard.
+if (controller.signal.aborted || turnRef.current !== controller) {
+  return;
+}
+if (ttftMs !== null) {
+  const ttft = ttftMs;
+  const tokens = completionTokens;
+  // Output throughput over the decode window (first token → done);
+  // null when the backend didn't return usage.
+  const decodeSec = Math.max((llmTotalMs - ttft) / 1000, 0.001);
+  const tps = tokens !== null ? tokens / decodeSec : null;
+  setStatus((s) => ({
+    ...s,
+    metrics: {
+      ...s.metrics,
+      llm: { ttftMs: ttft, totalMs: llmTotalMs, tps },
+    },
+  }));
+}
+if (
+  controller.signal.aborted ||
+  turnRef.current !== controller ||
+  reply.trim() === "" ||
+  !speak
+) {
+  return;
+}
+const ttsStart = performance.now();
+let ttsTtfbMs: number | null = null;
+await tts.play(reply, ELISE.voiceId, controller.signal, () => {
+  ttsTtfbMs = performance.now() - ttsStart;
+});
+// tts.play resolves even on barge-in/stop, so guard before recording:
+// a superseded turn must not overwrite the current turn's metrics.
+if (controller.signal.aborted || turnRef.current !== controller) {
+  return;
+}
+setStatus((s) => ({
+  ...s,
+  metrics: {
+    ...s.metrics,
+    tts: { ttfbMs: ttsTtfbMs, totalMs: performance.now() - ttsStart },
+  },
+}));
 ```
 
-(The `completionTokens`/`ttsTtfbMs` reads after their closures are typed `number | null` — TypeScript does not narrow across a closure, so the `!== null` guards compile without complaint. `const ttft = ttftMs` / `const tokens = completionTokens` capture the narrowed/current values for the setStatus closure.)
+(The `completionTokens`/`ttsTtfbMs` reads after their closures are typed
+`number | null` — TypeScript does not narrow across a closure, so the `!== null`
+guards compile without complaint. `const ttft = ttftMs` /
+`const tokens = completionTokens` capture the narrowed/current values for the
+setStatus closure.)
 
 - [ ] **Step 5: Panel — a Latency card in the play view**
 
-In `src/components/algorithms/companions-panel.tsx`, add a `Latency` card in the play view, immediately before the `Events` card. `Row` is already defined in this file:
+In `src/components/algorithms/companions-panel.tsx`, add a `Latency` card in the
+play view, immediately before the `Events` card. `Row` is already defined in
+this file:
+
 ```tsx
-          <Card title="Latency">
-            <p className="text-muted-foreground mb-1 text-xs">LLM</p>
-            {status.metrics.llm === null ? (
-              <p className="text-muted-foreground text-sm">—</p>
-            ) : (
-              <>
-                <Row label="First token">
-                  {Math.round(status.metrics.llm.ttftMs)} ms
-                </Row>
-                <Row label="Throughput">
-                  {status.metrics.llm.tps === null
-                    ? "—"
-                    : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
-                </Row>
-                <Row label="Total">
-                  {Math.round(status.metrics.llm.totalMs)} ms
-                </Row>
-              </>
-            )}
-            <p className="text-muted-foreground mb-1 mt-3 text-xs">TTS</p>
-            {status.metrics.tts === null ? (
-              <p className="text-muted-foreground text-sm">—</p>
-            ) : (
-              <>
-                <Row label="First audio">
-                  {status.metrics.tts.ttfbMs === null
-                    ? "—"
-                    : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
-                </Row>
-                <Row label="Total">
-                  {Math.round(status.metrics.tts.totalMs)} ms
-                </Row>
-              </>
-            )}
-          </Card>
+<Card title="Latency">
+  <p className="text-muted-foreground mb-1 text-xs">LLM</p>
+  {status.metrics.llm === null ? (
+    <p className="text-muted-foreground text-sm">—</p>
+  ) : (
+    <>
+      <Row label="First token">{Math.round(status.metrics.llm.ttftMs)} ms</Row>
+      <Row label="Throughput">
+        {status.metrics.llm.tps === null
+          ? "—"
+          : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
+      </Row>
+      <Row label="Total">{Math.round(status.metrics.llm.totalMs)} ms</Row>
+    </>
+  )}
+  <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
+  {status.metrics.tts === null ? (
+    <p className="text-muted-foreground text-sm">—</p>
+  ) : (
+    <>
+      <Row label="First audio">
+        {status.metrics.tts.ttfbMs === null
+          ? "—"
+          : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
+      </Row>
+      <Row label="Total">{Math.round(status.metrics.tts.totalMs)} ms</Row>
+    </>
+  )}
+</Card>
 ```
 
 - [ ] **Step 6: Gate**
 
-Run: `npm run typecheck && npm run lint && npm run build && npm test`
-Expected: all clean; tests pass.
+Run: `npm run typecheck && npm run lint && npm run build && npm test` Expected:
+all clean; tests pass.
 
 - [ ] **Step 7: Commit**
 
@@ -1245,33 +1404,46 @@ git add src/lib/llm/client.ts src/lib/voice/tts.ts src/hooks/use-voice-session.t
 git commit -m "Companions: LLM + TTS latency metrics in the debug panel"
 ```
 
-(Include `client.test.ts` in the add only if Step 2 changed it; otherwise drop it from the `git add`.)
+(Include `client.test.ts` in the add only if Step 2 changed it; otherwise drop
+it from the `git add`.)
 
 ---
 
 ### Task 6: Full-session verification + changelog
 
 **Files:**
+
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: a CHANGELOG entry; no code.
 
-- [ ] **Step 1: Drive the whole slice end-to-end**
+- [ ] **Step 1: Drive the whole phase end-to-end**
 
 With `.env.local` populated and `npm run dev` running:
-1. Home → Companions → setup view shows Elise → **Begin** → `Home › Companions › Play`.
-2. **Start** the program → device runs (sparkline advances / hardware moves if connected); breadcrumb locked while playing.
-3. **Start listening** → speak → your words are transcribed → Elise replies in her own voice **over OpenRouter** (check the network tab hits `/api/llm/...` and streams). The **Latency** card fills in: LLM first-token / tok-s / total, and TTS first-audio / total.
+
+1. Home → Companions → setup view shows Elise → **Begin** →
+   `Home › Companions › Play`.
+2. **Start** the program → device runs (sparkline advances / hardware moves if
+   connected); breadcrumb locked while playing.
+3. **Start listening** → speak → your words are transcribed → Elise replies in
+   her own voice **over OpenRouter** (check the network tab hits `/api/llm/...`
+   and streams). The **Latency** card fills in: LLM first-token / tok-s / total,
+   and TTS first-audio / total.
 4. **Barge in** (talk over her) → she stops mid-sentence.
-5. Adjust **Intensity / Edge / Vacuum Maintenance** → the upcoming program changes accordingly.
-6. Say the **safe word** while playing → the device stops (the voice session staying up is expected; teardown is 4d).
+5. Adjust **Intensity / Edge / Vacuum Maintenance** → the upcoming program
+   changes accordingly.
+6. Say the **safe word** while playing → the device stops (the voice session
+   staying up is expected; teardown is Phase 7).
 7. **Stop**, then confirm you can now leave via the breadcrumb.
 
 - [ ] **Step 2: Add the changelog entry**
 
-In `CHANGELOG.md`, under today's date (`## 2026-07-20`, create the heading if absent, newest date first), add entries in feature→enhancement→bug→internal order. Use:
+In `CHANGELOG.md`, under today's date (`## 2026-07-20`, create the heading if
+absent, newest date first), add entries in feature→enhancement→bug→internal
+order. Use:
 
 ```
 - feature: **Companions runs the device** — pick Elise, enter Play, and the device runs her program while she talks; tune the program with on-screen Intensity, Edge and Vacuum controls. ([#N](https://github.com/autogoon/autogoon/pull/N))
@@ -1279,24 +1451,36 @@ In `CHANGELOG.md`, under today's date (`## 2026-07-20`, create the heading if ab
 - internal: **Companions LLM on OpenRouter** — the companion backend moved from local Ollama to OpenRouter (OpenAI-compatible); the persona now lives in the companion config as a system message and each companion carries its own model + context window. ([#N](https://github.com/autogoon/autogoon/pull/N))
 ```
 
-Replace `#N` with the real PR number once the PR exists (the changelog rule allows the link to be filled when the PR is opened). Do **not** add a `bug` line — nothing that shipped on `main` was fixed.
+Replace `#N` with the real PR number once the PR exists (the changelog rule
+allows the link to be filled when the PR is opened). Do **not** add a `bug` line
+— nothing that shipped on `main` was fixed.
 
 - [ ] **Step 3: Gate and commit**
 
-Run: `npm run typecheck && npm run lint && npm run format`
-Expected: clean; if `format` changes files, include them in the commit.
+Run: `npm run typecheck && npm run lint && npm run format` Expected: clean; if
+`format` changes files, include them in the commit.
 
 ```bash
 git add CHANGELOG.md
-git commit -m "Companions: changelog for Slice 4a (device integration + OpenRouter)"
+git commit -m "Companions: changelog for Phase 4 (device integration + OpenRouter)"
 ```
 
 ---
 
 ## Self-Review notes (for the implementer)
 
-- **Secret discipline is the top risk.** `.env.local` is the only home for the key; Step 6 of Task 2 verifies `git check-ignore` before anything is staged, and Task 2 Step 9 checks `git status` shows no `.env.local`. If either check fails, stop.
-- **No vosk words in Companions** is deliberate and load-bearing for this slice (avoids the two-mic collision deferred to 4d); the panel never calls `useVoiceCommands`, and stroke `keywords` are unused on purpose.
-- **The `<audio>` element is rendered once, outside the view branch**, so TTS survives a setup↔play switch.
-- **Knob semantics** match Autopilot exactly: intensity/edge → `invalidateFuture`, suction → `invalidateValves`.
+- **Secret discipline is the top risk.** `.env.local` is the only home for the
+  key; Step 6 of Task 2 verifies `git check-ignore` before anything is staged,
+  and Task 2 Step 9 checks `git status` shows no `.env.local`. If either check
+  fails, stop.
+- **No vosk words in Companions** is deliberate and load-bearing for this phase
+  (avoids the two-mic collision deferred to Phase 7); the panel never calls
+  `useVoiceCommands`, and stroke `keywords` are unused on purpose.
+- **The `<audio>` element is rendered once, outside the view branch**, so TTS
+  survives a setup↔play switch.
+- **Knob semantics** match Autopilot exactly: intensity/edge →
+  `invalidateFuture`, suction → `invalidateValves`.
+
+```
+
 ```
