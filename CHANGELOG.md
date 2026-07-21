@@ -2,6 +2,7 @@
 
 ## 2026-07-21
 
+- feature: **Companions — talk to an AI companion** — A new hands-free algorithm: pick Elise and talk to her out loud. She transcribes what you say, replies in her own streamed voice, remembers the conversation across the session (and reloads), and can start and stop the toy herself as things unfold — speak over her and she stops mid-sentence to listen. For now Companions is unlocked with an access ID you enter under Settings. ([#13](https://github.com/autogoon/autogoon/pull/13))
 - bug: **Fix voice input dropping the opening words** — the live transcriber discarded the audio recorded while its socket was still connecting (a 1–2 second window), so the first second or two of speech went missing; that audio is now buffered and sent as soon as the socket is live. ([#13](https://github.com/autogoon/autogoon/pull/13))
 
 ## 2026-07-17
