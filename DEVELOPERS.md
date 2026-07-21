@@ -28,23 +28,24 @@ offline.
 
 ## Contributing
 
-- **Branch off `main`** — never commit to `main` directly. One branch/PR per piece
-  of work.
+- **Branch off `main`** — never commit to `main` directly. One branch/PR per
+  piece of work.
 - **Run the tests** (`npm test` and `npm run test:e2e` — see
   [Testing](#testing)). They're a floor, not the whole story: the app drives
   physical hardware, so behaviour changes still want the app run and the
   affected flow driven in the browser — not just typecheck and build.
 - **Open a pull request** — push your branch (`git push -u origin <branch>`) and
-  open a PR against `main` with `gh pr create` (the GitHub CLI), or the "Compare &
-  pull request" prompt GitHub shows after you push.
-- **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change — user-facing
-  ones described by what the app does, internal ones (refactors, etc.) by what
-  changed. One line per change, newest first, grouped by date, tagged `feature` /
-  `enhancement` / `bug` / `internal` (in that order within a day), linking the PR.
+  open a PR against `main` with `gh pr create` (the GitHub CLI), or the "Compare
+  & pull request" prompt GitHub shows after you push.
+- **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change —
+  user-facing ones described by what the app does, internal ones (refactors,
+  etc.) by what changed. One line per change, newest first, grouped by date,
+  tagged `feature` / `enhancement` / `bug` / `internal` (in that order within a
+  day), linking the PR.
 - **Before it's reviewed** — `npm run typecheck`, `lint`, and `format` must all
   pass with **zero warnings** (typecheck and lint produce no output; fix every
-  warning, not just the ones your change introduced). Individual commits needn't be
-  spotless — the PR as a whole must be clean — and commit anything `format`
+  warning, not just the ones your change introduced). Individual commits needn't
+  be spotless — the PR as a whole must be clean — and commit anything `format`
   reformats.
 - **Adding an algorithm?** See [Adding an algorithm](#adding-an-algorithm) below
   for the full checklist.
@@ -53,8 +54,8 @@ offline.
 
 Two layers, both local-only for now (no CI):
 
-- **Unit tests** — `npm test` (Jest via `next/jest`, node environment). They live
-  next to what they test (`src/**/*.test.ts`) and cover pure logic: engine
+- **Unit tests** — `npm test` (Jest via `next/jest`, node environment). They
+  live next to what they test (`src/**/*.test.ts`) and cover pure logic: engine
   generation contracts, the device client's rate-limit accounting. Import from
   `@jest/globals` rather than relying on globals.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
@@ -83,17 +84,16 @@ Two hard-won details, should you write more voice tests:
 Fixtures are committed under `tests/fixtures/`; regenerate them with
 `tests/fixtures/generate.sh` (macOS only — it uses `say`).
 
-The first time the suite runs a given browser, macOS asks whether to allow it
-to use the microphone — approve it once per browser and it won't ask again.
-(The tests never use the real mic, but the browsers still request the
-permission.)
+The first time the suite runs a given browser, macOS asks whether to allow it to
+use the microphone — approve it once per browser and it won't ask again. (The
+tests never use the real mic, but the browsers still request the permission.)
 
 ## Adding an algorithm
 
-An algorithm is a self-contained pair — an **engine** (event generation, no React,
-no device) and a **panel** (the React surface that owns the engine and drives the
-shared Player) — registered in `src/app/page.tsx`. Read the engine/panel split in
-[ARCHITECTURE.md](./ARCHITECTURE.md) first.
+An algorithm is a self-contained pair — an **engine** (event generation, no
+React, no device) and a **panel** (the React surface that owns the engine and
+drives the shared Player) — registered in `src/app/page.tsx`. Read the
+engine/panel split in [ARCHITECTURE.md](./ARCHITECTURE.md) first.
 
 **Copy an existing algorithm as your starting point.** `goon-engine.ts` +
 `goon-panel/` exercise the full feature set (an automatic build curve, a setup
@@ -111,42 +111,42 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
      `generateValves`, `scale`. That interface is the contract and the
      best-commented file to read first.
    - Engines are **self-contained** — they never import from each other. If you
-     reuse another algorithm's pattern (as Goon reuses Groove's dip), **duplicate**
-     the helper, don't share it.
+     reuse another algorithm's pattern (as Goon reuses Groove's dip),
+     **duplicate** the helper, don't share it.
 2. **Panel** — `src/components/algorithms/<name>-panel.tsx` (or a
    `<name>-panel/` directory with the panel in `index.tsx`, once it has enough
    pieces — Goon splits its setup option cards out this way). Copy Goon's or
-   Groove's structure; what's algorithm-specific is only your knob cards and their
-   commands. Whether an algorithm has a **setup view** before its play view is
-   the panel's own choice — Goon has one, Groove and Autopilot don't. The parts
-   to copy:
+   Groove's structure; what's algorithm-specific is only your knob cards and
+   their commands. Whether an algorithm has a **setup view** before its play
+   view is the panel's own choice — Goon has one, Groove and Autopilot don't.
+   The parts to copy:
    - a `useRef` engine — **stable identity matters**: the Player identifies the
      active source by reference, so never re-create it (no `useMemo` with deps);
    - `isCurrent` / `state` derived from the Player view;
    - an effect that arms the preview when the screen becomes active (skip this
      if your panel gates arming behind a setup view, as Goon does);
    - `start` / `stop` / `reset`, and a `Command[]` handed to `useVoiceCommands`;
-   - the shared scaffolding: `SessionControls`, `Sparkline`,
-     `StrokeCard`, `LogCard`.
+   - the shared scaffolding: `SessionControls`, `Sparkline`, `StrokeCard`,
+     `LogCard`.
 
    Two things to copy deliberately:
    - **Reset is two layers.** Your `reset` restores the knobs' React state and
-     their engine defaults, then re-arms — the Player rebuilds the program from the
-     start and calls `engine.reset()` to clear transient state (e.g. a pending
-     `cumming`).
+     their engine defaults, then re-arms — the Player rebuilds the program from
+     the start and calls `engine.reset()` to clear transient state (e.g. a
+     pending `cumming`).
    - **Endings belong to the panel, not `StrokeCard`** (which is just the shared
      stroke ± buttons). If your algorithm has an ending, render a `FinishButton`
-     and/or a `CummingButton` — **Finish** (a _pre_-ending: reach/hold the climax
-     point) and **Cumming** (the send-off) are distinct actions. Have both, one, or
-     neither.
+     and/or a `CummingButton` — **Finish** (a _pre_-ending: reach/hold the
+     climax point) and **Cumming** (the send-off) are distinct actions. Have
+     both, one, or neither.
 
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
    - add an `ALGORITHMS` entry (`id`, `label`, `description`) — the id is the
      voice switch word and the screen, and the description is the home-page
      listing, so this one entry is the whole registration;
-   - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the others,
-     passing `active={screen === "<name>"}`.
+   - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the
+     others, passing `active={screen === "<name>"}`.
 4. **User-facing copy:** add `ALGORITHM-<NAME>.md` (high-level and experiential,
    like the others — not an implementation spec), and link it from `README.md`
    (the mode list and the Documentation list).
@@ -154,8 +154,8 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
 
 ### Which knob-change method to call
 
-When a knob changes, how it reaches the device depends on _what_ changed. Pick by
-where the change lives (see the `Player` methods in
+When a knob changes, how it reaches the device depends on _what_ changed. Pick
+by where the change lives (see the `Player` methods in
 [`src/lib/player.ts`](./src/lib/player.ts)):
 
 | Knob affects…                         | Method                      | Example                                |
@@ -165,21 +165,22 @@ where the change lives (see the `Player` methods in
 | **Valves only**, over unchanged speed | `device.invalidateValves()` | Autopilot Vacuum Maintenance           |
 
 The program is generated once in raw **pattern space** (0–100); the Player runs
-each event through the engine's `scale()` at send time, applying the knob's current
-value. So a **magnitude** knob changes nothing about the program — `refresh()` just
-re-sends the current event at the new scale, and every future event is scaled as
-it plays.
+each event through the engine's `scale()` at send time, applying the knob's
+current value. So a **magnitude** knob changes nothing about the program —
+`refresh()` just re-sends the current event at the new scale, and every future
+event is scaled as it plays.
 
-This is a deliberate optimisation, and it matters for _feel_: regenerating instead
-(`invalidateFuture()`) would build a **different** program, because generation has
-random elements (timing jitter, dip variation) — so a magnitude change would jump
-you onto a fresh pattern rather than smoothly rescaling the one you're already
-feeling. Scaling keeps the exact same shape, just louder or quieter.
+This is a deliberate optimisation, and it matters for _feel_: regenerating
+instead (`invalidateFuture()`) would build a **different** program, because
+generation has random elements (timing jitter, dip variation) — so a magnitude
+change would jump you onto a fresh pattern rather than smoothly rescaling the
+one you're already feeling. Scaling keeps the exact same shape, just louder or
+quieter.
 
-Reach for `invalidateFuture()` only when the **shape** genuinely changed: it drops
-and rebuilds the not-yet-played tail from the new engine state (accepting that the
-random tail is now a different draw). `invalidateValves()` re-lays only the valve
-overlay, leaving the speed backbone — and its randomness — intact.
+Reach for `invalidateFuture()` only when the **shape** genuinely changed: it
+drops and rebuilds the not-yet-played tail from the new engine state (accepting
+that the random tail is now a different draw). `invalidateValves()` re-lays only
+the valve overlay, leaving the speed backbone — and its randomness — intact.
 
 ### `generateSpeed` pitfalls
 
@@ -187,11 +188,13 @@ The contract (`program.ts`) spells these out, but they're the easy ones to get
 wrong:
 
 - Each call must return events extending **past `fromTime`**. A batch whose last
-  event lands at or before `fromTime` makes no progress, so the Player's look-ahead
-  loop spins. (Emitting in whole cycles isn't required — it's just convenient, so
-  each call resumes from a clean boundary to append the next batch.)
-- Return **`[]` to park** — nothing more to play until a knob changes (this is how
-  Goon's `cumming` wind-down ends: emit the glide, then park).
+  event lands at or before `fromTime` makes no progress, so the Player's
+  look-ahead loop spins. (Emitting in whole cycles isn't required — it's just
+  convenient, so each call resumes from a clean boundary to append the next
+  batch.)
+- Return **`[]` to park** — nothing more to play until a knob changes (this is
+  how Goon's `cumming` wind-down ends: emit the glide, then park).
 - A send-off / wind-down ramp should emit its speed events **`unscaled`** (see
   `SpeedEvent.unscaled` in `program.ts`), so a magnitude ceiling like intensity
-  can't shrink the ramp out from under it — Goon's `buildCummingScript` does this.
+  can't shrink the ramp out from under it — Goon's `buildCummingScript` does
+  this.

@@ -15,6 +15,7 @@ export function StrokeCard({
   onValvePlus,
   onValveMinus,
   onError,
+  voice = true,
 }: {
   // Manual stroke is valid whenever a device is connected.
   strokeDisabled: boolean;
@@ -22,13 +23,16 @@ export function StrokeCard({
   onValvePlus: (state: boolean) => Promise<unknown>;
   onValveMinus: (state: boolean) => Promise<unknown>;
   onError: (message: string) => void;
+  // Whether the up/down voice words are live for this panel. Companions has no
+  // vosk grammar, so it passes false to drop the misleading badges.
+  voice?: boolean;
 }) {
   return (
     <Card title="Stroke">
       <div className="flex gap-3">
         <HoldButton
           label="Stroke −"
-          badge="down"
+          badge={voice ? "down" : undefined}
           disabled={strokeDisabled}
           onValve={onValveMinus}
           onError={onError}
@@ -36,7 +40,7 @@ export function StrokeCard({
         />
         <HoldButton
           label="Stroke +"
-          badge="up"
+          badge={voice ? "up" : undefined}
           disabled={strokeDisabled}
           onValve={onValvePlus}
           onError={onError}

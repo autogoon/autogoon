@@ -17,10 +17,11 @@
 // three screens are siblings, so each other's tab words are live there —
 // sideways moves between tabs are exactly what the visible tabs offer.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AudioWaveform, Bot, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
 import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
+import { CompanionsPanel } from "@/components/algorithms/companions-panel";
 import { GroovePanel } from "@/components/algorithms/groove-panel";
 import { GoonPanel } from "@/components/algorithms/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
@@ -31,6 +32,7 @@ import {
   KeywordSpotterProvider,
   useKeywordSpotter,
 } from "@/components/keyword-spotter";
+import { useCompanionsAccess } from "@/hooks/use-companions-access";
 import { usePlayer } from "@/hooks/use-player";
 import { useVacuglideDevice } from "@/hooks/use-vacuglide-device";
 import {
@@ -77,6 +79,16 @@ const ALGORITHMS = [
     iconClass: "text-orange-500",
     accent:
       "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
+  },
+  {
+    id: "companions",
+    label: "Companions",
+    description:
+      "Talk to Elise — she listens, replies in her own voice, and you can cut in any time.",
+    icon: MessagesSquare,
+    iconClass: "text-emerald-500",
+    accent:
+      "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 hover:from-emerald-500/25 hover:to-emerald-500/10",
   },
 ] as const;
 
@@ -139,11 +151,24 @@ export default function Home() {
 function App() {
   const vacuglide = useVacuglideDevice();
   const player = usePlayer(vacuglide.player);
+  const access = useCompanionsAccess();
   const spotter = useKeywordSpotter();
   // Only the spotter's stable functions may be used in effect deps — the context
   // object's identity churns with grammar/flash state (see useVoiceCommands).
   const { setGlobalWords, keywordListener } = spotter;
   const [screen, setScreen] = useState<Screen>("home");
+
+  // Companions is hidden from the chooser, the home grammar and navigation until
+  // its access ID unlocks it (see useCompanionsAccess). When the gate is off
+  // (COMPANIONS_ACCESS_IDS unset) access.granted is always true, so every
+  // algorithm shows exactly as before.
+  const availableAlgorithms = useMemo(
+    () =>
+      access.granted
+        ? ALGORITHMS
+        : ALGORITHMS.filter((a) => a.id !== "companions"),
+    [access.granted],
+  );
 
   // A session is in progress whenever the Player is not idle. You can only
   // start one from its algorithm's screen and you can't leave while it runs
@@ -181,7 +206,8 @@ function App() {
     if (!connected) words.push("connect");
     if (playing) words.push(safeWord);
     if (isTabId(screen)) {
-      if (screen === "home") words.push(...ALGORITHMS.map((a) => a.id));
+      if (screen === "home")
+        words.push(...availableAlgorithms.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
       // of the grammar; so is the tab that would go nowhere).
       words.push(
@@ -193,7 +219,15 @@ function App() {
       words.push("exit");
     }
     setGlobalWords(words);
-  }, [connected, running, playing, safeWord, screen, setGlobalWords]);
+  }, [
+    connected,
+    running,
+    playing,
+    safeWord,
+    screen,
+    availableAlgorithms,
+    setGlobalWords,
+  ]);
 
   const runningRef = useRef(running);
   runningRef.current = running;
@@ -233,6 +267,19 @@ function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  // A deep-link or reload onto Companions while it's locked (or never unlocked)
+  // bounces home once the access check resolves. Waits for `checked` so a
+  // genuine reload-with-stored-ID isn't kicked out before validation lands.
+  useEffect(() => {
+    if (
+      access.checked &&
+      !access.granted &&
+      screen.split("/")[0] === "companions"
+    ) {
+      navigate("home");
+    }
+  }, [access.checked, access.granted, screen, navigate]);
 
   // Route the global words. connect drives the device; an algorithm name (on
   // home) enters that algorithm; exit (while idle) goes back up. Everything
@@ -361,7 +408,7 @@ function App() {
           <div className={screen === "home" ? undefined : "hidden"}>
             <HomePanel
               vacuglide={vacuglide}
-              algorithms={ALGORITHMS}
+              algorithms={availableAlgorithms}
               onSelect={(id) => {
                 if (isAlgorithmId(id) || id === "settings") navigate(id);
               }}
@@ -393,6 +440,15 @@ function App() {
               active={screen === "autopilot"}
             />
           </div>
+          <div className={screenBase === "companions" ? undefined : "hidden"}>
+            <CompanionsPanel
+              vacuglide={vacuglide}
+              player={player}
+              active={screenBase === "companions"}
+              view={atPlayLevel ? "play" : "setup"}
+              onEnterPlay={() => navigate("companions/play")}
+            />
+          </div>
           <div className={screen === "changes" ? undefined : "hidden"}>
             <ChangelogPanel />
           </div>
@@ -401,6 +457,7 @@ function App() {
               safeWord={safeWord}
               sanitizeSafeWord={sanitizeCandidate}
               onSaveSafeWord={saveSafeWord}
+              access={access}
             />
           </div>
         </main>
