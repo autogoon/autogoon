@@ -126,6 +126,27 @@ describe("createLlmClient", () => {
     expect(onReasoning).not.toHaveBeenCalled();
   });
 
+  it("does not fire onReasoning when the consumer breaks early", async () => {
+    createMock.mockResolvedValue(
+      fakeReasoningStream([
+        { reasoning_details: [{ index: 0, text: "partial" }] },
+        { content: "a" },
+        { content: "b" },
+      ]),
+    );
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const onReasoning = jest.fn();
+    for await (const token of client.stream([{ role: "user", content: "hi" }], {
+      signal: new AbortController().signal,
+      onReasoning,
+    })) {
+      void token; // consume one token, then abandon the stream
+      break;
+    }
+    expect(onReasoning).not.toHaveBeenCalled();
+  });
+
   it("maps a message's reasoningDetails to reasoning_details on the wire", async () => {
     createMock.mockResolvedValue(fakeStream(["ok"]));
     const { createLlmClient } = await import("./client");

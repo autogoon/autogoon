@@ -456,9 +456,10 @@ export function CompanionsPanel({
               {status.thread.map((turn, i) => (
                 <ChatBubble key={i} role={turn.role} text={turn.content} />
               ))}
-              {/* In-progress reply: a live, dimmed Elise bubble that folds into
-                  the thread on completion (replyPlaying flips false and the
-                  committed assistant turn takes its place). */}
+              {/* In-progress reply: a live, dimmed Elise bubble shown only until
+                  the assistant turn commits — once the thread's last turn is the
+                  assistant turn (the tail check below), the committed bubble
+                  replaces it, even while a spoken reply is still playing. */}
               {status.replyPlaying &&
                 status.replyText !== "" &&
                 status.thread.at(-1)?.role !== "assistant" && (
