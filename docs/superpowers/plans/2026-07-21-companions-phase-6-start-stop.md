@@ -15,12 +15,21 @@ pure `tools.ts` maps declarative `CompanionTool`s to the request shape.
 `useVoiceSession` forwards the tools, dispatches returned calls to the panel's
 device transport under the existing abort guard, and folds a live device-state
 line into the system message each turn. The panel declares the two tools from
-its existing `startProgram`/`stopProgram`. Tool calls are executed as a side
-effect (single round-trip) and never persisted.
+its existing `startProgram`/`stopProgram`.
+
+> **Design evolved during implementation** — this plan's task steps describe the
+> as-first-built single-round-trip, non-persisted design; two decisions were
+> reversed on hardware (see the spec's "Key decisions"). Tool calls **are**
+> persisted to the thread and **replayed** as an agentic message sequence (the
+> model must see its own prior calls or it narrates instead of calling — 0/6 →
+> 6/6), and a **second round-trip** feeds the tool result back so she reacts.
+> The model moved from M2 `:nitro` to **MiniMax M3**. The steps below still
+> capture the client/tools/panel scaffolding faithfully; the turn-flow (Task 4)
+> and prompt (Task 6) are as they became after those reversals.
 
 **Tech Stack:** Next.js (App Router), React, TypeScript, the `openai` SDK
-pointed at the same-origin `/api/llm` proxy → OpenRouter (MiniMax M2 `:nitro`),
-Jest (node env, `@jest/globals`).
+pointed at the same-origin `/api/llm` proxy → OpenRouter (MiniMax M3), Jest
+(node env, `@jest/globals`).
 
 ## Global Constraints
 

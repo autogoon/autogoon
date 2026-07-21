@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
   appendUser,
   appendAssistant,
+  appendTool,
   toLlmMessages,
   serialize,
   parse,
@@ -114,5 +115,75 @@ describe("serialize / parse", () => {
     expect(
       parse('[{"role":"assistant","content":"x","reasoningDetails":"nope"}]'),
     ).toEqual([]); // reasoning not an array
+  });
+});
+
+describe("tool turns", () => {
+  it("appendTool appends a linked tool turn without mutating the input", () => {
+    const base: Thread = [{ role: "user", content: "start it" }];
+    const after = appendTool(base, "start", "started", "call_1");
+    expect(base).toEqual([{ role: "user", content: "start it" }]);
+    expect(after[after.length - 1]!).toEqual({
+      role: "tool",
+      name: "start",
+      result: "started",
+      toolCallId: "call_1",
+    });
+  });
+
+  it("appendAssistant carries toolCalls only when provided", () => {
+    const calls = [{ id: "call_1", name: "start", arguments: "{}" }];
+    const withCalls = appendAssistant([], "", undefined, calls);
+    expect(withCalls).toEqual([
+      { role: "assistant", content: "", toolCalls: calls },
+    ]);
+    const without = appendAssistant([], "hi");
+    expect("toolCalls" in without[0]!).toBe(false);
+  });
+
+  it("toLlmMessages replays the agentic sequence (assistant call → tool result)", () => {
+    const calls = [{ id: "call_1", name: "start", arguments: "{}" }];
+    const thread: Thread = [
+      { role: "user", content: "start it" },
+      { role: "assistant", content: "", toolCalls: calls },
+      { role: "tool", name: "start", result: "started", toolCallId: "call_1" },
+      { role: "assistant", content: "it's on" },
+    ];
+    const msgs = toLlmMessages(thread, "SYS", true);
+    expect(msgs).toEqual([
+      { role: "system", content: "SYS" },
+      { role: "user", content: "start it" },
+      { role: "assistant", content: "", toolCalls: calls },
+      { role: "tool", content: "started", toolCallId: "call_1" },
+      { role: "assistant", content: "it's on" },
+    ]);
+  });
+
+  it("serialize/parse round-trips the agentic sequence", () => {
+    const calls = [{ id: "call_1", name: "start", arguments: "{}" }];
+    const thread: Thread = [
+      { role: "user", content: "start it" },
+      { role: "assistant", content: "", toolCalls: calls },
+      { role: "tool", name: "start", result: "started", toolCallId: "call_1" },
+    ];
+    expect(parse(serialize(thread))).toEqual(thread);
+  });
+
+  it("parse rejects a tool turn missing name, result, or toolCallId", () => {
+    expect(
+      parse('[{"role":"tool","name":"start","result":"started"}]'),
+    ).toEqual([]); // no toolCallId (legacy, pre-agentic) → discard
+    expect(parse('[{"role":"tool","name":"start","toolCallId":"c1"}]')).toEqual(
+      [],
+    );
+    expect(
+      parse('[{"role":"tool","result":"started","toolCallId":"c1"}]'),
+    ).toEqual([]);
+  });
+
+  it("parse rejects an assistant turn whose toolCalls is not an array", () => {
+    expect(
+      parse('[{"role":"assistant","content":"","toolCalls":"nope"}]'),
+    ).toEqual([]);
   });
 });

@@ -16,9 +16,8 @@ export const ELISE: Companion = {
   // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
   voiceId: "uhseMNDjn3oAF24Hh83b", // normal
   systemPrompt: ELISE_SYSTEM_PROMPT,
-  model: "minimax/minimax-m2:nitro",
-  // MiniMax M2 is 204,800 nominal, but :nitro may route to a ~196,608 provider;
-  // record the conservative value.
-  contextWindow: 196608,
+  model: "minimax/minimax-m3",
+  // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
+  contextWindow: 1_000_000,
   passesReasoning: true,
 };

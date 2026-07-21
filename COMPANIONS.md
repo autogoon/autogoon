@@ -13,9 +13,10 @@ here. OpenRouter fronts a wide range of hosted models, so each companion can
 pick whichever model suits her persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
 model**, not of OpenRouter itself — Elise currently uses a permissive model
-(`minimax/minimax-m2:nitro`) precisely because it doesn't restrict the kind of
-roleplay her persona calls for; picking a different, more restrictive model for
-a future companion would reintroduce that limit for her.
+(`minimax/minimax-m3`) precisely because it doesn't restrict the kind of
+roleplay her persona calls for (and it calls device tools far more reliably than
+M2 did); picking a different, more restrictive model for a future companion
+would reintroduce that limit for her.
 
 Calls go through the app's same-origin **`/api/llm` proxy route**, which
 forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
@@ -39,7 +40,7 @@ export type Companion = {
 };
 ```
 
-- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m2:nitro`) —
+- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m3`) —
   the client sends it directly in each chat-completions call, so different
   companions can run entirely different models.
 - `contextWindow` records that model's context window in tokens, used to size
@@ -57,7 +58,7 @@ said earlier. The thread is persisted to `localStorage` under a per-companion
 key (`companions:thread:elise`), so it survives a reload; **Clear conversation**
 in the panel wipes it (button-only — Companions registers no spoken words).
 
-`passesReasoning` marks a **reasoning model**: MiniMax M2 (Elise's model)
+`passesReasoning` marks a **reasoning model**: MiniMax M3 (Elise's model)
 returns a private thinking block (`reasoning_details`) alongside its reply and
 was trained with that reasoning present in history, so the app captures it from
 the stream and replays it verbatim on Elise's stored turns. Elise carries

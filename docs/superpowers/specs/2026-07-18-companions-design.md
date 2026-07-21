@@ -331,7 +331,7 @@ here.
    yet** — the thread is allowed to grow unbounded; keeping it within the
    model's window is Phase 9's job. _Ships:_ Elise remembers what was said
    earlier in the session and across a reload; Clear wipes the slate.
-   **Reasoning preservation:** MiniMax M2 (Elise's model) is a reasoning model —
+   **Reasoning preservation:** MiniMax M3 (Elise's model) is a reasoning model —
    it returns a private "thinking" block (`reasoning_details` on OpenRouter)
    alongside the visible reply, and it was trained with that reasoning present
    in the history, so stripping it measurably degrades later turns. So this
@@ -340,22 +340,34 @@ here.
    verbatim (sequence preserved) in the assistant messages. This is
    model-specific, so it's gated by a per-companion **`passesReasoning`** flag
    (Elise = `true`); companions on non-reasoning models leave it off. (Same
-   pattern applies to DeepSeek / Kimi thinking modes to varying degrees; M2 is
-   the emphatic case.)
+   pattern applies to DeepSeek / Kimi thinking modes to varying degrees; MiniMax
+   is the emphatic case.)
 
 6. **Tools & control.** The action mechanism — the app gives her **tools** to
    drive the device (`setSpeedPercent`, `invalidateFuture`, valve controls, and
-   `start`) and executes them when she calls them; `start` becomes the
+   `start`/`stop`) and executes them when she calls them; `start` becomes the
    companion's move. **Getting the companion to start the toy is the first
    step** of a session, which is why the action mechanism lands before the
    proactive narration that rides on the running program. Whether she acts on
    your request or **declines** is a disposition written into her `systemPrompt`
-   — the code exposes and runs the tools; her personality decides use. **Open
-   question, resolved when we spec this phase:** how the LLM expresses an action
-   reliably through the model — native tool-calls vs. structured markers parsed
-   from the stream — possibly settled with a small spike first. _Ships:_ ask her
-   to start / speed up / edge you — she decides in character and the device
-   follows, or she refuses.
+   — the code exposes and runs the tools; her personality decides use. The first
+   slice wires the two zero-argument actions — **`start` and `stop`** — end to
+   end; the richer tools (`setSpeedPercent`, `invalidateFuture`, valves) follow
+   on the same mechanism. **Resolved (the open question was native tool-calls
+   vs. markers):** she expresses actions through **native tool-calls** (the
+   OpenAI-compatible `tools` field), not markers parsed from her speech. Two
+   findings from bring-up proved load-bearing and are now part of the design:
+   (a) the assistant's `tool_calls` and their results must be **persisted to the
+   thread and replayed** as a proper agentic message sequence — a companion that
+   only ever sees itself _talking_ (tool calls stripped from history) drifts
+   back to narrating "_starting_" instead of calling; replaying its own prior
+   calls kept it reliably calling (0/6 → 6/6 in bring-up testing); and (b) after
+   a call runs, its result is fed back for a **second round-trip** so she reacts
+   in words to what actually happened. The live toy state (connection + whether
+   it's running) is folded into her system message every turn as ambient context
+   — there is **no `status` tool**. _Ships:_ ask her to start / stop / (later)
+   speed up / edge you — she decides in character and the device follows, or she
+   refuses.
 
 7. **Proactive speech: narration + ambient.** Built on Phase 5's thread and
    Phase 6's companion-driven control. The thread carries current + upcoming
@@ -376,9 +388,11 @@ here.
 
 9. **Context compaction / rolling window.** Keep Phase 5's ever-growing thread
    within the model's context window (recorded per companion as `contextWindow`
-   in Phase 4 — Elise's MiniMax M2 is 196,608). Summarize older turns and/or
-   keep a rolling window of recent turns verbatim, so long sessions stay
-   coherent without overflowing the window or ballooning cost. When
+   in Phase 4 — Elise's MiniMax M3 is 1,000,000). That window is large enough
+   that overflow is a distant concern; this phase is headroom for very long
+   sessions and cost control rather than a near-term limit. Summarize older
+   turns and/or keep a rolling window of recent turns verbatim, so long sessions
+   stay coherent without overflowing the window or ballooning cost. When
    `passesReasoning` is on, old turns' `reasoning_details` are trimmed along
    with the messages they belong to — keeping the recent turns' reasoning intact
    is what matters. _Ships:_ an hours-long session keeps working; the companion
