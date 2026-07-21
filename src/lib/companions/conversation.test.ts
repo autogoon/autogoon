@@ -16,6 +16,23 @@ describe("conversation thread builders", () => {
     expect(after).toEqual([{ role: "user", content: "hello" }]);
   });
 
+  it("appendUser/appendAssistant do not mutate a non-empty thread", () => {
+    const base: Thread = [{ role: "user", content: "first" }];
+    const snapshot: Thread = JSON.parse(JSON.stringify(base)) as Thread;
+    const afterUser = appendUser(base, "second");
+    expect(base).toEqual(snapshot);
+    expect(afterUser).toEqual([
+      { role: "user", content: "first" },
+      { role: "user", content: "second" },
+    ]);
+    const afterAsst = appendAssistant(base, "reply");
+    expect(base).toEqual(snapshot);
+    expect(afterAsst[afterAsst.length - 1]!).toEqual({
+      role: "assistant",
+      content: "reply",
+    });
+  });
+
   it("appendAssistant stores reasoningDetails only when provided", () => {
     const withReasoning = appendAssistant([], "hi", [{ index: 0, text: "t" }]);
     expect(withReasoning).toEqual([
