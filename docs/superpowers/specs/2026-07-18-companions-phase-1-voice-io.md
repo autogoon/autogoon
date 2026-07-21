@@ -1,8 +1,8 @@
-# Companions — Slice 1: Voice I/O Foundation (Spec)
+# Companions — Phase 1: Voice I/O Foundation (Spec)
 
 > Part of the Companions feature. Read
 > [`2026-07-18-companions-design.md`](./2026-07-18-companions-design.md) first —
-> this slice implements the **voice I/O foundation** (the riskiest, most novel
+> this phase implements the **voice I/O foundation** (the riskiest, most novel
 > piece: echo-resistant barge-in on speakers, no headphones), hosted in a **real
 > `Companions` algorithm shell** so we iterate on the actual screen. No LLM, no
 > device, no engine, no orchestration yet.
@@ -17,35 +17,36 @@ downstream is de-risked.
 
 ## In scope
 
-- A **`Companions` algorithm shell**: an `ALGORITHMS` entry (id `companions`),
-  a `CompanionsPanel`, and home-chooser/nav wiring (so "companions" is a switch
+- A **`Companions` algorithm shell**: an `ALGORITHMS` entry (id `companions`), a
+  `CompanionsPanel`, and home-chooser/nav wiring (so "companions" is a switch
   word). The panel **does not arm the Player** — it hosts the voice-lab UI only.
 - Mic capture with **explicit AEC** (`echoCancellation` / `noiseSuppression` /
   `autoGainControl`).
-- A **local energy VAD** (in an AudioWorklet) for onset + barge-in detection — no
-  external VAD dependency.
+- A **local energy VAD** (in an AudioWorklet) for onset + barge-in detection —
+  no external VAD dependency.
 - A **pre-roll ring buffer** (~500 ms) of AEC'd audio, always recording.
 - **ElevenLabs realtime STT** over WebSocket, client-side via a single-use token
   minted server-side; opened on onset (flushing pre-roll), closed after silence.
 - **ElevenLabs streaming TTS** via the **`@elevenlabs/elevenlabs-js` SDK
-  server-side** (`textToSpeech.stream`), proxied to the browser; key stays off the
-  client.
+  server-side** (`textToSpeech.stream`), proxied to the browser; key stays off
+  the client.
 - The **single-`AbortController` interruption primitive**: one barge-in cancels
-  TTS playback (and, in later slices, the LLM turn + device action).
+  TTS playback (and, in later phases, the LLM turn + device action).
 - One minimal companion, **Elise**, used only for her voice.
 
-## Explicitly out of scope (later slices)
+## Explicitly out of scope (later phases)
 
-- Any LLM call (the reply is canned) — Slice 2.
-- Any device / engine / program / narration / arming the Player — Slice 3.
+- Any LLM call (the reply is canned) — Phase 2.
+- Any device / engine / program / narration / arming the Player — Phase 3.
 - The orchestration loop (three speech sources), the two personas, and the
-  **safeword** — Slice 4.
+  **safeword** — a later phase.
 - **True mic-sharing with Vosk.** Vosk (global nav words) keeps running; the
-  panel's voice session opens its **own** mic on a button. Reconciling one shared
-  mic is a later slice; for now two consumers coexisting is acceptable.
-- The full persona shape — Elise here carries only `name` / `gender` / `voiceId`.
+  panel's voice session opens its **own** mic on a button. Reconciling one
+  shared mic is a later phase; for now two consumers coexisting is acceptable.
+- The full persona shape — Elise here carries only `name` / `gender` /
+  `voiceId`.
 
-## The companion for this slice
+## The companion for this phase
 
 ```ts
 // src/lib/companions/companions.ts
@@ -53,7 +54,7 @@ export type Companion = {
   name: string;
   gender: "female" | "male" | "nonbinary";
   voiceId: string; // ElevenLabs voice id (not a secret — safe in code)
-  // systemPrompt / generationBias / initiative / agency arrive in later slices.
+  // systemPrompt / generationBias / initiative / agency arrive in later phases.
 };
 
 export const ELISE: Companion = {
@@ -70,10 +71,12 @@ voice itself, so the model only needs good English.
 
 **STT — realtime, client-side:**
 
-- Mint token (server): `POST https://api.elevenlabs.io/v1/single-use-token/realtime_scribe`,
-  header `xi-api-key: $ELEVENLABS_API_KEY` — via the SDK if it exposes single-use
+- Mint token (server):
+  `POST https://api.elevenlabs.io/v1/single-use-token/realtime_scribe`, header
+  `xi-api-key: $ELEVENLABS_API_KEY` — via the SDK if it exposes single-use
   tokens, else a direct `fetch`. Returns `{ token }`, single-use, 15-min expiry.
-- Connect (browser): `wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=<token>&audio_format=pcm_16000&commit_strategy=vad`.
+- Connect (browser):
+  `wss://api.elevenlabs.io/v1/speech-to-text/realtime?token=<token>&audio_format=pcm_16000&commit_strategy=vad`.
 - Send audio: `{ message_type: "input_audio_chunk", audio_base_64, commit }`.
 - Receive: `session_started`, `partial_transcript`, `committed_transcript`. With
   `commit_strategy=vad`, **ElevenLabs' own server VAD decides end-of-turn** — so
@@ -81,14 +84,15 @@ voice itself, so the model only needs good English.
 
 **TTS — streaming, SDK server-side:**
 
-- SDK call: `elevenlabs.textToSpeech.stream(ELISE.voiceId, { modelId: "eleven_v3", text, outputFormat: "mp3_44100_128" })`,
+- SDK call:
+  `elevenlabs.textToSpeech.stream(ELISE.voiceId, { modelId: "eleven_v3", text, outputFormat: "mp3_44100_128" })`,
   which yields mp3 chunks. Our Next route pipes them straight to the browser.
 - **Model `eleven_v3`** — the user's choice, most expressive. It streams fine on
-  the HTTP output-streaming path (the *input-streaming WebSocket* is the one that
-  excludes v3; we don't use it for a canned string). v3's only cost is higher
-  time-to-first-audio, which does **not** affect barge-in cut latency (stopping
-  playback is instant). Swappable to `eleven_flash_v2_5` for snappy reactive
-  replies in a later slice.
+  the HTTP output-streaming path (the _input-streaming WebSocket_ is the one
+  that excludes v3; we don't use it for a canned string). v3's only cost is
+  higher time-to-first-audio, which does **not** affect barge-in cut latency
+  (stopping playback is instant). Swappable to `eleven_flash_v2_5` for snappy
+  reactive replies in a later phase.
 
 ## Key safety (public repo)
 
@@ -104,10 +108,10 @@ voice itself, so the model only needs good English.
 - `public/companion-audio-worklet.js` — capture worklet: downsamples to 16 kHz
   PCM, computes a frame energy VAD, maintains the pre-roll ring buffer; posts
   `{ pcm16, rms, speaking }` frames.
-- `src/lib/voice/mic.ts` — `getUserMedia` with AEC constraints, wires the worklet,
-  exposes onset/quiet events + `flushPreRoll()`.
-- `src/lib/voice/stt.ts` — STT socket lifecycle (token → connect → flush pre-roll
-  → stream chunks → surface transcripts → close after 8 s quiet).
+- `src/lib/voice/mic.ts` — `getUserMedia` with AEC constraints, wires the
+  worklet, exposes onset/quiet events + `flushPreRoll()`.
+- `src/lib/voice/stt.ts` — STT socket lifecycle (token → connect → flush
+  pre-roll → stream chunks → surface transcripts → close after 8 s quiet).
 - `src/lib/voice/tts.ts` — fetch the proxied stream, play via MediaSource
   `<audio>`, `stop()` wired to an `AbortSignal`.
 - `src/hooks/use-voice-session.ts` — orchestrator: onset → open STT; committed
@@ -116,21 +120,22 @@ voice itself, so the model only needs good English.
 - `src/components/algorithms/companions-panel.tsx` — the panel hosting the
   voice-lab UI (no Player arming).
 - `src/app/page.tsx` — register the `companions` `ALGORITHMS` entry + render the
-  panel (per the DEVELOPERS.md "adding an algorithm" checklist, minus the engine).
+  panel (per the DEVELOPERS.md "adding an algorithm" checklist, minus the
+  engine).
 
 ## Audio / interruption behaviour
 
 - **Onset (local VAD, debounced ~100–150 ms)** → open STT, flush pre-roll so the
   opening word isn't clipped, go live.
 - **End-of-turn** → server VAD commits → play canned reply through the browser.
-- **Barge-in** = onset *while the reply is playing* → the turn's
+- **Barge-in** = onset _while the reply is playing_ → the turn's
   `AbortController.abort()`: TTS stops immediately, a fresh STT turn opens with
   pre-roll flushed. Target cut latency **≤ ~250 ms**.
 - **Echo defence** (speakers, no headphones): AEC on the mic; and we **do not
   stream to STT while the reply is playing** — only the local VAD watches during
-  playback — so Elise's voice never reaches the transcriber. AEC's job is to keep
-  her voice from *falsely tripping the local VAD*; a short attack debounce backs
-  it up.
+  playback — so Elise's voice never reaches the transcriber. AEC's job is to
+  keep her voice from _falsely tripping the local VAD_; a short attack debounce
+  backs it up.
 - **Cost lifecycle:** STT socket closes after **8 s** of quiet; reopens on next
   onset.
 

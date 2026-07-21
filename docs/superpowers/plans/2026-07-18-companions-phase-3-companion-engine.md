@@ -1,28 +1,56 @@
-# Companions Slice 3 — CompanionEngine + narration overlay Implementation Plan
+# Companions Phase 3 — CompanionEngine + narration overlay Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a `CompanionEngine` — a self-contained port of Autopilot's template-block generation — plus a narration overlay that returns one cue per template boundary, each labelled with a neutral description of the mini-program starting there.
+**Goal:** Add a `CompanionEngine` — a self-contained port of Autopilot's
+template-block generation — plus a narration overlay that returns one cue per
+template boundary, each labelled with a neutral description of the mini-program
+starting there.
 
-**Architecture:** The engine copies Autopilot's generation verbatim (templates, constants, block builder, intensity/edge scaling, suction valves, finish), so it already satisfies `AlgorithmEngine` and is Player-ready for Slice 4. The pattern-template table is extended so each template carries a `label`. The block builder records a `{ at, label }` narration segment at the start of each template it lays; `generateSpeed` accumulates these, and a new CompanionEngine-only method `generateNarrationCues(from, until)` returns them windowed. Nothing consumes the cues yet — that is Slice 4.
+**Architecture:** The engine copies Autopilot's generation verbatim (templates,
+constants, block builder, intensity/edge scaling, suction valves, finish), so it
+already satisfies `AlgorithmEngine` and is Player-ready for a later phase. The
+pattern-template table is extended so each template carries a `label`. The block
+builder records a `{ at, label }` narration segment at the start of each
+template it lays; `generateSpeed` accumulates these, and a new
+CompanionEngine-only method `generateNarrationCues(from, until)` returns them
+windowed. Nothing consumes the cues yet — that is a later phase.
 
-**Tech Stack:** TypeScript, the `AlgorithmEngine` contract in `src/lib/program.ts`, Jest (`@jest/globals`, node env, colocated `*.test.ts`).
+**Tech Stack:** TypeScript, the `AlgorithmEngine` contract in
+`src/lib/program.ts`, Jest (`@jest/globals`, node env, colocated `*.test.ts`).
 
 ## Global Constraints
 
-- Read first: the design `docs/superpowers/specs/2026-07-18-companions-design.md` and this slice's spec `docs/superpowers/specs/2026-07-18-companions-slice-3-companion-engine.md`.
-- **Self-contained engine:** `companion-engine.ts` must **not import** from `autopilot-engine.ts` (or any other engine). Duplicate what it needs — engines don't import each other (ARCHITECTURE.md; Goon duplicates Groove).
-- `generateNarrationCues` is a **CompanionEngine-only** method — do **not** add it to the `AlgorithmEngine` interface in `program.ts`.
-- No personas, no `generationBias`, no device/LLM/panel wiring, no Player arming (all Slice 4).
-- Tests are colocated `*.test.ts`, node environment, import from `@jest/globals`; contract-style (generation is random — assert guarantees, not exact output).
-- Zero-warning outfit: finish with `npm run typecheck`, `npm run lint` (`--max-warnings 0`), `npm test`, and `npm run build` all clean; run `npm run format` before finishing.
-- **Commit policy (Companions exception):** unlike other work, this project's spec + plan docs **are** committed. Commit code/test/changelog as the tasks direct, and only when the tasks say so.
+- Read first: the design
+  `docs/superpowers/specs/2026-07-18-companions-design.md` and this phase's spec
+  `docs/superpowers/specs/2026-07-18-companions-phase-3-companion-engine.md`.
+- **Self-contained engine:** `companion-engine.ts` must **not import** from
+  `autopilot-engine.ts` (or any other engine). Duplicate what it needs — engines
+  don't import each other (ARCHITECTURE.md; Goon duplicates Groove).
+- `generateNarrationCues` is a **CompanionEngine-only** method — do **not** add
+  it to the `AlgorithmEngine` interface in `program.ts`.
+- No personas, no `generationBias`, no device/LLM/panel wiring, no Player arming
+  (all later phases).
+- Tests are colocated `*.test.ts`, node environment, import from
+  `@jest/globals`; contract-style (generation is random — assert guarantees, not
+  exact output).
+- Zero-warning outfit: finish with `npm run typecheck`, `npm run lint`
+  (`--max-warnings 0`), `npm test`, and `npm run build` all clean; run
+  `npm run format` before finishing.
+- **Commit policy (Companions exception):** unlike other work, this project's
+  spec + plan docs **are** committed. Commit code/test/changelog as the tasks
+  direct, and only when the tasks say so.
 
 ---
 
 ### Task 1: CompanionEngine — the ported motion (speed, valves, scale, finish)
 
-Port Autopilot's generation into a new `CompanionEngine`, with the template table already extended to carry a `label` per template (the label is authored here as data; the narration overlay that reads it is Task 2).
+Port Autopilot's generation into a new `CompanionEngine`, with the template
+table already extended to carry a `label` per template (the label is authored
+here as data; the narration overlay that reads it is Task 2).
 
 **Files:**
 
@@ -31,12 +59,18 @@ Port Autopilot's generation into a new `CompanionEngine`, with the template tabl
 
 **Interfaces:**
 
-- Consumes: `AlgorithmEngine`, `SpeedEvent`, `ValveEvent`, `PlayerContext` from `@/lib/program`.
+- Consumes: `AlgorithmEngine`, `SpeedEvent`, `ValveEvent`, `PlayerContext` from
+  `@/lib/program`.
 - Produces:
   - `type IntensityLevel = "warmup" | "low" | "medium" | "high"`
   - `type EdgeControlLevel = "gentle" | "moderate" | "intense"`
   - `type SuctionControlLevel = "off" | "little" | "more"`
-  - `class CompanionEngine implements AlgorithmEngine` with constructor `(intensity: IntensityLevel, edgeControl: EdgeControlLevel, suctionControl: SuctionControlLevel)`; methods `reset()`, `setIntensity(level)`, `setEdgeControl(level)`, `setSuctionControl(level)`, `beginFinish()`, `generateSpeed(from, until, ctx)`, `generateValves(speedEvents, from, until, ctx)`, `scale(event)`.
+  - `class CompanionEngine implements AlgorithmEngine` with constructor
+    `(intensity: IntensityLevel, edgeControl: EdgeControlLevel, suctionControl: SuctionControlLevel)`;
+    methods `reset()`, `setIntensity(level)`, `setEdgeControl(level)`,
+    `setSuctionControl(level)`, `beginFinish()`,
+    `generateSpeed(from, until, ctx)`,
+    `generateValves(speedEvents, from, until, ctx)`, `scale(event)`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -140,8 +174,8 @@ describe("CompanionEngine.scale", () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `npm test -- src/lib/algorithms/companion-engine.test.ts`
-Expected: FAIL — `Cannot find module './companion-engine'`.
+Run: `npm test -- src/lib/algorithms/companion-engine.test.ts` Expected: FAIL —
+`Cannot find module './companion-engine'`.
 
 - [ ] **Step 3: Write the engine (ported motion + labelled template table)**
 
@@ -156,7 +190,7 @@ Create `src/lib/algorithms/companion-engine.ts`:
 // over Autopilot is that each template carries a `label` — a neutral, present-
 // tense description of what that mini-program does — which the narration overlay
 // reads (see generateNarrationCues). Pure event generation/scaling: no React, no
-// device, no LLM, no personas (those ride on top in Slice 4).
+// device, no LLM, no personas (those ride on top in a later phase).
 
 import {
   type PlayerContext,
@@ -175,7 +209,7 @@ interface TemplateStep {
 }
 
 // A pattern template plus its narration label. The label is neutral and
-// persona-agnostic — the persona voices it in Slice 4; here it is plain data.
+// persona-agnostic — the persona voices it in a later phase; here it is plain data.
 interface LabelledTemplate {
   steps: TemplateStep[];
   label: string;
@@ -523,13 +557,14 @@ export class CompanionEngine implements AlgorithmEngine {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `npm test -- src/lib/algorithms/companion-engine.test.ts`
-Expected: PASS (all `generateSpeed` / `generateValves` / `scale` tests).
+Run: `npm test -- src/lib/algorithms/companion-engine.test.ts` Expected: PASS
+(all `generateSpeed` / `generateValves` / `scale` tests).
 
 - [ ] **Step 5: Verify typecheck and lint are clean**
 
-Run: `npm run typecheck && npm run lint`
-Expected: no output. (The `label` field is present but not yet read — that is fine; object-literal properties are never flagged as unused. Task 2 reads it.)
+Run: `npm run typecheck && npm run lint` Expected: no output. (The `label` field
+is present but not yet read — that is fine; object-literal properties are never
+flagged as unused. Task 2 reads it.)
 
 - [ ] **Step 6: Commit**
 
@@ -542,23 +577,29 @@ git commit -m "Companions: CompanionEngine — port Autopilot's template-block m
 
 ### Task 2: Narration overlay — segments + `generateNarrationCues`
 
-Record a narration segment at each template boundary as speed is generated, and expose them windowed through a new CompanionEngine-only method.
+Record a narration segment at each template boundary as speed is generated, and
+expose them windowed through a new CompanionEngine-only method.
 
 **Files:**
 
 - Modify: `src/lib/algorithms/companion-engine.ts`
-- Modify: `src/lib/algorithms/companion-engine.test.ts` (add a narration `describe` block)
+- Modify: `src/lib/algorithms/companion-engine.test.ts` (add a narration
+  `describe` block)
 
 **Interfaces:**
 
 - Consumes: the Task 1 `CompanionEngine`.
 - Produces:
   - `interface NarrationCue { at: number; text: string }` (exported).
-  - `CompanionEngine.generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[]` — one cue per template boundary in `[fromTime, untilTime)`, sorted non-decreasing by `at`, `text` = that template's label; a single finish cue while finishing. **Not** on the `AlgorithmEngine` interface.
+  - `CompanionEngine.generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[]`
+    — one cue per template boundary in `[fromTime, untilTime)`, sorted
+    non-decreasing by `at`, `text` = that template's label; a single finish cue
+    while finishing. **Not** on the `AlgorithmEngine` interface.
 
 - [ ] **Step 1: Write the failing test**
 
-Append to `src/lib/algorithms/companion-engine.test.ts` (below the existing `describe` blocks):
+Append to `src/lib/algorithms/companion-engine.test.ts` (below the existing
+`describe` blocks):
 
 ```ts
 describe("CompanionEngine.generateNarrationCues", () => {
@@ -619,22 +660,26 @@ describe("CompanionEngine.generateNarrationCues", () => {
 });
 ```
 
-Also add `NarrationCue` to the existing import from `./companion-engine` at the top of the test file only if you assert its type directly — you don't here, so no import change is needed.
+Also add `NarrationCue` to the existing import from `./companion-engine` at the
+top of the test file only if you assert its type directly — you don't here, so
+no import change is needed.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `npm test -- src/lib/algorithms/companion-engine.test.ts`
-Expected: FAIL — `engine.generateNarrationCues is not a function` (and a type error under `--noEmit`).
+Run: `npm test -- src/lib/algorithms/companion-engine.test.ts` Expected: FAIL —
+`engine.generateNarrationCues is not a function` (and a type error under
+`--noEmit`).
 
 - [ ] **Step 3: Add the `NarrationCue` type**
 
-In `src/lib/algorithms/companion-engine.ts`, just below the three level-type exports, add:
+In `src/lib/algorithms/companion-engine.ts`, just below the three level-type
+exports, add:
 
 ```ts
 // A narration cue: the program switches to a new mini-program at `at`, described
-// by `text` (a neutral, persona-agnostic label). The persona voices it in Slice
-// 4; here it is plain data. Not part of the AlgorithmEngine contract — the Player
-// doesn't consume cues until Slice 4.
+// by `text` (a neutral, persona-agnostic label). The persona voices it in a later
+// phase; here it is plain data. Not part of the AlgorithmEngine contract — the Player
+// doesn't consume cues until a later phase.
 export interface NarrationCue {
   at: number;
   text: string;
@@ -643,7 +688,9 @@ export interface NarrationCue {
 
 - [ ] **Step 4: Record segments in `buildBlock`**
 
-Replace the `buildBlock` function (and its return-type comment) in `src/lib/algorithms/companion-engine.ts` with the version that also collects a segment at each template's boundary:
+Replace the `buildBlock` function (and its return-type comment) in
+`src/lib/algorithms/companion-engine.ts` with the version that also collects a
+segment at each template's boundary:
 
 ```ts
 // One block: TEMPLATES_PER_BLOCK randomly-chosen templates concatenated behind a
@@ -680,11 +727,13 @@ function buildBlock(
 }
 ```
 
-- [ ] **Step 5: Accumulate segments in `generateSpeed`, clear them in `reset`, add the finish-cue label and the method**
+- [ ] **Step 5: Accumulate segments in `generateSpeed`, clear them in `reset`,
+      add the finish-cue label and the method**
 
 In `src/lib/algorithms/companion-engine.ts`:
 
-a) Add a finish-cue label constant next to the other constants (e.g. below `BLOCK_LEAD_IN_SPEED`):
+a) Add a finish-cue label constant next to the other constants (e.g. below
+`BLOCK_LEAD_IN_SPEED`):
 
 ```ts
 const FINISH_CUE_LABEL = "the finish — full and relentless";
@@ -708,7 +757,8 @@ c) In `reset()`, clear the buffer too:
   }
 ```
 
-d) In `generateSpeed`, in the block-tiling loop, push the block's segments as they are built (finish path is unchanged — it records no segments):
+d) In `generateSpeed`, in the block-tiling loop, push the block's segments as
+they are built (finish path is unchanged — it records no segments):
 
 ```ts
 const events: SpeedEvent[] = [];
@@ -729,7 +779,7 @@ e) Add the method (place it after `generateValves`, before `scale`):
   // read from the segments recorded as speed was generated (template choice is
   // random inside generation, so cues can't be re-derived from speed events).
   // While finishing, a single finish cue. CompanionEngine-only — not on the
-  // AlgorithmEngine contract; the Player consumes cues in Slice 4.
+  // AlgorithmEngine contract; the Player consumes cues in a later phase.
   generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[] {
     if (this.finishing) {
       return [{ at: fromTime, text: FINISH_CUE_LABEL }];
@@ -742,13 +792,13 @@ e) Add the method (place it after `generateValves`, before `scale`):
 
 - [ ] **Step 6: Run the test to verify it passes**
 
-Run: `npm test -- src/lib/algorithms/companion-engine.test.ts`
-Expected: PASS (all `generateSpeed` / `generateValves` / `scale` / `generateNarrationCues` tests).
+Run: `npm test -- src/lib/algorithms/companion-engine.test.ts` Expected: PASS
+(all `generateSpeed` / `generateValves` / `scale` / `generateNarrationCues`
+tests).
 
 - [ ] **Step 7: Verify typecheck and lint are clean**
 
-Run: `npm run typecheck && npm run lint`
-Expected: no output.
+Run: `npm run typecheck && npm run lint` Expected: no output.
 
 - [ ] **Step 8: Commit**
 
@@ -759,7 +809,7 @@ git commit -m "Companions: narration overlay — a cue at every template boundar
 
 ---
 
-### Task 3: Full-slice verification, changelog, PR
+### Task 3: Full-phase verification, changelog, PR
 
 **Files:**
 
@@ -767,16 +817,24 @@ git commit -m "Companions: narration overlay — a cue at every template boundar
 
 - [ ] **Step 1: Format, then run every gate**
 
-Run: `npm run format`
-Then: `npm run typecheck && npm run lint && npm test && npm run build`
-Expected: all clean. If `format` changed files, stage them for the changelog commit below.
+Run: `npm run format` Then:
+`npm run typecheck && npm run lint && npm test && npm run build` Expected: all
+clean. If `format` changed files, stage them for the changelog commit below.
 
 - [ ] **Step 2: Update the changelog**
 
-In `CHANGELOG.md`, add today's date heading `## 2026-07-20` at the very top **only if it is not already present** (if the top heading is an earlier date, add this new heading above it; if today's heading already exists, add the line under it in feature→enhancement→bug→internal order — this is the only line so far, an `internal`):
+In `CHANGELOG.md`, add today's date heading `## 2026-07-20` at the very top
+**only if it is not already present** (if the top heading is an earlier date,
+add this new heading above it; if today's heading already exists, add the line
+under it in feature→enhancement→bug→internal order — this is the only line so
+far, an `internal`):
 
 ```markdown
-- internal: **CompanionEngine + narration overlay** — a self-contained port of Autopilot's template-block generation, plus a narration overlay that emits a cue at each template boundary describing the mini-program starting there. Engine only; not yet wired to device, LLM or panel. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- internal: **CompanionEngine + narration overlay** — a self-contained port of
+  Autopilot's template-block generation, plus a narration overlay that emits a
+  cue at each template boundary describing the mini-program starting there.
+  Engine only; not yet wired to device, LLM or panel.
+  ([#13](https://github.com/autogoon/autogoon/pull/13))
 ```
 
 - [ ] **Step 3: Commit the changelog (and any formatting changes)**
@@ -795,9 +853,14 @@ git commit -m "Companions: formatting"
 
 - [ ] **Step 4: Update the draft PR #13 description**
 
-This slice lands on the existing `companions` branch / draft PR #13. In the PR description's slice roadmap, tick **Slice 3 — CompanionEngine + narration overlay** and flesh out its bullet (per the per-slice PR convention). **Do not merge** — the whole feature merges together after Slice 4.
+This phase lands on the existing `companions` branch / draft PR #13. In the PR
+description's phase roadmap, tick **Phase 3 — CompanionEngine + narration
+overlay** and flesh out its bullet (per the per-phase PR convention). **Do not
+merge** — the whole feature merges together after Phase 12.
 
 - [ ] **Step 5: Manual acceptance (unit-level — no device/LLM/app)**
 
-Run: `npm test -- src/lib/algorithms/companion-engine.test.ts`
-Confirm the narration tests demonstrate the deliverable: cues land on template boundaries, every cue is labelled from the fixed table, cues window correctly, finish yields a single cue, and `reset()` clears them.
+Run: `npm test -- src/lib/algorithms/companion-engine.test.ts` Confirm the
+narration tests demonstrate the deliverable: cues land on template boundaries,
+every cue is labelled from the fixed table, cues window correctly, finish yields
+a single cue, and `reset()` clears them.
