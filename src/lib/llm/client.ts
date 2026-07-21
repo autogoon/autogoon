@@ -39,6 +39,8 @@ export type LlmClient = {
       signal: AbortSignal;
       onUsage?: (usage: LlmUsage) => void;
       onReasoning?: (details: unknown[]) => void;
+      tools?: RequestTool[];
+      onToolCalls?: (calls: ToolCall[]) => void;
     },
   ) => AsyncIterable<string>;
 };
@@ -46,7 +48,16 @@ export type LlmClient = {
 // The openai SDK types don't model OpenRouter's reasoning_details, so we cast at
 // this boundary only — a narrow local type, never `any` on the whole call.
 type ReasoningEntry = { index?: number; text?: string; [k: string]: unknown };
-type DeltaWithReasoning = { reasoning_details?: ReasoningEntry[] };
+type ToolCallDelta = {
+  index?: number;
+  id?: string;
+  function?: { name?: string; arguments?: string };
+};
+type DeltaExtras = {
+  reasoning_details?: ReasoningEntry[];
+  tool_calls?: ToolCallDelta[];
+};
+type AssembledCall = ToolCall & { index: number };
 type OutgoingMessage = {
   role: LlmMessage["role"];
   content: string;
@@ -71,6 +82,24 @@ function mergeReasoning(acc: ReasoningEntry[], deltas: ReasoningEntry[]): void {
   }
 }
 
+// Merge streamed tool_call deltas into ordered calls: entries sharing an index
+// are folded — id/name taken as they arrive, arguments concatenated.
+function mergeToolCalls(acc: AssembledCall[], deltas: ToolCallDelta[]): void {
+  for (const d of deltas) {
+    const idx = typeof d.index === "number" ? d.index : acc.length;
+    let call = acc.find((c) => c.index === idx);
+    if (call === undefined) {
+      call = { index: idx, id: "", name: "", arguments: "" };
+      acc.push(call);
+    }
+    if (typeof d.id === "string") call.id = d.id;
+    if (typeof d.function?.name === "string") call.name = d.function.name;
+    if (typeof d.function?.arguments === "string") {
+      call.arguments += d.function.arguments;
+    }
+  }
+}
+
 export function createLlmClient(model: string): LlmClient {
   // openai-node needs an ABSOLUTE baseURL. In the browser — the only place this
   // client actually runs — that's the page origin; the fallback just keeps it
@@ -91,6 +120,8 @@ export function createLlmClient(model: string): LlmClient {
       signal: AbortSignal;
       onUsage?: (usage: LlmUsage) => void;
       onReasoning?: (details: unknown[]) => void;
+      tools?: RequestTool[];
+      onToolCalls?: (calls: ToolCall[]) => void;
     },
   ): AsyncIterable<string> {
     const outgoing: OutgoingMessage[] = messages.map((m) =>
@@ -111,26 +142,35 @@ export function createLlmClient(model: string): LlmClient {
         // Ask for a final usage chunk (empty choices + usage) so we can report
         // output tok/s. Providers that don't send it simply never fire onUsage.
         stream_options: { include_usage: true },
+        ...(opts.tools !== undefined && opts.tools.length > 0
+          ? { tools: opts.tools }
+          : {}),
       },
       { signal: opts.signal },
     );
     const reasoning: ReasoningEntry[] = [];
+    const toolCalls: AssembledCall[] = [];
     for await (const chunk of completion) {
       const choice = chunk.choices[0];
       const delta = choice?.delta?.content;
       if (delta) yield delta;
-      const rd = (choice?.delta as DeltaWithReasoning | undefined)
-        ?.reasoning_details;
+      const extras = choice?.delta as DeltaExtras | undefined;
+      const rd = extras?.reasoning_details;
       if (rd != null) mergeReasoning(reasoning, rd);
+      const tc = extras?.tool_calls;
+      if (tc != null) mergeToolCalls(toolCalls, tc);
       const usage = chunk.usage;
       if (usage != null) {
         opts.onUsage?.({ completionTokens: usage.completion_tokens });
       }
     }
-    // Surface the assembled reasoning once, at natural completion only — an early
-    // break (barge-in / abort) calls the generator's return() and skips this, so a
-    // truncated reasoning block is never handed back.
+    // Surface the assembled reasoning/tool calls once, at natural completion only
+    // — an early break (barge-in / abort) calls the generator's return() and
+    // skips this, so truncated data is never handed back.
     if (reasoning.length > 0) opts.onReasoning?.(reasoning);
+    if (toolCalls.length > 0) {
+      opts.onToolCalls?.(toolCalls.map(({ index: _index, ...c }) => c));
+    }
   }
 
   return { stream };

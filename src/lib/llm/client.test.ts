@@ -1,9 +1,18 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
 type ReasoningDelta = { index: number; type?: string; text?: string };
+type ToolCallDelta = {
+  index?: number;
+  id?: string;
+  function?: { name?: string; arguments?: string };
+};
 type Chunk = {
   choices: {
-    delta: { content?: string; reasoning_details?: ReasoningDelta[] };
+    delta: {
+      content?: string;
+      reasoning_details?: ReasoningDelta[];
+      tool_calls?: ToolCallDelta[];
+    };
   }[];
 };
 const createMock =
@@ -47,6 +56,17 @@ function fakeReasoningStream(
   return {
     async *[Symbol.asyncIterator]() {
       for (const delta of chunks) yield { choices: [{ delta }] };
+    },
+  };
+}
+
+// A fake stream carrying tool_call deltas (and a trailing content chunk).
+function fakeToolCallStream(
+  chunks: { content?: string; tool_calls?: ToolCallDelta[] }[],
+): AsyncIterable<Chunk> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const delta of chunks) yield { choices: [{ delta }] } as Chunk;
     },
   };
 }
@@ -173,5 +193,115 @@ describe("createLlmClient", () => {
         reasoning_details: [{ index: 0, text: "x" }],
       },
     ]);
+  });
+
+  it("fires onToolCalls once with tool_calls merged by index", async () => {
+    createMock.mockResolvedValue(
+      fakeToolCallStream([
+        {
+          tool_calls: [
+            {
+              index: 0,
+              id: "call_1",
+              function: { name: "start", arguments: '{"x":' },
+            },
+          ],
+        },
+        { tool_calls: [{ index: 0, function: { arguments: "1}" } }] },
+        { content: "ok" },
+      ]),
+    );
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const seen: unknown[][] = [];
+    const tokens = await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        onToolCalls: (c) => seen.push(c),
+      }),
+    );
+    expect(tokens).toEqual(["ok"]);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual([
+      { id: "call_1", name: "start", arguments: '{"x":1}' },
+    ]);
+  });
+
+  it("never fires onToolCalls for a stream with no tool calls", async () => {
+    createMock.mockResolvedValue(fakeStream(["Hi", " there"]));
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const onToolCalls = jest.fn();
+    await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        onToolCalls,
+      }),
+    );
+    expect(onToolCalls).not.toHaveBeenCalled();
+  });
+
+  it("does not fire onToolCalls when the consumer breaks early", async () => {
+    createMock.mockResolvedValue(
+      fakeToolCallStream([
+        {
+          tool_calls: [
+            {
+              index: 0,
+              id: "call_1",
+              function: { name: "start", arguments: "" },
+            },
+          ],
+        },
+        { content: "a" },
+        { content: "b" },
+      ]),
+    );
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const onToolCalls = jest.fn();
+    for await (const token of client.stream([{ role: "user", content: "hi" }], {
+      signal: new AbortController().signal,
+      onToolCalls,
+    })) {
+      void token;
+      break;
+    }
+    expect(onToolCalls).not.toHaveBeenCalled();
+  });
+
+  it("forwards tools when present and omits the field when empty", async () => {
+    createMock.mockResolvedValue(fakeStream(["ok"]));
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const tools = [
+      {
+        type: "function" as const,
+        function: {
+          name: "start",
+          description: "Start.",
+          parameters: { type: "object" as const, properties: {} },
+        },
+      },
+    ];
+    await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        tools,
+      }),
+    );
+    const [withTools] = createMock.mock.calls[0] as [{ tools?: unknown }];
+    expect(withTools.tools).toEqual(tools);
+
+    createMock.mockClear();
+    createMock.mockResolvedValue(fakeStream(["ok"]));
+    await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        tools: [],
+      }),
+    );
+    const [noTools] = createMock.mock.calls[0] as [Record<string, unknown>];
+    expect("tools" in noTools).toBe(false);
   });
 });
