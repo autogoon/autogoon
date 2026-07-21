@@ -99,8 +99,7 @@ const IDLE_STATUS: VoiceStatus = {
 const STT_IDLE_TIMEOUT_MS = 8000;
 const MAYBE_CLOSE_INTERVAL_MS = 500;
 
-// Per-companion persistence key, so a second companion (Phase 12) gets its own
-// thread.
+// Persistence key, namespaced per companion so each keeps its own thread.
 const THREAD_KEY = `companions:thread:${ELISE.name.toLowerCase()}`;
 
 export function useVoiceSession(): VoiceSession {

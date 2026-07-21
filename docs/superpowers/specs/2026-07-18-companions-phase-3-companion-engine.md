@@ -45,10 +45,10 @@ output.
 
 ## Explicitly out of scope (later phases)
 
-- **Personas / `generationBias`.** Generation is driven by Autopilot's own knobs
-  this phase. The persona shape (`generationBias`, `initiative`, `agency`,
-  `systemPrompt`) and the `generationBias` → Autopilot-params mapping are a
-  later phase.
+- **Personas / the persona's `traits`.** Generation is driven by Autopilot's own
+  knobs this phase. The persona shape (`systemPrompt`, `traits`) and the
+  `traits` → Autopilot-params mapping are deferred to when the persona shapes
+  the program.
 - **Any wiring.** The engine is not armed on the Player, not rendered in the
   Companions panel, not fed to the LLM. `generateNarrationCues` produces data
   nothing consumes yet — a later phase hands it to the orchestration thread.
@@ -179,4 +179,4 @@ Gates: `npm run typecheck`, `npm run lint` (`--max-warnings 0`), `npm test`,
 - **Completeness:** the suction valve overlay and the `beginFinish` path are
   ported too, so the engine is a complete, Player-ready port.
 - **Knobs:** Autopilot's `IntensityLevel` / `EdgeControlLevel` /
-  `SuctionControlLevel`; personas / `generationBias` are a later phase.
+  `SuctionControlLevel`; personas / the persona's `traits` are a later phase.

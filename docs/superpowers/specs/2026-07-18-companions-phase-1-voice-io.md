@@ -36,8 +36,9 @@ downstream is de-risked.
 
 ## Explicitly out of scope (later phases)
 
-- Any LLM call (the reply is canned) — Phase 2.
-- Any device / engine / program / narration / arming the Player — Phase 3.
+- Any LLM call (the reply is canned) — deferred until the LLM client lands.
+- Any device / engine / program / narration / arming the Player — deferred until
+  the CompanionEngine and narration-cue generation land.
 - The orchestration loop (three speech sources), the two personas, and the
   **safeword** — a later phase.
 - **True mic-sharing with Vosk.** Vosk (global nav words) keeps running; the
@@ -54,7 +55,7 @@ export type Companion = {
   name: string;
   gender: "female" | "male" | "nonbinary";
   voiceId: string; // ElevenLabs voice id (not a secret — safe in code)
-  // systemPrompt / generationBias / initiative / agency arrive in later phases.
+  // systemPrompt and the persona's traits arrive in later phases.
 };
 
 export const ELISE: Companion = {
