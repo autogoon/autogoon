@@ -303,6 +303,37 @@ export function useVoiceSession(opts?: {
           return { content, reasoning, toolCalls };
         };
 
+        // Speak one utterance through TTS, with the "waiting for speech" spinner
+        // and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
+        // the reaction — so this is factored out. Returns false if the turn was
+        // aborted/superseded mid-play (the caller then bails).
+        const speakText = async (text: string): Promise<boolean> => {
+          const ttsStart = performance.now();
+          let ttsTtfbMs: number | null = null;
+          // "Waiting for speech" until the first audio bytes arrive.
+          setStatus((s) => ({ ...s, awaitingSpeech: true }));
+          await tts.play(text, ELISE.voiceId, controller.signal, () => {
+            ttsTtfbMs = performance.now() - ttsStart;
+            setStatus((s) => ({ ...s, awaitingSpeech: false }));
+          });
+          // tts.play resolves even on barge-in/stop, so guard before recording:
+          // a superseded turn must not overwrite the current turn's metrics.
+          if (controller.signal.aborted || turnRef.current !== controller) {
+            return false;
+          }
+          setStatus((s) => ({
+            ...s,
+            metrics: {
+              ...s.metrics,
+              tts: {
+                ttfbMs: ttsTtfbMs,
+                totalMs: performance.now() - ttsStart,
+              },
+            },
+          }));
+          return true;
+        };
+
         try {
           const deviceState = getDeviceStateRef.current();
           // Inject the live toy status at the {{TOY_STATUS}} marker (bottom of
@@ -318,8 +349,8 @@ export function useVoiceSession(opts?: {
             ELISE.passesReasoning,
           );
 
-          // Call 1 — offer the tools. She typically EITHER speaks OR calls a
-          // tool (silently), rarely both, so we don't rely on her speaking here.
+          // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
+          // pre-tool line ("mm, let me get you going") and the call in one turn.
           const r1 = await runLlm(baseMessages, true);
           if (r1 === null) return;
 
@@ -327,11 +358,19 @@ export function useVoiceSession(opts?: {
           let reasoning = r1.reasoning;
 
           if (r1.toolCalls.length > 0) {
-            // Persist the full agentic sequence: first the assistant tool-call
-            // turn (carrying the calls + any Call-1 reasoning), then each tool
-            // result linked back by id. This is what later turns replay so she
-            // sees she has actually called tools before — without it she drifts
-            // back to narrating "*starting*" instead of calling.
+            // Speak her pre-tool line first, if she said one, BEFORE the device
+            // acts — the line plays, THEN the toy starts/changes, THEN her
+            // reaction. A barge-in here bails before anything is run or stored.
+            if (speak && r1.content.trim() !== "") {
+              if (!(await speakText(r1.content))) return;
+            }
+
+            // Persist the full agentic sequence: the assistant tool-call turn
+            // (content + calls + any Call-1 reasoning) then each tool result
+            // linked back by id, committed together so the stored history is
+            // always a valid call/result pair. This is also what later turns
+            // replay so she sees she has actually called tools before — without
+            // it she drifts back to narrating "*starting*" instead of calling.
             let next = appendAssistant(
               threadRef.current,
               r1.content,
@@ -374,7 +413,8 @@ export function useVoiceSession(opts?: {
               systemPrompt,
               ELISE.passesReasoning,
             );
-            // The reaction replaces any (usually empty) first-call text.
+            // The reaction is the second spoken block; clear the streamed
+            // pre-tool text so it streams fresh.
             setStatus((s) => ({ ...s, replyText: "" }));
             const r2 = await runLlm(call2, false);
             if (r2 === null) return;
@@ -382,8 +422,9 @@ export function useVoiceSession(opts?: {
             reasoning = r2.reasoning;
           }
 
-          // Commit the spoken reply — the reaction when she acted, else her
-          // plain reply. reasoning is replayed only when the companion passes it.
+          // Commit the (final) spoken reply — the reaction when she acted, else
+          // her plain reply. reasoning is replayed only when the companion
+          // passes it.
           if (reply.trim() !== "") {
             persistThread(
               appendAssistant(
@@ -401,26 +442,7 @@ export function useVoiceSession(opts?: {
           ) {
             return;
           }
-          const ttsStart = performance.now();
-          let ttsTtfbMs: number | null = null;
-          // "Waiting for speech" until the first audio bytes arrive.
-          setStatus((s) => ({ ...s, awaitingSpeech: true }));
-          await tts.play(reply, ELISE.voiceId, controller.signal, () => {
-            ttsTtfbMs = performance.now() - ttsStart;
-            setStatus((s) => ({ ...s, awaitingSpeech: false }));
-          });
-          // tts.play resolves even on barge-in/stop, so guard before recording:
-          // a superseded turn must not overwrite the current turn's metrics.
-          if (controller.signal.aborted || turnRef.current !== controller) {
-            return;
-          }
-          setStatus((s) => ({
-            ...s,
-            metrics: {
-              ...s.metrics,
-              tts: { ttfbMs: ttsTtfbMs, totalMs: performance.now() - ttsStart },
-            },
-          }));
+          if (!(await speakText(reply))) return;
         } catch (e) {
           // Aborted turns land here too; only surface a real failure.
           if (!controller.signal.aborted && turnRef.current === controller) {
