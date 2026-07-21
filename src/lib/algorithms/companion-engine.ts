@@ -44,6 +44,10 @@ const SPEED_TEMPLATE_MIN = 5;
 const FINISH_HOLD_MS = 1_800_000;
 const TEMPLATES_PER_BLOCK = 10;
 const BLOCK_LEAD_IN_SPEED = 10;
+// One-shot stroke-minus tease held for this long at the very start of a session,
+// ported from Goon's STROKE_MINUS_APPLY_MS (engines don't share code). It's a
+// teasing lead-in, independent of vacuum maintenance.
+const STROKE_TEASE_MS = 10_000;
 const FINISH_CUE_LABEL = "the finish — full and relentless";
 
 const LABELLED_TEMPLATES: LabelledTemplate[] = [
@@ -358,14 +362,30 @@ export class CompanionEngine implements AlgorithmEngine {
       ];
     }
 
+    const valves: ValveEvent[] = [];
+
+    // One-shot stroke-minus tease: hold the stroke- valve open for the first
+    // STROKE_TEASE_MS, only on the window covering program start (fromTime <= 0 <
+    // untilTime). A teasing lead-in, emitted regardless of vacuum maintenance —
+    // so it still fires when suction is "off" (the companion default). On a
+    // mid-session re-lay the guard is false, so it never repeats.
+    if (fromTime <= 0 && untilTime > 0) {
+      valves.push({ kind: "valve", at: 0, valve: "minus", open: true });
+      valves.push({
+        kind: "valve",
+        at: STROKE_TEASE_MS,
+        valve: "minus",
+        open: false,
+      });
+    }
+
     const p = suctionControlParams[this.suctionControlLevel];
-    if (!p.enabled) return [];
+    if (!p.enabled) return valves;
 
     // The gate starts closed at session start (lastSuctionTime starts at 0, so
     // nothing fires before `interval`) but OPEN on a mid-session (re-)lay, so the
     // very next move pulses.
     let lastPulse = fromTime === 0 ? 0 : Number.NEGATIVE_INFINITY;
-    const valves: ValveEvent[] = [];
     for (const ev of speedEvents) {
       if (ev.at < fromTime || ev.at >= untilTime) continue;
       if (ev.at - lastPulse < p.interval) continue;

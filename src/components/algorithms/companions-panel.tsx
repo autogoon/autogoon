@@ -45,9 +45,11 @@ import {
 } from "@/lib/algorithms/companion-engine";
 
 // Fixed default knobs — the program is random within this baseline.
-const DEFAULT_INTENSITY: IntensityLevel = "medium";
-const DEFAULT_EDGE: EdgeControlLevel = "moderate";
-const DEFAULT_SUCTION: SuctionControlLevel = "little";
+// Companions start gentle: a warmup-intensity, gently-edging program with no
+// vacuum maintenance. Elise turns it up from there via her intensity/edge tools.
+const DEFAULT_INTENSITY: IntensityLevel = "warmup";
+const DEFAULT_EDGE: EdgeControlLevel = "gentle";
+const DEFAULT_SUCTION: SuctionControlLevel = "off";
 
 // The session's fast-moving loudness bar — repaints every frame; kept small.
 function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
@@ -179,6 +181,32 @@ export function CompanionsPanel({
     );
   }, []);
 
+  // Program-shaping knobs (categorical), owned here. Declared above the tools /
+  // voice session because the intensity/edge tools below drive changeIntensity /
+  // changeEdge — one path for both her tool calls and the on-screen buttons.
+  const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
+  const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
+  const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
+
+  const changeIntensity = useCallback(
+    (level: IntensityLevel) => {
+      setIntensity(level);
+      engine.setIntensity(level);
+      device.invalidateFuture();
+      vacuglide.log(`intensity → ${level}`);
+    },
+    [device, engine, vacuglide],
+  );
+  const changeEdge = useCallback(
+    (level: EdgeControlLevel) => {
+      setEdge(level);
+      engine.setEdgeControl(level);
+      device.invalidateFuture();
+      vacuglide.log(`edge control → ${level}`);
+    },
+    [device, engine, vacuglide],
+  );
+
   // The tools Elise can call, and the live device-state line injected each turn.
   const tools = useMemo<CompanionTool[]>(
     () => [
@@ -200,22 +228,90 @@ export function CompanionsPanel({
           return "stopped";
         },
       },
+      {
+        name: "intensity",
+        description:
+          "Set how hard the toy drives. Levels, gentlest to hardest: warmup, low, medium, high. Call this to turn her up or ease her off; pass the level you're going to.",
+        parameters: {
+          type: "object",
+          properties: {
+            level: {
+              type: "string",
+              enum: ["warmup", "low", "medium", "high"],
+              description: "warmup = gentlest, high = hardest",
+            },
+          },
+          required: ["level"],
+        },
+        run: (args) => {
+          const level = args.level;
+          if (
+            level !== "warmup" &&
+            level !== "low" &&
+            level !== "medium" &&
+            level !== "high"
+          ) {
+            return `invalid intensity: ${String(level)}`;
+          }
+          changeIntensity(level);
+          return `intensity → ${level}`;
+        },
+      },
+      {
+        name: "edge_control",
+        description:
+          "Set how much the toy edges and teases him — drawing it out rather than pushing straight through. Levels: gentle, moderate, intense. Call this to change how much you tease.",
+        parameters: {
+          type: "object",
+          properties: {
+            level: {
+              type: "string",
+              enum: ["gentle", "moderate", "intense"],
+              description: "gentle = little teasing, intense = lots of edging",
+            },
+          },
+          required: ["level"],
+        },
+        run: (args) => {
+          const level = args.level;
+          if (
+            level !== "gentle" &&
+            level !== "moderate" &&
+            level !== "intense"
+          ) {
+            return `invalid edge level: ${String(level)}`;
+          }
+          changeEdge(level);
+          return `edge → ${level}`;
+        },
+      },
     ],
-    [startProgram, stopProgram],
+    [startProgram, stopProgram, changeIntensity, changeEdge],
   );
 
-  // The toy's state in plain terms — connection plus whether it's actually
-  // running (running implies connected). This exact sentence is what Elise is
-  // told and what the "Elise is told" line shows. No "program" (in-app jargon).
+  // The toy's state in plain terms — connection, whether it's actually running
+  // (running implies connected), and the current intensity/edge levels. This is
+  // the ground-truth line Elise reads each turn; the level is here (not just in
+  // her tool history) so she stays in sync when the knobs are changed manually.
+  // No "program" (in-app jargon).
   const getDeviceState = useCallback((): string => {
+    const levels = `It's set to ${intensity} intensity with ${edge} edging.`;
     if (!vacuglide.connected) {
-      return "The toy is not connected and is not running.";
+      return `The toy is not connected and is not running. ${levels}`;
     }
     const running = player.source === engine && player.state === "playing";
-    return running
+    const status = running
       ? "The toy is connected and running."
       : "The toy is connected and not running.";
-  }, [vacuglide.connected, player.source, player.state, engine]);
+    return `${status} ${levels}`;
+  }, [
+    vacuglide.connected,
+    player.source,
+    player.state,
+    engine,
+    intensity,
+    edge,
+  ]);
 
   const {
     start: startListening,
@@ -231,9 +327,6 @@ export function CompanionsPanel({
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, "hit"),
   });
 
-  const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
-  const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
-  const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
   // Manual stroke state only — its `keywords` are intentionally NOT wired to
   // voice (Companions registers no vosk words).
   const stroke = useStrokeControls(vacuglide, player);
@@ -276,24 +369,6 @@ export function CompanionsPanel({
     onEnterPlay();
   }, [device, engine, onEnterPlay]);
 
-  const changeIntensity = useCallback(
-    (level: IntensityLevel) => {
-      setIntensity(level);
-      engine.setIntensity(level);
-      device.invalidateFuture();
-      vacuglide.log(`intensity → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
-  const changeEdge = useCallback(
-    (level: EdgeControlLevel) => {
-      setEdge(level);
-      engine.setEdgeControl(level);
-      device.invalidateFuture();
-      vacuglide.log(`edge control → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
   const changeSuction = useCallback(
     (level: SuctionControlLevel) => {
       setSuction(level);
