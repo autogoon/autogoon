@@ -14,6 +14,7 @@ export function SessionControls({
   onStart,
   onStop,
   onReset,
+  showReset = true,
   stopDisabled = false,
   stopDisabledTitle,
 }: {
@@ -22,6 +23,9 @@ export function SessionControls({
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  // Hide the Reset button so Start/Stop can stand alone (Companions puts Reset
+  // on a different tab); defaults to the usual Start + Reset pairing.
+  showReset?: boolean;
   // An algorithm can withdraw Stop (e.g. an after-play outcome that ignores
   // it); the safe word remains the way out.
   stopDisabled?: boolean;
@@ -41,17 +45,23 @@ export function SessionControls({
     );
   }
 
+  const start = (
+    <Button
+      onClick={onStart}
+      disabled={!connected}
+      title={!connected ? "Connect the device first" : undefined}
+      className={`${showReset ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50`}
+      badge="start"
+    >
+      Start
+    </Button>
+  );
+
+  if (!showReset) return start;
+
   return (
     <div className="flex gap-3">
-      <Button
-        onClick={onStart}
-        disabled={!connected}
-        title={!connected ? "Connect the device first" : undefined}
-        className="flex-1 rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
-        badge="start"
-      >
-        Start
-      </Button>
+      {start}
       <Button
         onClick={onReset}
         className="bg-secondary rounded-lg px-6 py-3.5 text-lg font-bold"
