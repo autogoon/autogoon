@@ -72,6 +72,21 @@ it its own module — e.g. `elise-prompt.ts` exports `ELISE_SYSTEM_PROMPT`, a
 plain template-literal string — and import it into `companions.ts`, so the
 companion list itself stays readable.
 
+## Device control
+
+A companion can **start and stop the device herself** through LLM tools. Each
+turn the app offers the model a small set of function tools (currently `start`
+and `stop`), and when she calls one the panel runs the same device transport the
+manual buttons use. Whether she acts on a request or declines is a disposition
+written into her `systemPrompt`, not a code gate.
+
+The device's **current state is folded into her system message every turn** —
+whether the toy is connected, and whether it's running or stopped — so she
+always knows the state without a status tool (this is also the groundwork for
+the upcoming/narration device-state the thread will carry). Tool calls are
+executed as a side effect of a turn and are **not** persisted into the
+conversation thread; only her spoken reply (and reasoning) is stored, as before.
+
 ## Configuration
 
 Two env vars wire the app to OpenRouter (server-side only; see
@@ -79,8 +94,7 @@ Two env vars wire the app to OpenRouter (server-side only; see
 
 - `LLM_URL` — `https://openrouter.ai/api/v1`.
 - `OPENROUTER_API_KEY` — read only by the `/api/llm` proxy route, which adds it
-  as a Bearer header. Set it in `.env` (gitignored); never commit a real
-  key.
+  as a Bearer header. Set it in `.env` (gitignored); never commit a real key.
 
 There is no `LLM_MODEL` — each companion's `model` field picks the model per
 companion, so there's nothing global to configure.
