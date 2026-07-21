@@ -19,7 +19,28 @@
 
 ---
 
-### Task 1: Spike — confirm M2 streams `tool_calls` cleanly (throwaway)
+### Task 1: Spike — confirm M2 streams `tool_calls` cleanly (throwaway) — ALREADY RUN
+
+> **This spike was already executed during planning. Its findings are recorded
+> below; do not re-run it. Proceed to Task 2.**
+>
+> **Confirmed against live M2 `:nitro`:**
+> - Tool-call deltas match the assumed merge rule exactly. Delta 1:
+>   `{index:0, id:"call_…", type:"function", function:{name:"start", arguments:""}}`;
+>   Delta 2: `{index:0, function:{arguments:"{}"}}`. Fold by `index`, take
+>   `id`/`name` as they arrive, append `arguments` → `"start"`, `"{}"`. Task 3's
+>   `mergeToolCalls` is correct as written.
+> - `content` is `null` on tool-call deltas — the existing `if (delta)` guard in
+>   `client.ts` already skips it.
+> - Reasoning streams via `reasoning_details` (unchanged); `finish_reason` is
+>   `"tool_calls"` (no special handling needed).
+> - **Load-bearing finding:** M2's *default* is a **tool-call-only turn with no
+>   spoken `content`** — as-specced, she would start the toy silently. A
+>   system-prompt instruction to *always speak a short line out loud whenever she
+>   uses a tool* fixes this: with it, M2 returns `content` ("Alright, let's get
+>   this party started!") **and** the `start` call in one turn, preserving the
+>   single-round-trip design. **Task 6 must include this instruction** — it is
+>   what keeps her voice; without it start/stop are silent.
 
 De-risk the one uncertain assumption before writing the real client code: that M2 `:nitro` emits a `tool_call` when asked to start, streams the call as deltas we can assemble, and does so alongside `content` + `reasoning_details`. **Nothing here is committed.**
 
@@ -27,7 +48,7 @@ De-risk the one uncertain assumption before writing the real client code: that M
 
 - [ ] **Step 1: Ensure the proxy is reachable**
 
-`.env.local` must hold a real `OPENROUTER_API_KEY` and `LLM_URL=https://openrouter.ai/api/v1`. Start the dev server if it isn't up:
+`.env` must hold a real `OPENROUTER_API_KEY` and `LLM_URL=https://openrouter.ai/api/v1`. Start the dev server if it isn't up:
 
 Run: `npm run dev`
 Expected: serving on `http://localhost:8931`.
@@ -655,9 +676,16 @@ Append a new section to the template literal, after the `INTIMACY` block (keep t
 
 ```ts
 CONTROL:
-- You can start and stop the toy yourself — the app gives you that control. Decide in character: you're eager and take the lead, so you start readily when the moment's right, but you can also make him wait or ask nicely first if you feel like teasing. When you start or stop it, just say what you're doing in your own words — there's no command phrase, you simply do it as part of the moment ("Okay, I'm starting it now…").
+- You can start and stop the toy yourself — the app gives you that control. Decide in character: you're eager and take the lead, so you start readily when the moment's right, but you can also make him wait or ask nicely first if you feel like teasing.
+- IMPORTANT: whenever you start or stop the toy, ALWAYS say a short spoken line out loud in the same reply — never do it silently. There's no command phrase; you simply say what you're doing as part of the moment ("Okay, I'm starting it now…", "Mm, that's enough for a second — stopping it"). The words and the action go together, every time.
 - You are always told the toy's current state in the context. Don't start it if it's already running, and don't claim to start it if it isn't connected — react to the real state instead.
 ```
+
+> **Why the "ALWAYS say a line" rule matters (spike-confirmed):** M2's default is
+> to call a tool with *no* spoken content. Without this instruction, start/stop
+> fire silently. With it, M2 reliably returns a spoken line **and** the tool call
+> in one turn — which is what keeps the single-round-trip design giving her a
+> voice. This line is load-bearing, not flavour.
 
 - [ ] **Step 2: Gate**
 
