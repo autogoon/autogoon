@@ -13,6 +13,20 @@ export type LlmMessage = {
 
 export type LlmUsage = { completionTokens: number };
 
+// The OpenAI-compatible request tool shape (function tools). Generic LLM wire
+// shape — companions/tools.ts maps its CompanionTools onto this.
+export type RequestTool = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: { type: "object"; properties: Record<string, never> };
+  };
+};
+
+// One assembled tool call surfaced at the end of a stream.
+export type ToolCall = { id: string; name: string; arguments: string };
+
 export type LlmClient = {
   // Streams assistant token deltas for a turn. Abort opts.signal to cancel the
   // whole generation (barge-in / Stop). onUsage fires once, at the end, with the
