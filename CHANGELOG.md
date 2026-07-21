@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-21
+
+- feature: **Companion can start and stop the toy** — Elise can begin or pause the device herself when you ask (or when she decides to), saying so as she does it, and she always knows whether it's currently running. ([#13](https://github.com/autogoon/autogoon/pull/13))
+
 ## 2026-07-20
 
 - feature: **Companions runs the device** — pick Elise and enter Play, and the device runs her program while you talk to her; a live Sparkline previews what's coming, and on-screen Intensity, Edge and Vacuum controls (plus manual stroke) let you shape it. ([#13](https://github.com/autogoon/autogoon/pull/13))
