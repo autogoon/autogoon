@@ -79,7 +79,7 @@ Two env vars wire the app to OpenRouter (server-side only; see
 
 - `LLM_URL` — `https://openrouter.ai/api/v1`.
 - `OPENROUTER_API_KEY` — read only by the `/api/llm` proxy route, which adds it
-  as a Bearer header. Set it in `.env.local` (gitignored); never commit a real
+  as a Bearer header. Set it in `.env` (gitignored); never commit a real
   key.
 
 There is no `LLM_MODEL` — each companion's `model` field picks the model per

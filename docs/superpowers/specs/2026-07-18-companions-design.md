@@ -228,7 +228,7 @@ global/nav words stay live during a session is a per-slice detail.
 ### Secrets (public repo)
 
 The repository is **public**, so no key is ever committed. `ELEVENLABS_API_KEY`
-and the Ollama host live in **`.env.local`** (gitignored); a secret-free
+and the Ollama host live in **`.env`** (gitignored); a secret-free
 `.env.example` is the committed template. All secret-bearing calls (STT token
 minting, TTS, LLM proxy) run **server-side in Next API routes** — nothing is
 `NEXT_PUBLIC_*`, so no secret reaches the browser bundle.

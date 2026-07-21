@@ -564,7 +564,7 @@ Run: `npm run typecheck && npm run lint` Expected: no output (clean). If
 - [ ] **Step 4: Manual check**
 
 Run `npm run dev`, open http://localhost:8931, go to **Companions**, scroll to
-**LLM lab**. With Ollama running and `.env.local` set:
+**LLM lab**. With Ollama running and `.env` set:
 
 - Type a prompt, click **Send** → tokens stream into the output area.
 - While streaming, click **Stop** → output stops growing within a beat.
@@ -742,7 +742,7 @@ git add -A
 git commit -m "Companions: formatting"
 ```
 
-- [ ] **Step 2: Manual acceptance (needs `.env.local` with `ELEVENLABS_API_KEY`,
+- [ ] **Step 2: Manual acceptance (needs `.env` with `ELEVENLABS_API_KEY`,
       `LLM_URL`, `LLM_MODEL`, and Ollama running the companion card)**
 
 On speakers, no headphones:

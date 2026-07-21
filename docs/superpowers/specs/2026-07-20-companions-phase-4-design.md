@@ -168,7 +168,7 @@ when it lands it will set these knobs from the persona instead of a constant.
 OpenRouter is OpenAI-compatible, so the client SDK and streaming path are
 unchanged. The changes:
 
-**Environment** (`.env.local`, gitignored; `.env.example` updated with
+**Environment** (`.env`, gitignored; `.env.example` updated with
 secret-free placeholders + comments):
 
 - `LLM_URL=https://openrouter.ai/api/v1`
@@ -270,7 +270,7 @@ hardware-driven, so behaviour is verified by driving it):
 
 - **Rotate the OpenRouter key.** It was shared in plaintext during design;
   rotate it on OpenRouter once wiring is verified. It only ever lives in
-  `.env.local`.
+  `.env`.
 - **`:nitro` context spread.** MiniMax M2 is 204,800 tokens nominal, but nitro
   routing may hit a ~196,608 provider, so `contextWindow` records the
   conservative 196,608. Recorded for later pruning (context compaction), not
