@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"*.{ts,js,mjs,json,md}\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\"",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "playwright test"

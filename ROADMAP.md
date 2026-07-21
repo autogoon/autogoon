@@ -53,21 +53,19 @@ ramp (so to the intensity percentage set.)
 
 ### After-play — from the moment you cum
 
-Saying **"cumming"** splices in an after-play behaviour. The first cut is
-built and shipped on Goon — wind-down, torture and the two ruins, drawn at
-random from the ticked options, with torture and the ruins ignoring your
-voice once started — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md). Ideas
-beyond it:
+Saying **"cumming"** splices in an after-play behaviour. The first cut is built
+and shipped on Goon — wind-down, torture and the two ruins, drawn at random from
+the ticked options, with torture and the ruins ignoring your voice once started
+— see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md). Ideas beyond it:
 
-- **A torture period** — the first cut slams to 100% and holds "forever";
-  refine it with a torture duration (fixed, tunable, or randomly drawn), and
-  decide what follows it.
+- **A torture period** — the first cut slams to 100% and holds "forever"; refine
+  it with a torture duration (fixed, tunable, or randomly drawn), and decide
+  what follows it.
 - **Combined outcomes** — e.g. ruin, then torture.
-- **Other algorithms** — the options belong to every algorithm eventually;
-  Goon is just the first.
-- **Configurable eject** — the first cut hard-codes speed 40 with the
-  Stroke + valve open for 15 seconds; both want to be configurable at some
-  point.
+- **Other algorithms** — the options belong to every algorithm eventually; Goon
+  is just the first.
+- **Configurable eject** — the first cut hard-codes speed 40 with the Stroke +
+  valve open for 15 seconds; both want to be configurable at some point.
 - **Configurable wind-down shape** — the current wind-down curve suits its
   author; others may want it longer, shorter, or shaped differently.
 
@@ -79,17 +77,16 @@ New algorithms to look at implementing :
 
 ### Rounds
 
-The only algorithm that continues past the first orgasm. Finish,
-then a brief burst on the over-sensitive glans, ease down through the
-refractory lull, then rebuild for another round — a repeating sawtooth of whole
-sessions rather than a single build. Nothing else in the app touches the
-post-orgasm region.
+The only algorithm that continues past the first orgasm. Finish, then a brief
+burst on the over-sensitive glans, ease down through the refractory lull, then
+rebuild for another round — a repeating sawtooth of whole sessions rather than a
+single build. Nothing else in the app touches the post-orgasm region.
 
 - The overstim between rounds is basically the after-play **Torture** idea used
   as a bridge rather than a dead-end — worth designing the two together.
-- **Refractory length varies a lot** (man to man, and with age), so a fixed
-  lull won't fit everyone. Probably let the man signal he's ready (voice)
-  rather than time it — same conclusion as the stop-start training.
+- **Refractory length varies a lot** (man to man, and with age), so a fixed lull
+  won't fit everyone. Probably let the man signal he's ready (voice) rather than
+  time it — same conclusion as the stop-start training.
 - **How many rounds, and does each change?** Fixed count vs. keep going until
   Stop; identical rebuild vs. escalating or easing each time.
 - **The second-orgasm physiology isn't firm** — whether the rebuild is quicker,
@@ -111,23 +108,23 @@ short of the real shape:
 
 - **The swells can't stay near the top** — Groove's floor is fixed at 60 and
   every knob only deepens dips from there. A true balloon wants ~100 ↔ 85;
-  Groove's mildest swell drops 40% of the way to a standstill, so each dip
-  reads as a mini-retreat and it drifts toward shallow edging.
+  Groove's mildest swell drops 40% of the way to a standstill, so each dip reads
+  as a mini-retreat and it drifts toward shallow edging.
 - **The swells can't be slowed** — timing variability only shortens legs from
-  the 10 s baseline, and Groove has no playback-rate transport, so ~20 s is
-  the longest swell period.
+  the 10 s baseline, and Groove has no playback-rate transport, so ~20 s is the
+  longest swell period.
 
 So the build would be a **swell-depth control** (a floor that can rise toward
-the top) plus ideally a swell-length one — and a floor knob on Groove would
-more or less _be_ Wave, so this may be a two-knob Groove extension rather
-than a new engine.
+the top) plus ideally a swell-length one — and a floor knob on Groove would more
+or less _be_ Wave, so this may be a two-knob Groove extension rather than a new
+engine.
 
 ### Lasting-longer training (stop-start/Semans)
 
 Stop-start (the Semans technique) is a recognised behavioural treatment for
-premature ejaculation: build up to just before the point of no return, stop
-dead until the urge fades, then start again, repeating several times before
-finishing (one trial ran five stops, then finished on the sixth [2])
+premature ejaculation: build up to just before the point of no return, stop dead
+until the urge fades, then start again, repeating several times before finishing
+(one trial ran five stops, then finished on the sixth [2])
 
 Groove with variability off, plus the Stop/Start voice commands, already does
 the mechanical part. The open question is whether we can add anything that
@@ -142,26 +139,26 @@ What the research says:
 - Adding **pelvic-floor control** (Kegels, plus slow breathing and staying
   relaxed during stimulation) roughly doubled that, to ~9 minutes in the same
   trial [2]. Worth teaching alongside.
-- A common way to teach the awareness is a **0–10 arousal scale**: learn to
-  read where you are, spend the session in a middle band (often taught as
-  roughly 4–7), and treat the top end (~8–9) as the signal to stop before the
-  point of no return at 10 [4]. The exact numbers are a teaching heuristic, not
-  a hard clinical threshold — the point is building the self-reading, which is
-  the same skill the stop itself trains.
+- A common way to teach the awareness is a **0–10 arousal scale**: learn to read
+  where you are, spend the session in a middle band (often taught as roughly
+  4–7), and treat the top end (~8–9) as the signal to stop before the point of
+  no return at 10 [4]. The exact numbers are a teaching heuristic, not a hard
+  clinical threshold — the point is building the self-reading, which is the same
+  skill the stop itself trains.
 - Evidence overall is limited and low quality (small studies, short follow-up),
   and SSRIs generally beat behavioural therapy head-to-head [1]. Pitch it as
   practice that helps some men, not a cure.
-- Device-assisted, self-controlled start-stop has direct evidence, and it
-  leans positive. A small wait-list RCT with a handheld vibrating device (n=11)
-  found improvements that held at 6 months, though the sample was too small to
-  beat control significantly [5]. A larger RCT (n=50) from the same group had
-  men hold a vibrator and move it away themselves as they neared the edge, and
-  found large effect sizes persisting to 6 months [6]. In both, the man
-  controlled the stop — the device never stopped for him. That's the design to
-  follow: the device supplies the stimulation, the man watches his arousal and
-  calls the stop. (Caveats: both used a vibrator on the glans, not a stroker
-  like the Vacuglide; and the larger trial measured symptoms by questionnaire,
-  not stopwatch timing.)
+- Device-assisted, self-controlled start-stop has direct evidence, and it leans
+  positive. A small wait-list RCT with a handheld vibrating device (n=11) found
+  improvements that held at 6 months, though the sample was too small to beat
+  control significantly [5]. A larger RCT (n=50) from the same group had men
+  hold a vibrator and move it away themselves as they neared the edge, and found
+  large effect sizes persisting to 6 months [6]. In both, the man controlled the
+  stop — the device never stopped for him. That's the design to follow: the
+  device supplies the stimulation, the man watches his arousal and calls the
+  stop. (Caveats: both used a vibrator on the glans, not a stroker like the
+  Vacuglide; and the larger trial measured symptoms by questionnaire, not
+  stopwatch timing.)
 - **Anxiety** is central: it drives PE partly by pulling attention off bodily
   sensation [3]. That's the case against gamifying — a score or a distraction
   has him focused on the wrong thing. Confidence helps, but it comes from
@@ -176,16 +173,16 @@ awareness — not tracking, scoring, or automating the stop.
 ##### Consistent, dial-able stimulus
 
 - **Not a headline feature** — real sex isn't a steady input, and a man can
-  become accustomed to a specific stimulus, so it cuts both ways. Inherent in the
-  device rather than something to build toward.
+  become accustomed to a specific stimulus, so it cuts both ways. Inherent in
+  the device rather than something to build toward.
 - **One useful effect** — because the stimulus is repeatable, a man can notice
   for himself that he's lasting longer than he was.
 
 ##### Shaped stop and restart
 
 - **Smooth Stop / gentle Start** — the app controls the motor, so Stop can wind
-  down and Start can ramp back gently rather than all-or-nothing, cutting the risk
-  of the restart itself tipping him over.
+  down and Start can ramp back gently rather than all-or-nothing, cutting the
+  risk of the restart itself tipping him over.
 - **Stop is an emergency brake, not the main control** — the man should ease off
   as arousal climbs and only hit Stop when he has to, not flip between full and
   zero.
@@ -194,19 +191,19 @@ awareness — not tracking, scoring, or automating the stop.
 
 ##### Structured multi-week program
 
-- **Calendar view** — paces practice over weeks; the evidence is built on regular
-  repetition.
+- **Calendar view** — paces practice over weeks; the evidence is built on
+  regular repetition.
 - **Schedule has evidence behind it** — trials used once daily for two weeks
-  (~10–15 min/session, five stops then finish on the sixth) [2], or three times a
-  week for six weeks [6]. Base the program length/cadence on these rather than
+  (~10–15 min/session, five stops then finish on the sixth) [2], or three times
+  a week for six weeks [6]. Base the program length/cadence on these rather than
   picking a number.
-- **How to handle performance data?** — some men want it, others would be put off
-  or made anxious by it.
+- **How to handle performance data?** — some men want it, others would be put
+  off or made anxious by it.
   - Hide results during the program, and/or
   - Ask for short subjective feedback after each session rather than showing
     numbers.
-- **End-of-program review** — reveal the data and the man's own feedback
-  from along the way, so progress surfaces as reassurance at the end rather than a
+- **End-of-program review** — reveal the data and the man's own feedback from
+  along the way, so progress surfaces as reassurance at the end rather than a
   running score he watches each day.
 
 ##### Pelvic-floor and breathing module
@@ -235,7 +232,8 @@ awareness — not tracking, scoring, or automating the stop.
 3. ISSM, "How Can Anxiety Influence Premature Ejaculation?"
    https://www.issm.info/sexual-health-qa/how-can-anxiety-influence-premature-ejaculation
 4. "The Sexual Arousal Scale & How to Balance Your Sexual Focus", End the
-   Problem. https://www.endtheproblem.com/the-sexual-arousal-scale-how-to-balance-your-sexual-focus/
+   Problem.
+   https://www.endtheproblem.com/the-sexual-arousal-scale-how-to-balance-your-sexual-focus/
 5. Jern P., "Evaluation of a behavioral treatment intervention for premature
    ejaculation using a handheld stimulating device", Journal of Sex & Marital
    Therapy, 40(5):358–366 (2014). https://pubmed.ncbi.nlm.nih.gov/24405007/
