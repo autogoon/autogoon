@@ -146,9 +146,11 @@ export function HomePanel({
             words it recognises.
           </p>
           <p>
-            <span className="text-foreground font-medium">Privacy.</span> Speech
-            recognition runs entirely on your machine; only the device control
-            traffic leaves it.
+            <span className="text-foreground font-medium">Privacy.</span> For
+            the built-in algorithms, speech recognition runs entirely on your
+            machine — only the device control traffic leaves it. Companions is
+            the exception: it sends your speech and chat to ElevenLabs and
+            OpenRouter (see the note on its own screen).
           </p>
           <p>
             <span className="text-foreground font-medium">On mobile,</span> keep
