@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 
-type Chunk = { choices: { delta: { content?: string } }[] };
+type ReasoningDelta = { index: number; type?: string; text?: string };
+type Chunk = {
+  choices: {
+    delta: { content?: string; reasoning_details?: ReasoningDelta[] };
+  }[];
+};
 const createMock =
   jest.fn<(...args: unknown[]) => Promise<AsyncIterable<Chunk>>>();
 
@@ -34,6 +39,18 @@ async function collect(it: AsyncIterable<string>): Promise<string[]> {
   return out;
 }
 
+// A fake stream whose chunks carry only reasoning_details deltas (and one final
+// content chunk), for exercising the reasoning capture path.
+function fakeReasoningStream(
+  chunks: Chunk["choices"][0]["delta"][],
+): AsyncIterable<Chunk> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      for (const delta of chunks) yield { choices: [{ delta }] };
+    },
+  };
+}
+
 describe("createLlmClient", () => {
   beforeEach(() => {
     createMock.mockReset();
@@ -65,5 +82,75 @@ describe("createLlmClient", () => {
     expect(params.stream).toBe(true);
     expect(params.messages).toEqual([{ role: "user", content: "hi" }]);
     expect(options.signal).toBe(signal);
+  });
+
+  it("fires onReasoning once with reasoning_details merged by index", async () => {
+    createMock.mockResolvedValue(
+      fakeReasoningStream([
+        {
+          reasoning_details: [
+            { index: 0, type: "reasoning.text", text: "Let me" },
+          ],
+        },
+        { reasoning_details: [{ index: 0, text: " think" }] },
+        { content: "Answer" },
+      ]),
+    );
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const seen: unknown[][] = [];
+    const tokens = await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        onReasoning: (d) => seen.push(d),
+      }),
+    );
+    expect(tokens).toEqual(["Answer"]);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual([
+      { index: 0, type: "reasoning.text", text: "Let me think" },
+    ]);
+  });
+
+  it("never fires onReasoning for a content-only stream", async () => {
+    createMock.mockResolvedValue(fakeStream(["Hi", " there"]));
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    const onReasoning = jest.fn();
+    await collect(
+      client.stream([{ role: "user", content: "hi" }], {
+        signal: new AbortController().signal,
+        onReasoning,
+      }),
+    );
+    expect(onReasoning).not.toHaveBeenCalled();
+  });
+
+  it("maps a message's reasoningDetails to reasoning_details on the wire", async () => {
+    createMock.mockResolvedValue(fakeStream(["ok"]));
+    const { createLlmClient } = await import("./client");
+    const client = createLlmClient("test-model");
+    await collect(
+      client.stream(
+        [
+          { role: "user", content: "hi" },
+          {
+            role: "assistant",
+            content: "prev",
+            reasoningDetails: [{ index: 0, text: "x" }],
+          },
+        ],
+        { signal: new AbortController().signal },
+      ),
+    );
+    const [params] = createMock.mock.calls[0] as [{ messages: unknown[] }];
+    expect(params.messages).toEqual([
+      { role: "user", content: "hi" },
+      {
+        role: "assistant",
+        content: "prev",
+        reasoning_details: [{ index: 0, text: "x" }],
+      },
+    ]);
   });
 });
