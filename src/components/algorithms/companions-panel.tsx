@@ -4,9 +4,9 @@
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
 // shared Player, so the device runs Elise's program while she talks. One
-// companion, a random program on fixed default knobs, on-screen program-shape
-// knobs, and buttons-only device controls (no vosk words — open dictation to
-// Elise would otherwise transcribe them).
+// companion, a random program on fixed default knobs, on-screen intensity/
+// variety controls, and buttons-only device controls (no vosk words — open
+// dictation to Elise would otherwise transcribe them).
 //
 // Hot-path note: useVoiceSession returns one `status` object that churns ~50x/s
 // while the mic is on; keep the render cheap. The event log is split into a
@@ -29,6 +29,7 @@ import { LogCard, type LogEntry } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
 import { Segmented } from "@/components/segmented";
 import { SessionControls } from "@/components/session-controls";
+import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
 import type { PlayerView } from "@/hooks/use-player";
@@ -39,17 +40,15 @@ import { ELISE } from "@/lib/companions/companions";
 import type { CompanionTool } from "@/lib/companions/tools";
 import {
   CompanionEngine,
-  type IntensityLevel,
-  type EdgeControlLevel,
-  type SuctionControlLevel,
+  type VariabilityLevel,
 } from "@/lib/algorithms/companion-engine";
 
-// Fixed default knobs — the program is random within this baseline.
-// Companions start gentle: a warmup-intensity, gently-edging program with no
-// vacuum maintenance. Elise turns it up from there via her intensity/edge tools.
-const DEFAULT_INTENSITY: IntensityLevel = "warmup";
-const DEFAULT_EDGE: EdgeControlLevel = "gentle";
-const DEFAULT_SUCTION: SuctionControlLevel = "off";
+// Fixed default knobs — the program is random within this baseline. Companions
+// start gentle: a low-intensity, lightly-varying program. Elise turns it up from
+// there via her intensity/variety tools. Speed is applied live; variety reshapes
+// the dip pattern.
+const DEFAULT_INTENSITY = 20;
+const DEFAULT_VARIETY: VariabilityLevel = "low";
 
 // The session's fast-moving loudness bar — repaints every frame; kept small.
 function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
@@ -153,8 +152,8 @@ export function CompanionsPanel({
   const engineRef = useRef<CompanionEngine | null>(null);
   engineRef.current ??= new CompanionEngine(
     DEFAULT_INTENSITY,
-    DEFAULT_EDGE,
-    DEFAULT_SUCTION,
+    DEFAULT_VARIETY,
+    DEFAULT_VARIETY,
   );
   const engine = engineRef.current;
 
@@ -181,35 +180,45 @@ export function CompanionsPanel({
     );
   }, []);
 
-  // Program-shaping knobs (categorical), owned here. Declared above the tools /
-  // voice session because the intensity/edge tools below drive changeIntensity /
-  // changeEdge — one path for both her tool calls and the on-screen buttons.
-  const [intensity, setIntensity] = useState<IntensityLevel>(DEFAULT_INTENSITY);
-  const [edge, setEdge] = useState<EdgeControlLevel>(DEFAULT_EDGE);
-  const [suction, setSuction] = useState<SuctionControlLevel>(DEFAULT_SUCTION);
+  // Program-shaping knobs, owned here. Declared above the tools / voice session
+  // because the intensity/variety tools below drive changeIntensity / changeVariety
+  // — one path for both her tool calls and the on-screen controls.
+  const [intensity, setIntensity] = useState<number>(DEFAULT_INTENSITY);
+  const [variety, setVariety] = useState<VariabilityLevel>(DEFAULT_VARIETY);
 
   const changeIntensity = useCallback(
-    (level: IntensityLevel) => {
-      setIntensity(level);
-      engine.setIntensity(level);
-      device.invalidateFuture();
-      vacuglide.log(`intensity → ${level}`);
+    (percent: number) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+      setIntensity(clamped);
+      engine.setSpeedPercent(clamped);
+      // Magnitude knob: speed is applied in scale() every tick, so a live
+      // refresh() re-sends at the new scale without regenerating the script.
+      device.refresh();
+      vacuglide.log(`intensity → ${clamped}%`);
     },
     [device, engine, vacuglide],
   );
-  const changeEdge = useCallback(
-    (level: EdgeControlLevel) => {
-      setEdge(level);
-      engine.setEdgeControl(level);
+  const changeVariety = useCallback(
+    (level: VariabilityLevel) => {
+      setVariety(level);
+      // One companion knob over Groove's two shape knobs: how much the pace
+      // varies and how deep it dips. Both reshape the generated pattern, so drop
+      // the not-yet-played future and regenerate it.
+      engine.setVariability(level);
+      engine.setDipVariability(level);
       device.invalidateFuture();
-      vacuglide.log(`edge control → ${level}`);
+      vacuglide.log(`variety → ${level}`);
     },
     [device, engine, vacuglide],
   );
 
   // The tools Elise can call, and the live device-state line injected each turn.
-  const tools = useMemo<CompanionTool[]>(
-    () => [
+  // Return type annotated on the callback (not via useMemo's generic) so each
+  // array element is checked against CompanionTool individually — otherwise TS's
+  // array-literal inference merges the differently-shaped `intensity`/`variety`
+  // `parameters.properties` into one shape before the check, and fails.
+  const tools = useMemo(
+    (): CompanionTool[] => [
       {
         name: "start",
         description:
@@ -231,14 +240,40 @@ export function CompanionsPanel({
       {
         name: "intensity",
         description:
-          "Set how hard the toy drives. Levels, gentlest to hardest: warmup, low, medium, high. Call this to turn her up or ease her off; pass the level you're going to.",
+          "Set how hard and fast the toy drives him, as a percentage from 0 (off) to 100 (relentless). Call this to make it more or less intense; pass the percent you're going to. Read the current level from the toy status first, then move up or down from there. Narrate it however you like — 'faster', 'more intense' — but the tool is what actually changes it.",
+        parameters: {
+          type: "object",
+          properties: {
+            percent: {
+              type: "integer",
+              minimum: 0,
+              maximum: 100,
+              description: "0 = off, 100 = hardest/fastest",
+            },
+          },
+          required: ["percent"],
+        },
+        run: (args) => {
+          const percent = args.percent;
+          if (typeof percent !== "number" || Number.isNaN(percent)) {
+            return `invalid intensity: ${String(percent)}`;
+          }
+          changeIntensity(percent);
+          return `intensity → ${Math.max(0, Math.min(100, Math.round(percent)))}%`;
+        },
+      },
+      {
+        name: "variety",
+        description:
+          "Set how much the toy varies and teases — how much it mixes up the pace and pulls back into long slow dips before climbing again, versus a steadier drive. Levels: off, low, medium, high. Call this to make it more teasing and restless, or calmer and steadier.",
         parameters: {
           type: "object",
           properties: {
             level: {
               type: "string",
-              enum: ["warmup", "low", "medium", "high"],
-              description: "warmup = gentlest, high = hardest",
+              enum: ["off", "low", "medium", "high"],
+              description:
+                "off = steady drive, high = lots of teasing variation",
             },
           },
           required: ["level"],
@@ -246,56 +281,28 @@ export function CompanionsPanel({
         run: (args) => {
           const level = args.level;
           if (
-            level !== "warmup" &&
+            level !== "off" &&
             level !== "low" &&
             level !== "medium" &&
             level !== "high"
           ) {
-            return `invalid intensity: ${String(level)}`;
+            return `invalid variety: ${String(level)}`;
           }
-          changeIntensity(level);
-          return `intensity → ${level}`;
-        },
-      },
-      {
-        name: "edge_control",
-        description:
-          "Set how much the toy edges and teases him — drawing it out rather than pushing straight through. Levels: gentle, moderate, intense. Call this to change how much you tease.",
-        parameters: {
-          type: "object",
-          properties: {
-            level: {
-              type: "string",
-              enum: ["gentle", "moderate", "intense"],
-              description: "gentle = little teasing, intense = lots of edging",
-            },
-          },
-          required: ["level"],
-        },
-        run: (args) => {
-          const level = args.level;
-          if (
-            level !== "gentle" &&
-            level !== "moderate" &&
-            level !== "intense"
-          ) {
-            return `invalid edge level: ${String(level)}`;
-          }
-          changeEdge(level);
-          return `edge → ${level}`;
+          changeVariety(level);
+          return `variety → ${level}`;
         },
       },
     ],
-    [startProgram, stopProgram, changeIntensity, changeEdge],
+    [startProgram, stopProgram, changeIntensity, changeVariety],
   );
 
   // The toy's state in plain terms — connection, whether it's actually running
-  // (running implies connected), and the current intensity/edge levels. This is
-  // the ground-truth line Elise reads each turn; the level is here (not just in
-  // her tool history) so she stays in sync when the knobs are changed manually.
-  // No "program" (in-app jargon).
+  // (running implies connected), and the current intensity/variety levels. This
+  // is the ground-truth line Elise reads each turn; the level is here (not just
+  // in her tool history) so she stays in sync when the knobs are changed
+  // manually. No "program" (in-app jargon).
   const getDeviceState = useCallback((): string => {
-    const levels = `It's set to ${intensity} intensity with ${edge} edging.`;
+    const levels = `It's set to ${intensity}% intensity with ${variety} variety.`;
     if (!vacuglide.connected) {
       return `The toy is not connected and is not running. ${levels}`;
     }
@@ -310,7 +317,7 @@ export function CompanionsPanel({
     player.state,
     engine,
     intensity,
-    edge,
+    variety,
   ]);
 
   const {
@@ -357,11 +364,10 @@ export function CompanionsPanel({
 
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
-    engine.setIntensity(DEFAULT_INTENSITY);
-    setEdge(DEFAULT_EDGE);
-    engine.setEdgeControl(DEFAULT_EDGE);
-    setSuction(DEFAULT_SUCTION);
-    engine.setSuctionControl(DEFAULT_SUCTION);
+    engine.setSpeedPercent(DEFAULT_INTENSITY);
+    setVariety(DEFAULT_VARIETY);
+    engine.setVariability(DEFAULT_VARIETY);
+    engine.setDipVariability(DEFAULT_VARIETY);
     device.arm(engine);
   }, [device, engine]);
 
@@ -369,16 +375,6 @@ export function CompanionsPanel({
     device.arm(engine);
     onEnterPlay();
   }, [device, engine, onEnterPlay]);
-
-  const changeSuction = useCallback(
-    (level: SuctionControlLevel) => {
-      setSuction(level);
-      engine.setSuctionControl(level);
-      device.invalidateValves();
-      vacuglide.log(`vacuum maintenance → ${level}`);
-    },
-    [device, engine, vacuglide],
-  );
 
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
@@ -576,44 +572,32 @@ export function CompanionsPanel({
                 voice={false}
               />
 
-              {/* On-screen program-shape knobs. */}
+              {/* On-screen program-shape controls. */}
               <Card title="Intensity">
+                <div className="text-muted-foreground flex justify-between text-sm">
+                  <span>Ceiling</span>
+                  <span className="tabular-nums">{intensity}%</span>
+                </div>
+                <Slider
+                  value={intensity}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onChange={changeIntensity}
+                />
+              </Card>
+
+              <Card title="Variety">
                 <Segmented
                   options={[
-                    { value: "warmup", label: "Warmup" },
+                    { value: "off", label: "Off" },
                     { value: "low", label: "Low" },
                     { value: "medium", label: "Medium" },
                     { value: "high", label: "High" },
                   ]}
-                  value={intensity}
-                  onChange={changeIntensity}
-                  activeClass="bg-blue-600 text-white"
-                />
-              </Card>
-
-              <Card title="Edge Control">
-                <Segmented
-                  options={[
-                    { value: "gentle", label: "Gentle" },
-                    { value: "moderate", label: "Moderate" },
-                    { value: "intense", label: "Intense" },
-                  ]}
-                  value={edge}
-                  onChange={changeEdge}
-                  activeClass="bg-orange-500 text-white"
-                />
-              </Card>
-
-              <Card title="Vacuum Maintenance">
-                <Segmented
-                  options={[
-                    { value: "off", label: "Off" },
-                    { value: "little", label: "Light" },
-                    { value: "more", label: "Heavy" },
-                  ]}
-                  value={suction}
-                  onChange={changeSuction}
-                  activeClass="bg-cyan-600 text-white"
+                  value={variety}
+                  onChange={changeVariety}
+                  activeClass="bg-purple-600 text-white"
                 />
               </Card>
             </div>
