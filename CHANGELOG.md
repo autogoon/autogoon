@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-22
+
+- enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#N](https://github.com/autogoon/autogoon/pull/N))
+
 ## 2026-07-21
 
 - feature: **Companions — talk to an AI companion** — A new hands-free algorithm: pick Elise and talk to her out loud. She transcribes what you say, replies in her own streamed voice, remembers the conversation across the session (and reloads), and can start and stop the toy herself as things unfold — speak over her and she stops mid-sentence to listen. For now Companions is unlocked with an access ID you enter under Settings. ([#13](https://github.com/autogoon/autogoon/pull/13))

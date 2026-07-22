@@ -8,12 +8,13 @@ export type CompanionTool = {
   name: string; // the model-facing tool name, e.g. "start" | "stop" | "intensity"
   description: string; // shown to the model so it knows when to call it
   // JSON-Schema for the tool's arguments. Omit for a zero-argument tool
-  // (start/stop); supply a string-enum property (e.g. `level`) for a tool the
-  // model must call WITH an argument (intensity/edge).
+  // (start/stop); supply a property schema — a string-enum (`variety`'s
+  // `level`) or a bounded integer (`intensity`'s `percent`) — for a tool the
+  // model must call WITH an argument.
   parameters?: ToolParameterSchema;
   // Executes the action and returns a short result string (logged + fed back to
   // the model). `args` is the parsed tool-call arguments — `{}` for a zero-arg
-  // tool, or e.g. `{ level: "warmup" }` for a parameterized one.
+  // tool, or e.g. `{ percent: 40 }` for a parameterized one.
   run: (args: Record<string, unknown>) => string;
 };
 

@@ -35,9 +35,8 @@ threatens to stutter the hardware.
 
 **We flip it.** The program is generated up front (Groove-style, deterministic,
 smooth) and drives the device on its own. The LLM is a **passenger** that reads
-the already-known current and upcoming state of the program and _talks about
-it_ — on its own cadence (ambient chat, below), not pinned to a per-event lead
-time.
+the already-known current and upcoming state of the program and _talks about it_
+— on its own cadence (ambient chat, below), not pinned to a per-event lead time.
 
 Why this is the whole game:
 
@@ -104,44 +103,42 @@ generation**: a repeating cycle of `PEAK → floor → PEAK`, with a live
 and how long each leg takes. It owns its own generation code rather than
 importing Groove's, consistent with the project's convention that engines are
 self-contained (Goon duplicates Groove's generation the same way). One
-companion-only addition on top: a one-shot stroke-minus tease held for the
-first few seconds of a session, ported from Goon's start-of-run tease.
+companion-only addition on top: a one-shot stroke-minus tease held for the first
+few seconds of a session, ported from Goon's start-of-run tease.
 
-Groove is the base because it's the pattern Goon already auto-drives and it
-has no fixed template shape to fight — a continuous dip cycle that a live knob
-can reshape stroke by stroke, exactly what a persona-driven engine needs; there
-is no discrete "mini-program" boundary at all. The persona shaping the program
+Groove is the base because it's the pattern Goon already auto-drives and it has
+no fixed template shape to fight — a continuous dip cycle that a live knob can
+reshape stroke by stroke, exactly what a persona-driven engine needs; there is
+no discrete "mini-program" boundary at all. The persona shaping the program
 lands in **Phase 11**: the engine reads her `intensity` and `variety` traits
 (and `dominance` decides when _she_ changes things) and maps them onto
 **Groove's own knobs** — `intensity` to the speed-percent magnitude, `variety`
 to the timing/dip-variability knobs. Until then — Phase 3 through Phase 10 —
-generation runs on a fixed default knob config, so **the program is truly
-random within its style, not yet persona-shaped**.
+generation runs on a fixed default knob config, so **the program is truly random
+within its style, not yet persona-shaped**.
 
 ### Ambient chat
 
 Narration and "ambient" filler were only ever separated by their trigger — a
-template boundary vs. silence. Groove has no boundaries, so there's no
-boundary event left to hang narration on: the two collapse into **one**
-proactive speech source, **ambient chat**.
+template boundary vs. silence. Groove has no boundaries, so there's no boundary
+event left to hang narration on: the two collapse into **one** proactive speech
+source, **ambient chat**.
 
 Ambient chat is a self-poke on a **time cadence set by the persona's
 `chattiness`** — every _x_ ± _y_ seconds; the exact timing shape is a Phase 7
-detail. Chattiness **is** the cadence, not a per-tick gate: every interval
-fires a poke, and a chattier persona simply has a shorter interval between
-pokes.
+detail. Chattiness **is** the cadence, not a per-tick gate: every interval fires
+a poke, and a chattier persona simply has a shorter interval between pokes.
 
-A cue carries **no payload** — no template label, no semantic hint. It's a
-bare "take a turn now" trigger. What she actually says comes from the device
-state already folded into her system message every turn, plus the
-`player.upcoming` speed lookahead (the same lookahead the on-screen Sparkline
-already renders) — she reads the live/upcoming program and decides what's
-worth saying about it.
+A cue carries **no payload** — no template label, no semantic hint. It's a bare
+"take a turn now" trigger. What she actually says comes from the device state
+already folded into her system message every turn, plus the `player.upcoming`
+speed lookahead (the same lookahead the on-screen Sparkline already renders) —
+she reads the live/upcoming program and decides what's worth saying about it.
 
 The cue generation **stays on `CompanionEngine`** — it was never part of the
 `AlgorithmEngine` contract, so nothing "moves out of the engine"; only its
-timing basis (a chattiness cadence, not a boundary) and its payload (none, not
-a label) change. It's built in **Phase 7**, once a `chattiness` knob and an
+timing basis (a chattiness cadence, not a boundary) and its payload (none, not a
+label) change. It's built in **Phase 7**, once a `chattiness` knob and an
 orchestrator consumer exist to fire on it. The old boundary-based
 `generateNarrationCues` is removed now — Groove has no template boundaries for
 it to fire on.
@@ -157,16 +154,16 @@ current/upcoming device state), fed by two triggers:
 
 1. **User speech** — reactive; **barge-in**, highest priority (cuts them off,
    they respond).
-2. **Ambient chat** — proactive, paced by `chattiness`; preemptible by
-   barge-in at any time. A chatty persona fills gaps more often; a quiet one
-   waits longer between pokes.
+2. **Ambient chat** — proactive, paced by `chattiness`; preemptible by barge-in
+   at any time. A chatty persona fills gaps more often; a quiet one waits longer
+   between pokes.
 
 ### Control
 
 You can ask for changes by voice; **the companion decides whether to honor
 them** — a disposition written into her `systemPrompt`, not a code gate. If she
-does act, it goes through **tools**, as shipped: `start`, `stop`, `intensity`
-(a live percent, applied every tick) and `variety` (a level that reshapes the
+does act, it goes through **tools**, as shipped: `start`, `stop`, `intensity` (a
+live percent, applied every tick) and `variety` (a level that reshapes the
 generated pattern). Manual stroke (`valvePlus`/`valveMinus`) is an **on-screen
 control only** — it is not offered to the LLM as a tool. She is not authoring
 raw device events; she is a conversational hand on the existing knobs.
@@ -223,9 +220,9 @@ it sidesteps the echo problem for free.
 Claude and OpenAI both restrict explicit adult content (OpenAI's "adult mode"
 was floated in Oct 2025 and **paused indefinitely as of March 2026**), so
 neither frontier API is viable here. We use **OpenRouter**, an OpenAI-compatible
-hosted proxy that fronts a wide range of models — no self-hosting, no LAN
-Ollama box. OpenRouter itself doesn't restrict content; that's a property of
-whichever model a companion picks.
+hosted proxy that fronts a wide range of models — no self-hosting, no LAN Ollama
+box. OpenRouter itself doesn't restrict content; that's a property of whichever
+model a companion picks.
 
 - **Elise's model: `minimax/minimax-m3`** — an OpenRouter model slug, permissive
   enough for her persona's roleplay and (per COMPANIONS.md) markedly more
@@ -238,11 +235,10 @@ whichever model a companion picks.
 - The app targets an **`LLMClient` over the OpenAI chat-completions shape**, so
   the backend is swappable config behind `LLM_URL` (OpenRouter's endpoint).
   There is no `LLM_MODEL` — model selection is per-companion, not global.
-- Calls go through a **Next API route** (`/api/llm`) that forwards to
-  `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header —
-  same-origin for the browser (no CORS juggling), streaming passes straight
-  through, and the key never reaches the client. Streaming is abortable (close
-  the fetch).
+- Calls go through a **Next API route** (`/api/llm`) that forwards to `LLM_URL`
+  and injects `OPENROUTER_API_KEY` server-side as a Bearer header — same-origin
+  for the browser (no CORS juggling), streaming passes straight through, and the
+  key never reaches the client. Streaming is abortable (close the fetch).
 
 ### Safety / KWS
 
@@ -300,11 +296,11 @@ overlooked.
 - **Autopilot's template blocks as the engine base, with narration anchored to
   template boundaries.** The original design; disliked in hardware testing (the
   Autopilot pattern itself, not the narration idea) and replaced with a port of
-  **Groove's** dip generation — the manual pattern Goon already auto-drives,
-  and one with no fixed template shape to fight a live knob. Losing the
-  boundary took the boundary-anchored narration cue with it; it was replaced by
-  a single **ambient-chat** cue paced by the persona's `chattiness`, not by
-  where a template happens to end.
+  **Groove's** dip generation — the manual pattern Goon already auto-drives, and
+  one with no fixed template shape to fight a live knob. Losing the boundary
+  took the boundary-anchored narration cue with it; it was replaced by a single
+  **ambient-chat** cue paced by the persona's `chattiness`, not by where a
+  template happens to end.
 
 ## Build order — twelve phases
 
@@ -316,10 +312,10 @@ because it is the **riskiest and most novel** part (echo-resistant barge-in on
 speakers, no headphones); proving it de-risks everything else. From Phase 4 on
 the order is **dependency-forced, not risk-first**: the action mechanism
 (Phase 6) needs Phase 4's armed Player and Phase 5's persisted conversation
-thread, and it comes _before_ ambient chat (Phase 7) — getting the companion
-to **start the toy** is the first move of a session, and only a running,
-companion-driven program gives ambient chat's pokes something to describe.
-Each phase gets its own spec/plan when we reach it; only the map is fixed here.
+thread, and it comes _before_ ambient chat (Phase 7) — getting the companion to
+**start the toy** is the first move of a session, and only a running,
+companion-driven program gives ambient chat's pokes something to describe. Each
+phase gets its own spec/plan when we reach it; only the map is fixed here.
 
 1. **Voice I/O foundation + algorithm shell.** Explicit AEC on the mic;
    ElevenLabs realtime STT in; ElevenLabs streaming TTS out (SDK server-side);
@@ -338,11 +334,10 @@ Each phase gets its own spec/plan when we reach it; only the map is fixed here.
 3. **CompanionEngine (as built).** A self-contained port of Groove's dip
    generation (`PEAK → floor → PEAK`) with a speed-percent magnitude knob and
    timing/dip-variability shape knobs, plus a one-shot start-of-session
-   stroke-minus tease. No narration/ambient-chat overlay yet — the cue
-   mechanism needs a `chattiness` knob and an orchestrator consumer, both of
-   which land in Phase 7. Plain port — the persona → program mapping
-   (`traits`) deferred to Phase 11. _Unit-testable_ like the existing engine
-   tests, no device/LLM.
+   stroke-minus tease. No narration/ambient-chat overlay yet — the cue mechanism
+   needs a `chattiness` knob and an orchestrator consumer, both of which land in
+   Phase 7. Plain port — the persona → program mapping (`traits`) deferred to
+   Phase 11. _Unit-testable_ like the existing engine tests, no device/LLM.
 
 4. **Device integration + OpenRouter (as built).** The panel arms the one Player
    with a `CompanionEngine`, so picking Elise and entering
@@ -384,40 +379,39 @@ Each phase gets its own spec/plan when we reach it; only the map is fixed here.
    **tools** to drive the device (`start`, `stop`, `intensity`, `variety`) and
    executes them when she calls them; `start` becomes the companion's move.
    **Getting the companion to start the toy is the first step** of a session,
-   which is why the action mechanism lands before the ambient chat that rides
-   on the running program. Whether she acts on your request or
-   **declines** is a disposition written into her `systemPrompt` — the code
-   exposes and runs the tools; her personality decides use. The first slice
-   wired the two zero-argument actions — **`start` and `stop`** — end to end;
-   `intensity` (a live percent) and `variety` (a level that reshapes the
-   generated pattern) followed on the same mechanism. **Resolved (the open
-   question was native tool-calls vs. markers):** she expresses actions through
-   **native tool-calls** (the OpenAI-compatible `tools` field), not markers
-   parsed from her speech. Two findings from bring-up proved load-bearing and
-   are now part of the design: (a) the assistant's `tool_calls` and their
-   results must be **persisted to the thread and replayed** as a proper agentic
-   message sequence — a companion that only ever sees itself _talking_ (tool
-   calls stripped from history) drifts back to narrating "_starting_" instead
-   of calling; replaying its own prior calls kept it reliably calling (0/6 →
-   6/6 in bring-up testing); and (b) after a call runs, its result is fed back
-   for a **second round-trip** so she reacts in words to what actually
-   happened. The live toy state (connection + whether it's running, plus its
-   current intensity/variety) is folded into her system message every turn as
-   ambient context — there is **no `status` tool**. Manual stroke
-   (`valvePlus`/`valveMinus`) shipped as an **on-screen control only**, never
-   offered to the LLM as a tool. _Ships:_ ask her to start / stop / get more
-   intense / mix it up more — she decides in character and the device follows,
-   or she refuses.
+   which is why the action mechanism lands before the ambient chat that rides on
+   the running program. Whether she acts on your request or **declines** is a
+   disposition written into her `systemPrompt` — the code exposes and runs the
+   tools; her personality decides use. The first slice wired the two
+   zero-argument actions — **`start` and `stop`** — end to end; `intensity` (a
+   live percent) and `variety` (a level that reshapes the generated pattern)
+   followed on the same mechanism. **Resolved (the open question was native
+   tool-calls vs. markers):** she expresses actions through **native
+   tool-calls** (the OpenAI-compatible `tools` field), not markers parsed from
+   her speech. Two findings from bring-up proved load-bearing and are now part
+   of the design: (a) the assistant's `tool_calls` and their results must be
+   **persisted to the thread and replayed** as a proper agentic message sequence
+   — a companion that only ever sees itself _talking_ (tool calls stripped from
+   history) drifts back to narrating "_starting_" instead of calling; replaying
+   its own prior calls kept it reliably calling (0/6 → 6/6 in bring-up testing);
+   and (b) after a call runs, its result is fed back for a **second round-trip**
+   so she reacts in words to what actually happened. The live toy state
+   (connection + whether it's running, plus its current intensity/variety) is
+   folded into her system message every turn as ambient context — there is **no
+   `status` tool**. Manual stroke (`valvePlus`/`valveMinus`) shipped as an
+   **on-screen control only**, never offered to the LLM as a tool. _Ships:_ ask
+   her to start / stop / get more intense / mix it up more — she decides in
+   character and the device follows, or she refuses.
 
 7. **Ambient chat.** Built on Phase 5's thread and Phase 6's companion-driven
-   control. A single self-poking cue generator lands on `CompanionEngine`,
-   fired on a cadence set by a new **`chattiness`** trait (introduced here) —
-   every _x_ ± _y_ seconds, no per-event trigger. The cue carries no payload;
-   the orchestrator consumes it and the persona decides what to say from the
-   thread's current + upcoming device state (`player.upcoming`), free to end
-   the turn in a tool call. Preemptible under barge-in like any proactive
-   speech. _Ships:_ she speaks up unprompted at a pace that matches her
-   chattiness, grounded in what the toy is actually doing.
+   control. A single self-poking cue generator lands on `CompanionEngine`, fired
+   on a cadence set by a new **`chattiness`** trait (introduced here) — every
+   _x_ ± _y_ seconds, no per-event trigger. The cue carries no payload; the
+   orchestrator consumes it and the persona decides what to say from the
+   thread's current + upcoming device state (`player.upcoming`), free to end the
+   turn in a tool call. Preemptible under barge-in like any proactive speech.
+   _Ships:_ she speaks up unprompted at a pace that matches her chattiness,
+   grounded in what the toy is actually doing.
 
 8. **Safeword + barge-in tuning.** Vosk KWS reserved for the safeword →
    immediate hard stop that also **tears down the voice session (LLM + TTS)**,
@@ -452,12 +446,12 @@ Each phase gets its own spec/plan when we reach it; only the map is fixed here.
 11. **Persona shapes Elise's program.** Give Elise her `traits` (`dominance` /
     `intensity` / `chattiness` / `variety`, 1–5) and map the code-facing ones
     onto **Groove's** knobs — `intensity` sets the speed-percent magnitude,
-    `variety` sets the timing/dip-variability level; `dominance` gates how
-    often _she_ changes it unprompted. Her program stops being random and
-    becomes **hers**. Still one companion — this is the persona → program
-    mechanism working end-to-end before a second persona exists to contrast
-    against. _Ships:_ Elise's program visibly reflects her character instead
-    of being generic-random.
+    `variety` sets the timing/dip-variability level; `dominance` gates how often
+    _she_ changes it unprompted. Her program stops being random and becomes
+    **hers**. Still one companion — this is the persona → program mechanism
+    working end-to-end before a second persona exists to contrast against.
+    _Ships:_ Elise's program visibly reflects her character instead of being
+    generic-random.
 
 12. **Contrasting companion.** Add a second companion with contrasting `traits`
     and prompt, turning the one-entry picker into a real multi-companion
