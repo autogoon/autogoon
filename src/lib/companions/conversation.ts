@@ -20,7 +20,17 @@ export type ThreadTurn =
   // toolCallId. name is display-only (the transcript chip); result is both the
   // chip text and what we feed back to the model. Unlike before, these ARE
   // replayed to the LLM (see toLlmMessages) so she sees her own prior tool use.
-  | { role: "tool"; name: string; result: string; toolCallId: string };
+  // imageSrc is set only for a picture-sending tool (send_picture): it's the
+  // picture the transcript renders inline and the lightbox opens. It's display-
+  // only — never sent to the model (only `result` is) — and persists with the
+  // thread, so a sent picture stays in the log across a reload.
+  | {
+      role: "tool";
+      name: string;
+      result: string;
+      toolCallId: string;
+      imageSrc?: string;
+    };
 
 export type Thread = ThreadTurn[];
 
@@ -34,8 +44,18 @@ export function appendTool(
   name: string,
   result: string,
   toolCallId: string,
+  imageSrc?: string,
 ): Thread {
-  return [...thread, { role: "tool", name, result, toolCallId }];
+  return [
+    ...thread,
+    {
+      role: "tool",
+      name,
+      result,
+      toolCallId,
+      ...(imageSrc !== undefined ? { imageSrc } : {}),
+    },
+  ];
 }
 
 export function appendAssistant(
@@ -145,11 +165,15 @@ export function parse(raw: string | null): Thread {
       ) {
         return [];
       }
+      if (turn.imageSrc !== undefined && typeof turn.imageSrc !== "string") {
+        return [];
+      }
       out.push({
         role: "tool",
         name: turn.name,
         result: turn.result,
         toolCallId: turn.toolCallId,
+        ...(turn.imageSrc !== undefined ? { imageSrc: turn.imageSrc } : {}),
       });
     } else {
       return [];

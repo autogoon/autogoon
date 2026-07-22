@@ -4,6 +4,13 @@
 // shape, so it can be unit-tested without React or the device.
 import type { RequestTool, ToolParameterSchema } from "@/lib/llm/client";
 
+// What a tool's `run` may return. A plain string is the common case (the result
+// text logged + fed back to the model). The object form lets a tool also attach
+// a picture to the transcript turn (send_picture): `result` is the model-facing
+// text, `imageSrc` the picture to render inline in the conversation and pop into
+// the lightbox.
+export type ToolRunResult = { result: string; imageSrc?: string };
+
 export type CompanionTool = {
   name: string; // the model-facing tool name, e.g. "start" | "stop" | "intensity"
   description: string; // shown to the model so it knows when to call it
@@ -12,10 +19,11 @@ export type CompanionTool = {
   // `level`) or a bounded integer (`intensity`'s `percent`) — for a tool the
   // model must call WITH an argument.
   parameters?: ToolParameterSchema;
-  // Executes the action and returns a short result string (logged + fed back to
-  // the model). `args` is the parsed tool-call arguments — `{}` for a zero-arg
-  // tool, or e.g. `{ percent: 40 }` for a parameterized one.
-  run: (args: Record<string, unknown>) => string;
+  // Executes the action and returns a short result (logged + fed back to the
+  // model). Usually just the result string; a tool that also produces a picture
+  // returns a ToolRunResult. `args` is the parsed tool-call arguments — `{}` for
+  // a zero-arg tool, or e.g. `{ percent: 40 }` for a parameterized one.
+  run: (args: Record<string, unknown>) => string | ToolRunResult;
 };
 
 // Map declared tools to the OpenAI-compatible request `tools` array. A tool with
