@@ -72,6 +72,20 @@ describe("CompanionEngine.generateValves", () => {
     expect(engine.generateValves([], 60_000, 120_000, CTX)).toEqual([]);
   });
 
+  it("re-emits the tease close on a re-lay that starts mid-tease", () => {
+    // A knob change in the first 10s calls invalidateFuture, which drops the
+    // future close and re-pulls this overlay with fromTime = clock (>0). The
+    // close@10_000 must still be regenerated, or the stroke-minus valve latches
+    // open for the rest of the session. The open is NOT re-emitted (it already
+    // fired at t=0).
+    const engine = new CompanionEngine(20, "low", "low");
+    expect(engine.generateValves([], 5000, 65_000, CTX)).toEqual([
+      { kind: "valve", at: 10_000, valve: "minus", open: false },
+    ]);
+    // A re-lay that starts at or after the tease is done emits nothing.
+    expect(engine.generateValves([], 10_000, 70_000, CTX)).toEqual([]);
+  });
+
   it("emits the one-shot suction pulse riding the cumming wind-down", () => {
     const engine = new CompanionEngine(50, "medium", "medium");
     engine.beginCumming();

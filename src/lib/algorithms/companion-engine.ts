@@ -248,11 +248,24 @@ export class CompanionEngine implements AlgorithmEngine {
         { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
       ];
     }
-    if (fromTime <= 0 && untilTime > 0) {
-      return [
-        { kind: "valve", at: 0, valve: "minus", open: true },
-        { kind: "valve", at: STROKE_TEASE_MS, valve: "minus", open: false },
-      ];
+    // The one-shot stroke-minus tease. The open fires once at session start; the
+    // close must survive a mid-tease re-lay — a knob change in the first
+    // STROKE_TEASE_MS calls invalidateFuture, which drops the future close and
+    // re-pulls this overlay with fromTime = clock (>0). So emit the close on any
+    // window overlapping [0, STROKE_TEASE_MS), but the open only on the window
+    // covering start — otherwise the valve latches open for the rest of the run.
+    if (fromTime < STROKE_TEASE_MS && untilTime > 0) {
+      const valves: ValveEvent[] = [];
+      if (fromTime <= 0) {
+        valves.push({ kind: "valve", at: 0, valve: "minus", open: true });
+      }
+      valves.push({
+        kind: "valve",
+        at: STROKE_TEASE_MS,
+        valve: "minus",
+        open: false,
+      });
+      return valves;
     }
     return [];
   }
