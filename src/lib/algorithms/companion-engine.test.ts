@@ -44,6 +44,23 @@ describe("CompanionEngine.generateSpeed", () => {
     expect(engine.generateSpeed(0, 60_000, CTX).length).toBeGreaterThan(0);
   });
 
+  it("holds at the peak with no dip when variety is off", () => {
+    // off = no dip: the floor is pinned to the peak, so every raw speed sits at
+    // the peak (pre-scale). Variety off drives both shape knobs to off.
+    const engine = new CompanionEngine(50, "off", "off");
+    const events = engine.generateSpeed(0, 60_000, CTX);
+    expect(events.length).toBeGreaterThan(0);
+    expect(events.every((e) => e.speed === 100)).toBe(true);
+  });
+
+  it("can dip all the way to a full stop at high", () => {
+    // high's deepest reach is 0, so across a long window at least one dip floor
+    // should bottom out very low. (Deterministic enough over many cycles.)
+    const engine = new CompanionEngine(100, "high", "high");
+    const events = engine.generateSpeed(0, 600_000, CTX);
+    expect(Math.min(...events.map((e) => e.speed))).toBeLessThanOrEqual(5);
+  });
+
   it("resumes from the device's current speed after a knob change", () => {
     const engine = new CompanionEngine(50, "medium", "medium");
     engine.setVariability("high");

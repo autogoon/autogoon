@@ -27,15 +27,13 @@ const TIMING_PERCENT: Record<VariabilityLevel, number> = {
   medium: 50,
   high: 75,
 };
-// The standard dip: every dip bottoms out at least this low. With dip
-// variability off, it is exactly where every dip lands.
-const STANDARD_FLOOR = 60;
-// How deep a dip may go, per level. The floor is drawn between the level's
-// minimum and STANDARD_FLOOR, so a higher level only ever adds depth.
+// The deepest a dip may reach, per level, in pattern space (100 = no dip, the
+// device holds at the peak; 0 = a full stop). off holds at the peak — no dip at
+// all — and each level up dips deeper, evenly spaced down to a full stop at high.
 const DIP_FLOOR: Record<VariabilityLevel, number> = {
-  off: STANDARD_FLOOR,
-  low: 40,
-  medium: 20,
+  off: 100,
+  low: 66,
+  medium: 33,
   high: 0,
 };
 // Skews the drawn floor toward the deep end. 1 is flat/uniform; above that deep
@@ -68,12 +66,12 @@ interface Ramp {
   endAt: number;
 }
 
-// Every dip draws its own floor, between the level's deepest reach and the
-// standard floor, skewed toward the deep end by DIP_SKEW. Off pins it to the
-// standard floor; each level up only adds depth.
+// Every dip draws its own floor, between the level's deepest reach and the peak
+// (no dip), skewed toward the deep end by DIP_SKEW. off pins it to the peak — no
+// dip at all — while each level up lets more dips fall closer to its deep reach.
 function drawFloor(dipLevel: VariabilityLevel): number {
   const deepest = DIP_FLOOR[dipLevel];
-  const span = STANDARD_FLOOR - deepest;
+  const span = PEAK_SPEED - deepest;
   return Math.round(deepest + span * Math.pow(Math.random(), DIP_SKEW));
 }
 
