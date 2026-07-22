@@ -1,12 +1,15 @@
 // CompanionEngine — the motion backbone for the Companions algorithm. A faithful,
-// self-contained port of AutopilotEngine's generation (pattern templates,
-// constants, block builder, intensity/edge scaling, suction valves, finish),
+// self-contained port of GrooveEngine's dip generation (PEAK -> floor -> PEAK,
+// with a live Speed% magnitude knob and timing/dip Variability shape knobs),
 // duplicated rather than imported because engines don't import each other (see
-// ARCHITECTURE.md; Goon duplicates Groove for the same reason). The one addition
-// over Autopilot is that each template carries a `label` — a neutral, present-
-// tense description of what that mini-program does — which the narration overlay
-// reads (see generateNarrationCues). Pure event generation/scaling: no React, no
-// device, no LLM, no personas.
+// ARCHITECTURE.md; Goon duplicates Groove for the same reason). One companion-only
+// addition over Groove: a one-shot stroke-minus tease held at session start
+// (ported from Goon's STROKE_MINUS_APPLY_MS). Everything Autopilot-shaped is gone
+// — the template blocks, edge/suction knobs, and the boundary-based narration
+// overlay. The chattiness-paced ambient-chat cues are a later phase (Phase 7),
+// generated here once a chattiness knob and an orchestrator consumer exist; there
+// is no narration overlay in the meantime. Pure event generation/scaling: no
+// React, no device, no LLM, no personas.
 
 import {
   type PlayerContext,
@@ -15,410 +18,271 @@ import {
   type ValveEvent,
 } from "@/lib/program";
 
-export type IntensityLevel = "warmup" | "low" | "medium" | "high";
-export type EdgeControlLevel = "gentle" | "moderate" | "intense";
-export type SuctionControlLevel = "off" | "little" | "more";
+export type VariabilityLevel = "off" | "low" | "medium" | "high";
 
-// A narration cue: the program switches to a new mini-program at `at`, described
-// by `text` (a neutral, persona-agnostic label); here it is plain data. Not part
-// of the AlgorithmEngine contract — CompanionEngine-only.
-export interface NarrationCue {
-  at: number;
-  text: string;
-}
-
-interface TemplateStep {
-  speed: number;
-  duration: number;
-}
-
-// A pattern template plus its narration label. The label is neutral and
-// persona-agnostic; here it is plain data.
-interface LabelledTemplate {
-  steps: TemplateStep[];
-  label: string;
-}
-
-const SPEED_MAX = 100;
-const SPEED_TEMPLATE_MIN = 5;
-const FINISH_HOLD_MS = 1_800_000;
-const TEMPLATES_PER_BLOCK = 10;
-const BLOCK_LEAD_IN_SPEED = 10;
-// One-shot stroke-minus tease held for this long at the very start of a session,
-// ported from Goon's STROKE_MINUS_APPLY_MS (engines don't share code). It's a
-// teasing lead-in, independent of vacuum maintenance.
+// How much a leg's duration can be randomly shortened, per level.
+const TIMING_PERCENT: Record<VariabilityLevel, number> = {
+  off: 0,
+  low: 25,
+  medium: 50,
+  high: 75,
+};
+// The standard dip: every dip bottoms out at least this low. With dip
+// variability off, it is exactly where every dip lands.
+const STANDARD_FLOOR = 60;
+// How deep a dip may go, per level. The floor is drawn between the level's
+// minimum and STANDARD_FLOOR, so a higher level only ever adds depth.
+const DIP_FLOOR: Record<VariabilityLevel, number> = {
+  off: STANDARD_FLOOR,
+  low: 40,
+  medium: 20,
+  high: 0,
+};
+// Skews the drawn floor toward the deep end. 1 is flat/uniform; above that deep
+// dips get commoner. Endpoints don't move.
+const DIP_SKEW = 2;
+// A leg (PEAK -> floor, or floor -> PEAK) takes this long when variability is 0.
+// Variability can only ever shorten it.
+const BASELINE_LEG_MS = 10_000;
+// Skews the random leg duration toward the short end.
+const LEG_TIME_SKEW = 3;
+// The device takes discrete speed commands, so a ramp is sampled into events —
+// one send about this often.
+const STEP_INTERVAL_MS = 1000;
+// Speed steps within a leg are curved, not evenly spaced: interpolate in
+// s^(1/RAMP_GAMMA) space and invert, so the ramp takes big strides near the top
+// and fine ones near the bottom.
+const RAMP_GAMMA = 2;
+const PEAK_SPEED = 100;
+const CUMMING_START_SPEED = 30;
+const CUMMING_MID_SPEED = 20;
+const CUMMING_END_SPEED = 5;
+const CUMMING_STEP_MS = 500;
+// One-shot stroke-minus tease held for this long at session start (ported from
+// Goon's STROKE_MINUS_APPLY_MS). A teasing lead-in, independent of the dip
+// pattern, re-derived per window so it only fires on the window covering start.
 const STROKE_TEASE_MS = 10_000;
-const FINISH_CUE_LABEL = "the finish — full and relentless";
 
-const LABELLED_TEMPLATES: LabelledTemplate[] = [
-  {
-    steps: [
-      5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,
-      100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15,
-      10, 5,
-    ].map((s) => ({ speed: s, duration: 5000 })),
-    label: "a long, slow sweep all the way up and back down",
-  },
-  {
-    steps: [
-      5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5,
-    ].map((s) => ({ speed: s, duration: 7000 })),
-    label: "a gentle, shallow build and ebb",
-  },
-  {
-    steps: [
-      { speed: 50, duration: 10000 },
-      { speed: 100, duration: 7000 },
-      { speed: 10, duration: 10000 },
-      { speed: 50, duration: 10000 },
-      { speed: 100, duration: 7000 },
-      { speed: 10, duration: 10000 },
-      { speed: 50, duration: 10000 },
-      { speed: 100, duration: 7000 },
-      { speed: 10, duration: 10000 },
-    ],
-    label: "surging between a crawl and full pace",
-  },
-  {
-    steps: [
-      { speed: 10, duration: 10000 },
-      { speed: 100, duration: 10000 },
-      { speed: 10, duration: 10000 },
-      { speed: 100, duration: 10000 },
-      { speed: 10, duration: 10000 },
-      { speed: 100, duration: 10000 },
-      { speed: 10, duration: 10000 },
-      { speed: 100, duration: 10000 },
-    ],
-    label: "slamming between dead slow and full tilt",
-  },
-  {
-    steps: [
-      { speed: 5, duration: 3000 },
-      { speed: 50, duration: 10000 },
-      { speed: 10, duration: 4000 },
-      { speed: 60, duration: 10000 },
-      { speed: 5, duration: 5000 },
-      { speed: 70, duration: 10000 },
-      { speed: 10, duration: 5000 },
-      { speed: 80, duration: 10000 },
-      { speed: 5, duration: 6000 },
-      { speed: 90, duration: 10000 },
-      { speed: 10, duration: 7000 },
-      { speed: 100, duration: 10000 },
-      { speed: 5, duration: 5000 },
-    ],
-    label: "teasing climbs, each one higher than the last",
-  },
-  {
-    steps: [
-      { speed: 5, duration: 3000 },
-      { speed: 10, duration: 3000 },
-      { speed: 15, duration: 3000 },
-      { speed: 20, duration: 3000 },
-      { speed: 15, duration: 3000 },
-      { speed: 10, duration: 3000 },
-      { speed: 5, duration: 5000 },
-      { speed: 10, duration: 5000 },
-      { speed: 15, duration: 5000 },
-      { speed: 20, duration: 5000 },
-      { speed: 15, duration: 5000 },
-      { speed: 10, duration: 5000 },
-      { speed: 5, duration: 5000 },
-    ],
-    label: "tiny teasing waves down low",
-  },
-  {
-    steps: [
-      { speed: 20, duration: 5000 },
-      { speed: 40, duration: 10000 },
-      { speed: 100, duration: 10000 },
-      { speed: 30, duration: 9000 },
-      { speed: 100, duration: 10000 },
-      { speed: 20, duration: 8000 },
-      { speed: 100, duration: 10000 },
-      { speed: 10, duration: 7000 },
-      { speed: 100, duration: 10000 },
-      { speed: 5, duration: 6000 },
-      { speed: 100, duration: 10000 },
-      { speed: 5, duration: 5000 },
-      { speed: 100, duration: 10000 },
-      { speed: 5, duration: 4000 },
-      { speed: 100, duration: 8000 },
-      { speed: 5, duration: 3000 },
-      { speed: 100, duration: 7000 },
-      { speed: 5, duration: 2000 },
-      { speed: 100, duration: 6000 },
-    ],
-    label: "full-pace bursts with deeper and deeper plunges between",
-  },
-  {
-    steps: [
-      { speed: 20, duration: 2000 },
-      { speed: 90, duration: 5000 },
-      { speed: 100, duration: 5000 },
-      { speed: 90, duration: 5000 },
-      { speed: 80, duration: 5000 },
-    ],
-    label: "a quick rise into a hold near the top",
-  },
-];
-
-const intensityRanges: Record<IntensityLevel, { min: number; max: number }> = {
-  warmup: { min: 5, max: 20 },
-  low: { min: 5, max: 30 },
-  medium: { min: 15, max: 70 },
-  high: { min: 30, max: 100 },
-};
-
-const edgeControlParams: Record<
-  EdgeControlLevel,
-  { plateauTime: number; cooldownTime: number }
-> = {
-  gentle: { plateauTime: 0.5, cooldownTime: 2 },
-  moderate: { plateauTime: 1, cooldownTime: 1 },
-  intense: { plateauTime: 1.5, cooldownTime: 0.5 },
-};
-
-const suctionControlParams: Record<
-  SuctionControlLevel,
-  {
-    enabled: boolean;
-    baseDuration: number;
-    speedMultiplier: number;
-    interval: number;
-  }
-> = {
-  off: { enabled: false, baseDuration: 0, speedMultiplier: 0, interval: 0 },
-  little: {
-    enabled: true,
-    baseDuration: 200,
-    speedMultiplier: 0.8,
-    interval: 3000,
-  },
-  more: {
-    enabled: true,
-    baseDuration: 400,
-    speedMultiplier: 0.6,
-    interval: 2000,
-  },
-};
-
-function scaleSpeedToIntensity(speed: number, level: IntensityLevel): number {
-  const { min, max } = intensityRanges[level];
-  const norm = (speed - SPEED_TEMPLATE_MIN) / (SPEED_MAX - SPEED_TEMPLATE_MIN);
-  const scaled = Math.round(min + norm * (max - min));
-  return Math.max(min, Math.min(max, scaled));
+interface Ramp {
+  waypoints: Array<{ speed: number; at: number }>;
+  endAt: number;
 }
 
-function scaleDurationToEdge(
-  templateSpeed: number,
-  duration: number,
-  edge: EdgeControlLevel,
-): number {
-  const p = edgeControlParams[edge];
-  if (templateSpeed > 70) return Math.round(duration * p.plateauTime);
-  if (templateSpeed < 30) return Math.round(duration * p.cooldownTime);
-  return duration;
+// Every dip draws its own floor, between the level's deepest reach and the
+// standard floor, skewed toward the deep end by DIP_SKEW. Off pins it to the
+// standard floor; each level up only adds depth.
+function drawFloor(dipLevel: VariabilityLevel): number {
+  const deepest = DIP_FLOOR[dipLevel];
+  const span = STANDARD_FLOOR - deepest;
+  return Math.round(deepest + span * Math.pow(Math.random(), DIP_SKEW));
 }
 
-function applyPlateauJitter(speed: number, edge: EdgeControlLevel): number {
-  if (edge === "intense" && speed > 70) {
-    const headroom = Math.min(SPEED_MAX - speed, 15);
-    return speed + Math.round(headroom * Math.random());
-  }
-  if (edge === "gentle" && speed > 70) {
-    const excess = Math.min(speed - 50, 20);
-    return speed - Math.round(excess * 0.5);
-  }
-  return speed;
-}
-
-// One block: TEMPLATES_PER_BLOCK randomly-chosen templates concatenated behind a
-// lead-in event, each step scaled by intensity/edge. Returns the events, the
-// narration segments (one per template, at the boundary where that template
-// begins — always coincident with a real speed-event time), and the time the
-// block ends so successive blocks chain back to back.
-function buildBlock(
+// One ramp of a dip. The leg gets a single random duration for its whole length,
+// drawn from [BASELINE_LEG_MS * (1 - variability), BASELINE_LEG_MS], skewed
+// toward the short end by LEG_TIME_SKEW. A deeper dip ramps steeper, not longer.
+function buildLeg(
+  from: number,
+  to: number,
+  variabilityPercent: number,
   startAt: number,
-  intensity: IntensityLevel,
-  edge: EdgeControlLevel,
-): { events: SpeedEvent[]; segments: NarrationCue[]; endAt: number } {
-  const events: SpeedEvent[] = [
-    { kind: "speed", at: startAt, speed: BLOCK_LEAD_IN_SPEED },
+): Ramp {
+  const variability = variabilityPercent / 100;
+  const shortestMs = BASELINE_LEG_MS * (1 - variability);
+  const legMs =
+    shortestMs +
+    (BASELINE_LEG_MS - shortestMs) * Math.pow(Math.random(), LEG_TIME_SKEW);
+  const waypoints: Array<{ speed: number; at: number }> = [
+    { speed: from, at: startAt },
   ];
-  const segments: NarrationCue[] = [];
+  // A zero-length leg (from === to) still consumes its leg time, or the cycle
+  // collapses to zero duration and the Player's look-ahead loop spins forever.
+  if (from === to) return { waypoints, endAt: startAt + Math.round(legMs) };
+  const steps = Math.max(1, Math.round(legMs / STEP_INTERVAL_MS));
+  const stepMs = Math.max(1, Math.round(legMs / steps));
+  const curvedFrom = Math.pow(from, 1 / RAMP_GAMMA);
+  const curvedTo = Math.pow(to, 1 / RAMP_GAMMA);
   let at = startAt;
-  for (let i = 0; i < TEMPLATES_PER_BLOCK; i++) {
-    const template =
-      LABELLED_TEMPLATES[Math.floor(Math.random() * LABELLED_TEMPLATES.length)];
-    if (template === undefined) continue;
-    // The boundary is the current cursor — the moment before this template's
-    // first step, coincident with the previous event's time (or the lead-in).
-    segments.push({ at, text: template.label });
-    for (const step of template.steps) {
-      const scaled = scaleSpeedToIntensity(step.speed, intensity);
-      const speed = applyPlateauJitter(scaled, edge);
-      const duration = scaleDurationToEdge(step.speed, step.duration, edge);
-      at += duration;
-      events.push({ kind: "speed", at, speed });
-    }
+  for (let i = 1; i <= steps; i++) {
+    at += stepMs;
+    const curved = curvedFrom + ((curvedTo - curvedFrom) * i) / steps;
+    waypoints.push({ speed: Math.round(Math.pow(curved, RAMP_GAMMA)), at });
   }
-  return { events, segments, endAt: at };
+  return { waypoints, endAt: at };
+}
+
+function toSpeedEvents(
+  waypoints: Array<{ speed: number; at: number }>,
+): SpeedEvent[] {
+  return waypoints.map((w) => ({ kind: "speed", at: w.at, speed: w.speed }));
+}
+
+// One dip. The floor is drawn once here, not per leg, so the down-leg and the
+// up-leg share the same bottom. `fromSpeed` lets a cycle that resumes after a
+// knob change start from wherever the device already is rather than snapping to
+// the peak first.
+function buildFullCycle(
+  dipLevel: VariabilityLevel,
+  variabilityPercent: number,
+  startAt: number,
+  fromSpeed: number = PEAK_SPEED,
+): { events: SpeedEvent[]; endAt: number } {
+  const events: SpeedEvent[] = [];
+  let at = startAt;
+  const floor = drawFloor(dipLevel);
+  for (const leg of [
+    { from: fromSpeed, to: floor },
+    { from: floor, to: PEAK_SPEED },
+  ]) {
+    const { waypoints, endAt } = buildLeg(
+      leg.from,
+      leg.to,
+      variabilityPercent,
+      at,
+    );
+    events.push(...toSpeedEvents(waypoints));
+    at = endAt;
+  }
+  return { events, endAt: at };
+}
+
+// Intensity is a plain linear scale on the raw pattern, so a raw floor of 60 at
+// intensity 10 lands on 6. Anything that shapes the dip belongs in the raw
+// pattern, not here.
+function scaleSpeed(raw: number, speedPercent: number): number {
+  return Math.round((raw * speedPercent) / PEAK_SPEED);
 }
 
 export class CompanionEngine implements AlgorithmEngine {
-  private intensityLevel: IntensityLevel;
-  private edgeControlLevel: EdgeControlLevel;
-  private suctionControlLevel: SuctionControlLevel;
-  private finishing = false;
-  private finishEmitted = false;
-  // Narration segments recorded as speed is generated — one per template
-  // boundary. generateNarrationCues reads these; reset() clears them.
-  private narrationSegments: NarrationCue[] = [];
+  private speedPercent: number;
+  private variabilityLevel: VariabilityLevel;
+  private dipLevel: VariabilityLevel;
+  // Set when a knob changes: the next dip picks up from the device's current
+  // speed instead of snapping back to the peak.
+  private startFromCurrent = false;
+  private cumming = false;
+  private cummingEmitted = false;
 
   constructor(
-    intensity: IntensityLevel,
-    edgeControl: EdgeControlLevel,
-    suctionControl: SuctionControlLevel,
+    speedPercent: number,
+    variability: VariabilityLevel,
+    dip: VariabilityLevel,
   ) {
-    this.intensityLevel = intensity;
-    this.edgeControlLevel = edgeControl;
-    this.suctionControlLevel = suctionControl;
+    this.speedPercent = speedPercent;
+    this.variabilityLevel = variability;
+    this.dipLevel = dip;
+  }
+
+  private get variabilityPercent(): number {
+    return TIMING_PERCENT[this.variabilityLevel];
   }
 
   reset(): void {
-    this.finishing = false;
-    this.finishEmitted = false;
-    this.narrationSegments = [];
+    this.startFromCurrent = false;
+    this.cumming = false;
+    this.cummingEmitted = false;
   }
 
-  setIntensity(level: IntensityLevel): void {
-    this.intensityLevel = level;
+  setSpeedPercent(percent: number): void {
+    this.speedPercent = Math.max(0, Math.min(100, percent));
   }
 
-  setEdgeControl(level: EdgeControlLevel): void {
-    this.edgeControlLevel = level;
+  setVariability(level: VariabilityLevel): void {
+    this.variabilityLevel = level;
+    this.startFromCurrent = true;
   }
 
-  setSuctionControl(level: SuctionControlLevel): void {
-    this.suctionControlLevel = level;
+  setDipVariability(level: VariabilityLevel): void {
+    this.dipLevel = level;
+    this.startFromCurrent = true;
   }
 
-  beginFinish(): void {
-    this.finishing = true;
-    this.finishEmitted = false;
-    this.intensityLevel = "high";
-    this.edgeControlLevel = "moderate";
-    this.suctionControlLevel = "off";
+  beginCumming(): void {
+    this.cumming = true;
+    this.cummingEmitted = false;
   }
 
   generateSpeed(
     fromTime: number,
     untilTime: number,
-    _ctx: PlayerContext,
+    ctx: PlayerContext,
   ): SpeedEvent[] {
-    if (this.finishing) {
-      if (this.finishEmitted) return [];
-      this.finishEmitted = true;
-      return [
-        { kind: "speed", at: fromTime, speed: SPEED_MAX, unscaled: true },
-        {
-          kind: "speed",
-          at: fromTime + FINISH_HOLD_MS,
-          speed: 0,
-          unscaled: true,
-        },
-      ];
+    if (this.cumming) {
+      if (this.cummingEmitted) return [];
+      this.cummingEmitted = true;
+      return this.cummingSpeed(fromTime);
     }
-
     const events: SpeedEvent[] = [];
     let at = fromTime;
+    if (this.startFromCurrent) {
+      this.startFromCurrent = false;
+      const cycle = buildFullCycle(
+        this.dipLevel,
+        this.variabilityPercent,
+        at,
+        ctx.currentRawSpeed,
+      );
+      events.push(...cycle.events);
+      at = cycle.endAt;
+    }
     while (at < untilTime) {
-      const block = buildBlock(at, this.intensityLevel, this.edgeControlLevel);
-      events.push(...block.events);
-      this.narrationSegments.push(...block.segments);
-      at = block.endAt;
+      const cycle = buildFullCycle(this.dipLevel, this.variabilityPercent, at);
+      events.push(...cycle.events);
+      at = cycle.endAt;
     }
     return events;
   }
 
-  // Vacuum maintenance, faithful to Autopilot's handleSuctionControl: a
-  // stroke-minus pulse fires only when a speed move is sent (a step transition —
-  // never mid-step), and only if at least `interval` has passed since the last
-  // pulse. The interval is a minimum gap between pulses, not a cadence. Each
-  // pulse's length is keyed to that move's speed (slow strokes get long pulses).
-  // Finish closes both valves.
+  // Valves: the one-shot stroke-minus tease over the window covering session
+  // start, and the one-shot suction pulse that rides the cumming wind-down.
+  // Both are pure functions of the window (no cadence state), so the Player can
+  // re-lay the overlay.
   generateValves(
-    speedEvents: SpeedEvent[],
+    _speedEvents: SpeedEvent[],
     fromTime: number,
     untilTime: number,
     _ctx: PlayerContext,
   ): ValveEvent[] {
-    if (this.finishing) {
+    if (this.cumming) {
       return [
-        { kind: "valve", at: fromTime, valve: "minus", open: false },
-        { kind: "valve", at: fromTime, valve: "plus", open: false },
+        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
+        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
       ];
     }
-
-    const valves: ValveEvent[] = [];
-
-    // One-shot stroke-minus tease: hold the stroke- valve open for the first
-    // STROKE_TEASE_MS, only on the window covering program start (fromTime <= 0 <
-    // untilTime). A teasing lead-in, emitted regardless of vacuum maintenance —
-    // so it still fires when suction is "off" (the companion default). On a
-    // mid-session re-lay the guard is false, so it never repeats.
     if (fromTime <= 0 && untilTime > 0) {
-      valves.push({ kind: "valve", at: 0, valve: "minus", open: true });
-      valves.push({
-        kind: "valve",
-        at: STROKE_TEASE_MS,
-        valve: "minus",
-        open: false,
-      });
+      return [
+        { kind: "valve", at: 0, valve: "minus", open: true },
+        { kind: "valve", at: STROKE_TEASE_MS, valve: "minus", open: false },
+      ];
     }
-
-    const p = suctionControlParams[this.suctionControlLevel];
-    if (!p.enabled) return valves;
-
-    // The gate starts closed at session start (lastSuctionTime starts at 0, so
-    // nothing fires before `interval`) but OPEN on a mid-session (re-)lay, so the
-    // very next move pulses.
-    let lastPulse = fromTime === 0 ? 0 : Number.NEGATIVE_INFINITY;
-    for (const ev of speedEvents) {
-      if (ev.at < fromTime || ev.at >= untilTime) continue;
-      if (ev.at - lastPulse < p.interval) continue;
-      const pulseMs = Math.round(
-        (p.baseDuration * p.speedMultiplier) / (ev.speed / SPEED_MAX + 0.1),
-      );
-      valves.push({ kind: "valve", at: ev.at, valve: "minus", open: true });
-      valves.push({
-        kind: "valve",
-        at: ev.at + pulseMs,
-        valve: "minus",
-        open: false,
-      });
-      lastPulse = ev.at;
-    }
-    return valves;
+    return [];
   }
 
-  // Narration overlay: one cue per template boundary in [fromTime, untilTime),
-  // read from the segments recorded as speed was generated (template choice is
-  // random inside generation, so cues can't be re-derived from speed events).
-  // While finishing, a single finish cue. CompanionEngine-only — not on the
-  // AlgorithmEngine contract.
-  generateNarrationCues(fromTime: number, untilTime: number): NarrationCue[] {
-    if (this.finishing) {
-      return [{ at: fromTime, text: FINISH_CUE_LABEL }];
-    }
-    return this.narrationSegments
-      .filter((s) => s.at >= fromTime && s.at < untilTime)
-      .map((s) => ({ at: s.at, text: s.text }));
+  scale(event: SpeedEvent, _ctx?: PlayerContext): number {
+    if (event.unscaled === true) return event.speed;
+    return scaleSpeed(event.speed, this.speedPercent);
   }
 
-  scale(event: SpeedEvent): number {
-    return event.speed;
+  private cummingSpeed(startAt: number): SpeedEvent[] {
+    const events: SpeedEvent[] = [];
+    let at = startAt;
+    for (
+      let speed = CUMMING_START_SPEED;
+      speed >= CUMMING_MID_SPEED;
+      speed -= 1.5
+    ) {
+      events.push({ kind: "speed", at, speed, unscaled: true });
+      at += CUMMING_STEP_MS;
+    }
+    for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
+      events.push({ kind: "speed", at, speed, unscaled: true });
+      at += CUMMING_STEP_MS;
+    }
+    events.push({
+      kind: "speed",
+      at: at + 1_800_000,
+      speed: 0,
+      unscaled: true,
+    });
+    return events;
   }
 }
