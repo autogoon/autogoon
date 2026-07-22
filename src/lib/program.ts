@@ -63,8 +63,7 @@ export type PlayerState = "armed" | "playing" | "paused";
 // Read-only view of Player state handed to the engine on each call.
 export interface PlayerContext {
   clock: number; // current program-time (ms)
-  currentSpeed: number; // device speed in effect now (post-scale), 0 if none
-  currentRawSpeed: number; // raw speed of the SpeedEvent under the cursor, 0 if none
+  currentRawSpeed: number; // the program's raw (pre-scale) speed at the clock, 0 if none
 }
 
 export interface AlgorithmEngine {

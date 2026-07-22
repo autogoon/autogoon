@@ -33,7 +33,13 @@ export class Player {
   get isPlaying(): boolean {
     return this.state === "playing";
   }
-  currentSpeed = 0;
+  // The program's raw (pre-scale) speed at the clock — the point a knob-change
+  // resume eases from. A cached value, not derived on demand, for one reason: a
+  // knob change calls invalidateFuture(), which DROPS the not-yet-played events
+  // and THEN regenerates, and the engine reads this during that regeneration —
+  // after the drop. So the events it would be read from are gone; this snapshot,
+  // refreshed at the end of every (re)build, carries it across.
+  private programRawSpeed = 0;
   source: AlgorithmEngine | null = null;
 
   private readonly getDevice: () => VacuglideDevice | null;
@@ -78,7 +84,6 @@ export class Player {
   getState(): {
     state: PlayerState;
     isPlaying: boolean;
-    currentSpeed: number;
     clock: number;
     rate: number;
     strokeBusy: boolean;
@@ -86,7 +91,6 @@ export class Player {
     return {
       state: this.state,
       isPlaying: this.isPlaying,
-      currentSpeed: this.currentSpeed,
       clock: this.clock,
       rate: this.rate,
       strokeBusy: this.strokeBusy,
@@ -100,20 +104,22 @@ export class Player {
   }
 
   protected context(): PlayerContext {
-    const cur = this.currentSpeedEvent();
     return {
       clock: this.clock,
-      currentSpeed: this.currentSpeed,
-      currentRawSpeed: cur?.speed ?? 0,
+      currentRawSpeed: this.programRawSpeed,
     };
   }
 
-  // The speed event currently in effect (last speed event at/before the cursor).
+  // The speed event the program is on now — the last speed event at/before the
+  // clock. During play the cursor tracks the clock, so scanning back from it is
+  // both correct and cheap. Before Start the cursor is still 0 (the tick loop
+  // hasn't run), so fall back to the program's first speed event — its start.
   protected currentSpeedEvent(): SpeedEvent | null {
     for (let i = this.cursor - 1; i >= 0; i--) {
       const ev = this.events[i]!;
       if (ev.kind === "speed") return ev;
     }
+    for (const ev of this.events) if (ev.kind === "speed") return ev;
     return null;
   }
 
@@ -125,7 +131,7 @@ export class Player {
     this.events = [];
     this.cursor = 0;
     this.lastDeviceSpeed = null;
-    this.currentSpeed = 0;
+    this.programRawSpeed = 0;
     this.manualOpen = { plus: false, minus: false };
     this.generatedOpen = { plus: false, minus: false };
     source?.reset();
@@ -204,6 +210,10 @@ export class Player {
       if (++guard > 10_000) break; // runaway guard
     }
     if (changed) this.events.sort((a, b) => a.at - b.at);
+    // Refresh the snapshot of the program's speed at the clock, so the next
+    // knob-change resume eases from the program's current point rather than 0
+    // (see programRawSpeed — it must survive the invalidateFuture() drop).
+    this.programRawSpeed = this.currentSpeedEvent()?.speed ?? 0;
   }
 
   // The `at` of the last speed event (the speed backbone's extent), or null if
@@ -239,7 +249,6 @@ export class Player {
     const current = this.currentSpeedEvent();
     const output =
       current === null ? 0 : this.source.scale(current, this.context());
-    this.currentSpeed = output;
     if (output !== this.lastDeviceSpeed) {
       await this.device().targetSpeedSet(output);
       this.lastDeviceSpeed = output;
@@ -316,7 +325,6 @@ export class Player {
       clearTimeout(this.timer);
       this.timer = null;
     }
-    this.currentSpeed = 0;
     this.lastDeviceSpeed = null;
     // Pausing closes both valves below, so no stroke of either kind survives.
     this.manualOpen = { plus: false, minus: false };

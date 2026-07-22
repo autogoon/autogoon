@@ -5,7 +5,7 @@ import { CompanionEngine } from "./companion-engine";
 // Contract tests (see program.ts): generation is random by design, so these pin
 // the guarantees the Player relies on, not exact output.
 
-const CTX: PlayerContext = { clock: 0, currentSpeed: 0, currentRawSpeed: 0 };
+const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
 describe("CompanionEngine.generateSpeed", () => {
   it("always extends past fromTime, sorted, in pattern space", () => {
@@ -64,11 +64,7 @@ describe("CompanionEngine.generateSpeed", () => {
   it("resumes from the device's current speed after a knob change", () => {
     const engine = new CompanionEngine(50, "medium", "medium");
     engine.setVariability("high");
-    const ctx: PlayerContext = {
-      clock: 0,
-      currentSpeed: 0,
-      currentRawSpeed: 37,
-    };
+    const ctx: PlayerContext = { clock: 0, currentRawSpeed: 37 };
     const events = engine.generateSpeed(0, 60_000, ctx);
     expect(events[0]!.speed).toBe(37);
   });

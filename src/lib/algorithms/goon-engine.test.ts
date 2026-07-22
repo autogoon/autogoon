@@ -5,7 +5,7 @@ import { GoonEngine } from "./goon-engine";
 // Contract tests for the engine (see program.ts): generation is random by
 // design, so these pin the guarantees the Player relies on, not exact output.
 
-const CTX: PlayerContext = { clock: 0, currentSpeed: 0, currentRawSpeed: 0 };
+const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
 describe("GoonEngine.generateSpeed", () => {
   it("always extends past fromTime, sorted, in pattern space", () => {

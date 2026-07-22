@@ -7,7 +7,7 @@ import { AutopilotEngine } from "./autopilot-engine";
 // mid-step), gated by "at least `interval` since the last pulse". The
 // interval is a minimum gap, not a cadence.
 
-const CTX: PlayerContext = { clock: 0, currentSpeed: 0, currentRawSpeed: 0 };
+const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
 const steps = (
   from: number,

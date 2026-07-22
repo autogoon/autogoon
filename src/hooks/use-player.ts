@@ -23,7 +23,6 @@ export interface PlayerView {
   source: AlgorithmEngine | null;
   state: PlayerState;
   isPlaying: boolean;
-  currentSpeed: number;
   positionMs: number;
   timeScale: number;
   // A scheduled (engine-generated) stroke is holding a valve open right now —
@@ -38,7 +37,6 @@ function read(player: Player): PlayerView {
     source: player.source,
     state: st.state,
     isPlaying: st.isPlaying,
-    currentSpeed: st.currentSpeed,
     positionMs: st.clock,
     timeScale: st.rate,
     strokeBusy: st.strokeBusy,
