@@ -5,14 +5,15 @@
 > `intensity`/`edge_control` pair merged to `main` in
 > [#13](https://github.com/autogoon/autogoon/pull/13) — along with the LLM
 > backend move to OpenRouter, barge-in tuning (word + energy gate), and a
-> shared-secret demo access gate. On branch `companions-2` (PR link to be
-> added), that pair was retooled into the shipped `intensity`/`variety` tools
-> described below, completing Phase 6. The remaining work — Phases 7–12 —
-> continues on `companions-2`. This is the shared context for a long-running,
-> multi-phase feature. It records **what we're building, how it works, and why
-> we chose each path** — the shared reference any later phase's work can lean
-> on. The earlier per-phase specs and plans have been retired; this doc is the
-> surviving record.
+> shared-secret demo access gate. On branch `companions-2`
+> ([#14](https://github.com/autogoon/autogoon/pull/14)), that pair was retooled
+> into the shipped `intensity`/`variety` tools described below, and the whole
+> program was re-based from Autopilot onto Groove, completing Phase 6. The
+> remaining work — Phases 7–12 — continues in #14. This is the shared context
+> for a long-running, multi-phase feature. It records **what we're building, how
+> it works, and why we chose each path** — the shared reference any later
+> phase's work can lean on. The earlier per-phase specs and plans have been
+> retired; this doc is the surviving record.
 
 ## Goal
 

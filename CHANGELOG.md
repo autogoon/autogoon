@@ -2,7 +2,7 @@
 
 ## 2026-07-22
 
-- enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#N](https://github.com/autogoon/autogoon/pull/N))
+- enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 ## 2026-07-21
 
