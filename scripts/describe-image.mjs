@@ -12,6 +12,26 @@
 //
 // describeImage() and sidecarPath() are exported so describe-missing.mjs can
 // reuse them; the CLI below runs only when this file is the entry point.
+//
+// Strong vision models on OpenRouter (set DESCRIBE_MODEL to one of these) —
+// verify the exact slug + pricing at https://openrouter.ai/models (filter
+// Input modality → Image); the catalogue shifts over time:
+//
+//   Best quality / most detailed:
+//     google/gemini-2.5-pro
+//     anthropic/claude-opus-4.8
+//     anthropic/claude-sonnet-4.5
+//     openai/gpt-4.1
+//     openai/gpt-4o
+//     qwen/qwen3-vl-235b-a22b-instruct   (strongest open-weight)
+//     qwen/qwen2.5-vl-72b-instruct       (the default below)
+//
+//   Cheap, good for bulk captioning (describe:missing over a whole folder):
+//     google/gemini-2.5-flash
+//     google/gemini-2.5-flash-lite
+//     qwen/qwen3-vl-32b-instruct
+//     qwen/qwen3-vl-30b-a3b-instruct
+//     qwen/qwen3-vl-8b-instruct
 
 import process from "node:process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -57,8 +77,8 @@ export async function describeImage(imagePath) {
   }
   const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
   // Qwen2.5-VL 72B — a strong open vision model on OpenRouter. Override with
-  // DESCRIBE_MODEL to try another (e.g. google/gemini-2.5-flash for cheap bulk).
-  const model = process.env.DESCRIBE_MODEL ?? "qwen/qwen-2.5-vl-72b-instruct";
+  // DESCRIBE_MODEL to try another (see the list at the top of this file).
+  const model = process.env.DESCRIBE_MODEL ?? "qwen/qwen2.5-vl-72b-instruct";
 
   const ext = extname(imagePath).toLowerCase();
   const mime = MIME[ext];
