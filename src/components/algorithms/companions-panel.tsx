@@ -36,7 +36,12 @@ import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
-import { ELISE } from "@/lib/companions/companions";
+import {
+  COMPANIONS,
+  companionList,
+  DEFAULT_COMPANION_ID,
+  type CompanionId,
+} from "@/lib/companions/companions";
 import type { CompanionTool } from "@/lib/companions/tools";
 import {
   CompanionEngine,
@@ -145,6 +150,13 @@ export function CompanionsPanel({
   onEnterPlay: () => void;
 }) {
   const device = vacuglide.player;
+
+  // The picked companion. Chosen in the setup view and fixed for the play
+  // session (the nav lock stops you returning to the picker mid-session), so it
+  // rides in panel state and drives the voice session's persona.
+  const [companionId, setCompanionId] =
+    useState<CompanionId>(DEFAULT_COMPANION_ID);
+  const companion = COMPANIONS[companionId];
 
   // The device engine — one instance, owned here. Defined before the voice
   // session because the session's tools/device-state callback both close over
@@ -329,6 +341,7 @@ export function CompanionsPanel({
     status,
     audioRef,
   } = useVoiceSession({
+    companion,
     tools,
     getDeviceState,
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, "hit"),
@@ -459,11 +472,28 @@ export function CompanionsPanel({
             Choose a companion. She listens, replies in her own voice, and runs
             the device while you talk — cut in any time and she stops.
           </p>
-          <div className="mt-2 rounded-lg border border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 p-4">
-            <p className="font-medium">{ELISE.name}</p>
-            <p className="text-muted-foreground text-sm">
-              A high-energy, flirty streamer with a dry, quieter side.
-            </p>
+          <div className="mt-2 flex flex-col gap-2">
+            {companionList.map((c) => {
+              const selected = c.id === companionId;
+              return (
+                <Button
+                  key={c.id}
+                  flash={false}
+                  onClick={() => setCompanionId(c.id)}
+                  aria-pressed={selected}
+                  className={`rounded-lg border p-4 text-left ${
+                    selected
+                      ? "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5"
+                      : "border-foreground/15 hover:border-foreground/30"
+                  }`}
+                >
+                  <p className="font-medium">{c.name}</p>
+                  <p className="text-muted-foreground text-sm">
+                    {c.description}
+                  </p>
+                </Button>
+              );
+            })}
           </div>
           {/* No badge — Companions registers no vosk words. */}
           <Button
