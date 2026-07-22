@@ -2,6 +2,7 @@
 
 ## 2026-07-22
 
+- feature: **Add a second companion — Aimee** — Companions now has two to pick from. Aimee is your sweet, eager-to-please Welsh girlfriend on a late-night video call: where Elise takes the lead, Aimee lets you drive — she follows your pace, likes it slow and soft with a gentle build, tells you out loud what she's doing to herself, and will match the toy to it if you like. She has her own voice, and remembers your conversation just like Elise. ([#14](https://github.com/autogoon/autogoon/pull/14))
 - enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#14](https://github.com/autogoon/autogoon/pull/14))
 - bug: **Fix a variability change before Start ramping from zero** — changing Groove's dip or timing variability while the program was armed but not yet playing made the next cycle ramp up from a standstill instead of continuing from where the program sits; it now resumes from the program's current point (Companions' Variety knob shared the same fix). ([#14](https://github.com/autogoon/autogoon/pull/14))
 

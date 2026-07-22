@@ -1,16 +1,18 @@
 import { ELISE_SYSTEM_PROMPT } from "./elise-prompt";
+import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
 
 // The companions the user can pick from. One persona = one entry: its voice,
 // model and system prompt travel together here as pure data, so a new companion
 // is a new entry, nothing else. The picker, the play session and the saved
 // thread all key off the chosen entry.
-export type CompanionId = "elise";
+export type CompanionId = "elise" | "aimee";
 
 export type Companion = {
   id: CompanionId; // stable key — picker selection, thread namespace
   name: string;
   description: string; // one-line blurb shown on the picker card
   gender: "female" | "male" | "nonbinary"; // display-only, shown on the picker
+  accent_colour: string; // her signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
@@ -24,6 +26,7 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     name: "Elise",
     description: "A high-energy, flirty streamer with a dry, quieter side.",
     gender: "female",
+    accent_colour: "fuchsia",
     // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
     voiceId: "uhseMNDjn3oAF24Hh83b", // normal
     systemPrompt: ELISE_SYSTEM_PROMPT,
@@ -32,10 +35,22 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     contextWindow: 1_000_000,
     passesReasoning: true,
   },
+  aimee: {
+    id: "aimee",
+    name: "Aimee",
+    description: "A sweet, eager-to-please girlfriend who lets you lead.",
+    gender: "female",
+    accent_colour: "emerald",
+    voiceId: "sqZCQtdUVfHdrVrYgmpm",
+    systemPrompt: AIMEE_SYSTEM_PROMPT,
+    model: "minimax/minimax-m3",
+    // Same model as Elise — MiniMax M3, 1,000,000-token window on OpenRouter.
+    contextWindow: 1_000_000,
+    passesReasoning: true,
+  },
 };
 
-// Stable render order for the picker, derived from the one source above.
-export const companionList: Companion[] = Object.values(COMPANIONS);
-
-// The companion selected by default when the picker first opens.
-export const DEFAULT_COMPANION_ID: CompanionId = "elise";
+// The picker order, derived from the one source above: alphabetical by name.
+export const companionList: Companion[] = Object.values(COMPANIONS).sort(
+  (a, b) => a.name.localeCompare(b.name),
+);

@@ -39,7 +39,6 @@ import { useVoiceSession } from "@/hooks/use-voice-session";
 import {
   COMPANIONS,
   companionList,
-  DEFAULT_COMPANION_ID,
   type CompanionId,
 } from "@/lib/companions/companions";
 import type { CompanionTool } from "@/lib/companions/tools";
@@ -153,9 +152,12 @@ export function CompanionsPanel({
 
   // The picked companion. Chosen in the setup view and fixed for the play
   // session (the nav lock stops you returning to the picker mid-session), so it
-  // rides in panel state and drives the voice session's persona.
-  const [companionId, setCompanionId] =
-    useState<CompanionId>(DEFAULT_COMPANION_ID);
+  // rides in panel state and drives the voice session's persona. Starts on the
+  // first companion in the list; the picker recolours per accent, so there's no
+  // "default" beyond a valid starting selection.
+  const [companionId, setCompanionId] = useState<CompanionId>(
+    companionList[0]!.id,
+  );
   const companion = COMPANIONS[companionId];
 
   // The device engine — one instance, owned here. Defined before the voice
@@ -474,34 +476,31 @@ export function CompanionsPanel({
           </p>
           <div className="mt-2 flex flex-col gap-2">
             {companionList.map((c) => {
-              const selected = c.id === companionId;
+              // Identical to the home algorithm list's card, minus the icon (and
+              // no badge — Companions registers no vosk words). The accent
+              // gradient is the companion's own accent_colour, interpolated in
+              // and safelisted in globals.css.
+              const accent = c.accent_colour;
               return (
                 <Button
                   key={c.id}
-                  flash={false}
-                  onClick={() => setCompanionId(c.id)}
-                  aria-pressed={selected}
-                  className={`rounded-lg border p-4 text-left ${
-                    selected
-                      ? "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5"
-                      : "border-foreground/15 hover:border-foreground/30"
-                  }`}
+                  onClick={() => {
+                    setCompanionId(c.id);
+                    enterPlay();
+                  }}
+                  className={`flex items-center gap-4 rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 text-left hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
                 >
-                  <p className="font-medium">{c.name}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {c.description}
-                  </p>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{c.name}</span>
+                    <span className="text-muted-foreground block text-sm">
+                      {c.description}
+                    </span>
+                  </span>
+                  <ChevronRight className="text-muted-foreground size-4 shrink-0" />
                 </Button>
               );
             })}
           </div>
-          {/* No badge — Companions registers no vosk words. */}
-          <Button
-            onClick={enterPlay}
-            className="mt-4 w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white"
-          >
-            Begin
-          </Button>
           <p className="text-muted-foreground mt-4 text-xs">
             <span className="text-foreground font-medium">Privacy.</span> Unlike
             the rest of Autogoon, Companions sends data off your device: your

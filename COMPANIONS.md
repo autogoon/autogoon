@@ -25,12 +25,17 @@ straight through, and the key never reaches the client.
 
 ## One config object per companion
 
-Each companion is a `Companion` entry in `src/lib/companions` (see
-`companions.ts`):
+The companions live in a **keyed record** in `src/lib/companions` (see
+`companions.ts`) — `COMPANIONS: Record<CompanionId, Companion>`, where
+`CompanionId` is a string-literal union of the ids. The picker order
+(`companionList`) and the default selection (`DEFAULT_COMPANION_ID`) derive from
+that one record. Each entry is a `Companion`:
 
 ```ts
 export type Companion = {
+  id: CompanionId; // stable key — must equal the record key; picker + thread key
   name: string;
+  description: string; // one-line blurb shown on the picker card
   gender: "female" | "male" | "nonbinary"; // display-only, shown on the picker
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message
@@ -40,6 +45,9 @@ export type Companion = {
 };
 ```
 
+- `id` is the entry's **stable key** — it must equal the record key (a unit test
+  enforces this), and it namespaces the saved conversation thread.
+- `description` is the **one-line blurb** shown on the companion's picker card.
 - `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m3`) — the
   client sends it directly in each chat-completions call, so different
   companions can run entirely different models.
@@ -65,13 +73,31 @@ the stream and replays it verbatim on Elise's stored turns. Elise carries
 `passesReasoning: true`; a future non-reasoning companion sets it `false` and
 the field is simply never sent.
 
+### Shared prompt sections
+
+A `systemPrompt` is not one monolithic string per companion. The **mechanical
+rules that are the same for everyone** — how a reply is formatted (spoken words
+only, no narration), the baseline speaking style, and how the device is driven —
+live once in `shared-prompt.ts` as persona-neutral blocks
+(`OUTPUT_FORMAT_SECTION`, `SHARED_STYLE_BULLETS`, `CONTROL_SUMMARY_SECTION` —
+the in-scene one-line intro to the two knobs, dropped into INTIMACY — and
+`CONTROL_SECTION`). Each persona module interpolates them into place, so those
+rules can't drift between companions. What stays in the persona module is only
+that companion: her character, setup, tone, and disposition (crucially, **who
+leads** during play — the shared control block is neutral on that). Personas are
+written in the **second person** ("You're 21…") so they read as one voice with
+the shared blocks. `CONTROL_SECTION` ends with the `{{TOY_STATUS}}` marker, so
+it must come last in a prompt.
+
 ### Adding a companion
 
-Add a new `Companion` entry with its own `model`, `contextWindow`, `voiceId`,
-and `systemPrompt`. If the persona text is long (as personas tend to be), give
-it its own module — e.g. `elise-prompt.ts` exports `ELISE_SYSTEM_PROMPT`, a
-plain template-literal string — and import it into `companions.ts`, so the
-companion list itself stays readable.
+Add a new `Companion` entry (keyed by its `id`) with its own `model`,
+`contextWindow`, `voiceId`, and `systemPrompt`, and widen the `CompanionId`
+union. Give the persona its own module — e.g. `elise-prompt.ts` exports
+`ELISE_SYSTEM_PROMPT` — that interpolates the shared sections from
+`shared-prompt.ts` and fills in the rest, then import it into `companions.ts`.
+The picker, switch and thread all derive from the record, so nothing else needs
+touching.
 
 ## Device control
 
