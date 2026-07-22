@@ -75,20 +75,22 @@ companion list itself stays readable.
 
 ## Device control
 
-A companion **drives the device through LLM tools**. Each turn the app offers
-the model a set of function tools — currently `start`, `stop`, `intensity`
-(`warmup` / `low` / `medium` / `high`) and `edge_control` (`gentle` / `moderate`
-/ `intense`) — and when she calls one the panel runs the same transport and
-knobs the on-screen controls use. `intensity` and `edge_control` take a `level`
-argument; `start`/`stop` take none. Whether she acts on a request or declines is
-a disposition written into her `systemPrompt`, not a code gate. Companions
-default to a **gentle baseline** — warmup intensity, gentle edging, no vacuum
-maintenance, plus a one-shot stroke-minus tease at session start — and she
-builds up from there.
+A companion **drives the device through LLM tools**. Each turn the app offers the
+model a set of function tools — currently `start`, `stop`, `intensity` (a percent
+0–100 — how hard and fast the toy drives) and `variety` (`off` / `low` / `medium`
+/ `high` — how much it teases and mixes up the pace) — and when she calls one the
+panel runs the same transport and knobs the on-screen controls use. `intensity`
+takes a `percent` argument and is applied **live** (scaled every tick, re-sent
+with a `refresh()`, no regeneration); `variety` takes a `level` and reshapes the
+generated dip pattern (so it drops and regenerates the not-yet-played future);
+`start`/`stop` take none. Whether she acts on a request or declines is a
+disposition written into her `systemPrompt`, not a code gate. Companions default
+to a **gentle baseline** — low intensity, light variety, plus a one-shot
+stroke-minus tease at session start — and she builds up from there.
 
 The device's **current state is folded into her system message every turn** —
 whether the toy is **connected** to the app, whether it is **running**, and its
-current **intensity and edging level** — so she always knows all of it without a
+current **intensity percent and variety level** — so she always knows all of it without a
 status tool, and stays in sync even when a level is changed via the on-screen
 knobs rather than her own tools. The wording is plain and avoids the in-app term
 "program."
