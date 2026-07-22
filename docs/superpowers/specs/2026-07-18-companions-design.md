@@ -1,14 +1,18 @@
 # Companions — Design & Context
 
-> **Status:** partially shipped. Phases 1–5, the Phase 6 `start`/`stop` tools
-> slice, barge-in tuning (word + energy gate), and a shared-secret demo access
-> gate landed on `main` in [#13](https://github.com/autogoon/autogoon/pull/13).
-> The remaining work — Phase 6's speed/shape/valve tools and Phases 7–12 —
-> continues in [#14](https://github.com/autogoon/autogoon/pull/14). This is the
-> shared context for a long-running, multi-phase feature. It records **what
-> we're building, how it works, and why we chose each path** — so any later
-> phase's spec/plan can lean on it. Per-phase specs live beside this file;
-> implementation plans live under `docs/superpowers/plans/`.
+> **Status:** partially shipped. Phases 1–5 and Phase 6's full tool set landed
+> cumulatively: Phases 1–5, the `start`/`stop` tools, and a first
+> `intensity`/`edge_control` pair merged to `main` in
+> [#13](https://github.com/autogoon/autogoon/pull/13) — along with the LLM
+> backend move to OpenRouter, barge-in tuning (word + energy gate), and a
+> shared-secret demo access gate. On branch `companions-2` (PR link to be
+> added), that pair was retooled into the shipped `intensity`/`variety` tools
+> described below, completing Phase 6. The remaining work — Phases 7–12 —
+> continues on `companions-2`. This is the shared context for a long-running,
+> multi-phase feature. It records **what we're building, how it works, and why
+> we chose each path** — so any later phase's spec/plan can lean on it.
+> Per-phase specs live beside this file; implementation plans live under
+> `docs/superpowers/plans/`.
 
 ## Goal
 
@@ -142,10 +146,11 @@ current/upcoming device state), fed by three triggers:
 
 You can ask for changes by voice; **the companion decides whether to honor
 them** — a disposition written into her `systemPrompt`, not a code gate. If she
-does act, it goes through **tools** wired to the **same mechanisms Groove
-already has** — `setSpeedPercent` (live), `invalidateFuture` (shape knobs), and
-the stroke controls (`valvePlus`/`valveMinus`). She is not authoring raw device
-events; she is a conversational hand on the existing knobs.
+does act, it goes through **tools**, as shipped: `start`, `stop`, `intensity`
+(a live percent, applied every tick) and `variety` (a level that reshapes the
+generated pattern). Manual stroke (`valvePlus`/`valveMinus`) is an **on-screen
+control only** — it is not offered to the LLM as a tool. She is not authoring
+raw device events; she is a conversational hand on the existing knobs.
 
 **Starting is the companion's move (Phase 6).** The device program does **not**
 auto-start. The user opens a session by starting to listen and talking to the
@@ -196,43 +201,43 @@ it sidesteps the echo problem for free.
 
 ### LLM
 
-> As of Phase 4 the backend is **OpenRouter** (OpenAI-compatible), not
-> self-hosted Ollama; the persona lives in the `Companion` config as a
-> client-side system message, and each companion carries its own `model` +
-> `contextWindow`. The rationale below (why not Claude/OpenAI, why an
-> OpenAI-compatible chat shape) still holds — only the hosting changed. See
-> COMPANIONS.md for the current setup.
-
 Claude and OpenAI both restrict explicit adult content (OpenAI's "adult mode"
 was floated in Oct 2025 and **paused indefinitely as of March 2026**), so
-neither frontier API is viable here. We use a **self-hosted uncensored
-open-weight model via Ollama** (self-hosted on a local machine; the app connects
-to it over the LAN). Ollama exposes an **OpenAI-compatible streaming HTTP
-endpoint**.
+neither frontier API is viable here. We use **OpenRouter**, an OpenAI-compatible
+hosted proxy that fronts a wide range of models — no self-hosting, no LAN
+Ollama box. OpenRouter itself doesn't restrict content; that's a property of
+whichever model a companion picks.
 
-- **Model: Cydonia 24B (v4.3), Q6_K** — TheDrummer's uncensored Mistral-Small
-  finetune, Ollama tag `hf.co/bartowski/TheDrummer_Cydonia-24B-v4.3-GGUF:Q6_K`
-  (MythoMax L2 13B, the original placeholder, is retired as outdated). Each
-  companion is its own Ollama model card built on this shared base — see
-  COMPANIONS.md. Swappable, not load-bearing.
+- **Elise's model: `minimax/minimax-m3`** — an OpenRouter model slug, permissive
+  enough for her persona's roleplay and (per COMPANIONS.md) markedly more
+  reliable at calling device tools than its predecessor, M2. Each `Companion`
+  carries its own `model` slug and `contextWindow` (Elise: 1,000,000 tokens) —
+  swappable per companion, not load-bearing on this specific model.
+- The persona lives in the `Companion` config as a client-side `systemPrompt`,
+  sent as the LLM's `system` message every turn — there is no server-side model
+  card (the deleted Ollama Modelfile's job moved into code).
 - The app targets an **`LLMClient` over the OpenAI chat-completions shape**, so
-  the backend (local Ollama now, a hosted permissive RP API later) is swappable
-  config behind `LLM_URL` / `LLM_MODEL`.
-- Calls go through a **Next API route** that forwards to `LLM_URL` (Ollama's
-  endpoint) — same-origin for the browser (no CORS / `OLLAMA_ORIGINS` juggling),
-  streaming passes straight through, and the host/model detail stays
-  server-side. Streaming is abortable (close the fetch).
+  the backend is swappable config behind `LLM_URL` (OpenRouter's endpoint).
+  There is no `LLM_MODEL` — model selection is per-companion, not global.
+- Calls go through a **Next API route** (`/api/llm`) that forwards to
+  `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header —
+  same-origin for the browser (no CORS juggling), streaming passes straight
+  through, and the key never reaches the client. Streaming is abortable (close
+  the fetch).
 
 ### Safety / KWS
 
-Vosk keyword spotting is **reserved for the safeword** in this algorithm
-(reusing the existing safe-word feature) → immediate stop. Whether the other
-global/nav words stay live during a session is a per-slice detail.
+As shipped, the Companions panel registers **no vosk words at all** — open
+dictation to the companion would otherwise transcribe them, so even the manual
+stroke controls are buttons-only with no voice badges. The intended design —
+Vosk keyword spotting **reserved for the safeword** (reusing the existing
+safe-word feature) for an immediate hard stop — is **not built**; that's Phase
+8's job, including whether any global/nav words stay live during a session.
 
 ### Secrets (public repo)
 
 The repository is **public**, so no key is ever committed. `ELEVENLABS_API_KEY`
-and the Ollama host live in **`.env`** (gitignored); a secret-free
+and `OPENROUTER_API_KEY` live in **`.env`** (gitignored); a secret-free
 `.env.example` is the committed template. All secret-bearing calls (STT token
 minting, TTS, LLM proxy) run **server-side in Next API routes** — nothing is
 `NEXT_PUBLIC_*`, so no secret reaches the browser bundle.
@@ -347,31 +352,34 @@ here.
    pattern applies to DeepSeek / Kimi thinking modes to varying degrees; MiniMax
    is the emphatic case.)
 
-6. **Tools & control.** The action mechanism — the app gives her **tools** to
-   drive the device (`setSpeedPercent`, `invalidateFuture`, valve controls, and
-   `start`/`stop`) and executes them when she calls them; `start` becomes the
-   companion's move. **Getting the companion to start the toy is the first
-   step** of a session, which is why the action mechanism lands before the
-   proactive narration that rides on the running program. Whether she acts on
-   your request or **declines** is a disposition written into her `systemPrompt`
-   — the code exposes and runs the tools; her personality decides use. The first
-   slice wires the two zero-argument actions — **`start` and `stop`** — end to
-   end; the richer tools (`setSpeedPercent`, `invalidateFuture`, valves) follow
-   on the same mechanism. **Resolved (the open question was native tool-calls
-   vs. markers):** she expresses actions through **native tool-calls** (the
-   OpenAI-compatible `tools` field), not markers parsed from her speech. Two
-   findings from bring-up proved load-bearing and are now part of the design:
-   (a) the assistant's `tool_calls` and their results must be **persisted to the
-   thread and replayed** as a proper agentic message sequence — a companion that
-   only ever sees itself _talking_ (tool calls stripped from history) drifts
-   back to narrating "_starting_" instead of calling; replaying its own prior
-   calls kept it reliably calling (0/6 → 6/6 in bring-up testing); and (b) after
-   a call runs, its result is fed back for a **second round-trip** so she reacts
-   in words to what actually happened. The live toy state (connection + whether
-   it's running) is folded into her system message every turn as ambient context
-   — there is **no `status` tool**. _Ships:_ ask her to start / stop / (later)
-   speed up / edge you — she decides in character and the device follows, or she
-   refuses.
+6. **Tools & control (as shipped).** The action mechanism — the app gives her
+   **tools** to drive the device (`start`, `stop`, `intensity`, `variety`) and
+   executes them when she calls them; `start` becomes the companion's move.
+   **Getting the companion to start the toy is the first step** of a session,
+   which is why the action mechanism lands before the proactive narration that
+   rides on the running program. Whether she acts on your request or
+   **declines** is a disposition written into her `systemPrompt` — the code
+   exposes and runs the tools; her personality decides use. The first slice
+   wired the two zero-argument actions — **`start` and `stop`** — end to end;
+   `intensity` (a live percent) and `variety` (a level that reshapes the
+   generated pattern) followed on the same mechanism. **Resolved (the open
+   question was native tool-calls vs. markers):** she expresses actions through
+   **native tool-calls** (the OpenAI-compatible `tools` field), not markers
+   parsed from her speech. Two findings from bring-up proved load-bearing and
+   are now part of the design: (a) the assistant's `tool_calls` and their
+   results must be **persisted to the thread and replayed** as a proper agentic
+   message sequence — a companion that only ever sees itself _talking_ (tool
+   calls stripped from history) drifts back to narrating "_starting_" instead
+   of calling; replaying its own prior calls kept it reliably calling (0/6 →
+   6/6 in bring-up testing); and (b) after a call runs, its result is fed back
+   for a **second round-trip** so she reacts in words to what actually
+   happened. The live toy state (connection + whether it's running, plus its
+   current intensity/variety) is folded into her system message every turn as
+   ambient context — there is **no `status` tool**. Manual stroke
+   (`valvePlus`/`valveMinus`) shipped as an **on-screen control only**, never
+   offered to the LLM as a tool. _Ships:_ ask her to start / stop / get more
+   intense / mix it up more — she decides in character and the device follows,
+   or she refuses.
 
 7. **Proactive speech: narration + ambient.** Built on Phase 5's thread and
    Phase 6's companion-driven control. The thread carries current + upcoming
