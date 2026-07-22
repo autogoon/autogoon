@@ -7,7 +7,10 @@
 // describeImage() the single-image `npm run describe` uses. Images that already
 // have a description are left untouched, so it's safe to re-run after dropping
 // in more. Reads OPENROUTER_API_KEY / LLM_URL from the environment (the npm
-// script loads .env via --env-file-if-exists).
+// script loads .env via --env-file-if-exists), and honours DESCRIBE_MODEL the
+// same as `npm run describe`, so you can pick the model for a bulk run:
+//
+//   DESCRIBE_MODEL=google/gemini-2.5-flash npm run describe:missing
 
 import process from "node:process";
 import { readdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";

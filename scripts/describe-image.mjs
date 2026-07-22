@@ -6,9 +6,11 @@
 //
 //   npm run describe public/companions/aimee/whatever.jpg
 //
-// Uses Qwen2.5-VL on OpenRouter by default; override with DESCRIBE_MODEL. Reads
+// Uses Qwen3-VL on OpenRouter by default; override with DESCRIBE_MODEL. Reads
 // OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script loads
-// .env via --env-file-if-exists, so the same key the app uses just works.
+// .env via --env-file-if-exists, so the same key the app uses just works. The
+// image is downscaled (long edge 1024px, JPEG q80) with macOS `sips` before
+// sending, so this script is macOS-only.
 //
 // describeImage() and sidecarPath() are exported so describe-missing.mjs can
 // reuse them; the CLI below runs only when this file is the entry point.
@@ -18,25 +20,28 @@
 // Input modality → Image); the catalogue shifts over time:
 //
 //   Best quality / most detailed:
-//     google/gemini-2.5-pro
-//     anthropic/claude-opus-4.8
-//     anthropic/claude-sonnet-4.5
-//     openai/gpt-4.1
-//     openai/gpt-4o
-//     qwen/qwen3-vl-235b-a22b-instruct   (strongest open-weight)
-//     qwen/qwen2.5-vl-72b-instruct       (the default below)
+//     Gemini 2.5 Pro           google/gemini-2.5-pro
+//     Claude Opus 4.8          anthropic/claude-opus-4.8
+//     Claude Sonnet 4.5        anthropic/claude-sonnet-4.5
+//     GPT-4.1                  openai/gpt-4.1
+//     GPT-4o                   openai/gpt-4o
+//     Qwen3-VL 235B            qwen/qwen3-vl-235b-a22b-instruct  (strongest open-weight; the default below)
+//     Qwen2.5-VL 72B           qwen/qwen2.5-vl-72b-instruct
 //
 //   Cheap, good for bulk captioning (describe:missing over a whole folder):
-//     google/gemini-2.5-flash
-//     google/gemini-2.5-flash-lite
-//     qwen/qwen3-vl-32b-instruct
-//     qwen/qwen3-vl-30b-a3b-instruct
-//     qwen/qwen3-vl-8b-instruct
+//     Gemini 2.5 Flash         google/gemini-2.5-flash
+//     Gemini 2.5 Flash Lite    google/gemini-2.5-flash-lite
+//     Qwen3-VL 32B             qwen/qwen3-vl-32b-instruct
+//     Qwen3-VL 30B A3B         qwen/qwen3-vl-30b-a3b-instruct
+//     Qwen3-VL 8B              qwen/qwen3-vl-8b-instruct
 
 import process from "node:process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, rmSync } from "node:fs";
 import { basename, extname, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 
 const MIME = {
   ".jpg": "image/jpeg",
@@ -47,6 +52,47 @@ const MIME = {
   ".avif": "image/avif",
 };
 
+// Before sending, the image is downscaled to a JPEG with its long edge at most
+// this many pixels — plenty for a reliable description and a fraction of the
+// upload of a full-res original (the models downscale internally anyway).
+const MAX_EDGE = 1024;
+const JPEG_QUALITY = 80;
+
+// Downscale an image to a temp JPEG (long edge MAX_EDGE, quality JPEG_QUALITY)
+// and return its bytes; the caller deletes nothing — this cleans up its own temp
+// file. Uses macOS `sips` (built in), so this script is macOS-only.
+function resizedJpeg(imagePath) {
+  const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
+  try {
+    execFileSync(
+      "sips",
+      [
+        "-Z",
+        String(MAX_EDGE),
+        "-s",
+        "format",
+        "jpeg",
+        "-s",
+        "formatOptions",
+        String(JPEG_QUALITY),
+        imagePath,
+        "--out",
+        tmp,
+      ],
+      { stdio: "ignore" },
+    );
+    return readFileSync(tmp);
+  } catch (e) {
+    throw new Error(
+      `sips failed to resize ${imagePath} (this script needs macOS): ${
+        e instanceof Error ? e.message : String(e)
+      }`,
+    );
+  } finally {
+    rmSync(tmp, { force: true });
+  }
+}
+
 // The house caption style — matches the existing sidecar descriptions so a
 // freshly-described image reads like the rest of the set.
 const PROMPT = `Write a single-line caption for this photo — it is pose/mood metadata for a companion app that lets the user pick a picture that fits the moment.
@@ -54,8 +100,10 @@ const PROMPT = `Write a single-line caption for this photo — it is pose/mood m
 Rules:
 - One sentence, roughly 15–30 words, present tense, NO leading pronoun
 - Start with the pose/action, and include the location and lighting.
-- Cover: outfit / state of undress, specific pose and position, what her hair is doing, gaze/expression, and the overall mood.
+- Cover: outfit / state of undress, specific pose and position, if she is sitting facing away or towards the camera, what her hair is doing, gaze/expression, and the overall mood.
 - Take extra care to describe the pose, especially if she's sitting/kneeling/lying down, and what her hands are doing.
+- Take care of what uncovered body parts are visible, and how the clothing is arranged.
+- Note if you can see for example, her back, thighs, nipples, pokies, pubic hair, or genitals, and if so, how much is visible.
 
 Output ONLY the caption line — no quotes, no preamble, no extra text.`;
 
@@ -76,16 +124,17 @@ export async function describeImage(imagePath) {
     throw new Error("OPENROUTER_API_KEY is not set — put it in .env.");
   }
   const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
-  // Qwen2.5-VL 72B — a strong open vision model on OpenRouter. Override with
+  // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
   // DESCRIBE_MODEL to try another (see the list at the top of this file).
-  const model = process.env.DESCRIBE_MODEL ?? "qwen/qwen2.5-vl-72b-instruct";
+  const model =
+    process.env.DESCRIBE_MODEL ?? "qwen/qwen3-vl-235b-a22b-instruct";
 
   const ext = extname(imagePath).toLowerCase();
-  const mime = MIME[ext];
-  if (mime === undefined) {
+  if (MIME[ext] === undefined) {
     throw new Error(`Unsupported image type: ${ext || "(none)"}`);
   }
-  const dataUri = `data:${mime};base64,${readFileSync(imagePath).toString(
+  // Always send a downscaled JPEG, whatever the source format.
+  const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
     "base64",
   )}`;
 
