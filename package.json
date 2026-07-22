@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "gen:pictures": "node scripts/generate-companion-pictures.mjs",
+    "describe": "node --env-file-if-exists=.env scripts/describe-image.mjs",
     "predev": "npm run gen:pictures",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "prebuild": "npm run gen:pictures",
