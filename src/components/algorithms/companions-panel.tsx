@@ -17,6 +17,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -595,11 +596,16 @@ export function CompanionsPanel({
   const [previewOpen, setPreviewOpen] = useState(false);
 
   // Keep the chat transcript scrolled to the newest message/streamed reply.
+  // Also fires on `view`/`tab` so opening a companion with saved history (the
+  // transcript mounting fresh) lands at the bottom, not the top. useLayoutEffect
+  // so the jump happens before paint — no flash of the top on entry.
   const messagesRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = messagesRef.current;
     if (el !== null) el.scrollTop = el.scrollHeight;
   }, [
+    view,
+    tab,
     status.thread,
     status.replyText,
     status.replyPlaying,
