@@ -1,7 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import { PICTURES_SECTION } from "@/lib/companions/shared-prompt";
-import type { Companion } from "@/lib/companions/companions";
-import { applyOverlay, packToCompanion, resolveDefault } from "./resolve";
+import type { Companion, CompanionPicture } from "@/lib/companions/companions";
+import {
+  applyOverlay,
+  packToCompanion,
+  resolveDefault,
+  resolvePictureRef,
+} from "./resolve";
 
 const base: Companion = {
   id: "autogoon.aimee",
@@ -78,5 +83,24 @@ describe("packToCompanion", () => {
 describe("resolveDefault", () => {
   it("fills the built-in's tokens (pictureless → section dropped)", () => {
     expect(resolveDefault(base).systemPrompt).toBe("hi\n");
+  });
+});
+
+describe("resolvePictureRef", () => {
+  const pictures: CompanionPicture[] = [
+    { src: "blob:live", description: "d", ref: "goonpack:g00ner.aimee/1" },
+  ];
+  it("resolves a matching ref to its picture's src", () => {
+    expect(resolvePictureRef("goonpack:g00ner.aimee/1", pictures)).toBe(
+      "blob:live",
+    );
+  });
+  it("returns null when the same name lives in a different pack", () => {
+    expect(resolvePictureRef("goonpack:other.pack/1", pictures)).toBeNull();
+  });
+  it("returns a legacy non-goonpack ref as-is", () => {
+    expect(resolvePictureRef("/companions/aimee/x.jpg", pictures)).toBe(
+      "/companions/aimee/x.jpg",
+    );
   });
 });

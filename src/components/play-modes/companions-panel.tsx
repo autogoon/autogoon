@@ -34,7 +34,6 @@ import {
   MicOff,
   X,
 } from "lucide-react";
-import { migrateThreadKeys } from "@/lib/goonpacks/migrate";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
@@ -352,12 +351,6 @@ export function CompanionsPanel({
   onEnterPlay: () => void;
 }) {
   const device = vacuglide.player;
-
-  // One-time thread-key migration (bare ids → autogoon.*) before anything
-  // reads a thread. Moves into the goonpack library hook when it lands.
-  useEffect(() => {
-    migrateThreadKeys(localStorage);
-  }, []);
 
   // The picked companion. Chosen in the setup view and fixed for the play
   // session (the nav lock stops you returning to the picker mid-session), so it

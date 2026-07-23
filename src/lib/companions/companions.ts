@@ -18,6 +18,7 @@ export type CompanionId = string;
 export type CompanionPicture = {
   src: string;
   description: string;
+  ref?: string; // stable thread ref (goonpack:<packId>/<name>); packs only
 };
 
 export type Companion = {

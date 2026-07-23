@@ -47,6 +47,17 @@ export function packToCompanion(pack: PackContent): Companion {
   };
 }
 
+// A thread's persisted picture ref → a renderable src, or null when the
+// referenced pack picture isn't in the loaded set (render a placeholder —
+// never a substitute picture).
+export function resolvePictureRef(
+  ref: string,
+  pictures: CompanionPicture[] | undefined,
+): string | null {
+  if (!ref.startsWith("goonpack:")) return ref; // legacy path-style imageSrc
+  return pictures?.find((p) => p.ref === ref)?.src ?? null;
+}
+
 export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const m = overlay.manifest;
   const pictures =
