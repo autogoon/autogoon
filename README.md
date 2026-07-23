@@ -23,8 +23,8 @@ to install; just open it, enter your device token, and go.
     timing variability).
   - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.
   - **Companions** — talk to an AI companion who chats back in her own voice,
-    remembers the conversation, and drives the toy herself. Access-gated — see
-    [The app](#the-app).
+    remembers the conversation, drives the toy herself — and, given pictures,
+    sends you one that fits the moment. Access-gated — see [The app](#the-app).
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
 
@@ -66,6 +66,11 @@ routes only answer) for someone who has entered a valid access ID under
 Settings, from the `COMPANIONS_ACCESS_IDS` list set in the deploy's env (see
 [`.env.example`](./.env.example)). Unset, Companions stays hidden everywhere,
 including locally.
+
+**Companion pictures are bring-your-own.** During a call, a companion who has
+pictures can send you one that fits the moment — she picks by each picture's
+caption, so no image ever goes to a vision model during the call. See
+[modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures) to set that up.
 
 **Exit** — the breadcrumb's Home button, or the spoken word — goes back up.
 While a session is running, Exit is locked (and leaves the grammar): you can't

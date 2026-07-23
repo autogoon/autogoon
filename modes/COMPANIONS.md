@@ -102,17 +102,23 @@ picture survives a reload. A companion with no pictures never sees the tool, and
 the shared pictures prompt block is only interpolated into a persona that has
 some.
 
-- **Pictures are local-only.** Drop images in `public/companions/<id>/` —
-  nothing under there is committed, so supply your own.
-  `scripts/generate-companion-pictures.mjs` globs each folder into a generated
-  module (it runs before every npm entry point via the `gen:pictures`
-  pre-hooks), which is what makes `companion.pictures` a plain synchronous
-  array.
-- **Captions come from a vision model, offline.** A picture's description is a
-  sidecar `.txt` beside it, written by `npm run describe <path>` /
-  `npm run describe:missing` — models, env and semantics are in the two scripts'
-  header comments (`scripts/describe-image.mjs`,
-  `scripts/describe-missing.mjs`).
+Pictures are **bring-your-own and local-only** — nothing under
+`public/companions/` is committed, so the repo ships no imagery. To give a
+companion pictures:
+
+1. **Drop images into `public/companions/<id>/`** — `<id>` is the companion's
+   key in `companions.ts` (e.g. `public/companions/aimee/`).
+2. **Caption them: `npm run describe:missing`** writes a sidecar `.txt` caption
+   next to every image that doesn't have one, using a vision model over your
+   `OPENROUTER_API_KEY` (`npm run describe <path>` does a single image; models
+   and options are in the two scripts' header comments,
+   `scripts/describe-image.mjs` and `scripts/describe-missing.mjs`). Captions
+   are plain text files — read them, and hand-fix any the model got wrong; the
+   caption is exactly what she chooses by.
+3. **Run `npm run gen:pictures`** (or just restart `npm run dev` — every main
+   npm script regenerates it via a pre-hook). It globs each folder into a
+   generated module, which is what makes `companion.pictures` a plain
+   synchronous array — and she'll offer to send them.
 
 ## Configuration
 
