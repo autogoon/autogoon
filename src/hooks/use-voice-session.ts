@@ -33,6 +33,7 @@ import {
   appendAssistant,
   appendTool,
   appendUser,
+  describeClock,
   parse,
   serialize,
   toLlmMessages,
@@ -83,6 +84,11 @@ export type VoiceSession = {
   // Wipe the conversation: empties the live thread, the mirror, and the
   // localStorage key. Button-only (no spoken word), instant, no confirm.
   clearThread: () => void;
+  // The exact LLM request a turn submitted right now would send — same thread
+  // projection and system-prompt fill as submitText, including gap markers and
+  // the live {{TOY_STATUS}}/{{NOW}} values. Debug-only (the panel's request
+  // viewer); building it sends nothing.
+  previewLlmMessages: () => LlmMessage[];
   status: VoiceStatus;
   audioRef: React.RefObject<HTMLAudioElement | null>;
 };
@@ -110,6 +116,13 @@ const MAYBE_CLOSE_INTERVAL_MS = 500;
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
   `companions:thread:${companion.id}`;
+
+// Fill a prompt's live markers: the device state at {{TOY_STATUS}} and the
+// wall clock at {{NOW}}. A prompt lacking a marker is unaffected.
+const buildSystemPrompt = (template: string, deviceState: string): string =>
+  template
+    .replace("{{TOY_STATUS}}", deviceState === "" ? "unknown" : deviceState)
+    .replace("{{NOW}}", describeClock(Date.now()));
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
@@ -219,6 +232,17 @@ export function useVoiceSession(opts: {
     setStatus((s) => ({ ...s, thread: seeded }));
   }, [threadKey]);
 
+  // The debug request viewer's data: project the live thread exactly as
+  // submitText would for a request sent this instant.
+  const previewLlmMessages = useCallback((): LlmMessage[] => {
+    const companion = companionRef.current;
+    return toLlmMessages(
+      threadRef.current,
+      buildSystemPrompt(companion.systemPrompt, getDeviceStateRef.current()),
+      companion.passesReasoning,
+    );
+  }, []);
+
   // The TTS player and LLM client, created on demand. start() makes them when the
   // mic opens; submitText() makes them for a typed turn so typing works with the
   // mic off. Both are stashed in refs and torn down in stop().
@@ -270,7 +294,7 @@ export function useVoiceSession(opts: {
       const companion = companionRef.current;
 
       // Commit the user turn the moment it's submitted (ref + state + persist).
-      persistThread(appendUser(threadRef.current, prompt));
+      persistThread(appendUser(threadRef.current, prompt, Date.now()));
 
       // Supersede any in-flight turn (its LLM stream + TTS) before starting.
       turnRef.current?.abort();
@@ -391,13 +415,11 @@ export function useVoiceSession(opts: {
         };
 
         try {
-          const deviceState = getDeviceStateRef.current();
-          // Inject the live toy status at the {{TOY_STATUS}} marker (bottom of
-          // the prompt's CONTROL section) so it's the last thing she reads. A
-          // companion whose prompt lacks the marker is unaffected.
-          const systemPrompt = companion.systemPrompt.replace(
-            "{{TOY_STATUS}}",
-            deviceState === "" ? "unknown" : deviceState,
+          // Fill the live markers — the toy status (bottom of the prompt's
+          // CONTROL section, the last thing she reads) and the current time.
+          const systemPrompt = buildSystemPrompt(
+            companion.systemPrompt,
+            getDeviceStateRef.current(),
           );
           const baseMessages = toLlmMessages(
             threadRef.current,
@@ -432,6 +454,7 @@ export function useVoiceSession(opts: {
               r1.content,
               companion.passesReasoning ? r1.reasoning : undefined,
               r1.toolCalls,
+              Date.now(),
             );
             for (const call of r1.toolCalls) {
               const tool = toolsRef.current.find((t) => t.name === call.name);
@@ -457,7 +480,14 @@ export function useVoiceSession(opts: {
               const imageSrc =
                 typeof raw === "string" ? undefined : raw.imageSrc;
               onToolRunRef.current?.(call.name, result);
-              next = appendTool(next, call.name, result, call.id, imageSrc);
+              next = appendTool(
+                next,
+                call.name,
+                result,
+                call.id,
+                imageSrc,
+                Date.now(),
+              );
             }
             persistThread(next);
             if (controller.signal.aborted || turnRef.current !== controller) {
@@ -492,6 +522,8 @@ export function useVoiceSession(opts: {
                 threadRef.current,
                 reply,
                 companion.passesReasoning ? reasoning : undefined,
+                undefined,
+                Date.now(),
               ),
             );
           }
@@ -654,6 +686,7 @@ export function useVoiceSession(opts: {
     submitText,
     cancelReply,
     clearThread,
+    previewLlmMessages,
     status,
     audioRef,
   };

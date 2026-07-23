@@ -14,6 +14,7 @@
 // bar is isolated in <RmsMeter>.
 
 import {
+  Fragment,
   memo,
   useCallback,
   useEffect,
@@ -24,7 +25,15 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, Cog, Mic, MicOff, X } from "lucide-react";
+import {
+  Braces,
+  ChevronDown,
+  ChevronRight,
+  Cog,
+  Mic,
+  MicOff,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
@@ -43,6 +52,7 @@ import {
   companionList,
   type CompanionId,
 } from "@/lib/companions/companions";
+import { sameLocalDay } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
 import {
   CompanionEngine,
@@ -98,19 +108,22 @@ function Spinner() {
 
 // One transcript row: user turns right-aligned in the accent colour, Elise's
 // left-aligned and muted. `pending` dims the in-progress reply until it folds
-// into the thread.
+// into the thread. `at` (absent on pending bubbles and pre-timestamp turns)
+// puts a small clock time under the bubble, on its aligned side.
 function ChatBubble({
   role,
   text,
+  at,
   pending = false,
 }: {
   role: "user" | "assistant";
   text: string;
+  at?: number;
   pending?: boolean;
 }) {
   const isUser = role === "user";
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
           isUser ? "bg-blue-600 text-white" : "bg-foreground/10"
@@ -120,6 +133,30 @@ function ChatBubble({
             while keeping internal paragraph breaks under whitespace-pre-wrap. */}
         {text.trim()}
       </div>
+      {at !== undefined && (
+        <span className="text-muted-foreground mt-0.5 px-1 text-[10px]">
+          {new Date(at).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// A centered date row marking where the transcript crosses into a new local
+// day (and above the first stamped message).
+function DateHeader({ at }: { at: number }) {
+  const showYear = new Date(at).getFullYear() !== new Date().getFullYear();
+  return (
+    <div className="text-muted-foreground py-1 text-center text-xs">
+      {new Date(at).toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        ...(showYear ? { year: "numeric" } : {}),
+      })}
     </div>
   );
 }
@@ -232,6 +269,70 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
           className="object-contain"
         />
       </div>
+    </div>
+  );
+}
+
+// The LLM request viewer's trigger — one button, shared by the Session mic row
+// (`short`: icon only, sized to the mic button) and the Debug tab (`long`:
+// icon + label). The click handler lives in the panel (it needs the session
+// and the overlay state); this owns the look.
+function DebugLLMButton({
+  onClick,
+  variant = "short",
+}: {
+  onClick: () => void;
+  variant?: "short" | "long";
+}) {
+  const long = variant === "long";
+  return (
+    <Button
+      onClick={onClick}
+      aria-label="Show LLM request"
+      title="Show LLM request"
+      className={`bg-foreground/10 hover:bg-foreground/20 flex shrink-0 items-center justify-center rounded-lg ${
+        long ? "gap-2 px-4 py-2 text-sm font-medium" : "p-3"
+      }`}
+    >
+      <Braces className={long ? "size-4" : "size-5"} />
+      {long && "Show request"}
+    </Button>
+  );
+}
+
+// Near-fullscreen overlay showing the Debug tab's LLM request JSON. The
+// Lightbox's shell (backdrop, ✕, Escape) without the animation machinery — a
+// debug view doesn't need the polish.
+function JsonOverlay({ json, onClose }: { json: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+      >
+        <X className="size-6" />
+      </button>
+      {/* stopPropagation so clicking/selecting the JSON doesn't close it. */}
+      <pre
+        onClick={(e) => e.stopPropagation()}
+        className="bg-background max-h-[88vh] w-[92vw] max-w-3xl overflow-auto rounded-xl p-4 text-xs whitespace-pre-wrap"
+      >
+        {json}
+      </pre>
     </div>
   );
 }
@@ -494,6 +595,7 @@ export function CompanionsPanel({
     submitText,
     cancelReply,
     clearThread,
+    previewLlmMessages,
     status,
     audioRef,
   } = useVoiceSession({
@@ -592,6 +694,31 @@ export function CompanionsPanel({
 
   // Play-view sub-tabs. Session (mic + conversation) opens first.
   const [tab, setTab] = useState<"session" | "controls" | "debug">("session");
+  // The LLM request viewer: the pretty-printed JSON of the exact request a
+  // turn sent right now would make, or null when closed. Snapshotted on click,
+  // not live — it's a "what would go out" inspector.
+  const [llmRequestJson, setLlmRequestJson] = useState<string | null>(null);
+  const showLlmRequest = useCallback(
+    () => setLlmRequestJson(JSON.stringify(previewLlmMessages(), null, 2)),
+    [previewLlmMessages],
+  );
+
+  // Where the transcript's date headers go: turn index → that turn's `at`, on
+  // the first stamped turn and wherever the local day changes from the last
+  // stamped turn before it. Un-stamped turns (threads stored before timestamps
+  // existed) never make or break a day.
+  const dateHeaderAts = useMemo(() => {
+    const headers = new Map<number, number>();
+    let prevAt: number | undefined;
+    status.thread.forEach((turn, i) => {
+      if (turn.at === undefined) return;
+      if (prevAt === undefined || !sameLocalDay(prevAt, turn.at)) {
+        headers.set(i, turn.at);
+      }
+      prevAt = turn.at;
+    });
+    return headers;
+  }, [status.thread]);
   // The pinned program preview (Sparkline + Reset) is collapsed by default.
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -630,6 +757,14 @@ export function CompanionsPanel({
       {/* Lightbox for a sent picture — above everything, in either view. */}
       {lightboxSrc !== null && (
         <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
+
+      {/* The Debug tab's LLM request viewer. */}
+      {llmRequestJson !== null && (
+        <JsonOverlay
+          json={llmRequestJson}
+          onClose={() => setLlmRequestJson(null)}
+        />
       )}
 
       {view === "setup" ? (
@@ -832,6 +967,8 @@ export function CompanionsPanel({
                       <Mic className="size-5" />
                     )}
                   </Button>
+                  {/* The Debug tab's LLM request viewer, in reach mid-session. */}
+                  <DebugLLMButton onClick={showLlmRequest} />
                 </div>
               </Card>
 
@@ -846,33 +983,39 @@ export function CompanionsPanel({
                   className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
                 >
                   {status.thread.map((turn, i) => {
+                    let row: ReactNode;
                     if (turn.role === "tool") {
                       // A picture she sent renders as a clickable thumbnail;
                       // any other tool call as the little action chip.
                       if (turn.imageSrc !== undefined) {
                         const src = turn.imageSrc;
-                        return (
+                        row = (
                           <PictureBubble
-                            key={i}
                             src={src}
                             onOpen={() => showPicture(src)}
                           />
                         );
+                      } else {
+                        row = (
+                          <ToolChip name={turn.name} result={turn.result} />
+                        );
                       }
-                      return (
-                        <ToolChip
-                          key={i}
-                          name={turn.name}
-                          result={turn.result}
+                    } else {
+                      row = (
+                        <ChatBubble
+                          role={turn.role}
+                          text={turn.content}
+                          at={turn.at}
                         />
                       );
                     }
                     return (
-                      <ChatBubble
-                        key={i}
-                        role={turn.role}
-                        text={turn.content}
-                      />
+                      <Fragment key={i}>
+                        {dateHeaderAts.get(i) !== undefined && (
+                          <DateHeader at={dateHeaderAts.get(i)!} />
+                        )}
+                        {row}
+                      </Fragment>
                     );
                   })}
                   {/* In-progress reply: a live, dimmed Elise bubble shown only until
@@ -1053,6 +1196,16 @@ export function CompanionsPanel({
                     </Row>
                   </>
                 )}
+              </Card>
+
+              <Card title="LLM request" bordered>
+                <p className="text-muted-foreground text-xs">
+                  The exact request the next turn would send — system prompt,
+                  gap markers and all.
+                </p>
+                <div className="mt-2">
+                  <DebugLLMButton onClick={showLlmRequest} variant="long" />
+                </div>
               </Card>
 
               <EventLog entries={log} />

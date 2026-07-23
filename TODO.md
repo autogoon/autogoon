@@ -29,7 +29,12 @@ What's already built is described in
   here) — every _x_ ± _y_ seconds, no per-event trigger. The cue carries no
   payload; the persona decides what to say from the thread's current + upcoming
   device state (`player.upcoming`), free to end a turn in a tool call.
-  Preemptible under barge-in.
+  Preemptible under barge-in. **Idle cutoff:** the ambient clock must be _time
+  since the last user turn_ (the thread's `at` stamps), not since the last turn
+  — her own self-pokes would otherwise reset it forever. After a while with no
+  user turn she asks "are you still there?"; unanswered, the self-poke cadence
+  stops (no LLM/TTS spend on an empty room) until he speaks again — which the
+  gap markers then frame as him coming back.
 - **Phase 8 — Safeword + barge-in tuning.** Vosk KWS reserved for the safeword →
   hard stop that also tears down the voice session (LLM + TTS); the
   nav/global-word lockdown a running session needs; reconciling the two
