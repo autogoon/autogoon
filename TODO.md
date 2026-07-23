@@ -92,9 +92,9 @@ Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
 app** instead of the server's `.env` — entered once, stored client-side, never
 on the server. This is what makes a **hosted public build** viable: every user
 funds their own usage, so there's nothing for accounts or per-user rate limiting
-to protect, and it's a **prerequisite for [goonpacks](./roadmap/GOONPACKS.md)**
-(a portable pack's persona needs a voice and a model wherever the app is
-hosted).
+to protect. [Goonpacks](#goonpacks) are orthogonal — an imported pack runs on
+whatever keys the build has (locally the server's `.env`, on a hosted build the
+user's own), the same way companions do today.
 
 To settle: whether the browser calls providers directly or the proxy routes
 accept the user's key per-request, and what `.env` keys remain as a local-dev
@@ -113,3 +113,44 @@ wrong about DST); she only roleplays the two clocks.
 
 One rule ships with it: her clock colours the fiction, never gates it — she
 never refuses to play because it's 4am where she lives.
+
+## Goonpacks
+
+A companion persona as a **portable, self-contained pack** the app imports — a
+`.zip` with everything one companion needs: the images with their description
+sidecars, the ElevenLabs voice config, the system prompt, and the companion
+config (id, display name, knob defaults, accent). The app is a _player_ for
+persona content; a pack is how one persona travels. Distribution stays
+import-your-own-file only, per the
+[content policy](./DEVELOPERS.md#content-policy) — the project never hosts,
+indexes, or points at packs.
+
+The core work is **build-time-baked → runtime-loaded**: a companion today is
+code (`companions.ts`, the prompt modules, the generated pictures module); a
+pack is that same data loaded at runtime. The zip unpacks in the browser and its
+images become in-memory object URLs (a picture's `src` is already just a string
+handed to `<img>`); **the zip file is the source of truth** — IndexedDB holds
+the blobs only as a rehydration cache, so eviction (Safari wipes script-writable
+storage after 7 days of disuse) costs a re-import, never data. Built-ins keep
+being served as static files — same runtime shape, two backings, never copied
+into browser storage.
+
+Settled design points:
+
+- **Identity is `publisher.name`** (`autogoon.elise`, `somecontributor.elise`),
+  both halves strict slugs (`[a-z0-9-]`, single dot separator) — ids end up in
+  storage keys and paths. **Unversioned**: the id means _the same her_ — the
+  thread is keyed by it, so a compatible update keeps the id (and her memory),
+  and an incompatible one is a new companion. The namespace is a convention, not
+  verification: importing a pack whose id already exists is a deliberate full
+  replacement, user-confirmed (the zip's info is right there to show on import).
+- **Stock companions move to `autogoon.*` ids**, with a one-time migration that
+  finds existing localStorage threads under the old ids and moves them to the
+  new keys.
+- **Overlays**: a pack with its own id plus a `base` field naming the companion
+  it modifies — extra pictures, or a replacement voice or system prompt, applied
+  over the built-in at load. This is also how the stock companions get pictures
+  on a fresh install: the repo can't distribute images (`public/companions/` is
+  gitignored), so users supply their own.
+- The chooser disambiguates colliding display names by publisher — names aren't
+  unique; ids are.
