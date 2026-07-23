@@ -47,8 +47,3 @@ What's already built is described in
   generated program. Today the contrast is prompt/disposition-only, because the
   personas' programs don't yet diverge by trait — so this completes together
   with Phase 11.
-
-Also standing before an **open** (ungated) public deploy: full auth, per-user
-rate limiting, a `voiceId` allowlist and a `text` cap — tracked in the design
-doc's _Pre-deployment hardening_ section. The shared-secret access gate
-(`COMPANIONS_ACCESS_IDS`) covers gated demos until then.
