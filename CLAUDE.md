@@ -20,6 +20,12 @@ values; never commit a real key (the repo is public). All secret-bearing vars
 (`ELEVENLABS_API_KEY`, `OPENROUTER_API_KEY`, `LLM_URL`) are read server-side
 only — none are `NEXT_PUBLIC_*`.
 
+This repo is **public and pseudonymous**. Never commit identifying details: real
+names, `/Users/<name>` or other machine-local paths, personal emails or URLs,
+session links. When a doc or plan needs a concrete path, genericize it
+(`~/.claude/jobs/<job-id>/tmp`, not the real one). `/personal-check` is the
+backstop, not the defence — history rewrites are the only fix once pushed.
+
 ## Verifying changes
 
 - `npm test` — Jest unit tests (`src/**/*.test.ts`, colocated, node environment,
@@ -104,7 +110,7 @@ invariants, the why, and the cross-file shape. Concretely:
 - **Before a PR is marked ready for review**, the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
   run, the CHANGELOG entry written, `/doc-check` run over the branch's diff, and
-  `/personal-check` if the branch touched docs or content.
+  `/personal-check`.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
