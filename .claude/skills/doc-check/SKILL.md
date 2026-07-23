@@ -21,7 +21,8 @@ owns the what — docs own the why, the invariants, and the cross-file shape).
   `roadmap/*.md`.
 - **`/doc-check all`: full sweep.** Every doc against the whole codebase. Fan
   out one read-only subagent per doc cluster (ARCHITECTURE + CLAUDE.md; README +
-  MODES + DEVELOPERS; modes/; roadmap/) and collect their reports.
+  MODES + DEVELOPERS; modes/; TODO + roadmap/; the dated specs under `docs/`)
+  and collect their reports.
 
 Two classes of doc, checked differently:
 
@@ -68,6 +69,14 @@ exactly.
    material belongs in DEVELOPERS.md, ARCHITECTURE.md, or the code itself. npm
    commands a user actually runs to operate a feature (the describe scripts,
    restarting dev) are fine — they're user instructions, not developer ones.
+10. **Vocabulary & register** — docs use the app's terms: **play mode** (never
+    "algorithm" as the category — it survives only where it genuinely means
+    one, like "the Vacuglide algorithm"), **program** (the timed plan),
+    **play/session** (what the user is doing). A persona's _fiction_ stays in
+    persona copy — "during a call" belongs to Elise and Aimee's video-call
+    framing, not to app documentation. And a capability is described as the
+    feature's, not as belonging to whichever companion currently has it
+    ("Companions can send pictures", not "Aimee can").
 
 ## Output and fixes
 
