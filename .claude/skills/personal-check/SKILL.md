@@ -30,6 +30,12 @@ finding is not fixed until the history that contains it is rewritten.
   hygiene, but look anyway).
 - **Leaky meta-files** — a `.gitignore` entry or script name can itself reveal
   what it hides; weigh the entry's wording.
+- **Commit messages** — a surface of their own: session links and attribution
+  trailers (`Claude-Session:`, tool-generated URLs), personal emails or URLs
+  in message bodies. `-S` only searches content — messages need
+  `git log --all --grep='<pattern>'` — and a message finding has no
+  working-tree fix: remediation is always a history rewrite (a message-only
+  `filter-branch --msg-filter` keeps every tree identical).
 
 ## Scope
 
