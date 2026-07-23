@@ -10,7 +10,8 @@ code in this repository.
   issues the dev server tolerates.
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src` and root config/docs.
+- `npm run format` — Prettier over the source, tests, and repo docs (globs in
+  `package.json`).
 
 ## Secrets / environment
 
@@ -19,6 +20,12 @@ Real keys live in **`.env`** (gitignored via `.env` / `.env.*`), **not**
 values; never commit a real key (the repo is public). All secret-bearing vars
 (`ELEVENLABS_API_KEY`, `OPENROUTER_API_KEY`, `LLM_URL`) are read server-side
 only — none are `NEXT_PUBLIC_*`.
+
+This repo is **public and pseudonymous**. Never commit identifying details: real
+names, `/Users/<name>` or other machine-local paths, personal emails or URLs,
+session links. When a doc or plan needs a concrete path, genericize it
+(`~/.claude/jobs/<job-id>/tmp`, not the real one). `/personal-check` is the
+backstop, not the defence — history rewrites are the only fix once pushed.
 
 ## Verifying changes
 
@@ -77,13 +84,38 @@ work done.
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.
 
+## Documentation
+
+Docs point at code; they don't duplicate it. **Code owns the what** — type
+fields, signatures, tool lists, knob ranges, model slugs, defaults — explained
+by comments at the definition site. **Docs own what code can't say** — intent,
+invariants, the why, and the cross-file shape. Concretely:
+
+- Never copy a type, command list, or config value into a doc. Link the source
+  file and say what it's for ("the fields are commented there").
+- If a sentence goes stale when someone renames a field or adds an entry, it's
+  implementation detail — replace it with a pointer.
+- Current-state docs describe **only what's implemented**. Future work lives in
+  [TODO.md](./TODO.md) (defined work), [ROADMAP.md](./ROADMAP.md) (direction),
+  or a dated spec under `docs/` — nowhere else; a pointer to those files is
+  fine, describing the future in place is not.
+- Docs that are deliberately exhaustive are the exception, and say so
+  ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
+  reverse-engineered algorithm).
+- When code you change is mentioned in a doc, updating the doc is part of the
+  change. Run `/doc-check` before a PR is marked ready to catch what slipped.
+
 ## Git workflow
 
 - Work on a branch off `main`; never commit to `main` directly. One branch/PR
   per piece of work.
-- The flow is **branch → do the work → commit → push → open a PR**: push with
-  `git push -u origin <branch>`, then open a PR against `main` with
-  `gh pr create`.
+- The flow is **branch → do the work → gates → commit → push → open a PR →
+  merge**: push with `git push -u origin <branch>`, then open a PR against
+  `main` with `gh pr create`.
+- **Before a PR is marked ready for review**, the whole gate set passes:
+  `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
+  run, the CHANGELOG entry written, `/doc-check` run over the branch's diff, and
+  `/personal-check`.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
@@ -91,16 +123,16 @@ work done.
 ## Architecture
 
 Read [ARCHITECTURE.md](./ARCHITECTURE.md) and [README.md](./README.md) for the
-full picture, and the per-algorithm docs
-([ALGORITHM-GOON.md](./ALGORITHM-GOON.md),
-[ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md),
-[ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md)) before changing an
-algorithm. Throughout, a **program** means the timed plan of what the device
-will do over a run — the speeds and stroke changes laid out on a timeline. The
-cross-file things worth knowing up front:
+full picture, and the per-play-mode docs ([modes/GOON.md](./modes/GOON.md),
+[modes/GROOVE.md](./modes/GROOVE.md),
+[modes/AUTOPILOT.md](./modes/AUTOPILOT.md),
+[modes/COMPANIONS.md](./modes/COMPANIONS.md)) before changing a play mode.
+Throughout, a **program** means the timed plan of what the device will do over a
+run — the speeds and stroke changes laid out on a timeline. The cross-file
+things worth knowing up front:
 
-- **Engine → Player → panel per algorithm**: the **engine**
-  (`src/lib/algorithms/*-engine.ts`, no React, no device) only _generates a
+- **Engine → Player → panel per play mode**: the **engine**
+  (`src/lib/play-modes/*-engine.ts`, no React, no device) only _generates a
   program_ — a schedule of timed speed/valve events over program-time — and
   rescales each event's magnitude at send time. Generation is split into two
   channels: `generateSpeed` (the stateful backbone) and `generateValves` (a
@@ -110,31 +142,21 @@ cross-file things worth knowing up front:
   (`src/lib/player.ts`, owned by `useVacuglideDevice`) actually _plays_ a
   program: it owns the clock, the tick loop, device sends, and transport
   (play/pause/seek/playback-rate, and dropping + regenerating the not-yet-played
-  tail). A **panel** (`src/components/algorithms/*-panel.tsx`, or a `*-panel/`
+  tail). A **panel** (`src/components/play-modes/*-panel.tsx`, or a `*-panel/`
   directory with the panel in `index.tsx` when it splits out per-concern cards,
   as Goon does) owns its engine instance (a `useRef`), arms/plays the Player
   with it, holds its knob state (setting the engine's fields directly), and
   declares its commands. `usePlayer` (`src/hooks/use-player.ts`) mirrors the
   Player into React state **once** (in `page.tsx`) and the view is passed down
-  to the panels. There is no per-algorithm hook.
+  to the panels. There is no per-play-mode Player hook (Companions' voice
+  session has its own orchestrator hook, but the Player path is the same).
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
   replaces whoever was there, so "starting one stops the others" is a Player
-  invariant, not a coordinator. `page.tsx` keeps only the navigation state and
-  the global voice words (`connect` while disconnected; the algorithm names on
-  home plus the other tabs' words — `home`/`changes`/`settings` — on any
-  top-level tab; `exit` on any other screen while idle); everything else is an
-  algorithm command owned by the active panel. Navigation is a shallow
-  hierarchy: a top level of **home** (device connection, algorithm chooser,
-  getting-started notes) with a **Settings** tab beside it (appearance, build
-  info), and one screen per algorithm — an algorithm with a setup view gets a
-  play sub-level below it (`Home › Goon › Play`). No sideways moves; `exit`/the
-  breadcrumb go up one level and are locked while a session runs, so you can't
-  leave or switch mid-session. **Adding an algorithm** = new engine + panel,
-  then register it in `src/app/page.tsx` (an `ALGORITHMS` entry — id, label,
-  description, accent — plus its panel rendered and imported); the home listing,
-  switch word and screen all derive from that one entry. Full checklist in
-  [DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
+  invariant, not a coordinator. Navigation, the global voice words and the
+  play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
+  new engine + panel + one `PLAY_MODES` entry — full checklist in
+  [DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
 - **Commands are declared once**: each action is a `Command`
   (`{ word, enabled, run }`) — the button and the spoken word share one `run`
   and one `enabled` (a disabled control is also out of the grammar).
@@ -154,6 +176,6 @@ cross-file things worth knowing up front:
 - **Keyword spotting drives the device**: there is **one** vosk recognizer,
   owned by `KeywordSpotterProvider` (`src/components/keyword-spotter.tsx`) at
   the top of `src/app/page.tsx` so it keeps running across screen changes. Its
-  grammar is the active panel's enabled words (set via `setAlgorithmKeywords`)
+  grammar is the active panel's enabled words (set via `setPlayModeKeywords`)
   plus the page's global words (`setGlobalWords`); components subscribe to
   detections with `keywordListener`.

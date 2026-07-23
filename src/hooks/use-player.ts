@@ -2,28 +2,27 @@
 
 // The one place the shared Player is mirrored into React state. The Player is
 // plain JS (it drives the device on its own); this hook is the single bridge
-// that turns its live state into something the panels can render — current
-// speed, the upcoming-speed preview, transport position/rate. It is
-// algorithm-agnostic (the Player has one active source at a time) and is mounted
+// that turns its live state into something the panels can render — the
+// upcoming-speed preview and transport position/rate. It is
+// play-mode-agnostic (the Player has one active source at a time) and is mounted
 // ONCE, so this mirror exists in exactly one place instead of being re-derived
-// inside every algorithm hook.
+// inside every play mode hook.
 
 import { useEffect, useState } from "react";
 import type { Player } from "@/lib/player";
 import {
   UPCOMING_WINDOW_MS,
-  type AlgorithmEngine,
+  type PlayModeEngine,
   type PlayerState,
   type UpcomingWindow,
 } from "@/lib/program";
 
 export interface PlayerView {
-  // The engine the Player is currently pointed at (null when idle). An algorithm
+  // The engine the Player is currently pointed at (null when idle). A play mode
   // hook compares this to its own engine to know whether it is the active source.
-  source: AlgorithmEngine | null;
+  source: PlayModeEngine | null;
   state: PlayerState;
   isPlaying: boolean;
-  currentSpeed: number;
   positionMs: number;
   timeScale: number;
   // A scheduled (engine-generated) stroke is holding a valve open right now —
@@ -38,7 +37,6 @@ function read(player: Player): PlayerView {
     source: player.source,
     state: st.state,
     isPlaying: st.isPlaying,
-    currentSpeed: st.currentSpeed,
     positionMs: st.clock,
     timeScale: st.rate,
     strokeBusy: st.strokeBusy,

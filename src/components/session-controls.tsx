@@ -1,6 +1,6 @@
 "use client";
 
-// The session controls shown at the top of each algorithm panel — Start / Stop /
+// The session controls shown at the top of each play mode panel — Start / Stop /
 // Reset. Driven by the Player's state: while playing it's a single Stop; while
 // armed or paused it's Start + Reset side by side. Start needs the device
 // connected first.
@@ -26,7 +26,7 @@ export function SessionControls({
   // Hide the Reset button so Start/Stop can stand alone (Companions puts Reset
   // on a different tab); defaults to the usual Start + Reset pairing.
   showReset?: boolean;
-  // An algorithm can withdraw Stop (e.g. an after-play outcome that ignores
+  // A play mode can withdraw Stop (e.g. an after-play outcome that ignores
   // it); the safe word remains the way out.
   stopDisabled?: boolean;
   stopDisabledTitle?: string;

@@ -2,8 +2,8 @@
 
 // The home screen — the top of the navigation hierarchy: the device
 // token/connection group first (it's the gate to everything else), then the
-// algorithm chooser (each entry doubles as that algorithm's voice word,
-// wearing its algorithm's accent colour), and the getting-started small print.
+// play mode chooser (each entry doubles as that play mode's voice word,
+// wearing its play mode's accent colour), and the getting-started small print.
 // Settings sits beside home as a top-level tab (see page.tsx).
 
 import { ChevronRight, Plug, type LucideIcon } from "lucide-react";
@@ -18,16 +18,16 @@ import {
 
 export function HomePanel({
   vacuglide,
-  algorithms,
+  playModes,
   onSelect,
 }: {
   vacuglide: VacuglideDeviceController;
-  algorithms: ReadonlyArray<{
+  playModes: ReadonlyArray<{
     id: string;
     label: string;
     description: string;
     // An optional second paragraph shouting about something new on this
-    // algorithm.
+    // play mode.
     highlight?: string;
     icon: LucideIcon;
     iconClass: string;
@@ -36,11 +36,11 @@ export function HomePanel({
   onSelect: (id: string) => void;
 }) {
   const chooser = (
-    <Card title="Choose an algorithm">
+    <Card title="Choose a play mode">
       {/* pt-1 is optical: a bordered box carries no line-height slack, so the
           title→border gap needs +4px to match the title→text gap elsewhere. */}
       <div className="flex flex-col gap-3 pt-1">
-        {algorithms.map((a) => (
+        {playModes.map((a) => (
           <Button
             key={a.id}
             onClick={() => onSelect(a.id)}
@@ -139,7 +139,7 @@ export function HomePanel({
               header to start the mic (allow the microphone if your browser
               asks).
             </li>
-            <li>Pick an algorithm.</li>
+            <li>Pick a play mode.</li>
           </ol>
           <p>
             You can use voice controls for most things — each page explains the
@@ -147,7 +147,7 @@ export function HomePanel({
           </p>
           <p>
             <span className="text-foreground font-medium">Privacy.</span> For
-            the built-in algorithms, speech recognition runs entirely on your
+            the built-in play modes, speech recognition runs entirely on your
             machine — only the device control traffic leaves it. Companions is
             the exception: it sends your speech and chat to ElevenLabs and
             OpenRouter (see the note on its own screen).

@@ -27,7 +27,48 @@ describe("toRequestTools", () => {
     ]);
   });
 
-  it("passes a declared parameter schema through unchanged", () => {
+  it("passes a string-enum parameter schema through unchanged (variety)", () => {
+    const tools: CompanionTool[] = [
+      {
+        name: "variety",
+        description: "Set variety.",
+        parameters: {
+          type: "object",
+          properties: {
+            level: {
+              type: "string",
+              enum: ["off", "low", "medium", "high"],
+              description: "off = steady drive",
+            },
+          },
+          required: ["level"],
+        },
+        run: (args) => `variety → ${String(args.level)}`,
+      },
+    ];
+    expect(toRequestTools(tools)).toEqual([
+      {
+        type: "function",
+        function: {
+          name: "variety",
+          description: "Set variety.",
+          parameters: {
+            type: "object",
+            properties: {
+              level: {
+                type: "string",
+                enum: ["off", "low", "medium", "high"],
+                description: "off = steady drive",
+              },
+            },
+            required: ["level"],
+          },
+        },
+      },
+    ]);
+  });
+
+  it("passes a bounded-integer parameter schema through unchanged (intensity)", () => {
     const tools: CompanionTool[] = [
       {
         name: "intensity",
@@ -35,15 +76,16 @@ describe("toRequestTools", () => {
         parameters: {
           type: "object",
           properties: {
-            level: {
-              type: "string",
-              enum: ["warmup", "low", "medium", "high"],
-              description: "warmup = gentlest",
+            percent: {
+              type: "integer",
+              minimum: 0,
+              maximum: 100,
+              description: "0 = off, 100 = hardest",
             },
           },
-          required: ["level"],
+          required: ["percent"],
         },
-        run: (args) => `intensity → ${String(args.level)}`,
+        run: (args) => `intensity → ${String(args.percent)}`,
       },
     ];
     expect(toRequestTools(tools)).toEqual([
@@ -55,13 +97,14 @@ describe("toRequestTools", () => {
           parameters: {
             type: "object",
             properties: {
-              level: {
-                type: "string",
-                enum: ["warmup", "low", "medium", "high"],
-                description: "warmup = gentlest",
+              percent: {
+                type: "integer",
+                minimum: 0,
+                maximum: 100,
+                description: "0 = off, 100 = hardest",
               },
             },
-            required: ["level"],
+            required: ["percent"],
           },
         },
       },

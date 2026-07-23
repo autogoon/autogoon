@@ -6,9 +6,9 @@
 //
 // The grammar is the union of two slots:
 //   - GLOBAL words (connect/start/stop/reset) — owned by the page.
-//   - the ALGORITHM words — owned by whichever panel is currently active; it
-//     calls setAlgorithmKeywords with its enabled words and clears them when it
-//     stops being active, so only one algorithm's words are ever live.
+//   - the PLAY MODE words — owned by whichever panel is currently active; it
+//     calls setPlayModeKeywords with its enabled words and clears them when it
+//     stops being active, so only one play mode's words are ever live.
 // A third, EXCLUSIVE slot overrides both: while a test word is set (the safe
 // word test modal), the grammar is only that word — the easiest possible
 // recognition setting, so a word that fails there is genuinely outside the
@@ -52,10 +52,11 @@ export interface KeywordSpotter {
   // the app is listening for.
   listeningFor: string[];
   flashing: ReadonlySet<string>;
-  // The page sets the global transport words (connect/start/stop/reset).
+  // The page sets the global words (connect, the mode names, tab words, exit —
+  // whatever is valid right now; see the globalWords memo in page.tsx).
   setGlobalWords: (words: string[]) => void;
-  // The active panel sets its algorithm words (and clears them on deactivate).
-  setAlgorithmKeywords: (words: string[]) => void;
+  // The active panel sets its play mode words (and clears them on deactivate).
+  setPlayModeKeywords: (words: string[]) => void;
   // While non-null, the grammar is ONLY this word (the safe word test modal).
   // Callers must clear it (null) on close/unmount to restore normal listening.
   setExclusiveTestWord: (word: string | null) => void;
@@ -82,7 +83,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
   // The two grammar slots as state, so listeningFor stays reactive and a change
   // rebuilds the recognizer.
   const [globalWords, setGlobalWordsState] = useState<string[]>([]);
-  const [algorithmWords, setAlgorithmWordsState] = useState<string[]>([]);
+  const [playModeWords, setPlayModeWordsState] = useState<string[]>([]);
   const [exclusiveTestWord, setExclusiveTestWord] = useState<string | null>(
     null,
   );
@@ -90,8 +91,8 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     () =>
       exclusiveTestWord !== null
         ? [exclusiveTestWord]
-        : [...new Set([...globalWords, ...algorithmWords])],
-    [globalWords, algorithmWords, exclusiveTestWord],
+        : [...new Set([...globalWords, ...playModeWords])],
+    [globalWords, playModeWords, exclusiveTestWord],
   );
 
   const modelRef = useRef<Model | null>(null);
@@ -132,8 +133,8 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
         : next,
     );
   }, []);
-  const setAlgorithmKeywords = useCallback((next: string[]) => {
-    setAlgorithmWordsState((prev) =>
+  const setPlayModeKeywords = useCallback((next: string[]) => {
+    setPlayModeWordsState((prev) =>
       prev.length === next.length && prev.every((w, i) => w === next[i])
         ? prev
         : next,
@@ -311,7 +312,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       listeningFor: words,
       flashing,
       setGlobalWords,
-      setAlgorithmKeywords,
+      setPlayModeKeywords,
       setExclusiveTestWord,
       keywordListener,
       partialListener,
@@ -324,7 +325,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       words,
       flashing,
       setGlobalWords,
-      setAlgorithmKeywords,
+      setPlayModeKeywords,
       keywordListener,
       partialListener,
     ],

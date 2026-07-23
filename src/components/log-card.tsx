@@ -1,7 +1,7 @@
 "use client";
 
 // A Card wrapping a scrolling, monospace log. Auto-scrolls to the newest
-// entry. The algorithm panels use this for their command log (device sends,
+// entry. The play mode panels use this for their command log (device sends,
 // voice hits and final transcripts); the entry `kind` picks the line colour.
 
 import { useEffect, useRef, type ReactNode } from "react";

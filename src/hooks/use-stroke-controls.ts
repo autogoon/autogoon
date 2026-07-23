@@ -2,10 +2,10 @@
 
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
 // for a beat then closes it, mimicking a manual tap. Lives here (rather than
-// inside one algorithm) so every algorithm panel can offer the same Stroke
+// inside one play mode) so every play mode panel can offer the same Stroke
 // controls without duplicating the pulse logic — it drives the valves
 // directly through the VacuglideDeviceController, independent of whichever
-// algorithm is currently running.
+// play mode is currently running.
 
 import { useCallback, useMemo, useState } from "react";
 import type { Command } from "@/hooks/use-voice-commands";

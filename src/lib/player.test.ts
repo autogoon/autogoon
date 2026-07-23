@@ -9,7 +9,7 @@ import {
 import { Player } from "./player";
 import { MIN_RATE } from "./program";
 import type {
-  AlgorithmEngine,
+  PlayModeEngine,
   PlayerContext,
   SpeedEvent,
   ValveEvent,
@@ -25,7 +25,7 @@ import type { VacuglideDevice } from "./vacuglide-device";
 // A minimal engine: constant speed 1 every 10 s, plus a fixed valve overlay
 // handed to the constructor. Keeps its own speed cursor so repeated
 // generateSpeed calls extend rather than repeat; generateValves is pure.
-class StubEngine implements AlgorithmEngine {
+class StubEngine implements PlayModeEngine {
   private nextAt = 0;
   constructor(private valves: ValveEvent[] = []) {}
   reset(): void {
@@ -198,6 +198,61 @@ describe("Player scheduled-stroke precedence", () => {
     await jest.advanceTimersByTimeAsync(1_000);
     expect(player.getState().strokeBusy).toBe(false);
     await player.pause();
+  });
+});
+
+// A stub whose generateSpeed records the ctx.currentRawSpeed it was handed, and
+// whose first cycle after a knob change starts FROM that speed (like the real
+// Groove/companion engines' startFromCurrent). Lets us assert the resume point.
+class ResumeStubEngine implements PlayModeEngine {
+  seenRawSpeed: number | null = null;
+  private resumeNext = false;
+  reset(): void {
+    this.resumeNext = false;
+  }
+  knobChanged(): void {
+    this.resumeNext = true;
+  }
+  generateSpeed(
+    fromTime: number,
+    untilTime: number,
+    ctx: PlayerContext,
+  ): SpeedEvent[] {
+    const out: SpeedEvent[] = [];
+    let t = fromTime;
+    if (this.resumeNext) {
+      this.resumeNext = false;
+      this.seenRawSpeed = ctx.currentRawSpeed;
+      // Resume from wherever the program is, then hold at the peak.
+      out.push({ kind: "speed", at: t, speed: ctx.currentRawSpeed });
+      t += 10_000;
+    }
+    while (t < untilTime) {
+      out.push({ kind: "speed", at: t, speed: 100 });
+      t += 10_000;
+    }
+    return out;
+  }
+  generateValves(): ValveEvent[] {
+    return [];
+  }
+  scale(event: SpeedEvent): number {
+    return event.speed;
+  }
+}
+
+describe("Player program-position tracking", () => {
+  it("resumes a knob change from the program's point, not 0, while armed", () => {
+    const player = new Player({ getDevice: () => null });
+    const engine = new ResumeStubEngine();
+    // Armed, never started: the program starts at the peak (100).
+    player.arm(engine);
+    // A knob change while still armed: the engine's next cycle reads
+    // ctx.currentRawSpeed. It must see the program's current point (the peak),
+    // not 0 (the pre-fix bug ramped up from 0).
+    engine.knobChanged();
+    player.invalidateFuture();
+    expect(engine.seenRawSpeed).toBe(100);
   });
 });
 

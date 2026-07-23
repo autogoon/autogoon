@@ -24,7 +24,12 @@ const baseConfig = [
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["*.mjs", "*.js", "public/*.js"],
+          allowDefaultProject: [
+            "*.mjs",
+            "*.js",
+            "public/*.js",
+            "scripts/*.mjs",
+          ],
         },
       },
     },

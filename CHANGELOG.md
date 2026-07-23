@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-23
+
+- enhancement: **Algorithms are now "play modes"** — the home screen and docs now call the ways a session can run play modes: Companions was never really an algorithm, and future modes (like a raw-controls Freestyle) won't be either.
+- internal: **Keep Claude session links out of commits** — project settings now set `attribution.sessionUrl: false`, so commits and PR bodies made with Claude Code never carry a `Claude-Session` link (a privacy leak on a public repo, for any contributor).
+- internal: **Doc audit against the code** — a four-agent sweep verified ~280 doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the safe word and the tab strip; stale wind-down/finish figures in the mode docs; a few wrong code comments) and replaced doc passages that duplicated code with pointers, per the new documentation philosophy in CLAUDE.md.
+- internal: **Rename algorithm → play mode across the codebase** — `src/lib/play-modes`, `src/components/play-modes`, the `PLAY_MODES` registry, `PlayModeEngine`, `setPlayModeKeywords`; the per-mode docs move to `modes/*.md` with `MODES.md` as the index.
+- internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is now an index over `roadmap/*.md`, with the goonpack and inference discussion docs moved in (reframed generically), and `DEVELOPERS.md` gains a content policy: the project never distributes content or goonpacks, indexes packs, or recommends content sources, and contributions must keep it that way.
+
+## 2026-07-22
+
+- feature: **Add a second companion — Aimee** — Companions now has two to pick from. Aimee is your sweet, eager-to-please Welsh girlfriend on a late-night video call: where Elise takes the lead, Aimee lets you drive — she follows your pace, likes it slow and soft with a gentle build, tells you out loud what she's doing to herself, and will match the toy to it if you like. She has her own voice, and remembers your conversation just like Elise. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- feature: **Aimee can send you pictures** — During a call Aimee can send you a photo of herself, choosing one that fits the moment — ask her for a particular pose and she'll pick accordingly. It opens filling the screen in a lightbox (tap the backdrop, ✕ or Escape to close), and stays in your conversation as a thumbnail you can tap to reopen; send another while the lightbox is open and it swaps to the newest. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- bug: **Fix a variability change before Start ramping from zero** — changing Groove's dip or timing variability while the program was armed but not yet playing made the next cycle ramp up from a standstill instead of continuing from where the program sits; it now resumes from the program's current point (Companions' Variety knob shared the same fix). ([#14](https://github.com/autogoon/autogoon/pull/14))
+- bug: **Open a companion's chat at the newest message** — opening a companion you've talked to before landed the conversation scrolled to the top; it now opens at the bottom, showing your most recent exchange. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- internal: **Add `npm run describe` / `describe:missing`** — caption a single companion image, or every image that's still missing a description, with a vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to override), writing the sidecar `.txt` the picture glob reads. ([#14](https://github.com/autogoon/autogoon/pull/14))
+
 ## 2026-07-21
 
 - feature: **Companions — talk to an AI companion** — A new hands-free algorithm: pick Elise and talk to her out loud. She transcribes what you say, replies in her own streamed voice, remembers the conversation across the session (and reloads), and can start and stop the toy herself as things unfold — speak over her and she stops mid-sentence to listen. For now Companions is unlocked with an access ID you enter under Settings. ([#13](https://github.com/autogoon/autogoon/pull/13))
@@ -27,7 +44,6 @@
 - bug: **Fix stroke pulses under dilation** — A manual stroke pulse (`up`/`down`) now rides the running program as real events instead of a wall-clock timer — its length stays true at any playback speed, and its release can no longer be lost to a knob change mid-pulse. ([#10](https://github.com/autogoon/autogoon/pull/10))
 - bug: **Fix Autopilot's vacuum maintenance** — It now works like the original: a suction pulse fires only when the speed steps, with the Low/High interval as a minimum gap between pulses — not on a fixed 2–3 second repeat, which applied far more suction than the real autopilot. ([#10](https://github.com/autogoon/autogoon/pull/10))
 - bug: **Fix coloured borders** — Coloured borders never actually rendered — a base stylesheet rule outranked every Tailwind border-colour utility, so the Connect button's connected green (and every other coloured border) showed as grey. ([#9](https://github.com/autogoon/autogoon/pull/9))
-
 - internal: **Add the first test suites** — Jest unit tests for the device client's rate-limit accounting and the Goon engine's generation contract, and a Playwright end-to-end voice test that plays a synthesized "autopilot" through a stubbed microphone and asserts the tab switches — run against real Chromium, Firefox, and WebKit. ([#8](https://github.com/autogoon/autogoon/pull/8))
 
 ## 2026-07-14

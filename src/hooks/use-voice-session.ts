@@ -12,7 +12,7 @@
 // and are unit-tested there); the wiring is exercised by driving the panel.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ELISE } from "@/lib/companions/companions";
+import type { Companion } from "@/lib/companions/companions";
 import { toRequestTools, type CompanionTool } from "@/lib/companions/tools";
 import {
   createLlmClient,
@@ -108,9 +108,14 @@ const STT_IDLE_TIMEOUT_MS = 8000;
 const MAYBE_CLOSE_INTERVAL_MS = 500;
 
 // Persistence key, namespaced per companion so each keeps its own thread.
-const THREAD_KEY = `companions:thread:${ELISE.name.toLowerCase()}`;
+const threadKeyFor = (companion: Companion): string =>
+  `companions:thread:${companion.id}`;
 
-export function useVoiceSession(opts?: {
+export function useVoiceSession(opts: {
+  // The chosen companion — its voice, model and prompt drive the whole turn.
+  // Fixed for the life of a play session (the nav lock stops you switching
+  // mid-session); changing it reloads that companion's saved thread.
+  companion: Companion;
   tools?: CompanionTool[];
   getDeviceState?: () => string;
   onToolRun?: (name: string, result: string) => void;
@@ -119,6 +124,16 @@ export function useVoiceSession(opts?: {
   onLog?: (text: string, kind?: string) => void;
 }): VoiceSession {
   const [status, setStatus] = useState<VoiceStatus>(IDLE_STATUS);
+
+  // The companion, read inside the once-created mic/STT/turn callbacks — a ref,
+  // like the other live values, so those callbacks never see a stale persona.
+  const companionRef = useRef<Companion>(opts.companion);
+  companionRef.current = opts.companion;
+  // The current thread key, derived from the companion and read inside the
+  // once-created persist/clear callbacks (which keep empty deps).
+  const threadKey = threadKeyFor(opts.companion);
+  const threadKeyRef = useRef(threadKey);
+  threadKeyRef.current = threadKey;
 
   // Panel attaches this to a rendered <audio> element; the TTS player plays
   // through it.
@@ -152,6 +167,9 @@ export function useVoiceSession(opts?: {
   const sttRef = useRef<Stt | null>(null);
   const ttsRef = useRef<TtsPlayer | null>(null);
   const llmRef = useRef<LlmClient | null>(null);
+  // The model the cached llmRef was built with, so ensureClients can tell when
+  // a companion switch means the client must be rebuilt.
+  const llmModelRef = useRef<string | null>(null);
   const turnRef = useRef<AbortController | null>(null);
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
@@ -172,7 +190,7 @@ export function useVoiceSession(opts?: {
     threadRef.current = thread;
     setStatus((s) => ({ ...s, thread }));
     try {
-      localStorage.setItem(THREAD_KEY, serialize(thread));
+      localStorage.setItem(threadKeyRef.current, serialize(thread));
     } catch {
       // ignore: storage full or unavailable
     }
@@ -186,19 +204,20 @@ export function useVoiceSession(opts?: {
     threadRef.current = [];
     setStatus((s) => ({ ...s, thread: [] }));
     try {
-      localStorage.removeItem(THREAD_KEY);
+      localStorage.removeItem(threadKeyRef.current);
     } catch {
       // ignore: storage unavailable
     }
   }, []);
 
-  // Restore a persisted conversation on mount so a reload keeps the memory.
-  // localStorage is browser-only, so this runs in an effect, not at ref init.
+  // Restore a persisted conversation so a reload keeps the memory — and reload
+  // it when the companion changes, so each picker choice brings up its own
+  // thread. localStorage is browser-only, so this runs in an effect.
   useEffect(() => {
-    const seeded = parse(localStorage.getItem(THREAD_KEY));
+    const seeded = parse(localStorage.getItem(threadKey));
     threadRef.current = seeded;
     setStatus((s) => ({ ...s, thread: seeded }));
-  }, []);
+  }, [threadKey]);
 
   // The TTS player and LLM client, created on demand. start() makes them when the
   // mic opens; submitText() makes them for a typed turn so typing works with the
@@ -210,7 +229,14 @@ export function useVoiceSession(opts?: {
     const audioEl = audioRef.current;
     if (audioEl === null) return null;
     ttsRef.current ??= createTtsPlayer(audioEl);
-    llmRef.current ??= createLlmClient(ELISE.model);
+    // The LLM client is bound to a model; rebuild it if the companion (hence
+    // the model) has changed since it was made. The TTS player is model-free
+    // (the voice id is passed per utterance), so it's reused as-is.
+    const model = companionRef.current.model;
+    if (llmRef.current === null || llmModelRef.current !== model) {
+      llmRef.current = createLlmClient(model);
+      llmModelRef.current = model;
+    }
     return { tts: ttsRef.current, llm: llmRef.current };
   }, []);
 
@@ -239,6 +265,9 @@ export function useVoiceSession(opts?: {
       if (clients === null) return;
       const { tts, llm } = clients;
       const speak = opts?.speak ?? false;
+      // Snapshot the companion for this whole turn — its voice, prompt and
+      // reasoning behaviour stay consistent even if the ref changes mid-flight.
+      const companion = companionRef.current;
 
       // Commit the user turn the moment it's submitted (ref + state + persist).
       persistThread(appendUser(threadRef.current, prompt));
@@ -339,7 +368,7 @@ export function useVoiceSession(opts?: {
           let ttsTtfbMs: number | null = null;
           // "Waiting for speech" until the first audio bytes arrive.
           setStatus((s) => ({ ...s, awaitingSpeech: true }));
-          await tts.play(text, ELISE.voiceId, controller.signal, () => {
+          await tts.play(text, companion.voiceId, controller.signal, () => {
             ttsTtfbMs = performance.now() - ttsStart;
             setStatus((s) => ({ ...s, awaitingSpeech: false }));
           });
@@ -366,14 +395,14 @@ export function useVoiceSession(opts?: {
           // Inject the live toy status at the {{TOY_STATUS}} marker (bottom of
           // the prompt's CONTROL section) so it's the last thing she reads. A
           // companion whose prompt lacks the marker is unaffected.
-          const systemPrompt = ELISE.systemPrompt.replace(
+          const systemPrompt = companion.systemPrompt.replace(
             "{{TOY_STATUS}}",
             deviceState === "" ? "unknown" : deviceState,
           );
           const baseMessages = toLlmMessages(
             threadRef.current,
             systemPrompt,
-            ELISE.passesReasoning,
+            companion.passesReasoning,
           );
 
           // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
@@ -401,7 +430,7 @@ export function useVoiceSession(opts?: {
             let next = appendAssistant(
               threadRef.current,
               r1.content,
-              ELISE.passesReasoning ? r1.reasoning : undefined,
+              companion.passesReasoning ? r1.reasoning : undefined,
               r1.toolCalls,
             );
             for (const call of r1.toolCalls) {
@@ -420,10 +449,15 @@ export function useVoiceSession(opts?: {
               } catch {
                 // ignore: malformed arguments → run with no args
               }
-              const result =
-                tool === undefined ? "unknown tool" : tool.run(args);
+              // run() returns either the result string or a { result, imageSrc }
+              // object (send_picture): normalise to both. imageSrc rides onto
+              // the tool turn for rendering; only `result` is fed to the model.
+              const raw = tool === undefined ? "unknown tool" : tool.run(args);
+              const result = typeof raw === "string" ? raw : raw.result;
+              const imageSrc =
+                typeof raw === "string" ? undefined : raw.imageSrc;
               onToolRunRef.current?.(call.name, result);
-              next = appendTool(next, call.name, result, call.id);
+              next = appendTool(next, call.name, result, call.id, imageSrc);
             }
             persistThread(next);
             if (controller.signal.aborted || turnRef.current !== controller) {
@@ -438,7 +472,7 @@ export function useVoiceSession(opts?: {
             const call2 = toLlmMessages(
               threadRef.current,
               systemPrompt,
-              ELISE.passesReasoning,
+              companion.passesReasoning,
             );
             // The reaction is the second spoken block; clear the streamed
             // pre-tool text so it streams fresh.
@@ -457,7 +491,7 @@ export function useVoiceSession(opts?: {
               appendAssistant(
                 threadRef.current,
                 reply,
-                ELISE.passesReasoning ? reasoning : undefined,
+                companion.passesReasoning ? reasoning : undefined,
               ),
             );
           }

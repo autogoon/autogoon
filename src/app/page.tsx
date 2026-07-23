@@ -1,16 +1,16 @@
 "use client";
 
 // Wires the app together and lays out the header, navigation and screens. The
-// heavy lifting lives elsewhere: each algorithm is one self-contained module
+// heavy lifting lives elsewhere: each play mode is one self-contained module
 // that owns its engine + panel + commands, the Player (in useVacuglideDevice)
 // plays one engine at a time, and the KeywordSpotterProvider owns the single
 // recognizer. This file only holds the navigation state and the two genuinely
 // global concerns: which words are live and routing them.
 //
-// Navigation is a two-level hierarchy, not tabs: **home** (the algorithm
-// chooser, plus the device/appearance cards) and one screen per algorithm.
-// You never move sideways between algorithms — home's words are the algorithm
-// names, an algorithm screen's word is `exit` (back up), and exit is locked
+// Navigation is a two-level hierarchy, not tabs: **home** (the play mode
+// chooser, plus the device/appearance cards) and one screen per play mode.
+// You never move sideways between play modes — home's words are the play mode
+// names, a play mode screen's word is `exit` (back up), and exit is locked
 // while a session runs, so the grammar always matches the visible screen and
 // the illegal mid-session switch simply cannot be said or tapped. The
 // exception is the top-level tab strip (Home / Changes / Settings): those
@@ -20,10 +20,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
-import { AutopilotPanel } from "@/components/algorithms/autopilot-panel";
-import { CompanionsPanel } from "@/components/algorithms/companions-panel";
-import { GroovePanel } from "@/components/algorithms/groove-panel";
-import { GoonPanel } from "@/components/algorithms/goon-panel";
+import { AutopilotPanel } from "@/components/play-modes/autopilot-panel";
+import { CompanionsPanel } from "@/components/play-modes/companions-panel";
+import { GroovePanel } from "@/components/play-modes/groove-panel";
+import { GoonPanel } from "@/components/play-modes/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
 import { HomePanel } from "@/components/home-panel";
 import { ChangelogPanel } from "@/components/changelog-panel";
@@ -41,14 +41,14 @@ import {
   sanitizeSafeWord,
 } from "@/lib/safe-word";
 
-// The algorithm registry: each entry is a home-page listing (label +
+// The play mode registry: each entry is a home-page listing (label +
 // description + icon), a screen, and a voice word (the id, live on home) all
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
-// Each entry wears its algorithm's signature bright colour twice: the icon
+// Each entry wears its play mode's signature bright colour twice: the icon
 // (iconClass) and the row's accent — a diagonal tint of the same colour with a
 // matching border.
-const ALGORITHMS = [
+const PLAY_MODES = [
   {
     id: "goon",
     label: "Goon",
@@ -92,12 +92,12 @@ const ALGORITHMS = [
   },
 ] as const;
 
-type AlgorithmId = (typeof ALGORITHMS)[number]["id"];
-// An algorithm's setup is its own level (`#goon`), with the live session one
-// below (`#goon/play`) — for algorithms that have a setup view (only Goon so
+type PlayModeId = (typeof PLAY_MODES)[number]["id"];
+// A play mode's setup is its own level (`#goon`), with the live session one
+// below (`#goon/play`) — for play modes that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
 type Screen =
-  "home" | "settings" | "changes" | AlgorithmId | `${AlgorithmId}/play`;
+  "home" | "settings" | "changes" | PlayModeId | `${PlayModeId}/play`;
 
 // The three sibling tabs at the top level — see the tab strip below. Their ids
 // double as their voice words, live on whichever of the three you're on.
@@ -105,20 +105,20 @@ type TabId = "home" | "settings" | "changes";
 const isTabId = (id: string): id is TabId =>
   id === "home" || id === "settings" || id === "changes";
 
-const isAlgorithmId = (id: string): id is AlgorithmId =>
-  ALGORITHMS.some((a) => a.id === id);
+const isPlayModeId = (id: string): id is PlayModeId =>
+  PLAY_MODES.some((a) => a.id === id);
 
 // The screen the URL names: `#goon`, `#goon/play`, `#settings`…; no (known)
 // hash = home.
 const hashScreen = (): Screen => {
   const [base, sub] = window.location.hash.slice(1).split("/");
-  if (base !== undefined && isAlgorithmId(base)) {
+  if (base !== undefined && isPlayModeId(base)) {
     return sub === "play" ? `${base}/play` : base;
   }
   return base === "settings" || base === "changes" ? base : "home";
 };
 
-// One level up: play -> its algorithm's setup, everything else -> home.
+// One level up: play -> its play mode's setup, everything else -> home.
 const parentOf = (s: Screen): Screen =>
   s.includes("/") ? (s.split("/")[0] as Screen) : "home";
 
@@ -134,7 +134,7 @@ const SAFE_WORD_RESERVED = [
   "stop",
   "reset",
   "changes",
-  ...ALGORITHMS.map((a) => a.id),
+  ...PLAY_MODES.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
 const sanitizeCandidate = (input: string): string | null =>
@@ -159,25 +159,25 @@ function App() {
   const [screen, setScreen] = useState<Screen>("home");
 
   // Companions is hidden from the chooser, the home grammar and navigation until
-  // its access ID unlocks it (see useCompanionsAccess). When the gate is off
-  // (COMPANIONS_ACCESS_IDS unset) access.granted is always true, so every
-  // algorithm shows exactly as before.
-  const availableAlgorithms = useMemo(
+  // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
+  // (see access-check.ts): with COMPANIONS_ACCESS_IDS unset nothing validates,
+  // so Companions stays hidden and the other play modes show exactly as before.
+  const availablePlayModes = useMemo(
     () =>
       access.granted
-        ? ALGORITHMS
-        : ALGORITHMS.filter((a) => a.id !== "companions"),
+        ? PLAY_MODES
+        : PLAY_MODES.filter((a) => a.id !== "companions"),
     [access.granted],
   );
 
   // A session is in progress whenever the Player is not idle. You can only
-  // start one from its algorithm's screen and you can't leave while it runs
-  // (exit is locked below), so the running algorithm is always exactly the
+  // start one from its play mode's screen and you can't leave while it runs
+  // (exit is locked below), so the running play mode is always exactly the
   // screen you're on — no separate tracking needed.
   const running = player.state !== "armed";
 
   // The safe word — the always-on hard stop (see src/lib/safe-word.ts). It
-  // lives here, not in the panels, so no algorithm can ever gate it: panels
+  // lives here, not in the panels, so no play mode can ever gate it: panels
   // own `stop` and may one day ignore it; the safe word bypasses them and
   // halts the Player directly. Persisted across sessions; the stored value is
   // re-validated on load in case a stale one clashes with words added since.
@@ -196,7 +196,7 @@ function App() {
   }, []);
 
   // The global grammar slot: connect (while disconnected) everywhere; the
-  // algorithm names on home; the other two tabs' words on any top-level tab;
+  // play mode names on home; the other two tabs' words on any top-level tab;
   // exit anywhere below the top level while nothing runs; the safe word
   // whenever something is playing — exactly where `stop` is live.
   const connected = vacuglide.connected;
@@ -206,8 +206,7 @@ function App() {
     if (!connected) words.push("connect");
     if (playing) words.push(safeWord);
     if (isTabId(screen)) {
-      if (screen === "home")
-        words.push(...availableAlgorithms.map((a) => a.id));
+      if (screen === "home") words.push(...availablePlayModes.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
       // of the grammar; so is the tab that would go nowhere).
       words.push(
@@ -225,7 +224,7 @@ function App() {
     playing,
     safeWord,
     screen,
-    availableAlgorithms,
+    availablePlayModes,
     setGlobalWords,
   ]);
 
@@ -281,9 +280,9 @@ function App() {
     }
   }, [access.checked, access.granted, screen, navigate]);
 
-  // Route the global words. connect drives the device; an algorithm name (on
-  // home) enters that algorithm; exit (while idle) goes back up. Everything
-  // else is an algorithm word, owned and handled by the active panel. State is
+  // Route the global words. connect drives the device; a play mode name (on
+  // home) enters that play mode; exit (while idle) goes back up. Everything
+  // else is a play mode word, owned and handled by the active panel. State is
   // read through refs so this listener subscribes once, not on every render.
   const connectRef = useRef(vacuglide.connect);
   connectRef.current = vacuglide.connect;
@@ -295,7 +294,7 @@ function App() {
   playerRef.current = vacuglide.player;
   useEffect(() => {
     return keywordListener((word) => {
-      // Central log of every recognised command word, so every algorithm's voice
+      // Central log of every recognised command word, so every play mode's voice
       // hits show up (they used to come from the old runner). Fires alongside the
       // active panel's own handler and the "Listening for" flash — all three ride
       // the same detection.
@@ -315,7 +314,7 @@ function App() {
         navigate(parentOf(screenRef.current));
         return;
       }
-      if (isAlgorithmId(word) && screenRef.current === "home") {
+      if (isPlayModeId(word) && screenRef.current === "home") {
         navigate(word);
         return;
       }
@@ -327,11 +326,11 @@ function App() {
   }, [keywordListener, navigate]);
 
   // Top level = home + its Changes/Settings siblings, shown as the old tab
-  // strip; algorithm screens get the breadcrumb instead: Home › Goon (setup),
+  // strip; play mode screens get the breadcrumb instead: Home › Goon (setup),
   // and Home › Goon › Play once a session's been generated.
   const topLevel = isTabId(screen);
   const screenBase = screen.split("/")[0]!;
-  const currentAlgorithm = ALGORITHMS.find((a) => a.id === screenBase) ?? null;
+  const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
   const crumbLink =
     "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
@@ -368,7 +367,7 @@ function App() {
             ))}
           </nav>
         )}
-        {currentAlgorithm !== null && (
+        {currentPlayMode !== null && (
           // The breadcrumb: the way back up, locked while a session runs (the
           // old tab lock's rule — stop before you leave).
           <nav className="flex items-center gap-2 border-b py-3 text-sm">
@@ -384,18 +383,18 @@ function App() {
             {atPlayLevel ? (
               <>
                 <Button
-                  onClick={() => navigate(currentAlgorithm.id)}
+                  onClick={() => navigate(currentPlayMode.id)}
                   disabled={running}
                   title={running ? "Stop the session first" : undefined}
                   className={crumbLink}
                 >
-                  {currentAlgorithm.label}
+                  {currentPlayMode.label}
                 </Button>
                 <span className="text-muted-foreground">›</span>
                 <span className="font-medium">Play</span>
               </>
             ) : (
-              <span className="font-medium">{currentAlgorithm.label}</span>
+              <span className="font-medium">{currentPlayMode.label}</span>
             )}
             {!running && (
               <span className="text-muted-foreground ml-auto text-xs">
@@ -408,9 +407,9 @@ function App() {
           <div className={screen === "home" ? undefined : "hidden"}>
             <HomePanel
               vacuglide={vacuglide}
-              algorithms={availableAlgorithms}
+              playModes={availablePlayModes}
               onSelect={(id) => {
-                if (isAlgorithmId(id) || id === "settings") navigate(id);
+                if (isPlayModeId(id) || id === "settings") navigate(id);
               }}
             />
           </div>

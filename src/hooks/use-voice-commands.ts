@@ -5,7 +5,7 @@
 // from it AND this hook registers the word for voice — so button and voice hit
 // the same handler and share the same `enabled`, and can never disagree.
 //
-// Only the active panel registers, so exactly one algorithm's words are ever in
+// Only the active panel registers, so exactly one play mode's words are ever in
 // the grammar at a time.
 
 import { useEffect, useRef } from "react";
@@ -22,7 +22,7 @@ export function useVoiceCommands(active: boolean, commands: Command[]): void {
   // itself. Its identity changes whenever the grammar or flash state changes, so
   // an effect keyed on the whole object would re-run (and, since the cleanup
   // clears the words, oscillate) on every publish.
-  const { setAlgorithmKeywords, keywordListener } = useKeywordSpotter();
+  const { setPlayModeKeywords, keywordListener } = useKeywordSpotter();
 
   // Latest commands reachable from the (stable) detection listener.
   const commandsRef = useRef(commands);
@@ -35,9 +35,9 @@ export function useVoiceCommands(active: boolean, commands: Command[]): void {
     .join("\n");
   useEffect(() => {
     if (!active) return;
-    setAlgorithmKeywords(wordsKey === "" ? [] : wordsKey.split("\n"));
-    return () => setAlgorithmKeywords([]);
-  }, [active, wordsKey, setAlgorithmKeywords]);
+    setPlayModeKeywords(wordsKey === "" ? [] : wordsKey.split("\n"));
+    return () => setPlayModeKeywords([]);
+  }, [active, wordsKey, setPlayModeKeywords]);
 
   // Route detections to the matching enabled command while active.
   useEffect(() => {

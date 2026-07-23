@@ -2,7 +2,7 @@
 
 // The Settings screen — app-level preferences and diagnostics, reached from
 // home. Appearance and the build info live here, and future app settings
-// should land here too (per-algorithm options belong in that algorithm's
+// should land here too (per-play-mode options belong in that play mode's
 // setup view instead).
 
 import { useEffect, useState } from "react";

@@ -18,9 +18,14 @@ Other scripts:
   issues the dev server tolerates).
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src`, `tests` and the root config/docs.
+- `npm run format` — Prettier over `src`, `tests`, and the repo's config and
+  markdown (root, `docs/`, `roadmap/`, `modes/`).
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
+
+The app scripts (`dev`, `build`, `typecheck`, `lint`, `test`) each first
+regenerate the companion-pictures module via a `gen:pictures` pre-hook (see
+`package.json`) — purely local, no keys needed.
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
@@ -47,8 +52,27 @@ offline.
   warning, not just the ones your change introduced). Individual commits needn't
   be spotless — the PR as a whole must be clean — and commit anything `format`
   reformats.
-- **Adding an algorithm?** See [Adding an algorithm](#adding-an-algorithm) below
+- **Adding a play mode?** See [Adding a play mode](#adding-a-play-mode) below
   for the full checklist.
+- **Respect the [content policy](#content-policy)** — no features that host,
+  index, or point at content.
+
+## Content policy
+
+Autogoon is a player, not a distributor. Because of the UK Online Safety Act
+(and copyright law), the project does not — and will not — distribute adult
+content, host or index goonpacks, or recommend where content can be acquired.
+Users bring their own files; everything stays on their own machine, and the app
+stays dumb about where it came from.
+
+Contributions must keep it that way. Don't submit features that:
+
+- bundle, host, or download content or goonpacks;
+- index, list, or link to packs or content sources (no "browse packs", curated
+  lists, or in-app galleries of third-party content);
+- point users at places to acquire content — in the app or its docs.
+
+Import-your-own-file is the only acquisition path the app knows about.
 
 ## Testing
 
@@ -67,19 +91,12 @@ pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
 routing — works in each engine. Only the microphone _hardware_ is faked:
 `getUserMedia` is stubbed (via `MediaDevices.prototype` — instance assignment
 doesn't stick in WebKit) to return a WebAudio-built `MediaStream`, and the test
-plays a committed wav of a synthesized algorithm name into it once, then asserts
-the app heard it and navigated to that algorithm's screen.
+plays a committed wav of a synthesized play mode name into it once, then asserts
+the app heard it and navigated to that play mode's screen.
 
-Two hard-won details, should you write more voice tests:
-
-- The stub keeps a zero-value `ConstantSourceNode` feeding the stream at all
-  times. Firefox only produces frames while something feeds the destination
-  node, and vosk needs trailing silence to endpoint an utterance — without it
-  the word is heard but never finalised.
-- The test clicks the page **before** the audio pipeline comes up: in real use
-  the mic-permission click grants the user activation that lets Firefox/WebKit
-  run the app's `AudioContext`; the stub bypasses the prompt, so the test must
-  supply the activation itself.
+Two hard-won details — the stub's always-on silence source, and the pre-pipeline
+activation click — are load-bearing and commented in place in
+`tests/e2e/voice-tab-switch.spec.ts`; read them before writing more voice tests.
 
 Fixtures are committed under `tests/fixtures/`; regenerate them with
 `tests/fixtures/generate.sh` (macOS only — it uses `say`).
@@ -88,14 +105,14 @@ The first time the suite runs a given browser, macOS asks whether to allow it to
 use the microphone — approve it once per browser and it won't ask again. (The
 tests never use the real mic, but the browsers still request the permission.)
 
-## Adding an algorithm
+## Adding a play mode
 
-An algorithm is a self-contained pair — an **engine** (event generation, no
+A play mode is a self-contained pair — an **engine** (event generation, no
 React, no device) and a **panel** (the React surface that owns the engine and
 drives the shared Player) — registered in `src/app/page.tsx`. Read the
 engine/panel split in [ARCHITECTURE.md](./ARCHITECTURE.md) first.
 
-**Copy an existing algorithm as your starting point.** `goon-engine.ts` +
+**Copy an existing play mode as your starting point.** `goon-engine.ts` +
 `goon-panel/` exercise the full feature set (an automatic build curve, a setup
 view with per-concern option cards, a live-scaled magnitude knob, valve teases,
 time dilation, and a bespoke `cumming` wind-down), so Goon is the richest
@@ -104,22 +121,22 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
 
 ### The steps
 
-1. **Engine** — `src/lib/algorithms/<name>-engine.ts`, a plain `AlgorithmEngine`
+1. **Engine** — `src/lib/play-modes/<name>-engine.ts`, a plain `PlayModeEngine`
    (no React, no device).
    - Implement the four methods from
      [`src/lib/program.ts`](./src/lib/program.ts): `reset`, `generateSpeed`,
      `generateValves`, `scale`. That interface is the contract and the
      best-commented file to read first.
    - Engines are **self-contained** — they never import from each other. If you
-     reuse another algorithm's pattern (as Goon reuses Groove's dip),
+     reuse another play mode's pattern (as Goon reuses Groove's dip),
      **duplicate** the helper, don't share it.
-2. **Panel** — `src/components/algorithms/<name>-panel.tsx` (or a
+2. **Panel** — `src/components/play-modes/<name>-panel.tsx` (or a
    `<name>-panel/` directory with the panel in `index.tsx`, once it has enough
    pieces — Goon splits its setup option cards out this way). Copy Goon's or
-   Groove's structure; what's algorithm-specific is only your knob cards and
-   their commands. Whether an algorithm has a **setup view** before its play
-   view is the panel's own choice — Goon has one, Groove and Autopilot don't.
-   The parts to copy:
+   Groove's structure; what's play-mode-specific is only your knob cards and
+   their commands. Whether a play mode has a **setup view** before its play view
+   is the panel's own choice — Goon has one, Groove and Autopilot don't. The
+   parts to copy:
    - a `useRef` engine — **stable identity matters**: the Player identifies the
      active source by reference, so never re-create it (no `useMemo` with deps);
    - `isCurrent` / `state` derived from the Player view;
@@ -135,21 +152,21 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
      the start and calls `engine.reset()` to clear transient state (e.g. a
      pending `cumming`).
    - **Endings belong to the panel, not `StrokeCard`** (which is just the shared
-     stroke ± buttons). If your algorithm has an ending, render a `FinishButton`
+     stroke ± buttons). If your play mode has an ending, render a `FinishButton`
      and/or a `CummingButton` — **Finish** (a _pre_-ending: reach/hold the
      climax point) and **Cumming** (the send-off) are distinct actions. Have
      both, one, or neither.
 
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
-   - add an `ALGORITHMS` entry (`id`, `label`, `description`) — the id is the
-     voice switch word and the screen, and the description is the home-page
-     listing, so this one entry is the whole registration;
+   - add a `PLAY_MODES` entry — the fields are commented at the registry; the
+     `id` doubles as the voice switch word and the screen, so this one entry is
+     the whole registration;
    - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the
      others, passing `active={screen === "<name>"}`.
-4. **User-facing copy:** add `ALGORITHM-<NAME>.md` (high-level and experiential,
-   like the others — not an implementation spec), and link it from `README.md`
-   (the mode list and the Documentation list).
+4. **User-facing copy:** add `modes/<NAME>.md` (high-level and experiential,
+   like the others — not an implementation spec), and link it from
+   [MODES.md](./MODES.md) and `README.md`'s mode list.
 5. **Changelog** — add a `feature` line to [CHANGELOG.md](./CHANGELOG.md).
 
 ### Which knob-change method to call
@@ -164,37 +181,18 @@ by where the change lives (see the `Player` methods in
 | The **shape** of the speed script     | `device.invalidateFuture()` | Groove Variability; `cumming`/`finish` |
 | **Valves only**, over unchanged speed | `device.invalidateValves()` | Autopilot Vacuum Maintenance           |
 
-The program is generated once in raw **pattern space** (0–100); the Player runs
-each event through the engine's `scale()` at send time, applying the knob's
-current value. So a **magnitude** knob changes nothing about the program —
-`refresh()` just re-sends the current event at the new scale, and every future
-event is scaled as it plays.
-
-This is a deliberate optimisation, and it matters for _feel_: regenerating
-instead (`invalidateFuture()`) would build a **different** program, because
-generation has random elements (timing jitter, dip variation) — so a magnitude
-change would jump you onto a fresh pattern rather than smoothly rescaling the
-one you're already feeling. Scaling keeps the exact same shape, just louder or
-quieter.
-
-Reach for `invalidateFuture()` only when the **shape** genuinely changed: it
-drops and rebuilds the not-yet-played tail from the new engine state (accepting
-that the random tail is now a different draw). `invalidateValves()` re-lays only
-the valve overlay, leaving the speed backbone — and its randomness — intact.
+Why it matters for _feel_: generation has random elements, so regenerating for a
+mere magnitude change would jump the rider onto a fresh pattern instead of
+smoothly rescaling the one they're already feeling. The mechanics — pattern
+space, scale-at-send-time, what each invalidation drops — are commented on the
+methods themselves in [`src/lib/player.ts`](./src/lib/player.ts); read those
+before picking.
 
 ### `generateSpeed` pitfalls
 
-The contract (`program.ts`) spells these out, but they're the easy ones to get
-wrong:
-
-- Each call must return events extending **past `fromTime`**. A batch whose last
-  event lands at or before `fromTime` makes no progress, so the Player's
-  look-ahead loop spins. (Emitting in whole cycles isn't required — it's just
-  convenient, so each call resumes from a clean boundary to append the next
-  batch.)
-- Return **`[]` to park** — nothing more to play until a knob changes (this is
-  how Goon's `cumming` wind-down ends: emit the glide, then park).
-- A send-off / wind-down ramp should emit its speed events **`unscaled`** (see
-  `SpeedEvent.unscaled` in `program.ts`), so a magnitude ceiling like intensity
-  can't shrink the ramp out from under it — Goon's `buildCummingScript` does
-  this.
+The easy-to-get-wrong parts — each batch must extend **past `fromTime`** (or the
+Player's look-ahead spins), returning **`[]` parks** the program, and send-off
+ramps emit **`unscaled`** so an intensity ceiling can't shrink them — are all
+spelled out in the contract comments in
+[`src/lib/program.ts`](./src/lib/program.ts) (`generateSpeed`,
+`SpeedEvent.unscaled`). Read that file first; it's the contract.

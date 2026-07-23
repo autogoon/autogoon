@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 // The cross-browser proof that the whole voice pipeline works: a synthesized
 // utterance goes through the app's real AudioWorklet and vosk recognizer in
-// each engine, and the detected algorithm name navigates to its screen.
+// each engine, and the detected play mode name navigates to its screen.
 //
 // Only the microphone *hardware* is faked: getUserMedia is stubbed (before the
 // app loads) to return a WebAudio-built MediaStream, and window.__testMic
@@ -25,7 +25,7 @@ const FIXTURE = path.join(
   "autopilot.wav",
 );
 
-test("saying an algorithm's name opens its screen", async ({ page }) => {
+test("saying a play mode's name opens its screen", async ({ page }) => {
   // Serve the fixture bytes on a URL only the stub fetches — nothing
   // test-related ships in public/.
   await page.route("**/__fixtures/autopilot.wav", (route) =>
@@ -65,8 +65,8 @@ test("saying an algorithm's name opens its screen", async ({ page }) => {
 
   await page.goto("/");
 
-  // The app opens on home — the device group and the algorithm chooser.
-  await expect(page.getByText("Choose an algorithm")).toBeVisible();
+  // The app opens on home — the device group and the play mode chooser.
+  await expect(page.getByText("Choose a play mode")).toBeVisible();
 
   // Click (anywhere harmless) BEFORE the audio pipeline comes up: sticky user
   // activation lets Firefox/WebKit run the AudioContexts the app and the stub
