@@ -4,7 +4,9 @@
 // Always shown (once the initial check resolves) so access can be entered or
 // changed at any time. The real enforcement is server-side on the paid routes
 // (see access-check.ts); this only decides whether the Companions feature is
-// revealed — and Companions stays hidden until a valid ID is entered.
+// revealed — and Companions stays hidden until a valid ID is entered. On the
+// dev server Companions shows regardless (page.tsx), but this box still
+// validates real IDs, so the gate stays testable in dev.
 
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
@@ -37,16 +39,17 @@ export function CompanionAccessCard({ access }: { access: CompanionsAccess }) {
 
   return (
     <Card title="Companion access">
-      <p className="text-muted-foreground text-sm">
-        Companions is locked. Enter your access ID to unlock it — it&apos;s
-        saved on this device, so you only do this once.
-      </p>
       {access.granted ? (
         <p className="text-sm text-emerald-500">
           Unlocked — Companions is available on the home screen.
         </p>
       ) : (
         <>
+          <p className="text-muted-foreground text-sm">
+            {process.env.NODE_ENV === "development"
+              ? "Dev server — Companions is already available; an access ID entered here only tests the gate."
+              : "Companions is locked. Enter your access ID to unlock it — it's saved on this device, so you only do this once."}
+          </p>
           <div className="flex items-stretch gap-2">
             <input
               type="text"

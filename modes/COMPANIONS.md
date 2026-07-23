@@ -23,9 +23,8 @@ straight through, and the key never reaches the client.
 
 Two field-level whys worth knowing (the rest are commented on the type):
 `voiceId` and `model` aren't secrets, so they're safe in code even in a public
-repo; and because each companion carries her own `model`, there is no global
-`LLM_MODEL` to configure — different companions can run entirely different
-models.
+repo; and because each companion carries her own `model`, different companions
+can run entirely different models with nothing global to configure.
 
 ## One config object per companion
 
@@ -124,8 +123,11 @@ Everything is wired through env vars documented in
 client.
 
 The one to understand is **`COMPANIONS_ACCESS_IDS`** — the access gate. The
-Companions routes spend real money (LLM, TTS, STT) behind a shared URL, so
-they're **fail-closed** (`access-check.ts`): with no IDs configured, the mode is
-hidden and every paid route rejects everything — including locally. Set at least
-one ID and enter it under Settings to unlock; hand out different IDs to
-different people and revoke one by deleting it.
+Companions routes spend real money (LLM, TTS, STT) behind a shared URL, so on a
+deploy they're **fail-closed** (`access-check.ts`): with no IDs configured, the
+mode is hidden and every paid route rejects everything. Set at least one ID and
+enter it under Settings to unlock; hand out different IDs to different people
+and revoke one by deleting it.
+
+Running locally (`npm run dev`) needs none of that — the gate is open in dev,
+and Companions appears as soon as your keys are in `.env`.

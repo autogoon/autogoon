@@ -11,8 +11,9 @@ export const ACCESS_STORAGE_KEY = "companions:access-id";
 
 // Parse the comma-separated COMPANIONS_ACCESS_IDS env value into a clean list:
 // split on commas, trim, drop blanks. An empty result means NOTHING validates —
-// the gate is fail-closed (see checkAccess in access-check.ts), so an unset or
-// empty env leaves Companions hidden and its routes rejecting everything.
+// the gate is fail-closed (see checkAccessId in access-check.ts), so in
+// builds/deploys an unset or empty env leaves Companions hidden and its routes
+// rejecting everything (the dev server skips the gate on the paid routes).
 export function parseAccessIds(raw: string | undefined): string[] {
   return (raw ?? "")
     .split(",")

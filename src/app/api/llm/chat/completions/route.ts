@@ -5,8 +5,9 @@
 // multi-companion picker with differing models needs the client to name the model
 // (model slugs aren't secret; only the key is). Abortable: the request's signal is
 // forwarded upstream, so a client abort (barge-in / Stop) tears down generation.
-// Gated by the Companion access ID (checkAccess) when COMPANIONS_ACCESS_IDS is
-// set, so a shared demo can't have this paid key hammered by anyone with the URL.
+// Gated by the Companion access ID (checkAccess — open on the dev server,
+// fail-closed everywhere else), so a shared demo can't have this paid key
+// hammered by anyone with the URL.
 import { checkAccess } from "@/lib/companions/access-check";
 
 export const runtime = "nodejs";

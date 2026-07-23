@@ -110,7 +110,8 @@ invariants, the why, and the cross-file shape. Concretely:
   ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
   reverse-engineered algorithm).
 - When code you change is mentioned in a doc, updating the doc is part of the
-  change. Run `/doc-check` before a PR is marked ready to catch what slipped.
+  change. Run `/doc-check` before opening a PR — and again before merging — to
+  catch what slipped.
 
 ## Git workflow
 
@@ -119,10 +120,13 @@ invariants, the why, and the cross-file shape. Concretely:
 - The flow is **branch → do the work → gates → commit → push → open a PR →
   merge**: push with `git push -u origin <branch>`, then open a PR against
   `main` with `gh pr create`.
-- **Before a PR is marked ready for review**, the whole gate set passes:
+- **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, `/doc-check` run over the branch's diff, and
+  run, the CHANGELOG entry written, `/doc-check` over the branch's diff, and
   `/personal-check`.
+- **Before merging**, run `/doc-check` and `/personal-check` again — the branch
+  has usually gained commits since the PR opened. Treat `gh pr merge` as blocked
+  until both have run against the final diff.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.

@@ -258,11 +258,12 @@ and `OPENROUTER_API_KEY` live in **`.env`** (gitignored); a secret-free
 minting, TTS, LLM proxy) run **server-side in Next API routes** — nothing is
 `NEXT_PUBLIC_*`, so no secret reaches the browser bundle.
 
-**Security posture (current, and the end state).** The paid routes (`stt-token`,
-`tts`, the LLM proxy) are gated by the shared-secret access-ID check
-(`COMPANIONS_ACCESS_IDS`, **fail-closed** — see `access-check.ts`): with no IDs
-configured every paid route rejects everything, so an unconfigured deploy
-exposes nothing, and gated demos hand out revocable IDs. There is **no
+**Security posture (current, and the end state).** In builds/deploys the paid
+routes (`stt-token`, `tts`, the LLM proxy) are gated by the shared-secret
+access-ID check (`COMPANIONS_ACCESS_IDS`, **fail-closed** — see
+`access-check.ts`): with no IDs configured every paid route rejects everything,
+so an unconfigured deploy exposes nothing, and gated demos hand out revocable
+IDs. The dev server skips the gate (your machine, your keys). There is **no
 user-accounts system, and none is planned**. The end state is **bring-your-own
 keys** ([TODO.md](../../../TODO.md), Phase 13): each user supplies their own
 provider keys in the app, so every user funds their own usage — which is what

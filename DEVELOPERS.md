@@ -7,10 +7,19 @@ shared device layer and single Player, and the keyword spotter — see
 
 ## Running locally
 
+You need **[Node.js](https://nodejs.org/) 20.9 or newer** (npm comes with it)
+and **git**. Installing those is beyond this doc's scope — the installers on
+nodejs.org, or your platform's package/version manager, all work.
+
 ```sh
 npm install
 npm run dev      # Next dev server on http://localhost:8931 (bound to 0.0.0.0)
 ```
+
+Everything runs with no configuration except **Companions**, which needs API
+keys: copy [`.env.example`](./.env.example) to `.env` and fill it in. On the dev
+server Companions then unlocks with no access ID (the gate applies to
+builds/deploys only).
 
 Other scripts:
 
@@ -53,7 +62,8 @@ offline.
   be spotless — the PR as a whole must be clean — and commit anything `format`
   reformats.
 - **Adding a play mode?** See [Adding a play mode](#adding-a-play-mode) below
-  for the full checklist.
+  for the full checklist. **Adding a companion?**
+  [Adding a companion](#adding-a-companion).
 - **Respect the [content policy](#content-policy)** — no features that host,
   index, or point at content.
 
@@ -196,3 +206,32 @@ ramps emit **`unscaled`** so an intensity ceiling can't shrink them — are all
 spelled out in the contract comments in
 [`src/lib/program.ts`](./src/lib/program.ts) (`generateSpeed`,
 `SpeedEvent.unscaled`). Read that file first; it's the contract.
+
+## Adding a companion
+
+A companion is **pure data** — one `Companion` entry plus a persona module. The
+picker, the play session, the saved thread and the voice switch all derive from
+the entry, so there is nothing else to wire up. The fields are commented on the
+`Companion` type in
+[`src/lib/companions/companions.ts`](./src/lib/companions/companions.ts).
+
+1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting her
+   system prompt. Copy `aimee-prompt.ts`'s shape: interpolate the shared
+   sections from `shared-prompt.ts` (each export is commented with where it
+   slots in; `CONTROL_SECTION` must come last — it ends with the
+   `{{TOY_STATUS}}` marker), write her in the **second person**, and keep only
+   what is _her_ in the module: character, setup, tone, and disposition —
+   crucially, **who leads** during play, which the shared blocks are neutral on.
+2. **Register her** — widen the `CompanionId` union and add the `COMPANIONS`
+   entry (model, context window, voice, prompt). Pick an ElevenLabs `voiceId`
+   (not a secret) and a model that suits the persona — explicit-content
+   suitability and reliable tool-calling are properties of the model, so test
+   hers before settling.
+3. **Pictures (optional)** — drop images in `public/companions/<id>/` and
+   caption them; the user-facing steps are in
+   [modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures). A companion without
+   pictures simply never offers them.
+4. **Test** — the registry test already enforces id = record key for every
+   entry; add a config `describe` block for her alongside Elise's and Aimee's
+   (`src/lib/companions/companions.test.ts`).
+5. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).

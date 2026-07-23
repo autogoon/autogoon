@@ -48,6 +48,10 @@ import {
 // Each entry wears its play mode's signature bright colour twice: the icon
 // (iconClass) and the row's accent — a diagonal tint of the same colour with a
 // matching border.
+// On the dev server Companions is always available (the paid routes are open —
+// see access-check.ts); the access gate applies to builds/deploys.
+const IS_DEV = process.env.NODE_ENV === "development";
+
 const PLAY_MODES = [
   {
     id: "goon",
@@ -162,9 +166,11 @@ function App() {
   // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
   // (see access-check.ts): with COMPANIONS_ACCESS_IDS unset nothing validates,
   // so Companions stays hidden and the other play modes show exactly as before.
+  // The dev server is the exception: the paid routes are open there, so the
+  // card always shows — while the Settings box still validates real IDs.
   const availablePlayModes = useMemo(
     () =>
-      access.granted
+      access.granted || IS_DEV
         ? PLAY_MODES
         : PLAY_MODES.filter((a) => a.id !== "companions"),
     [access.granted],
@@ -270,10 +276,12 @@ function App() {
   // A deep-link or reload onto Companions while it's locked (or never unlocked)
   // bounces home once the access check resolves. Waits for `checked` so a
   // genuine reload-with-stored-ID isn't kicked out before validation lands.
+  // Never bounces on the dev server — Companions is always available there.
   useEffect(() => {
     if (
       access.checked &&
       !access.granted &&
+      !IS_DEV &&
       screen.split("/")[0] === "companions"
     ) {
       navigate("home");
