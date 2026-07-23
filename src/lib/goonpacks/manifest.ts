@@ -12,8 +12,22 @@ export const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 // The accent hues safelisted in globals.css — a pack colour outside this set
 // would silently render unstyled, so reject it at import instead.
 const ACCENT_COLOURS = new Set([
-  "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal",
-  "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
   "rose",
 ]);
 
