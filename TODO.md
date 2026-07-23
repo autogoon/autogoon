@@ -29,7 +29,12 @@ What's already built is described in
   here) — every _x_ ± _y_ seconds, no per-event trigger. The cue carries no
   payload; the persona decides what to say from the thread's current + upcoming
   device state (`player.upcoming`), free to end a turn in a tool call.
-  Preemptible under barge-in.
+  Preemptible under barge-in. **Idle cutoff:** the ambient clock must be _time
+  since the last user turn_ (the thread's `at` stamps), not since the last turn
+  — her own self-pokes would otherwise reset it forever. After a while with no
+  user turn she asks "are you still there?"; unanswered, the self-poke cadence
+  stops (no LLM/TTS spend on an empty room) until he speaks again — which the
+  gap markers then frame as him coming back.
 - **Phase 8 — Safeword + barge-in tuning.** Vosk KWS reserved for the safeword →
   hard stop that also tears down the voice session (LLM + TTS); the
   nav/global-word lockdown a running session needs; reconciling the two
@@ -73,3 +78,13 @@ What's already built is described in
   user's key per-request, and what `.env` keys remain as a local-dev
   convenience. The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the
   server keys** — its only job was protecting them.
+- **Phase 15 — Companion time zones.** The personas are located (Riga,
+  Pembrokeshire, Portland) but only the user's clock is real — the prompt's
+  TIME line is his browser's time. Give a located persona her own: an IANA
+  `timezone` field on `Companion` and a second TIME line ("TIME (yours, in
+  Riga): …") rendered via `Intl`'s `timeZone` option, so it can be the middle
+  of her night in the middle of his day. The app does all the arithmetic — no
+  LLM offset math (models are passable at offsets and quietly wrong about
+  DST); she only roleplays the two clocks. One rule ships with it: her clock
+  colours the fiction, never gates it — she never refuses to play because
+  it's 4am where she lives.

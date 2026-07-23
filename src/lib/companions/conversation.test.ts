@@ -6,6 +6,10 @@ import {
   toLlmMessages,
   serialize,
   parse,
+  describeGap,
+  describeClock,
+  sameLocalDay,
+  GAP_MARKER_MIN_MS,
   type Thread,
 } from "./conversation";
 
@@ -185,5 +189,154 @@ describe("tool turns", () => {
     expect(
       parse('[{"role":"assistant","content":"","toolCalls":"nope"}]'),
     ).toEqual([]);
+  });
+});
+
+describe("turn timestamps", () => {
+  it("builders stamp `at` when given and omit it when not", () => {
+    expect(appendUser([], "hi", 1000)).toEqual([
+      { role: "user", content: "hi", at: 1000 },
+    ]);
+    expect("at" in appendUser([], "hi")[0]!).toBe(false);
+    expect(appendAssistant([], "yo", undefined, undefined, 2000)).toEqual([
+      { role: "assistant", content: "yo", at: 2000 },
+    ]);
+    expect("at" in appendAssistant([], "yo")[0]!).toBe(false);
+    expect(appendTool([], "start", "started", "c1", undefined, 3000)).toEqual([
+      {
+        role: "tool",
+        name: "start",
+        result: "started",
+        toolCallId: "c1",
+        at: 3000,
+      },
+    ]);
+    expect("at" in appendTool([], "start", "started", "c1")[0]!).toBe(false);
+  });
+
+  it("serialize/parse round-trips `at` and accepts un-stamped legacy turns", () => {
+    const thread: Thread = [
+      { role: "user", content: "a", at: 1000 },
+      { role: "assistant", content: "b" },
+    ];
+    expect(parse(serialize(thread))).toEqual(thread);
+  });
+
+  it("parse rejects a turn whose `at` is not a number", () => {
+    expect(parse('[{"role":"user","content":"a","at":"noon"}]')).toEqual([]);
+  });
+});
+
+describe("gap markers in toLlmMessages", () => {
+  const HOUR = 3_600_000;
+
+  it("inserts a system marker before a user turn after a long gap", () => {
+    const thread: Thread = [
+      { role: "user", content: "hey", at: 0 },
+      { role: "assistant", content: "hi", at: 1000 },
+      { role: "user", content: "back", at: 1000 + 2 * HOUR },
+    ];
+    const msgs = toLlmMessages(thread, "SYS", false);
+    expect(msgs.map((m) => m.role)).toEqual([
+      "system",
+      "user",
+      "assistant",
+      "system",
+      "user",
+    ]);
+    expect(msgs[3]!.content).toBe("(2 hours pass.)");
+  });
+
+  it("inserts no marker below the threshold", () => {
+    const thread: Thread = [
+      { role: "assistant", content: "hi", at: 0 },
+      { role: "user", content: "back", at: GAP_MARKER_MIN_MS - 1 },
+    ];
+    expect(toLlmMessages(thread, "SYS", false)).toHaveLength(3);
+  });
+
+  it("inserts no marker when either side is un-stamped", () => {
+    const legacyPrev: Thread = [
+      { role: "assistant", content: "hi" },
+      { role: "user", content: "back", at: 5 * HOUR },
+    ];
+    expect(toLlmMessages(legacyPrev, "SYS", false)).toHaveLength(3);
+    const legacyNext: Thread = [
+      { role: "assistant", content: "hi", at: 0 },
+      { role: "user", content: "back" },
+    ];
+    expect(toLlmMessages(legacyNext, "SYS", false)).toHaveLength(3);
+  });
+
+  it("inserts markers only before user turns, never inside an agentic sequence", () => {
+    const calls = [{ id: "c1", name: "start", arguments: "{}" }];
+    const thread: Thread = [
+      { role: "user", content: "start it", at: 0 },
+      { role: "assistant", content: "", toolCalls: calls, at: 2 * HOUR },
+      {
+        role: "tool",
+        name: "start",
+        result: "started",
+        toolCallId: "c1",
+        at: 4 * HOUR,
+      },
+      { role: "assistant", content: "it's on", at: 6 * HOUR },
+    ];
+    // Gaps everywhere, but no user turn follows one — no markers at all.
+    expect(toLlmMessages(thread, "SYS", false)).toHaveLength(5);
+  });
+
+  it("never puts a marker before the first turn", () => {
+    const thread: Thread = [{ role: "user", content: "hey", at: 99 * HOUR }];
+    expect(toLlmMessages(thread, "SYS", false)).toHaveLength(2);
+  });
+});
+
+describe("describeGap", () => {
+  const MIN = 60_000;
+  const HOUR = 3_600_000;
+  const DAY = 24 * HOUR;
+
+  it("speaks minutes under an hour", () => {
+    expect(describeGap(20 * MIN)).toBe("20 minutes pass.");
+    expect(describeGap(59 * MIN)).toBe("59 minutes pass.");
+  });
+
+  it("speaks hours under a day, singular at one", () => {
+    expect(describeGap(HOUR)).toBe("1 hour passes.");
+    expect(describeGap(90 * MIN)).toBe("2 hours pass.");
+    expect(describeGap(6 * HOUR)).toBe("6 hours pass.");
+  });
+
+  it("speaks days from a day up, singular at one", () => {
+    expect(describeGap(26 * HOUR)).toBe("1 day passes.");
+    expect(describeGap(3 * DAY)).toBe("3 days pass.");
+  });
+});
+
+describe("describeClock", () => {
+  it("formats a local timestamp as weekday, date and 12-hour time", () => {
+    // Built from local parts so the assertion holds in any timezone.
+    const at = new Date(2026, 6, 23, 14, 5).getTime(); // 23 July 2026, 2:05 pm
+    expect(describeClock(at)).toBe("Thursday 23 July 2026, 2:05 pm");
+  });
+
+  it("handles midnight and noon", () => {
+    expect(describeClock(new Date(2026, 0, 5, 0, 0).getTime())).toBe(
+      "Monday 5 January 2026, 12:00 am",
+    );
+    expect(describeClock(new Date(2026, 0, 5, 12, 30).getTime())).toBe(
+      "Monday 5 January 2026, 12:30 pm",
+    );
+  });
+});
+
+describe("sameLocalDay", () => {
+  it("is true within a local day and false across midnight", () => {
+    const morning = new Date(2026, 6, 23, 9, 0).getTime();
+    const night = new Date(2026, 6, 23, 23, 59).getTime();
+    const nextDay = new Date(2026, 6, 24, 0, 1).getTime();
+    expect(sameLocalDay(morning, night)).toBe(true);
+    expect(sameLocalDay(night, nextDay)).toBe(false);
   });
 });

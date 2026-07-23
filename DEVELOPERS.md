@@ -218,8 +218,8 @@ the entry, so there is nothing else to wire up. The fields are commented on the
 1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting her
    system prompt. Copy `aimee-prompt.ts`'s shape: interpolate the shared
    sections from `shared-prompt.ts` (each export is commented with where it
-   slots in; `CONTROL_SECTION` must come last — it ends with the
-   `{{TOY_STATUS}}` marker), write her in the **second person**, and keep only
+   slots in; `CONTROL_SECTION` must come last — it ends with the `{{NOW}}` and
+   `{{TOY_STATUS}}` markers), write her in the **second person**, and keep only
    what is _her_ in the module: character, setup, tone, and disposition —
    crucially, **who leads** during play, which the shared blocks are neutral on.
 2. **Register her** — widen the `CompanionId` union and add the `COMPANIONS`
