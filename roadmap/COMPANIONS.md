@@ -47,3 +47,14 @@ What's already built is described in
   generated program. Today the contrast is prompt/disposition-only, because the
   personas' programs don't yet diverge by trait — so this completes together
   with Phase 11.
+- **Phase 13 — Bring-your-own API keys.** Move the paid services (LLM, TTS, STT)
+  onto keys the **user supplies in the app** instead of the server's `.env` —
+  entered once, stored client-side, never on the server. This is what makes a
+  **hosted public build** viable: every user funds their own usage, so there's
+  nothing for accounts or per-user rate limiting to protect, and it's a
+  **prerequisite for [goonpacks](./GOONPACKS.md)** (a portable pack's persona
+  needs a voice and a model wherever the app is hosted). To settle: whether the
+  browser calls providers directly or the proxy routes accept the user's key
+  per-request, and what `.env` keys remain as a local-dev convenience. The demo
+  access gate (`COMPANIONS_ACCESS_IDS`) **retires with the server keys** — its
+  only job was protecting them.

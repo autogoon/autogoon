@@ -15,7 +15,8 @@ index.
   end-play (the run to finish) and after-play (from the moment you cum).
 - [Companions — remaining phases](roadmap/COMPANIONS.md) — the unshipped
   Companions build-out: ambient chat, safeword integration, context compaction,
-  feel tuning, and traits driving the program.
+  feel tuning, traits driving the program, and user-supplied API keys (the
+  goonpack prerequisite).
 - [Goonpacks](roadmap/GOONPACKS.md) — a companion persona as a portable,
   self-contained pack the app imports; the real work is build-time-baked
   personas → runtime-loaded packs.

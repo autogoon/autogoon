@@ -258,22 +258,18 @@ and `OPENROUTER_API_KEY` live in **`.env`** (gitignored); a secret-free
 minting, TTS, LLM proxy) run **server-side in Next API routes** — nothing is
 `NEXT_PUBLIC_*`, so no secret reaches the browser bundle.
 
-**Pre-deployment hardening (accepted risk, tracked here).** For the local
-experiment these server routes are **intentionally unauthenticated** — there is
-no user-accounts system yet, and the app runs locally on a single trusted
-machine. This is a deliberate tradeoff for the local experiment — a
-frontend-only, unauthenticated setup is knowingly insecure; authenticated user
-accounts (to limit usage and charge users) come at deployment. Before any
-public/multi-user deployment, the `stt-token` and `tts` routes (and the LLM
-proxy) **must** gain: an authenticated session check (401 when absent) and
-per-user rate limiting, so a stranger or compromised account cannot mint tokens
-or burn the ElevenLabs/LLM quota. The `tts` route additionally needs input
-bounds — restrict `voiceId` to a server-side allowlist (only known companion
-voices) and cap `text` length per request — so it can't be turned into an
-open-ended TTS proxy. Automated security review correctly and repeatedly flags
-these routes (unauthenticated token minting; unauthenticated TTS proxy / quota
-abuse); every item here is knowingly deferred for the local experiment, not
-overlooked.
+**Security posture (current, and the end state).** The paid routes (`stt-token`,
+`tts`, the LLM proxy) are gated by the shared-secret access-ID check
+(`COMPANIONS_ACCESS_IDS`, **fail-closed** — see `access-check.ts`): with no IDs
+configured every paid route rejects everything, so an unconfigured deploy
+exposes nothing, and gated demos hand out revocable IDs. There is **no
+user-accounts system, and none is planned**. The end state is **bring-your-own
+keys** ([roadmap/COMPANIONS.md](../../../roadmap/COMPANIONS.md), Phase 13): each
+user supplies their own provider keys in the app, so every user funds their own
+usage — which is what makes a hosted public build viable, and removes the need
+for accounts, per-user rate limiting, or TTS input bounds, since abuse can only
+ever spend the abuser's own key. The access gate retires along with the
+server-side keys it exists to protect.
 
 ## Alternatives considered and rejected
 
