@@ -2,14 +2,25 @@
 // pack's manifest, so directory names stay free. Run: npm run goonpack:build
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { zipSync } from "fflate";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const packsDir = join(root, "goonpacks");
 
+let entries;
+try {
+  entries = readdirSync(packsDir, { withFileTypes: true });
+} catch {
+  console.error(
+    "no goonpacks/ directory — put pack sources in goonpacks/<dir>/",
+  );
+  process.exit(1);
+}
+
 let built = 0;
-for (const entry of readdirSync(packsDir, { withFileTypes: true })) {
+for (const entry of entries) {
   if (!entry.isDirectory()) continue;
   const dir = join(packsDir, entry.name);
   const manifestPath = join(dir, "manifest.json");
@@ -18,6 +29,10 @@ for (const entry of readdirSync(packsDir, { withFileTypes: true })) {
     manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
   } catch {
     console.warn(`skipping ${entry.name}: no readable manifest.json`);
+    continue;
+  }
+  if (typeof manifest.id !== "string" || manifest.id === "") {
+    console.warn(`skipping ${entry.name}: manifest has no id`);
     continue;
   }
   const files = {};
