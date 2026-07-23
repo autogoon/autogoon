@@ -27,9 +27,10 @@ to install; just open it, enter your device token, and go.
   - **[Companions](./modes/COMPANIONS.md)** — talk to an AI companion who chats
     back in her own voice, remembers the conversation, and drives the toy
     herself. Access-gated — her doc covers unlocking.
-- **Companions send pictures** — bring your own: during a call she picks the one
-  that fits the moment by its caption, so no image ever goes to a vision model
-  mid-call. Setup in [modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures).
+- **Companions can send pictures** — bring your own: during a call she picks the
+  one that fits the moment by its caption, so no image ever goes to a vision
+  model mid-call. Setup in
+  [modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures).
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
 
