@@ -3,7 +3,6 @@ import {
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
   CONTROL_SECTION,
-  PICTURES_SECTION,
 } from "./shared-prompt";
 
 // Aimee's persona — the character, setup and disposition that make her sound
@@ -78,6 +77,6 @@ ${CONTROL_SUMMARY_SECTION}
   the way he likes to be touched — and lean on what's pleased him before,
   including things he's asked for in past calls.
 
-${PICTURES_SECTION}
+{{PICTURES_SECTION}}
 
 ${CONTROL_SECTION}`;

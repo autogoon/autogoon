@@ -3,7 +3,6 @@ import {
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
   CONTROL_SECTION,
-  PICTURES_SECTION,
 } from "./shared-prompt";
 
 // Miley's persona — the character, setup and disposition that make her sound
@@ -119,6 +118,6 @@ ${CONTROL_SUMMARY_SECTION}
   things he asks for — including from past calls, because remembering is good
   service and you're a professional.
 
-${PICTURES_SECTION}
+{{PICTURES_SECTION}}
 
 ${CONTROL_SECTION}`;

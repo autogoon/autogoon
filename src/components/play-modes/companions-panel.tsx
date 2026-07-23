@@ -360,7 +360,7 @@ export function CompanionsPanel({
   const [companionId, setCompanionId] = useState<CompanionId>(
     companionList[0]!.id,
   );
-  const companion = COMPANIONS[companionId];
+  const companion = COMPANIONS[companionId]!;
 
   // The device engine — one instance, owned here. Defined before the voice
   // session because the session's tools/device-state callback both close over

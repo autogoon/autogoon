@@ -7,7 +7,9 @@ import { COMPANION_PICTURES } from "./companion-pictures.generated";
 // model and system prompt travel together here as pure data, so a new companion
 // is a new entry, nothing else. The picker, the play session and the saved
 // thread all key off the chosen entry.
-export type CompanionId = "elise" | "aimee" | "miley";
+// Ids are `publisher.name` (see src/lib/goonpacks/manifest.ts) — the stock
+// companions here use the "autogoon" publisher.
+export type CompanionId = string;
 
 // A picture a companion can send. `src` is a public path (files live in
 // public/companions/<id>/…, served from the site root); `description` is what
@@ -36,9 +38,16 @@ export type Companion = {
   pictures?: CompanionPicture[];
 };
 
-export const COMPANIONS: Record<CompanionId, Companion> = {
-  elise: {
-    id: "elise",
+// App defaults a pack manifest may omit (spec: model/contextWindow/
+// passesReasoning "default to the app's current defaults").
+export const DEFAULT_MODEL = "minimax/minimax-m3";
+// MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
+export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
+export const DEFAULT_PASSES_REASONING = true;
+
+export const COMPANIONS: Record<string, Companion> = {
+  "autogoon.elise": {
+    id: "autogoon.elise",
     name: "Elise",
     description: "A high-energy, flirty streamer with a dry, quieter side.",
     gender: "female",
@@ -46,13 +55,12 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
     voiceId: "uhseMNDjn3oAF24Hh83b", // normal
     systemPrompt: ELISE_SYSTEM_PROMPT,
-    model: "minimax/minimax-m3",
-    // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
-    contextWindow: 1_000_000,
-    passesReasoning: true,
+    model: DEFAULT_MODEL,
+    contextWindow: DEFAULT_CONTEXT_WINDOW,
+    passesReasoning: DEFAULT_PASSES_REASONING,
   },
-  aimee: {
-    id: "aimee",
+  "autogoon.aimee": {
+    id: "autogoon.aimee",
     name: "Aimee",
     description:
       "A sweet, eager-to-please girlfriend who lets you lead - and tease.",
@@ -60,17 +68,16 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     accent_colour: "emerald",
     voiceId: "WLWvwOJfGYaBppWieVa7",
     systemPrompt: AIMEE_SYSTEM_PROMPT,
-    model: "minimax/minimax-m3",
-    // Same model as Elise — MiniMax M3, 1,000,000-token window on OpenRouter.
-    contextWindow: 1_000_000,
-    passesReasoning: true,
+    model: DEFAULT_MODEL,
+    contextWindow: DEFAULT_CONTEXT_WINDOW,
+    passesReasoning: DEFAULT_PASSES_REASONING,
     // Globbed from public/companions/aimee/ at build time — drop images in that
     // folder, with an optional <basename>.txt description beside each; they're
     // picked up on the next dev/build.
     pictures: COMPANION_PICTURES.aimee,
   },
-  miley: {
-    id: "miley",
+  "autogoon.miley": {
+    id: "autogoon.miley",
     name: "Miley",
     description:
       "A dry, dressed-up Portland pro - up for anything, no strings.",
@@ -78,10 +85,9 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     accent_colour: "violet",
     voiceId: "TsdN21EAs7m8pjYUDEQ1",
     systemPrompt: MILEY_SYSTEM_PROMPT,
-    model: "minimax/minimax-m3",
-    // Same model as the others — MiniMax M3, 1,000,000-token window.
-    contextWindow: 1_000_000,
-    passesReasoning: true,
+    model: DEFAULT_MODEL,
+    contextWindow: DEFAULT_CONTEXT_WINDOW,
+    passesReasoning: DEFAULT_PASSES_REASONING,
     // Globbed from public/companions/miley/ at build time, same as Aimee's.
     pictures: COMPANION_PICTURES.miley,
   },

@@ -2,7 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { COMPANIONS } from "./companions";
 
 describe("Elise", () => {
-  const elise = COMPANIONS.elise;
+  const elise = COMPANIONS["autogoon.elise"]!;
 
   it("has a voice id and the configured presentation", () => {
     // The exact voiceId is config we swap while tuning Elise's voice, so assert
@@ -19,7 +19,7 @@ describe("Elise", () => {
 });
 
 describe("Aimee", () => {
-  const aimee = COMPANIONS.aimee;
+  const aimee = COMPANIONS["autogoon.aimee"]!;
 
   it("has a voice id and the configured presentation", () => {
     expect(typeof aimee.voiceId).toBe("string");
@@ -30,7 +30,7 @@ describe("Aimee", () => {
 });
 
 describe("Miley", () => {
-  const miley = COMPANIONS.miley;
+  const miley = COMPANIONS["autogoon.miley"]!;
 
   it("has a voice id and the configured presentation", () => {
     expect(typeof miley.voiceId).toBe("string");

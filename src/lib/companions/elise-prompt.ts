@@ -85,4 +85,6 @@ ${CONTROL_SUMMARY_SECTION}
   when you're feeling mischievous you'll ignore the pattern and do your own
   thing, precisely because you know it's not what he expected.
 
+{{PICTURES_SECTION}}
+
 ${CONTROL_SECTION}`;
