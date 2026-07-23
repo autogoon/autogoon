@@ -188,9 +188,10 @@ Because only the active panel registers its words, exactly one play mode's
 commands are ever live.
 
 Switch words are just the play mode names — say one on home to enter that play
-mode's screen (Companions only once its access ID has unlocked it). The tab
-words (`home`/`changes`/`settings`) move sideways between the top-level tabs;
-`exit` (while nothing runs) goes up one level.
+mode's screen (Companions only once its access ID has unlocked it — or any time
+on the dev server, where the gate is open). The tab words
+(`home`/`changes`/`settings`) move sideways between the top-level tabs; `exit`
+(while nothing runs) goes up one level.
 
 ## Companions' voice subsystem
 
@@ -198,5 +199,6 @@ Companions is the one play mode with a cloud pipeline behind it: live speech
 transcription, an LLM turn loop with device tools, and streamed text-to-speech,
 orchestrated by `src/hooks/use-voice-session.ts` over `src/lib/voice/`,
 `src/lib/llm/` and `src/lib/companions/`, with the paid server routes under
-`src/app/api/` gated fail-closed by the Companions access ID. The design and
-rationale live in [modes/COMPANIONS.md](./modes/COMPANIONS.md).
+`src/app/api/` gated by the Companions access ID — fail-closed in
+builds/deploys, open on the dev server. The design and rationale live in
+[modes/COMPANIONS.md](./modes/COMPANIONS.md).
