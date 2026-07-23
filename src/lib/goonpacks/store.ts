@@ -86,7 +86,10 @@ function tx<T>(
         const req = run(t.objectStore(STORE));
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error ?? new Error("indexeddb failed"));
+        // A failed request aborts the transaction — oncomplete never fires on
+        // that path, so close on abort too or the connection leaks.
         t.oncomplete = () => db.close();
+        t.onabort = () => db.close();
       }),
   );
 }
