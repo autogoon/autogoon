@@ -77,13 +77,34 @@ work done.
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.
 
+## Documentation
+
+Docs point at code; they don't duplicate it. **Code owns the what** — type
+fields, signatures, tool lists, knob ranges, model slugs, defaults — explained
+by comments at the definition site. **Docs own what code can't say** — intent,
+invariants, the why, and the cross-file shape. Concretely:
+
+- Never copy a type, command list, or config value into a doc. Link the source
+  file and say what it's for ("the fields are commented there").
+- If a sentence goes stale when someone renames a field or adds an entry, it's
+  implementation detail — replace it with a pointer.
+- Docs that are deliberately exhaustive are the exception, and say so
+  ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
+  reverse-engineered algorithm).
+- When code you change is mentioned in a doc, updating the doc is part of the
+  change. Run `/doc-check` before a PR is marked ready to catch what slipped.
+
 ## Git workflow
 
 - Work on a branch off `main`; never commit to `main` directly. One branch/PR
   per piece of work.
-- The flow is **branch → do the work → commit → push → open a PR**: push with
-  `git push -u origin <branch>`, then open a PR against `main` with
-  `gh pr create`.
+- The flow is **branch → do the work → gates → commit → push → open a PR →
+  merge**: push with `git push -u origin <branch>`, then open a PR against
+  `main` with `gh pr create`.
+- **Before a PR is marked ready for review**, the whole gate set passes:
+  `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
+  run, the CHANGELOG entry written, `/doc-check` run over the branch's diff,
+  and `/personal-check` if the branch touched docs or content.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
@@ -119,20 +140,9 @@ things worth knowing up front:
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
   replaces whoever was there, so "starting one stops the others" is a Player
-  invariant, not a coordinator. `page.tsx` keeps only the navigation state and
-  the global voice words (`connect` while disconnected; the play mode names on
-  home plus the other tabs' words — `home`/`changes`/`settings` — on any
-  top-level tab; `exit` on any other screen while idle); everything else is a
-  play mode command owned by the active panel. Navigation is a shallow
-  hierarchy: a top level of **home** (device connection, play mode chooser,
-  getting-started notes) with a **Settings** tab beside it (appearance, build
-  info), and one screen per play mode — a play mode with a setup view gets a
-  play sub-level below it (`Home › Goon › Play`). No sideways moves; `exit`/the
-  breadcrumb go up one level and are locked while a session runs, so you can't
-  leave or switch mid-session. **Adding a play mode** = new engine + panel, then
-  register it in `src/app/page.tsx` (a `PLAY_MODES` entry — id, label,
-  description, accent — plus its panel rendered and imported); the home listing,
-  switch word and screen all derive from that one entry. Full checklist in
+  invariant, not a coordinator. Navigation, the global voice words and the
+  play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
+  new engine + panel + one `PLAY_MODES` entry — full checklist in
   [DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
 - **Commands are declared once**: each action is a `Command`
   (`{ word, enabled, run }`) — the button and the spoken word share one `run`
