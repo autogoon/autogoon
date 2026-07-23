@@ -48,20 +48,20 @@ What's already built is described in
   or adjust; keep replies short enough for TTS latency; and a review/polish pass
   over the system prompts. _(Elise's prompt has had one rewrite pass; the
   on-hardware feel tuning remains.)_
-- **Phase 11 — Personas shape their programs.** Give Elise and Aimee their four
+- **Phase 11 — Personas shape their programs.** Give each companion her four
   `traits` (`dominance` / `intensity` / `chattiness` / `variety`, 1–5) and map
   the code-facing ones onto **Groove's knobs** — `intensity` to the
   speed-percent magnitude, `variety` to the timing/dip-variability level;
   `dominance` gates how often _she_ changes it unprompted. A companion's program
   stops being random and becomes **hers** — the persona → program mechanism
-  working end-to-end. This is the missing piece for the two companions'
-  _programs_ (not just their chat) to diverge.
+  working end-to-end. This is the missing piece for the companions' _programs_
+  (not just their chat) to diverge.
 - **Phase 12 — Contrasting companion (remaining half: trait-driven program
-  contrast).** The chooser and the second companion (Aimee) have shipped. What
-  remains is the end goal: proving character bends _both_ the chat _and_ the
-  generated program. Today the contrast is prompt/disposition-only, because the
-  personas' programs don't yet diverge by trait — so this completes together
-  with Phase 11.
+  contrast).** The chooser and the further companions (Aimee, Miley) have
+  shipped. What remains is the end goal: proving character bends _both_ the chat
+  _and_ the generated program. Today the contrast is prompt/disposition-only,
+  because the personas' programs don't yet diverge by trait — so this completes
+  together with Phase 11.
 - **Phase 13 — Bring-your-own API keys.** Move the paid services (LLM, TTS, STT)
   onto keys the **user supplies in the app** instead of the server's `.env` —
   entered once, stored client-side, never on the server. This is what makes a

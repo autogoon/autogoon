@@ -24,6 +24,17 @@ finding is not fixed until the history that contains it is rewritten.
   context, scraper or downloader tool names, anything implying where content
   comes from. The app is source-agnostic (see DEVELOPERS.md → Content policy);
   docs must be too.
+- **The content of a local picture set** — the images under
+  `public/companions/<id>/` and their `.txt` captions are gitignored and exist
+  only on the author's machine. Never describe what is in them: how many there
+  are, who or what they show, what a companion is or isn't pictured wearing,
+  whether a set contains nudes. Write about the **feature** — bring-your-own,
+  the build-time glob, the captions she picks by — never about the set that
+  happens to be sitting on disk. Watch for it hiding inside an otherwise
+  reasonable sentence: a persona note justified by "which is what her pictures
+  are", or a cost estimate that needs a real count, has slipped from describing
+  the app to describing private content. And don't quote the offending sentence
+  when reporting it — restating it is the same leak.
 - **Personal legal/risk discussion** — analysis of the author's own liability
   belongs outside the repo entirely, kept locally and gitignored.
 - **Secrets** — keys and tokens (should already be impossible via `.env`
@@ -31,17 +42,26 @@ finding is not fixed until the history that contains it is rewritten.
 - **Leaky meta-files** — a `.gitignore` entry or script name can itself reveal
   what it hides; weigh the entry's wording.
 - **Commit messages** — a surface of their own: session links and attribution
-  trailers (`Claude-Session:`, tool-generated URLs), personal emails or URLs
-  in message bodies. `-S` only searches content — messages need
-  `git log --all --grep='<pattern>'` — and a message finding has no
-  working-tree fix: remediation is always a history rewrite (a message-only
+  trailers (`Claude-Session:`, tool-generated URLs), personal emails or URLs in
+  message bodies. `-S` only searches content — messages need
+  `git log --all --grep='<pattern>'` — and a message finding has no working-tree
+  fix: remediation is always a history rewrite (a message-only
   `filter-branch --msg-filter` keeps every tree identical).
+- **PR titles, descriptions and comments** — public the moment they're posted,
+  and not in git at all, so no `git` search will ever find them. Read the body
+  you wrote (`gh pr view <n> --json title,body,comments`) with the same eye as a
+  doc. Editing is **not** removal: GitHub keeps a revision history behind the
+  body's _edited_ marker, readable by anyone who can see the PR. Deleting a
+  revision is UI-only and author-only, so an edit has to be followed by "open
+  the edited dropdown and delete the revision" — say so rather than calling it
+  fixed.
 
 ## Scope
 
-Default: the branch (`git diff main...HEAD`). `/personal-check all`: the whole
-tree — every committed file, plus filenames of untracked files (they may get
-committed later).
+Default: the branch — `git diff main...HEAD` for content, `git log main..HEAD`
+for messages, and the PR's title/body/comments if one is open.
+`/personal-check all`: the whole tree — every committed file, plus filenames of
+untracked files (they may get committed later).
 
 ## History — the part that actually matters
 
@@ -75,3 +95,5 @@ claiming complete removal.
 | "It's just my hardware/folder names" | Identifying details compound across files.               |
 | "I'll clean history later"           | Later is when someone else finds it. Same piece of work. |
 | "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                |
+| "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision. |
+| "The pictures aren't committed"      | Describing them publishes them anyway.                   |

@@ -1,12 +1,13 @@
 import { ELISE_SYSTEM_PROMPT } from "./elise-prompt";
 import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
+import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
 import { COMPANION_PICTURES } from "./companion-pictures.generated";
 
 // The companions the user can pick from. One persona = one entry: its voice,
 // model and system prompt travel together here as pure data, so a new companion
 // is a new entry, nothing else. The picker, the play session and the saved
 // thread all key off the chosen entry.
-export type CompanionId = "elise" | "aimee";
+export type CompanionId = "elise" | "aimee" | "miley";
 
 // A picture a companion can send. `src` is a public path (files live in
 // public/companions/<id>/…, served from the site root); `description` is what
@@ -67,6 +68,22 @@ export const COMPANIONS: Record<CompanionId, Companion> = {
     // folder, with an optional <basename>.txt description beside each; they're
     // picked up on the next dev/build.
     pictures: COMPANION_PICTURES.aimee,
+  },
+  miley: {
+    id: "miley",
+    name: "Miley",
+    description:
+      "A dry, dressed-up Portland pro - up for anything, no strings.",
+    gender: "female",
+    accent_colour: "violet",
+    voiceId: "TsdN21EAs7m8pjYUDEQ1",
+    systemPrompt: MILEY_SYSTEM_PROMPT,
+    model: "minimax/minimax-m3",
+    // Same model as the others — MiniMax M3, 1,000,000-token window.
+    contextWindow: 1_000_000,
+    passesReasoning: true,
+    // Globbed from public/companions/miley/ at build time, same as Aimee's.
+    pictures: COMPANION_PICTURES.miley,
   },
 };
 

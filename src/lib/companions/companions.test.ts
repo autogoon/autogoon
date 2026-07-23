@@ -29,6 +29,17 @@ describe("Aimee", () => {
   });
 });
 
+describe("Miley", () => {
+  const miley = COMPANIONS.miley;
+
+  it("has a voice id and the configured presentation", () => {
+    expect(typeof miley.voiceId).toBe("string");
+    expect(miley.voiceId.length).toBeGreaterThan(0);
+    expect(miley.gender).toBe("female");
+    expect(miley.name).toBe("Miley");
+  });
+});
+
 describe("COMPANIONS registry", () => {
   it("keys each companion by its own id", () => {
     for (const [id, companion] of Object.entries(COMPANIONS)) {
