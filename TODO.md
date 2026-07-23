@@ -63,3 +63,10 @@ What's already built is described in
   user's key per-request, and what `.env` keys remain as a local-dev
   convenience. The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the
   server keys** — its only job was protecting them.
+- **Phase 14 — Show remaining credits in the app.** Both providers expose
+  balances (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint —
+  character quota used/limit), so surface them in the app instead of two
+  dashboards — presumably a pair of trivial proxied lookups. Maybe also record
+  usage over time (per session?). To settle: where it lives (Settings, or on the
+  Companions screen), and how it composes with Phase 13 (with BYO keys it's the
+  _user's_ balance — arguably more useful, same lookups).
