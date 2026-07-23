@@ -131,9 +131,10 @@ pack is that same data loaded at runtime. The zip unpacks in the browser and its
 images become in-memory object URLs (a picture's `src` is already just a string
 handed to `<img>`); **the zip file is the source of truth** — IndexedDB holds
 the blobs only as a rehydration cache, so eviction (Safari wipes script-writable
-storage after 7 days of disuse) costs a re-import, never data. Built-ins keep
-being served as static files — same runtime shape, two backings, never copied
-into browser storage.
+storage after 7 days of disuse) costs a re-import, never data. Built-ins stay
+pure code, never touch browser storage, and **ship pictureless** — pictures
+reach a built-in via an overlay pack, and the build-time picture pipeline
+(`gen:pictures`, `public/companions/`) retires with this work.
 
 Settled design points:
 
@@ -144,9 +145,8 @@ Settled design points:
   and an incompatible one is a new companion. The namespace is a convention, not
   verification: importing a pack whose id already exists is a deliberate full
   replacement, user-confirmed (the zip's info is right there to show on import).
-- **Stock companions move to `autogoon.*` ids**, with a one-time migration that
-  finds existing localStorage threads under the old ids and moves them to the
-  new keys.
+- **Stock companions move to `autogoon.*` ids.** No thread migration: threads
+  saved under the old bare ids are orphaned by the rename — accepted.
 - **Overlays**: a pack with its own id plus a `base` field naming the companion
   it modifies — extra pictures, or a replacement voice or system prompt, applied
   over the built-in at load. This is also how the stock companions get pictures
@@ -154,3 +154,9 @@ Settled design points:
   gitignored), so users supply their own.
 - The chooser disambiguates colliding display names by publisher — names aren't
   unique; ids are.
+- **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
+  account, so a pack's voice doesn't truly travel. The follow-up carries a voice
+  _prompt_ instead: the app submits it to ElevenLabs voice design, gets three
+  candidate voices back, and the user picks or iterates — a small in-app
+  recreation of that ElevenLabs UI. v1 ships `voiceId` and accepts the
+  limitation.

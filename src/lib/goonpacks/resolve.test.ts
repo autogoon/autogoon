@@ -98,9 +98,7 @@ describe("resolvePictureRef", () => {
   it("returns null when the same name lives in a different pack", () => {
     expect(resolvePictureRef("goonpack:other.pack/1", pictures)).toBeNull();
   });
-  it("returns a legacy non-goonpack ref as-is", () => {
-    expect(resolvePictureRef("/companions/aimee/x.jpg", pictures)).toBe(
-      "/companions/aimee/x.jpg",
-    );
+  it("never resolves a pre-goonpacks path ref", () => {
+    expect(resolvePictureRef("/companions/aimee/x.jpg", pictures)).toBeNull();
   });
 });

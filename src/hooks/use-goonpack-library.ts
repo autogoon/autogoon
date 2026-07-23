@@ -27,7 +27,6 @@ import {
   writeIndex,
   type IndexEntry,
 } from "@/lib/goonpacks/store";
-import { migrateThreadKeys } from "@/lib/goonpacks/migrate";
 
 export type Variant = {
   packId: string | null;
@@ -146,7 +145,6 @@ export function useGoonpackLibrary() {
   }, []);
 
   useEffect(() => {
-    migrateThreadKeys(localStorage);
     void refresh();
   }, [refresh]);
 
