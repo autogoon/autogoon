@@ -16,12 +16,15 @@ to install; just open it, enter your device token, and go.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
-- **Three modes**, each steered live by voice:
+- **Four modes**, each steered live by voice:
   - **Goon** — an automatic slow build over a session length you choose (10–120
     min), with an intensity dial and faster/slower time-stretch.
   - **Groove** — a manual stroke pattern you shape live (intensity + dip and
     timing variability).
   - **Autopilot** — a faithful recreation of Autoblow's own Vacuglide autopilot.
+  - **Companions** — talk to an AI companion who chats back in her own voice,
+    remembers the conversation, and drives the toy herself. Access-gated — see
+    [The app](#the-app).
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
 
@@ -31,6 +34,10 @@ Everything runs in your browser; the only thing that leaves your machine is the
 control traffic to Autoblow's cloud API for the device itself. Speech
 recognition runs entirely locally in your browser, so your microphone audio
 never leaves your machine.
+
+The exception is **Companions**, which can't be local-only by nature: during a
+call your speech is transcribed by a cloud STT service, and her replies come
+from a cloud LLM and TTS voice. The other three modes stay fully local.
 
 ## The app
 
@@ -47,6 +54,16 @@ info); pick a play mode by tap or by saying its name:
 2. **Groove** — see [modes/GROOVE.md](./modes/GROOVE.md).
 3. **Autopilot** — a faithful recreation of Autoblow's own autopilot; see
    [modes/AUTOPILOT.md](./modes/AUTOPILOT.md).
+4. **Companions** — talk to an AI companion; see
+   [modes/COMPANIONS.md](./modes/COMPANIONS.md).
+
+**Companions is hidden behind an access key.** Its LLM, TTS and STT routes cost
+real money per call, so a deploy doesn't expose them — or the mode itself — to
+anyone who finds the URL. The gate is fail-closed: it only appears (and its
+routes only answer) for someone who has entered a valid access ID under
+Settings, from the `COMPANIONS_ACCESS_IDS` list set in the deploy's env (see
+[`.env.example`](./.env.example)). Unset, Companions stays hidden everywhere,
+including locally.
 
 **Exit** — the breadcrumb's Home button, or the spoken word — goes back up.
 While a session is running, Exit is locked (and leaves the grammar): you can't
