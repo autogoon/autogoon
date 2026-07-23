@@ -78,3 +78,13 @@ What's already built is described in
   user's key per-request, and what `.env` keys remain as a local-dev
   convenience. The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the
   server keys** — its only job was protecting them.
+- **Phase 15 — Companion time zones.** The personas are located (Riga,
+  Pembrokeshire, Portland) but only the user's clock is real — the prompt's
+  TIME line is his browser's time. Give a located persona her own: an IANA
+  `timezone` field on `Companion` and a second TIME line ("TIME (yours, in
+  Riga): …") rendered via `Intl`'s `timeZone` option, so it can be the middle
+  of her night in the middle of his day. The app does all the arithmetic — no
+  LLM offset math (models are passable at offsets and quietly wrong about
+  DST); she only roleplays the two clocks. One rule ships with it: her clock
+  colours the fiction, never gates it — she never refuses to play because
+  it's 4am where she lives.
