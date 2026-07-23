@@ -17,8 +17,12 @@ owns the what — docs own the why, the invariants, and the cross-file shape).
 
 - **Default: the branch.** `git diff main...HEAD --name-only` plus the
   identifiers the diff renamed, removed, or added. Then find every doc that
-  mentions any of them: the docs are `*.md` at the root, `modes/*.md`, and
-  `roadmap/*.md`.
+  mentions any of them: the docs are `*.md` at the root, `modes/*.md`,
+  `roadmap/*.md`, and `.env.example` (its comments are the documented env
+  contract).
+- **Code comments are docs too, opportunistically.** While verifying a claim,
+  a code comment that contradicts the code around it — or references something
+  that no longer exists — is a finding, even though code files aren't swept.
 - **`/doc-check all`: full sweep.** Every doc against the whole codebase. Fan
   out one read-only subagent per doc cluster (ARCHITECTURE + CLAUDE.md; README +
   MODES + DEVELOPERS; modes/; TODO + roadmap/; the dated specs under `docs/`)

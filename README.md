@@ -36,10 +36,10 @@ that fits the moment, picked by its caption — no image ever goes to a vision
 model mid-play.
 
 **Companions isn't usable on the public app.** Her chat, voice and hearing are
-paid cloud services, so the mode sits behind an access key and stays hidden
-without one. Run the app yourself with your own keys and it unlocks —
-[modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, unlocking and
-pictures.
+paid cloud services, so on a deploy the mode sits behind an access key and stays
+hidden without one. Run the app yourself with your own keys and it just works —
+locally, no access key needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
+covers setup and pictures.
 
 ## Privacy
 
@@ -48,8 +48,8 @@ control traffic to Autoblow's cloud API for the device itself. Speech
 recognition runs entirely locally in your browser, so your microphone audio
 never leaves your machine.
 
-The exception is **Companions**, which can't be local-only by nature: during a
-call your speech is transcribed by a cloud STT service, and her replies come
+The exception is **Companions**, which can't be local-only by nature: during
+play your speech is transcribed by a cloud STT service, and her replies come
 from a cloud LLM and TTS voice. The other three modes stay fully local.
 
 ## The app

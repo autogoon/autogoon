@@ -7,10 +7,19 @@ shared device layer and single Player, and the keyword spotter — see
 
 ## Running locally
 
+You need **[Node.js](https://nodejs.org/) 20.9 or newer** (npm comes with it)
+and **git**. Installing those is beyond this doc's scope — the installers on
+nodejs.org, or your platform's package/version manager, all work.
+
 ```sh
 npm install
 npm run dev      # Next dev server on http://localhost:8931 (bound to 0.0.0.0)
 ```
+
+Everything runs with no configuration except **Companions**, which needs API
+keys: copy [`.env.example`](./.env.example) to `.env` and fill it in. On the dev
+server Companions then unlocks with no access ID (the gate applies to
+builds/deploys only).
 
 Other scripts:
 

@@ -2,6 +2,7 @@
 
 ## 2026-07-23
 
+- enhancement: **Companions needs no access key locally** — on the dev server (`npm run dev`) the access gate is open: put your API keys in `.env` and Companions just appears. Builds and deploys stay fail-closed behind `COMPANIONS_ACCESS_IDS` exactly as before, and the Settings access box still checks real IDs everywhere, so the gate stays testable in dev.
 - enhancement: **Algorithms are now "play modes"** — the home screen and docs now call the ways a session can run play modes: Companions was never really an algorithm, and future modes (like a raw-controls Freestyle) won't be either. ([#14](https://github.com/autogoon/autogoon/pull/14))
 - internal: **Keep Claude session links out of commits** — project settings now set `attribution.sessionUrl: false`, so commits and PR bodies made with Claude Code never carry a `Claude-Session` link (a privacy leak on a public repo, for any contributor). ([#14](https://github.com/autogoon/autogoon/pull/14))
 - internal: **Doc audit against the code** — a four-agent sweep verified ~280 doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the safe word and the tab strip; stale wind-down/finish figures in the mode docs; a few wrong code comments) and replaced doc passages that duplicated code with pointers, per the new documentation philosophy in CLAUDE.md. ([#14](https://github.com/autogoon/autogoon/pull/14))

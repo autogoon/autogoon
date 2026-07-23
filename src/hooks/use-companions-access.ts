@@ -17,7 +17,9 @@ export type CompanionsAccess = {
   // know whether the stored ID is valid.
   checked: boolean;
   // Is Companions unlocked right now? True ONLY when the stored ID matches a
-  // configured access ID — fail closed, so nothing-configured means never.
+  // configured access ID — fail closed, nothing-configured means never, even on
+  // the dev server (the validation route is strict so the Settings box tests
+  // real IDs; dev's always-visible Companions card is page.tsx's doing).
   granted: boolean;
   // Submit a candidate ID: persist it, re-validate, update state. Resolves true
   // when the ID unlocked.
