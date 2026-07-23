@@ -57,7 +57,8 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
   }
 
   const promptEntry = files.find(([path]) => path === "system-prompt.md");
-  const systemPrompt = promptEntry !== undefined ? strFromU8(promptEntry[1]) : undefined;
+  const systemPrompt =
+    promptEntry !== undefined ? strFromU8(promptEntry[1]) : undefined;
 
   const pictures: ParsedPicture[] = [];
   const sidecars = new Map<string, string>();
