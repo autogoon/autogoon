@@ -9,12 +9,11 @@
 > ([#14](https://github.com/autogoon/autogoon/pull/14)), that pair was retooled
 > into the shipped `intensity`/`variety` tools described below, and the whole
 > program was re-based from Autopilot onto Groove, completing Phase 6. The
-> remaining work — Phases 7–13 — is tracked in
-> [roadmap/COMPANIONS.md](../../../roadmap/COMPANIONS.md). This is the shared
-> context for a long-running, multi-phase feature. It records **what we're
-> building, how it works, and why we chose each path** — the shared reference
-> any later phase's work can lean on. The earlier per-phase specs and plans have
-> been retired; this doc is the surviving record.
+> remaining work — Phases 7–13 — is tracked in [TODO.md](../../../TODO.md). This
+> is the shared context for a long-running, multi-phase feature. It records
+> **what we're building, how it works, and why we chose each path** — the shared
+> reference any later phase's work can lean on. The earlier per-phase specs and
+> plans have been retired; this doc is the surviving record.
 
 ## Goal
 
@@ -265,12 +264,12 @@ minting, TTS, LLM proxy) run **server-side in Next API routes** — nothing is
 configured every paid route rejects everything, so an unconfigured deploy
 exposes nothing, and gated demos hand out revocable IDs. There is **no
 user-accounts system, and none is planned**. The end state is **bring-your-own
-keys** ([roadmap/COMPANIONS.md](../../../roadmap/COMPANIONS.md), Phase 13): each
-user supplies their own provider keys in the app, so every user funds their own
-usage — which is what makes a hosted public build viable, and removes the need
-for accounts, per-user rate limiting, or TTS input bounds, since abuse can only
-ever spend the abuser's own key. The access gate retires along with the
-server-side keys it exists to protect.
+keys** ([TODO.md](../../../TODO.md), Phase 13): each user supplies their own
+provider keys in the app, so every user funds their own usage — which is what
+makes a hosted public build viable, and removes the need for accounts, per-user
+rate limiting, or TTS input bounds, since abuse can only ever spend the abuser's
+own key. The access gate retires along with the server-side keys it exists to
+protect.
 
 ## Alternatives considered and rejected
 

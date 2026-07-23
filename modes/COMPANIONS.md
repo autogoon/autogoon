@@ -14,8 +14,7 @@ pick whichever model suits her persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
 model**, not of OpenRouter itself — Elise's current model (her `model` field in
 `companions.ts`) is picked precisely because it doesn't restrict the kind of
-roleplay her persona calls for, and it calls the device tools reliably; a more
-restrictive model for a future companion would reintroduce that limit for her.
+roleplay her persona calls for, and it calls the device tools reliably.
 
 Calls go through the app's same-origin **`/api/llm` proxy route**, which
 forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer

@@ -95,6 +95,10 @@ invariants, the why, and the cross-file shape. Concretely:
   file and say what it's for ("the fields are commented there").
 - If a sentence goes stale when someone renames a field or adds an entry, it's
   implementation detail — replace it with a pointer.
+- Current-state docs describe **only what's implemented**. Future work lives in
+  [TODO.md](./TODO.md) (defined work), [ROADMAP.md](./ROADMAP.md) (direction),
+  or a dated spec under `docs/` — nowhere else; a pointer to those files is
+  fine, describing the future in place is not.
 - Docs that are deliberately exhaustive are the exception, and say so
   ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
   reverse-engineered algorithm).

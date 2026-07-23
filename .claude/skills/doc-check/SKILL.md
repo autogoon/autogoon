@@ -23,8 +23,16 @@ owns the what — docs own the why, the invariants, and the cross-file shape).
   out one read-only subagent per doc cluster (ARCHITECTURE + CLAUDE.md; README +
   MODES + DEVELOPERS; modes/; roadmap/) and collect their reports.
 
-`roadmap/*.md` describe future intent — only check their claims about the
-_current_ code ("Groove's floor is fixed at 60"), never flag unbuilt ideas.
+Two classes of doc, checked differently:
+
+- **Future-friendly** — `TODO.md`, `ROADMAP.md` + `roadmap/*.md`, and the
+  dated plans/specs under `docs/`. These describe intent and churn as plans
+  change: only check the claims they make about the _current_ code ("Groove's
+  floor is fixed at 60"), never flag unbuilt ideas.
+- **Current-state** — literally everything else (README, ARCHITECTURE,
+  CLAUDE.md, DEVELOPERS, MODES.md, `modes/*.md`). These describe **only what
+  is implemented**, as it is today.
+
 `modes/AUTOPILOT.md` is deliberately exhaustive (the only record of the
 reverse-engineered algorithm): its constants must match `autopilot-engine.ts`
 exactly.
@@ -44,6 +52,12 @@ exactly.
 7. **Philosophy** — flag any doc passage duplicating what the code already says
    (type blocks, argument shapes, model slugs, exhaustive knob lists) as a
    candidate to replace with a pointer to the source file.
+8. **Future leakage** — in a current-state doc, any mention of planned or
+   possible future work ("a future companion", "will gain", "eventually",
+   "planned", "the next step is") is a finding, however small: move it to
+   `TODO.md` or the roadmap, or delete it. A plain pointer _to_ those files is
+   fine; describing the future in place is not. (Program-time "future events"
+   and experiential "you never know what's coming" are not future work.)
 
 ## Output and fixes
 
