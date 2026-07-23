@@ -35,21 +35,21 @@
 //     Qwen3-VL 30B A3B         qwen/qwen3-vl-30b-a3b-instruct
 //     Qwen3-VL 8B              qwen/qwen3-vl-8b-instruct
 
-import process from "node:process";
-import { readFileSync, writeFileSync, rmSync } from "node:fs";
-import { basename, extname, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import process from 'node:process';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { basename, extname, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 const MIME = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".avif": "image/avif",
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.avif': 'image/avif',
 };
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
@@ -65,21 +65,21 @@ function resizedJpeg(imagePath) {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
     execFileSync(
-      "sips",
+      'sips',
       [
-        "-Z",
+        '-Z',
         String(MAX_EDGE),
-        "-s",
-        "format",
-        "jpeg",
-        "-s",
-        "formatOptions",
+        '-s',
+        'format',
+        'jpeg',
+        '-s',
+        'formatOptions',
         String(JPEG_QUALITY),
         imagePath,
-        "--out",
+        '--out',
         tmp,
       ],
-      { stdio: "ignore" },
+      { stdio: 'ignore' },
     );
     return readFileSync(tmp);
   } catch (e) {
@@ -95,15 +95,20 @@ function resizedJpeg(imagePath) {
 
 // The house caption style — matches the existing sidecar descriptions so a
 // freshly-described image reads like the rest of the set.
-const PROMPT = `Write a single-line caption for this photo — it is pose/mood metadata for a companion app that lets the user pick a picture that fits the moment.
+const PROMPT = `Write a single-line caption for this photo — it is pose/mood metadata
+for a companion app that lets the user pick a picture that fits the moment.
 
 Rules:
 - One sentence, roughly 15–30 words, present tense, NO leading pronoun
 - Start with the pose/action, and include the location and lighting.
-- Cover: outfit / state of undress, specific pose and position, if she is sitting facing away or towards the camera, what her hair is doing, gaze/expression, and the overall mood.
-- Take extra care to describe the pose, especially if she's sitting/kneeling/lying down, and what her hands are doing.
+- Cover: outfit / state of undress, specific colours of the clothing.
+- Cover: specific pose and position, whether she is sitting facing away or towards the
+  camera, what her hair is doing, gaze/expression, and the overall mood.
+- Take extra care to describe the pose, especially if she's sitting/kneeling/lying down,
+  and what her hands are doing.
 - Take care of what uncovered body parts are visible, and how the clothing is arranged.
-- Note if you can see for example, her back, thighs, nipples, pokies, pubic hair, or genitals, and if so, how much is visible.
+- Note if you can see for example, her back, thighs, nipples, pokies, pubic hair, or
+  genitals, and if so, how much is visible.
 
 Output ONLY the caption line — no quotes, no preamble, no extra text.`;
 
@@ -120,40 +125,40 @@ export function sidecarPath(imagePath) {
 // so callers can decide how to report it.
 export async function describeImage(imagePath) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (apiKey === undefined || apiKey === "") {
-    throw new Error("OPENROUTER_API_KEY is not set — put it in .env.");
+  if (apiKey === undefined || apiKey === '') {
+    throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
   }
-  const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
+  const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
   // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
   // DESCRIBE_MODEL to try another (see the list at the top of this file).
   const model =
-    process.env.DESCRIBE_MODEL ?? "qwen/qwen3-vl-235b-a22b-instruct";
+    process.env.DESCRIBE_MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
 
   const ext = extname(imagePath).toLowerCase();
   if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || "(none)"}`);
+    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
   }
   // Always send a downscaled JPEG, whatever the source format.
   const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
-    "base64",
+    'base64',
   )}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "http://localhost:8931",
-      "X-Title": "autogoon describe-image",
+      'HTTP-Referer': 'http://localhost:8931',
+      'X-Title': 'autogoon describe-image',
     },
     body: JSON.stringify({
       model,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: PROMPT },
-            { type: "image_url", image_url: { url: dataUri } },
+            { type: 'text', text: PROMPT },
+            { type: 'image_url', image_url: { url: dataUri } },
           ],
         },
       ],
@@ -168,7 +173,7 @@ export async function describeImage(imagePath) {
 
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== "string" || raw.trim() === "") {
+  if (typeof raw !== 'string' || raw.trim() === '') {
     throw new Error(
       `No caption was returned:\n${JSON.stringify(data, null, 2)}`,
     );
@@ -176,9 +181,9 @@ export async function describeImage(imagePath) {
 
   // Collapse to one line and strip any wrapping quotes the model may add.
   return raw
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim()
-    .replace(/^["']|["']$/g, "")
+    .replace(/^["']|["']$/g, '')
     .trim();
 }
 
@@ -186,8 +191,8 @@ export async function describeImage(imagePath) {
 // directly (not when imported by describe-missing.mjs).
 async function main() {
   const imagePath = process.argv[2];
-  if (imagePath === undefined || imagePath === "") {
-    console.error("Usage: npm run describe <path-to-image>");
+  if (imagePath === undefined || imagePath === '') {
+    console.error('Usage: npm run describe <path-to-image>');
     process.exit(1);
   }
   try {
