@@ -49,6 +49,25 @@ offline.
   reformats.
 - **Adding an algorithm?** See [Adding an algorithm](#adding-an-algorithm) below
   for the full checklist.
+- **Respect the [content policy](#content-policy)** — no features that host,
+  index, or point at content.
+
+## Content policy
+
+Autogoon is a player, not a distributor. Because of the UK Online Safety Act
+(and copyright law), the project does not — and will not — distribute adult
+content, host or index goonpacks, or recommend where content can be acquired.
+Users bring their own files; everything stays on their own machine, and the app
+stays dumb about where it came from.
+
+Contributions must keep it that way. Don't submit features that:
+
+- bundle, host, or download content or goonpacks;
+- index, list, or link to packs or content sources (no "browse packs", curated
+  lists, or in-app galleries of third-party content);
+- point users at places to acquire content — in the app or its docs.
+
+Import-your-own-file is the only acquisition path the app knows about.
 
 ## Testing
 

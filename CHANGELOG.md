@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-07-23
+
+- internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is now an index over `roadmap/*.md`, with the goonpack and inference discussion docs moved in (reframed generically), and `DEVELOPERS.md` gains a content policy: the project never distributes content or goonpacks, indexes packs, or recommends content sources, and contributions must keep it that way.
+
 ## 2026-07-22
 
 - feature: **Add a second companion — Aimee** — Companions now has two to pick from. Aimee is your sweet, eager-to-please Welsh girlfriend on a late-night video call: where Elise takes the lead, Aimee lets you drive — she follows your pace, likes it slow and soft with a gentle build, tells you out loud what she's doing to herself, and will match the toy to it if you like. She has her own voice, and remembers your conversation just like Elise. ([#14](https://github.com/autogoon/autogoon/pull/14))
