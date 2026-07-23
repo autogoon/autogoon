@@ -22,15 +22,25 @@ function matchesAny(ids: string[], candidate: string): boolean {
   return ok;
 }
 
-// Fail closed. Access requires BOTH a configured id list AND a request header
-// matching one of the ids. With nothing configured (empty/unset env) NOTHING is
-// allowed — an unconfigured or misconfigured deploy must never expose the paid
-// routes. There is deliberately no "gate off → allow" path: to use Companions
-// anywhere (including local dev) COMPANIONS_ACCESS_IDS must be set and a valid
-// id supplied.
-export function checkAccess(request: Request): boolean {
+// The real check, fail closed. Access requires BOTH a configured id list AND a
+// request header matching one of the ids. With nothing configured (empty/unset
+// env) NOTHING validates — an unconfigured or misconfigured deploy must never
+// expose the paid routes. The validation endpoint uses this directly, so the
+// Settings access box exercises the genuine gate even on the dev server.
+export function checkAccessId(request: Request): boolean {
   const ids = parseAccessIds(process.env.COMPANIONS_ACCESS_IDS);
   if (ids.length === 0) return false;
   const candidate = request.headers.get(ACCESS_HEADER) ?? "";
   return candidate !== "" && matchesAny(ids, candidate);
+}
+
+// What the paid routes enforce: the real check — except on the dev server
+// (`npm run dev`, NODE_ENV=development), where the gate is open so Companions
+// works with no id (your machine, your keys). Builds (`next build`/`start`,
+// every deploy) are never "development", so this can't leak into production.
+// Note the dev server binds 0.0.0.0, so dev also opens the paid routes to your
+// LAN while it runs.
+export function checkAccess(request: Request): boolean {
+  if (process.env.NODE_ENV === "development") return true;
+  return checkAccessId(request);
 }

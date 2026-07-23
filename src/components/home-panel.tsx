@@ -145,6 +145,28 @@ export function HomePanel({
             You can use voice controls for most things — each page explains the
             words it recognises.
           </p>
+          {process.env.NODE_ENV === "development" ? (
+            <p>
+              <span className="text-foreground font-medium">
+                Companion pictures
+              </span>{" "}
+              are bring-your-own — the{" "}
+              <a
+                href="https://github.com/autogoon/autogoon/blob/main/modes/COMPANIONS.md"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground underline underline-offset-4"
+              >
+                Companions doc
+              </a>{" "}
+              covers adding them.
+            </p>
+          ) : (
+            <p>
+              <span className="text-foreground font-medium">Companions</span>{" "}
+              needs an access ID — enter it under Settings to reveal it.
+            </p>
+          )}
           <p>
             <span className="text-foreground font-medium">Privacy.</span> For
             the built-in play modes, speech recognition runs entirely on your
