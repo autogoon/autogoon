@@ -43,17 +43,19 @@ import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
+import {
+  useGoonpackLibrary,
+  type PendingImport,
+} from "@/hooks/use-goonpack-library";
 import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
-import {
-  COMPANIONS,
-  companionList,
-  type CompanionId,
-} from "@/lib/companions/companions";
+import { companionList, type Companion } from "@/lib/companions/companions";
 import { sameLocalDay } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
+import { PackError } from "@/lib/goonpacks/manifest";
+import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
 import {
   CompanionEngine,
   type VariabilityLevel,
@@ -187,6 +189,15 @@ function PictureBubble({ src, onOpen }: { src: string; onOpen: () => void }) {
       >
         <Image src={src} alt="" fill sizes="176px" className="object-cover" />
       </button>
+    </div>
+  );
+}
+
+// A picture from a pack that isn't loaded right now — never substitute.
+function MissingPictureBubble() {
+  return (
+    <div className="text-muted-foreground max-w-[60%] self-start rounded-xl border border-dashed px-3 py-2 text-xs">
+      Picture from another pack.
     </div>
   );
 }
@@ -352,15 +363,37 @@ export function CompanionsPanel({
 }) {
   const device = vacuglide.player;
 
-  // The picked companion. Chosen in the setup view and fixed for the play
-  // session (the nav lock stops you returning to the picker mid-session), so it
-  // rides in panel state and drives the voice session's persona. Starts on the
-  // first companion in the list; the picker recolours per accent, so there's no
-  // "default" beyond a valid starting selection.
-  const [companionId, setCompanionId] = useState<CompanionId>(
-    companionList[0]!.id,
+  const library = useGoonpackLibrary();
+
+  // The picked, fully-resolved companion (variant applied, prompt sections
+  // filled). Chosen in the setup view and fixed for the play session (the nav
+  // lock stops you returning to the picker mid-session), so it rides in panel
+  // state and drives the voice session's persona. Starts on the first
+  // built-in's default variant.
+  const [companion, setCompanion] = useState<Companion>(() =>
+    resolveDefault(companionList[0]!),
   );
-  const companion = COMPANIONS[companionId]!;
+
+  // Setup view: pack import. fileRef triggers the hidden file input;
+  // pendingImport holds a parsed-but-not-yet-committed import for the confirm
+  // sheet; importError surfaces a failed import or variant pick.
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(
+    null,
+  );
+  const [importError, setImportError] = useState<string | null>(null);
+  const onPickFile = useCallback(
+    (file: File) => {
+      setImportError(null);
+      void library
+        .importPack(file)
+        .then(setPendingImport)
+        .catch((e: unknown) =>
+          setImportError(e instanceof PackError ? e.message : "import failed"),
+        );
+    },
+    [library],
+  );
 
   // The device engine — one instance, owned here. Defined before the voice
   // session because the session's tools/device-state callback both close over
@@ -549,7 +582,9 @@ export function CompanionsPanel({
                 showPicture(pic.src);
                 return {
                   result: `Sent him the picture: ${pic.description}`,
-                  imageSrc: pic.src,
+                  // Persist the stable ref (packs' object URLs die with the
+                  // session) — the live lightbox above still gets the URL.
+                  imageSrc: pic.ref ?? pic.src,
                 };
               },
             } satisfies CompanionTool,
@@ -774,32 +809,169 @@ export function CompanionsPanel({
             the device while you talk — cut in any time and she stops.
           </p>
           <div className="mt-2 flex flex-col gap-2">
-            {companionList.map((c) => {
-              // Identical to the home play mode list's card, minus the icon (and
-              // no badge — Companions registers no vosk words). The accent
-              // gradient is the companion's own accent_colour, interpolated in
-              // and safelisted in globals.css.
+            {library.entries.map((entry) => {
+              const c = entry.companion;
               const accent = c.accent_colour;
-              return (
-                <Button
-                  key={c.id}
-                  onClick={() => {
-                    setCompanionId(c.id);
+              const overlays = entry.variants.filter((v) => v.packId !== null);
+              const pick = (packId: string | null) => {
+                void (async () => {
+                  try {
+                    const resolved = await library.resolveVariant(
+                      entry,
+                      packId,
+                    );
+                    if (resolved === null) return; // overtaken by a newer pick
+                    setCompanion(resolved);
                     enterPlay();
-                  }}
-                  className={`flex items-center gap-4 rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 text-left hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
-                >
-                  <span className="min-w-0 flex-1">
+                  } catch (e) {
+                    setImportError(
+                      e instanceof PackError
+                        ? e.message
+                        : "pack failed to load",
+                    );
+                  }
+                })();
+              };
+              if (entry.missing) {
+                // Evicted complete pack: browser storage let it go; the zip
+                // has it.
+                return (
+                  <div
+                    key={c.id}
+                    className="rounded-xl border border-dashed px-4 py-3"
+                  >
                     <span className="block font-semibold">{c.name}</span>
                     <span className="text-muted-foreground block text-sm">
-                      {c.description}
+                      Gone from browser storage. Re-import her zip.
                     </span>
-                  </span>
-                  <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-                </Button>
+                  </div>
+                );
+              }
+              return (
+                <div key={c.id} className="flex flex-col gap-1">
+                  {/* Identical to the home play mode list's card, minus the
+                      icon (and no badge — Companions registers no vosk
+                      words). The accent gradient is the companion's own
+                      accent_colour, interpolated in and safelisted in
+                      globals.css. */}
+                  <Button
+                    onClick={() => pick(null)}
+                    className={`flex items-center gap-4 rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 text-left hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold">{c.name}</span>
+                      <span className="text-muted-foreground block text-sm">
+                        {c.description}
+                      </span>
+                    </span>
+                    <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+                  </Button>
+                  {overlays.length > 0 && (
+                    <div className="flex flex-wrap gap-1 px-2">
+                      {entry.variants.map((v) =>
+                        v.missing ? (
+                          <span
+                            key={v.packId}
+                            className="text-muted-foreground rounded border border-dashed px-2 py-0.5 text-xs"
+                          >
+                            {v.label} — re-import
+                          </span>
+                        ) : (
+                          <Button
+                            key={v.packId ?? "default"}
+                            onClick={() => pick(v.packId)}
+                            className="text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-xs"
+                          >
+                            {v.label}
+                            {v.version !== undefined ? ` ${v.version}` : ""}
+                            {library.lastPlayed(c.id) ===
+                            (v.packId ?? "default")
+                              ? " •"
+                              : ""}
+                          </Button>
+                        ),
+                      )}
+                    </div>
+                  )}
+                  {!entry.builtIn && (
+                    <Button
+                      onClick={() => void library.removePack(c.id)}
+                      className="text-muted-foreground hover:text-foreground self-start px-2 text-xs"
+                    >
+                      Remove{overlays.length > 0 ? " (and her overlays)" : ""}
+                    </Button>
+                  )}
+                </div>
               );
             })}
           </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".zip"
+            className="hidden"
+            data-testid="goonpack-file-input"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f !== undefined) onPickFile(f);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            onClick={() => fileRef.current?.click()}
+            className="text-muted-foreground hover:text-foreground mt-2 rounded-xl border border-dashed px-4 py-2 text-sm"
+          >
+            Import pack
+          </Button>
+          {importError !== null && (
+            <p className="mt-1 text-sm text-red-500">{importError}</p>
+          )}
+          {pendingImport !== null && (
+            <div className="mt-2 rounded-xl border px-4 py-3 text-sm">
+              <p className="font-semibold">
+                {pendingImport.manifest.name ?? pendingImport.manifest.id}
+                <span className="text-muted-foreground font-normal">
+                  {" "}
+                  {pendingImport.manifest.id} · v
+                  {pendingImport.manifest.version}
+                  {pendingImport.manifest.base !== undefined
+                    ? ` · overlays ${pendingImport.manifest.base}`
+                    : ""}
+                </span>
+              </p>
+              {pendingImport.manifest.description !== undefined && (
+                <p className="text-muted-foreground">
+                  {pendingImport.manifest.description}
+                </p>
+              )}
+              {pendingImport.replaces !== null && (
+                <p className="mt-1">
+                  Replaces v{pendingImport.replaces.version}. Threads stay.
+                </p>
+              )}
+              <div className="mt-2 flex gap-2">
+                <Button
+                  onClick={() =>
+                    void pendingImport
+                      .commit()
+                      .then(() => setPendingImport(null))
+                  }
+                  className="rounded border px-3 py-1"
+                >
+                  {pendingImport.replaces !== null ? "Replace" : "Import"}
+                </Button>
+                <Button
+                  onClick={() => setPendingImport(null)}
+                  className="text-muted-foreground rounded px-3 py-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+          <p className="text-muted-foreground mt-2 text-xs">
+            Packs live in browser storage; keep your zips.
+          </p>
           <p className="text-muted-foreground mt-4 text-xs">
             <span className="text-foreground font-medium">Privacy.</span> Unlike
             the rest of Autogoon, Companions sends data off your device: your
@@ -988,13 +1160,19 @@ export function CompanionsPanel({
                       // A picture she sent renders as a clickable thumbnail;
                       // any other tool call as the little action chip.
                       if (turn.imageSrc !== undefined) {
-                        const src = turn.imageSrc;
-                        row = (
-                          <PictureBubble
-                            src={src}
-                            onOpen={() => showPicture(src)}
-                          />
+                        const src = resolvePictureRef(
+                          turn.imageSrc,
+                          companion.pictures,
                         );
+                        row =
+                          src === null ? (
+                            <MissingPictureBubble />
+                          ) : (
+                            <PictureBubble
+                              src={src}
+                              onOpen={() => showPicture(src)}
+                            />
+                          );
                       } else {
                         row = (
                           <ToolChip name={turn.name} result={turn.result} />
