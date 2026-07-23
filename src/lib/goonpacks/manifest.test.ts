@@ -33,9 +33,9 @@ describe("parseManifest", () => {
     expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(
       PackError,
     );
-    expect(
-      parseManifest({ ...good, accentColour: "teal" }).accentColour,
-    ).toBe("teal");
+    expect(parseManifest({ ...good, accentColour: "teal" }).accentColour).toBe(
+      "teal",
+    );
   });
   it("rejects a bad gender", () => {
     expect(() => parseManifest({ ...good, gender: "robot" })).toThrow(
