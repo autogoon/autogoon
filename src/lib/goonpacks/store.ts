@@ -94,7 +94,11 @@ function tx<T>(
   );
 }
 
-type StoredRecord = { manifest: unknown; zip: Blob };
+// The zip is stored as raw bytes, not a Blob: Blob records fail to store in
+// some WebKit builds (Playwright's bundled WebKit throws on any Blob put, and
+// real Safari has its own Blob-in-IDB history) — bytes structured-clone
+// everywhere.
+type StoredRecord = { manifest: unknown; zip: ArrayBuffer };
 
 // Every readable, valid record's manifest. Unreadable/invalid records are
 // skipped — they count as evicted and surface via reconcile as missing.
@@ -118,7 +122,7 @@ export async function listStoredManifests(): Promise<PackManifest[]> {
 
 export async function putPack(
   manifest: PackManifest,
-  zip: Blob,
+  zip: ArrayBuffer,
 ): Promise<void> {
   await tx("readwrite", (s) => s.put({ manifest, zip }, manifest.id));
 }
@@ -127,11 +131,15 @@ export async function deletePack(id: string): Promise<void> {
   await tx("readwrite", (s) => s.delete(id));
 }
 
-export async function getPackZip(id: string): Promise<Blob | null> {
+export async function getPackBytes(id: string): Promise<ArrayBuffer | null> {
   try {
     const r = (await tx("readonly", (s) => s.get(id))) as
       StoredRecord | undefined;
-    return r?.zip ?? null;
+    if (r === undefined) return null;
+    // Records written before the bytes switch stored a Blob; read them too
+    // rather than treating them as evicted.
+    if (r.zip instanceof Blob) return await r.zip.arrayBuffer();
+    return r.zip ?? null;
   } catch {
     return null;
   }

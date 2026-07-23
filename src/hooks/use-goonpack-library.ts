@@ -18,7 +18,7 @@ import {
 } from "@/lib/goonpacks/resolve";
 import {
   deletePack,
-  getPackZip,
+  getPackBytes,
   listStoredManifests,
   putPack,
   readIndex,
@@ -106,9 +106,9 @@ function buildEntries(
 // Unzip a stored pack. Missing/unreadable → PackError (the card's re-import
 // path); pictures become object URLs, revoked by the caller when replaced.
 async function loadContent(packId: string): Promise<PackContent> {
-  const zip = await getPackZip(packId);
+  const zip = await getPackBytes(packId);
   if (zip === null) throw new PackError("pack missing — re-import its zip");
-  const parsed = parsePack(new Uint8Array(await zip.arrayBuffer()));
+  const parsed = parsePack(new Uint8Array(zip));
   return {
     manifest: parsed.manifest,
     systemPrompt: parsed.systemPrompt,
@@ -157,7 +157,8 @@ export function useGoonpackLibrary() {
 
   const importPack = useCallback(
     async (file: File): Promise<PendingImport> => {
-      const parsed = parsePack(new Uint8Array(await file.arrayBuffer()));
+      const bytes = await file.arrayBuffer();
+      const parsed = parsePack(new Uint8Array(bytes));
       const m = parsed.manifest;
       if (m.base !== undefined) {
         const baseExists =
@@ -173,7 +174,7 @@ export function useGoonpackLibrary() {
         manifest: m,
         replaces,
         commit: async () => {
-          await putPack(m, file);
+          await putPack(m, bytes);
           writeIndex(localStorage, [
             ...readIndex(localStorage).filter((e) => e.id !== m.id),
             toIndexEntry(m),
