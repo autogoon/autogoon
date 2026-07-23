@@ -1,10 +1,10 @@
 ---
 name: doc-check
 description:
-  Use before a PR is marked ready for review, after a rename or refactor, or
-  whenever code and docs may have drifted apart — including stale paths, renamed
-  identifiers, incomplete lists, or docs describing behaviour the code no longer
-  has.
+  Use before opening a PR and again before merging it, after a rename or
+  refactor, or whenever code and docs may have drifted apart — including stale
+  paths, renamed identifiers, incomplete lists, or docs describing behaviour
+  the code no longer has.
 ---
 
 # Doc check

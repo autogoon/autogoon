@@ -1,10 +1,10 @@
 ---
 name: personal-check
 description:
-  Use before pushing to the public repo, before a PR is marked ready, or after
-  writing docs/content — scans for personal information, identifying details, or
-  content-sourcing references that shouldn't be public, and checks whether any
-  finding is already baked into git history.
+  Use before pushing to the public repo, before opening a PR and again before
+  merging it, or after writing docs/content — scans for personal information,
+  identifying details, or content-sourcing references that shouldn't be
+  public, and checks whether any finding is already baked into git history.
 ---
 
 # Personal check
