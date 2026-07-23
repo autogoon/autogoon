@@ -15,7 +15,7 @@
     "start": "next start",
     "prelint": "npm run gen:pictures",
     "lint": "eslint --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\"",
     "pretypecheck": "npm run gen:pictures",
     "typecheck": "tsc --noEmit",
     "pretest": "npm run gen:pictures",

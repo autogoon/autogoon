@@ -1,6 +1,6 @@
 // The safe word — the always-on voice hard stop. One user-configurable word
 // (persisted under SAFE_WORD_STORAGE_KEY) that halts the Player exactly like
-// Stop, wired globally in page.tsx so no algorithm can ever gate it. This
+// Stop, wired globally in page.tsx so no play mode can ever gate it. This
 // module is just the pure bits: the default and the validator.
 
 export const DEFAULT_SAFE_WORD = "pineapple";

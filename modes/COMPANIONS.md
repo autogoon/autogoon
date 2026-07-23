@@ -131,7 +131,7 @@ is fed back for a **second round-trip** so she reacts in words to what happened.
 ## Configuration
 
 Two env vars wire the app to OpenRouter (server-side only; see
-[`.env.example`](./.env.example)):
+[`.env.example`](../.env.example)):
 
 - `LLM_URL` — `https://openrouter.ai/api/v1`.
 - `OPENROUTER_API_KEY` — read only by the `/api/llm` proxy route, which adds it

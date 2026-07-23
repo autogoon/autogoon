@@ -1,7 +1,7 @@
 "use client";
 
 // The safe word editor — input + Test button — shared by the Settings screen
-// and any algorithm setup view that surfaces it (Goon). The saved word is
+// and any play mode setup view that surfaces it (Goon). The saved word is
 // app-level state owned by the page (both surfaces stay mounted, so edits on
 // one must show on the other); this component holds only the draft being
 // typed and the test modal.

@@ -1,8 +1,8 @@
 "use client";
 
-// Autopilot algorithm panel. Owns the Autopilot engine, arms/plays the shared
+// Autopilot play mode panel. Owns the Autopilot engine, arms/plays the shared
 // Player, declares its commands once (button == voice). Event generation lives
-// in @/lib/algorithms/autopilot-engine.
+// in @/lib/play-modes/autopilot-engine.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
@@ -22,7 +22,7 @@ import {
   type IntensityLevel,
   type EdgeControlLevel,
   type SuctionControlLevel,
-} from "@/lib/algorithms/autopilot-engine";
+} from "@/lib/play-modes/autopilot-engine";
 
 const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
 const DEFAULT_INTENSITY: IntensityLevel = "warmup";

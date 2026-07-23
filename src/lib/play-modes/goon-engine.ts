@@ -1,4 +1,4 @@
-// Goon as an AlgorithmEngine — an automatic, timeline-driven slow build: the
+// Goon as an PlayModeEngine — an automatic, timeline-driven slow build: the
 // manual Groove dip pattern with its knobs driven automatically over a
 // program-position running 0 -> the configured session length. position === the
 // Player's clock, so each cycle samples the curves at its own program-time and
@@ -7,7 +7,7 @@
 
 import {
   type PlayerContext,
-  type AlgorithmEngine,
+  type PlayModeEngine,
   type SpeedEvent,
   type ValveEvent,
 } from "@/lib/program";
@@ -295,7 +295,7 @@ function teaseEvents(from: number, until: number): ValveEvent[] {
   ];
 }
 
-export class GoonEngine implements AlgorithmEngine {
+export class GoonEngine implements PlayModeEngine {
   private intensity: number;
   private programMs = DEFAULT_PROGRAM_MS;
   private cumming = false;

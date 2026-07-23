@@ -38,24 +38,24 @@ _Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md)._
 
 A Next.js app (App Router, TypeScript, Tailwind v4): a single page with a sticky
 header bar — a mic **Listen** toggle (keyword spotting), device **Connect**,
-live status, and a **Stop** button while an algorithm runs — and a two-level
-navigation. **Home** lists the algorithms (plus device token entry and a
+live status, and a **Stop** button while a play mode runs — and a two-level
+navigation. **Home** lists the play modes (plus device token entry and a
 getting-started intro; a **Settings** tab beside home holds appearance and build
-info); pick an algorithm by tap or by saying its name:
+info); pick a play mode by tap or by saying its name:
 
-1. **Goon** — see [ALGORITHM-GOON.md](./ALGORITHM-GOON.md).
-2. **Groove** — see [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md).
+1. **Goon** — see [modes/GOON.md](./modes/GOON.md).
+2. **Groove** — see [modes/GROOVE.md](./modes/GROOVE.md).
 3. **Autopilot** — a faithful recreation of Autoblow's own autopilot; see
-   [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md).
+   [modes/AUTOPILOT.md](./modes/AUTOPILOT.md).
 
 **Exit** — the breadcrumb's Home button, or the spoken word — goes back up.
 While a session is running, Exit is locked (and leaves the grammar): you can't
-leave an algorithm or switch to another mid-session; stop first.
+leave a play mode or switch to another mid-session; stop first.
 
 Keyword spotting uses [vosk-browser](https://github.com/ccoreilly/vosk-browser)
-(WASM Kaldi). The recognizer's grammar is exactly the running algorithm's
+(WASM Kaldi). The recognizer's grammar is exactly the running play mode's
 published commands plus the global words valid right now
-(`connect`/`start`/`stop`, and while stopped a switch word per algorithm), and
+(`connect`/`start`/`stop`, and while stopped a switch word per play mode), and
 detections fire from vosk's settled per-utterance result (the `result` event;
 streaming partials are ignored).
 
@@ -66,7 +66,7 @@ loop and the microphone continuously, and mobile browsers suspend or heavily
 throttle background or screen-locked tabs, which stops both.
 
 - **iOS Safari** — strict: the moment the tab is backgrounded or the screen
-  locks, the algorithm and the mic stop. In practice you need a **second
+  locks, the play mode and the mic stop. In practice you need a **second
   device** dedicated to Autogoon (screen on, tab in front) while you use the
   toy. This is the only tested configuration.
 - **iOS Chrome / Firefox / any iOS browser** _(untested)_ — expected to behave
@@ -83,10 +83,8 @@ throttle background or screen-locked tabs, which stops both.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together: the
   program/player model, the engine/panel split, the shared device layer and
   single Player, the keyword spotter, and the Vacuglide HTTP API.
-- [ALGORITHM-GOON.md](./ALGORITHM-GOON.md) — the automatic slow-build algorithm.
-- [ALGORITHM-GROOVE.md](./ALGORITHM-GROOVE.md) — the hand-built dip algorithm.
-- [ALGORITHM-AUTOPILOT.md](./ALGORITHM-AUTOPILOT.md) — the reverse-engineered
-  autopilot algorithm (mystery script, intensity, edge control, suction).
+- [MODES.md](./MODES.md) — the play modes, each with its own doc under
+  [`modes/`](./modes/).
 
 ## License
 

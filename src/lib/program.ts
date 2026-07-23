@@ -1,6 +1,6 @@
 // The shared program/player contract. A program is a single array of timed
 // events over "program-time" (ms). The Player owns the clock and plays events;
-// each algorithm is an AlgorithmEngine that only produces events and scales them.
+// each play mode is a PlayModeEngine that only produces events and scales them.
 
 // Player timing.
 export const TICK_MS = 100; // clock resolution / send cadence
@@ -18,7 +18,7 @@ export const MAX_RATE = 4;
 export const UPCOMING_WINDOW_MS = 60_000;
 
 // A target-speed change. `speed` is raw (pattern space); the Player runs it
-// through AlgorithmEngine.scale() at send time. `unscaled` bypasses scale() —
+// through PlayModeEngine.scale() at send time. `unscaled` bypasses scale() —
 // only wind-down (cumming/finish) ramps set it.
 export interface SpeedEvent {
   kind: "speed";
@@ -46,7 +46,7 @@ export type ProgramEvent = SpeedEvent | ValveEvent;
 
 // The upcoming-speed preview the Player derives for the sparkline. A step point
 // (`t` is ms from now, 0..UPCOMING_WINDOW_MS) and a scheduled valve change; both
-// are algorithm-agnostic — the Player produces them, the Sparkline draws them.
+// are play-mode-agnostic — the Player produces them, the Sparkline draws them.
 export type CurvePoint = { t: number; speed: number };
 export type ValveMarker = { t: number; valve: "plus" | "minus"; open: boolean };
 
@@ -66,7 +66,7 @@ export interface PlayerContext {
   currentRawSpeed: number; // the program's raw (pre-scale) speed at the clock, 0 if none
 }
 
-export interface AlgorithmEngine {
+export interface PlayModeEngine {
   // A fresh session is starting: clear transient state (e.g. "just changed"
   // flags, cumming). Called by the Player when an engine is set.
   reset(): void;

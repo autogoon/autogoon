@@ -1,4 +1,4 @@
-# Wave / Ballooning — algorithm candidate
+# Wave / Ballooning — play-mode candidate
 
 A long, high plateau with rolling swells that keep you near the top without
 tipping over. Distinct from edging in that the point isn't the retreat — it's

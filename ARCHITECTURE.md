@@ -1,13 +1,13 @@
 # Architecture
 
 A single-page app with a sticky header bar and a shallow navigation hierarchy: a
-top level of **home** (the device connection, the algorithm chooser and the
+top level of **home** (the device connection, the play mode chooser and the
 getting-started notes) with a **Settings** tab beside it (appearance, build
-info), and one screen per algorithm (Goon, Groove, Autopilot).
+info), and one screen per play mode (Goon, Groove, Autopilot).
 `src/app/page.tsx` owns the layout: it wraps everything in the keyword-spotter
 provider, mirrors the one shared Player into React once, and renders every
 screen. Hidden screens stay mounted (only their visibility changes), so the
-recognizer and the running algorithm keep going regardless of which screen is
+recognizer and the running play mode keep going regardless of which screen is
 visible.
 
 ## The program / player model
@@ -20,7 +20,7 @@ one cursor marking where the clock is now (`src/lib/program.ts`). There are two
 event kinds:
 
 - a **speed event** `{ at, speed }` — a target-speed change. `speed` is raw; the
-  algorithm transforms it at send time (see `scale` below).
+  play mode transforms it at send time (see `scale` below).
 - a **valve event** `{ at, valve, open }` — open or close a stroke valve. A
   pulse is therefore **two events**, an open and a later close, so a fixed pulse
   and a variable-length hold share one representation.
@@ -35,22 +35,22 @@ duplicate-send suppression), executing valve events, keeping ~5 minutes of
 future built ahead, transport (`play`/`pause`, `forward`/`back` = ±1 min,
 `faster`/ `slower`, `seekTo`), the `pagehide` safety-stop, and the
 upcoming-speed window the sparkline draws. It knows nothing about any specific
-algorithm. There is **one** Player, owned by the device hook; it plays whichever
-algorithm is active.
+play mode. There is **one** Player, owned by the device hook; it plays whichever
+play mode is active.
 
-The Player carries a `state` — `armed` / `playing` / `paused`. The visible
-algorithm **arms** the Player (`arm`), building a live preview before Start
-(Goon defers arming to its setup view's Play, which commits the setup first);
-Start (`play`) then **resumes** from the held position rather than restarting,
-Stop (`pause`) holds position, and `reset` restores the algorithm's default
-knobs and regenerates from the beginning.
+The Player carries a `state` — `armed` / `playing` / `paused`. The visible play
+mode **arms** the Player (`arm`), building a live preview before Start (Goon
+defers arming to its setup view's Play, which commits the setup first); Start
+(`play`) then **resumes** from the held position rather than restarting, Stop
+(`pause`) holds position, and `reset` restores the play mode's default knobs and
+regenerates from the beginning.
 
-**An AlgorithmEngine** (`src/lib/algorithms/*-engine.ts`) is what each algorithm
+**A PlayModeEngine** (`src/lib/play-modes/*-engine.ts`) is what each play mode
 _is_ here: a generation-only object with four methods —
 
 - `generateSpeed(fromTime, untilTime, ctx)` — the Player _pulls_ this to extend
   the speed backbone (in whole cycles), keeping ~5 minutes ahead, so looping
-  algorithms never materialise all at once.
+  play modes never materialise all at once.
 - `generateValves(speedEvents, fromTime, untilTime, ctx)` — overlays the
   automatic valve pulses (tease, vacuum maintenance, the cumming pulse) across a
   span of already-built speed, as open/close event pairs that show on the
@@ -89,28 +89,28 @@ program-time — a jump needs no special handling.
 `Player.insertEvent` while something is playing, and drive the device directly
 when nothing is.
 
-## Two layers per algorithm
+## Two layers per play mode
 
-Each device-driving algorithm is two files:
+Each device-driving play mode is two files:
 
-- an **engine** — a plain-TS `AlgorithmEngine` that only _generates_ events and
-  _scales_ them (`src/lib/algorithms/goon-engine.ts`, `groove-engine.ts`,
+- an **engine** — a plain-TS `PlayModeEngine` that only _generates_ events and
+  _scales_ them (`src/lib/play-modes/goon-engine.ts`, `groove-engine.ts`,
   `autopilot-engine.ts`). No React, no device. Engines are self-contained and
-  never import from one another; where two algorithms share a pattern (Goon
+  never import from one another; where two play modes share a pattern (Goon
   reuses Groove's dip), the helpers are **duplicated**, not shared — a
-  deliberate boundary so each algorithm stays standalone.
-- a **panel** — the React surface (`src/components/algorithms/*-panel.tsx`). It
+  deliberate boundary so each play mode stays standalone.
+- a **panel** — the React surface (`src/components/play-modes/*-panel.tsx`). It
   **owns** its engine instance (a `useRef`), arms/plays the shared Player with
   it, holds its own knob state (setting the engine's fields directly), and reads
   the shared Player view for the sparkline, timeline and current state.
 
-There is no per-algorithm hook and no central runner: the panel drives the
+There is no per-play-mode hook and no central runner: the panel drives the
 Player directly, and mutual exclusion falls out of the Player holding one engine
-at a time. Adding an algorithm is a new engine + panel, then registering it in
-`page.tsx` (an `ALGORITHMS` entry and its panel rendered) — the registry is the
+at a time. Adding a play mode is a new engine + panel, then registering it in
+`page.tsx` (a `PLAY_MODES` entry and its panel rendered) — the registry is the
 single source of truth, so the home listing, the voice switch word and the
 screen all follow automatically. The step-by-step lives in
-[DEVELOPERS.md](./DEVELOPERS.md#adding-an-algorithm).
+[DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
 
 **Commands are declared once.** Each action is a `Command` —
 `{ word, enabled, run }` — so the on-screen button and the spoken keyword call
@@ -122,7 +122,7 @@ the panel is the active screen. A button flashes when its word is recognized.
 
 ## Shared device, one Player, mutual exclusion
 
-Every algorithm shares one device **and** one Player via `useVacuglideDevice`
+Every play mode shares one device **and** one Player via `useVacuglideDevice`
 (`src/hooks/use-vacuglide-device.ts`), which wraps the
 `src/lib/vacuglide-device.ts` API client and owns the single `Player`. An engine
 reaches the device only indirectly, through the Player. `usePlayer`
@@ -134,32 +134,31 @@ speed, timeline position/rate, and which engine is currently the Player's
 **Mutual exclusion is a Player invariant, not a coordinator.** The Player holds
 one engine at a time; a panel arming its engine replaces whoever was there. A
 panel knows it's the active source by comparing the Player view's `source` to
-its own engine, so only the active algorithm's controls and voice words are
+its own engine, so only the active play mode's controls and voice words are
 live.
 
 `page.tsx` keeps the two genuinely global concerns. First, navigation: the top
-level (home + its Settings sibling tab) and the algorithm screens form a strict
+level (home + its Settings sibling tab) and the play mode screens form a strict
 hierarchy with no sideways moves — `exit` (the word, or a breadcrumb link) goes
-up one level, and both are locked while a session runs, so switching algorithms
-mid-session simply can't be expressed; stop first. An algorithm with a setup
-view gets a play sub-level (`Home › Goon › Play`): Play navigates down into it,
-exit climbs back to setup. Screens mirror into the URL hash (`#goon`,
-`#goon/play`), so the browser back button, reloads and deep-links follow the
-same hierarchy — back is locked mid-session just like exit (the consumed history
-entry is pushed straight back), and a `/play` deep-link lands on its setup
-level, since the session it named didn't survive the reload. Second, the global
-voice words — `connect` while disconnected, the algorithm names and `settings`
-on home, `exit` on any other screen while idle — which it sets on the recognizer
-and routes itself (`connect` drives the device; an algorithm name enters that
-screen; `exit` returns home). Everything else is an algorithm word, owned by the
-active panel.
+up one level, and both are locked while a session runs, so switching play modes
+mid-session simply can't be expressed; stop first. A play mode with a setup view
+gets a play sub-level (`Home › Goon › Play`): Play navigates down into it, exit
+climbs back to setup. Screens mirror into the URL hash (`#goon`, `#goon/play`),
+so the browser back button, reloads and deep-links follow the same hierarchy —
+back is locked mid-session just like exit (the consumed history entry is pushed
+straight back), and a `/play` deep-link lands on its setup level, since the
+session it named didn't survive the reload. Second, the global voice words —
+`connect` while disconnected, the play mode names and `settings` on home, `exit`
+on any other screen while idle — which it sets on the recognizer and routes
+itself (`connect` drives the device; a play mode name enters that screen; `exit`
+returns home). Everything else is a play mode word, owned by the active panel.
 
 ## Controls
 
 The header bar holds the shared controls — the Listen toggle (keyword spotting),
 the device Connect button, live device status (speed + valve pills), and a Stop
-button whenever an algorithm is running. Each algorithm panel has its own Start
-button (a `RunButton`), so Connect stays global while Start is per-algorithm.
+button whenever a play mode is running. Each play mode panel has its own Start
+button (a `RunButton`), so Connect stays global while Start is per-play-mode.
 
 Shared UI is factored into components (`src/components/`): `Card`, `LogCard`,
 `RunButton`, `HoldButton` (the press-and-hold Stroke buttons, minimum 300 ms
@@ -191,9 +190,9 @@ remembered in `localStorage`.
 
 In-browser speech keyword detection using
 [vosk-browser](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) with a
-grammar constrained to the words valid right now — the active algorithm's
+grammar constrained to the words valid right now — the active play mode's
 enabled words plus the global words (`connect`, and while idle a switch word per
-algorithm) — rebuilt whenever that word set changes. Detections fire from vosk's
+play mode) — rebuilt whenever that word set changes. Detections fire from vosk's
 settled per-utterance result (the `result` event; streaming partials are
 ignored). The ~40 MB recognizer model
 (`public/vosk-model-small-en-us-0.15.tar.gz`) is fetched on load and cached by
@@ -202,13 +201,13 @@ the browser.
 There is **one** recognizer, owned by `KeywordSpotterProvider`
 (`src/components/keyword-spotter.tsx`) at the top of the tree, so it keeps
 listening across screen changes. Its grammar is two slots: the **global** words
-(the page sets these via `setGlobalWords`) and the **algorithm** words (the
-active panel sets these via `setAlgorithmKeywords`, through `useVoiceCommands`).
+(the page sets these via `setGlobalWords`) and the **play mode** words (the
+active panel sets these via `setPlayModeKeywords`, through `useVoiceCommands`).
 Any component subscribes to detections with `keywordListener`: the page's
 listener logs every recognised word and handles `connect`/navigation, while each
 active panel's listener runs its own commands. Because only the active panel
-registers its words, exactly one algorithm's commands are ever live.
+registers its words, exactly one play mode's commands are ever live.
 
-Switch words are just the algorithm names (`goon`, `groove`, `autopilot`) — say
-one on home to enter that algorithm's screen (`settings` likewise opens the
+Switch words are just the play mode names (`goon`, `groove`, `autopilot`) — say
+one on home to enter that play mode's screen (`settings` likewise opens the
 Settings tab); `exit` (while nothing runs) returns to home.

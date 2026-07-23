@@ -47,7 +47,7 @@ offline.
   warning, not just the ones your change introduced). Individual commits needn't
   be spotless — the PR as a whole must be clean — and commit anything `format`
   reformats.
-- **Adding an algorithm?** See [Adding an algorithm](#adding-an-algorithm) below
+- **Adding a play mode?** See [Adding a play mode](#adding-a-play-mode) below
   for the full checklist.
 - **Respect the [content policy](#content-policy)** — no features that host,
   index, or point at content.
@@ -86,8 +86,8 @@ pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
 routing — works in each engine. Only the microphone _hardware_ is faked:
 `getUserMedia` is stubbed (via `MediaDevices.prototype` — instance assignment
 doesn't stick in WebKit) to return a WebAudio-built `MediaStream`, and the test
-plays a committed wav of a synthesized algorithm name into it once, then asserts
-the app heard it and navigated to that algorithm's screen.
+plays a committed wav of a synthesized play mode name into it once, then asserts
+the app heard it and navigated to that play mode's screen.
 
 Two hard-won details, should you write more voice tests:
 
@@ -107,14 +107,14 @@ The first time the suite runs a given browser, macOS asks whether to allow it to
 use the microphone — approve it once per browser and it won't ask again. (The
 tests never use the real mic, but the browsers still request the permission.)
 
-## Adding an algorithm
+## Adding a play mode
 
-An algorithm is a self-contained pair — an **engine** (event generation, no
+A play mode is a self-contained pair — an **engine** (event generation, no
 React, no device) and a **panel** (the React surface that owns the engine and
 drives the shared Player) — registered in `src/app/page.tsx`. Read the
 engine/panel split in [ARCHITECTURE.md](./ARCHITECTURE.md) first.
 
-**Copy an existing algorithm as your starting point.** `goon-engine.ts` +
+**Copy an existing play mode as your starting point.** `goon-engine.ts` +
 `goon-panel/` exercise the full feature set (an automatic build curve, a setup
 view with per-concern option cards, a live-scaled magnitude knob, valve teases,
 time dilation, and a bespoke `cumming` wind-down), so Goon is the richest
@@ -123,22 +123,22 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
 
 ### The steps
 
-1. **Engine** — `src/lib/algorithms/<name>-engine.ts`, a plain `AlgorithmEngine`
+1. **Engine** — `src/lib/play-modes/<name>-engine.ts`, a plain `PlayModeEngine`
    (no React, no device).
    - Implement the four methods from
      [`src/lib/program.ts`](./src/lib/program.ts): `reset`, `generateSpeed`,
      `generateValves`, `scale`. That interface is the contract and the
      best-commented file to read first.
    - Engines are **self-contained** — they never import from each other. If you
-     reuse another algorithm's pattern (as Goon reuses Groove's dip),
+     reuse another play mode's pattern (as Goon reuses Groove's dip),
      **duplicate** the helper, don't share it.
-2. **Panel** — `src/components/algorithms/<name>-panel.tsx` (or a
+2. **Panel** — `src/components/play-modes/<name>-panel.tsx` (or a
    `<name>-panel/` directory with the panel in `index.tsx`, once it has enough
    pieces — Goon splits its setup option cards out this way). Copy Goon's or
-   Groove's structure; what's algorithm-specific is only your knob cards and
-   their commands. Whether an algorithm has a **setup view** before its play
-   view is the panel's own choice — Goon has one, Groove and Autopilot don't.
-   The parts to copy:
+   Groove's structure; what's play-mode-specific is only your knob cards and
+   their commands. Whether a play mode has a **setup view** before its play view
+   is the panel's own choice — Goon has one, Groove and Autopilot don't. The
+   parts to copy:
    - a `useRef` engine — **stable identity matters**: the Player identifies the
      active source by reference, so never re-create it (no `useMemo` with deps);
    - `isCurrent` / `state` derived from the Player view;
@@ -154,21 +154,21 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
      the start and calls `engine.reset()` to clear transient state (e.g. a
      pending `cumming`).
    - **Endings belong to the panel, not `StrokeCard`** (which is just the shared
-     stroke ± buttons). If your algorithm has an ending, render a `FinishButton`
+     stroke ± buttons). If your play mode has an ending, render a `FinishButton`
      and/or a `CummingButton` — **Finish** (a _pre_-ending: reach/hold the
      climax point) and **Cumming** (the send-off) are distinct actions. Have
      both, one, or neither.
 
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
-   - add an `ALGORITHMS` entry (`id`, `label`, `description`) — the id is the
+   - add a `PLAY_MODES` entry (`id`, `label`, `description`) — the id is the
      voice switch word and the screen, and the description is the home-page
      listing, so this one entry is the whole registration;
    - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the
      others, passing `active={screen === "<name>"}`.
-4. **User-facing copy:** add `ALGORITHM-<NAME>.md` (high-level and experiential,
-   like the others — not an implementation spec), and link it from `README.md`
-   (the mode list and the Documentation list).
+4. **User-facing copy:** add `modes/<NAME>.md` (high-level and experiential,
+   like the others — not an implementation spec), and link it from
+   [MODES.md](./MODES.md) and `README.md`'s mode list.
 5. **Changelog** — add a `feature` line to [CHANGELOG.md](./CHANGELOG.md).
 
 ### Which knob-change method to call

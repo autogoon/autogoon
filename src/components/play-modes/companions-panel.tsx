@@ -47,7 +47,7 @@ import type { CompanionTool } from "@/lib/companions/tools";
 import {
   CompanionEngine,
   type VariabilityLevel,
-} from "@/lib/algorithms/companion-engine";
+} from "@/lib/play-modes/companion-engine";
 
 // Fixed default knobs — the program is random within this baseline. Companions
 // start gentle: a low-intensity, lightly-varying program. Elise turns it up from
@@ -70,7 +70,7 @@ function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
 }
 
 // The event log reuses the shared LogCard (monospace, timestamped, colour-by-
-// kind, auto-scrolling, dev-only) so it matches the other algorithms' logs.
+// kind, auto-scrolling, dev-only) so it matches the other play modes' logs.
 // Memoized on its entries so the ~50 Hz rms churn doesn't reconcile it.
 const EventLog = memo(function EventLog({ entries }: { entries: LogEntry[] }) {
   return <LogCard title="Events" entries={entries} />;
@@ -640,7 +640,7 @@ export function CompanionsPanel({
           </p>
           <div className="mt-2 flex flex-col gap-2">
             {companionList.map((c) => {
-              // Identical to the home algorithm list's card, minus the icon (and
+              // Identical to the home play mode list's card, minus the icon (and
               // no badge — Companions registers no vosk words). The accent
               // gradient is the companion's own accent_colour, interpolated in
               // and safelisted in globals.css.

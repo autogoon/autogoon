@@ -1,12 +1,12 @@
-# Rounds — algorithm candidate
+# Rounds — play-mode candidate
 
-The only algorithm that continues past the first orgasm. Finish, then a brief
+The only play mode that continues past the first orgasm. Finish, then a brief
 burst on the over-sensitive glans, ease down through the refractory lull, then
 rebuild for another round — a repeating sawtooth of whole sessions rather than a
 single build. Nothing else in the app touches the post-orgasm region.
 
 - The overstim between rounds is basically the after-play **Torture** idea (see
-  [Algorithm options](./ALGORITHM-OPTIONS.md)) used as a bridge rather than a
+  [Play-mode options](./PLAY-MODE-OPTIONS.md)) used as a bridge rather than a
   dead-end — worth designing the two together.
 - **Refractory length varies a lot** (man to man, and with age), so a fixed lull
   won't fit everyone. Probably let the man signal he's ready (voice) rather than

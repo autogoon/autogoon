@@ -10,7 +10,7 @@ index.
 - [Improve keyword detection](roadmap/KEYWORD-DETECTION.md) — stop background
   media (videos) triggering voice commands: volume/clarity gating, or a KWS that
   knows the user's voice.
-- [Algorithm options](roadmap/ALGORITHM-OPTIONS.md) — options every algorithm
+- [Play-mode options](roadmap/PLAY-MODE-OPTIONS.md) — options every play mode
   should eventually share, grouped by when they happen: mid-play (edge),
   end-play (the run to finish) and after-play (from the moment you cum).
 - [Goonpacks](roadmap/GOONPACKS.md) — a companion persona as a portable,
@@ -21,12 +21,9 @@ index.
   mood; the long-range v2 behind goonpacks.
 - [Freestyle](roadmap/FREESTYLE.md) — a mode with no program at all: the raw
   device controls (speed, stroke, valves), you drive.
-- [Rounds](roadmap/ALGORITHM-ROUNDS.md) — algorithm candidate: the only one to
-  continue past the first orgasm — overstim bridge, refractory lull, rebuild,
-  repeat.
-- [Wave / Ballooning](roadmap/ALGORITHM-WAVE-BALLOONING.md) — algorithm
-  candidate: a long high plateau with rolling swells; may just be a floor knob
-  on Groove.
-- [Lasting-longer training](roadmap/ALGORITHM-LASTING-LONGER.md) — algorithm
-  candidate: structured stop-start (Semans) practice, with the research behind
-  it.
+- [Rounds](roadmap/ROUNDS.md) — play-mode candidate: the only one to continue
+  past the first orgasm — overstim bridge, refractory lull, rebuild, repeat.
+- [Wave / Ballooning](roadmap/WAVE-BALLOONING.md) — play-mode candidate: a long
+  high plateau with rolling swells; may just be a floor knob on Groove.
+- [Lasting-longer training](roadmap/LASTING-LONGER.md) — play-mode candidate:
+  structured stop-start (Semans) practice, with the research behind it.

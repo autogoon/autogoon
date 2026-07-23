@@ -1,4 +1,4 @@
-# Lasting-longer training (stop-start/Semans) — algorithm candidate
+# Lasting-longer training (stop-start/Semans) — play-mode candidate
 
 Stop-start (the Semans technique) is a recognised behavioural treatment for
 premature ejaculation: build up to just before the point of no return, stop dead

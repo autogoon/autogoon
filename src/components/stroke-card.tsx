@@ -2,9 +2,9 @@
 
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves directly (voice "up"/"down" does the same, see useStrokeControls, and
-// highlights the matching button). Genuinely shared by every algorithm panel —
-// the stroke buttons operate on the device layer regardless of which algorithm is
-// running. Finish/cumming are algorithm-specific, so each panel renders its own.
+// highlights the matching button). Genuinely shared by every play mode panel —
+// the stroke buttons operate on the device layer regardless of which play mode is
+// running. Finish/cumming are play-mode-specific, so each panel renders its own.
 
 import { Card } from "@/components/card";
 import { HoldButton } from "@/components/hold-button";

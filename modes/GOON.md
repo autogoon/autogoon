@@ -1,11 +1,11 @@
-# The Goon algorithm
+# The Goon play mode
 
-An automatic, timeline-driven counterpart to the [Groove](./ALGORITHM-GROOVE.md)
-algorithm. Where Groove hands you Intensity, Dip variability and Timing
-variability as manual knobs, Goon drives them for you over a program of a
-**session length you choose**: a slow build that starts gentle and teasing and
-finishes as a steady hold at the top. It models a long, unhurried arousal ramp
-to a controlled climax — a "gooning" session, not deny-and-repeat edging.
+An automatic, timeline-driven counterpart to the [Groove](./GROOVE.md) play
+mode. Where Groove hands you Intensity, Dip variability and Timing variability
+as manual knobs, Goon drives them for you over a program of a **session length
+you choose**: a slow build that starts gentle and teasing and finishes as a
+steady hold at the top. It models a long, unhurried arousal ramp to a controlled
+climax — a "gooning" session, not deny-and-repeat edging.
 
 ## Setup
 
@@ -121,7 +121,7 @@ During play:
 - plus the shared stroke `up` / `down` words — lengthen (`up`) or shorten
   (`down`) the stroke by hand.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how the algorithm is built — the
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for how the mode is built — the
 engine/player split, the event model, and how Goon's position maps to the
 Player's clock (so `forward`/`back`/`finish`/`faster`/`slower` are just the
 Player moving or dilating that clock).

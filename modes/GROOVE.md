@@ -1,11 +1,10 @@
-# The Groove algorithm
+# The Groove play mode
 
-A fresh alternative to the [Autopilot](./ALGORITHM-AUTOPILOT.md). Where the
-autopilot faithfully recreates the original app, this one is ours to design from
-scratch — and it's the most hands-on: a single repeating **dip** you shape live
-while it runs. It runs from the top, plunges, and climbs back — over and over,
-for as long as you like. There's no timeline and no ending: you decide when it's
-over.
+A fresh alternative to the [Autopilot](./AUTOPILOT.md). Where the autopilot
+faithfully recreates the original app, this one is ours to design from scratch —
+and it's the most hands-on: a single repeating **dip** you shape live while it
+runs. It runs from the top, plunges, and climbs back — over and over, for as
+long as you like. There's no timeline and no ending: you decide when it's over.
 
 ## Shaping it
 
@@ -56,4 +55,4 @@ Only Timing variability gets the level words outright; Dip variability steps
 through the same four levels with **hillier** / **flatter**, since one set of
 level words can't serve both.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it's built.
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it's built.

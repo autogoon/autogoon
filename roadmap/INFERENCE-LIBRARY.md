@@ -16,7 +16,7 @@ The scale changes everything, so keep these separate:
   belong to one companion (e.g. Aimee), captioned so she can pick "a picture
   that fits the moment." This is the existing branch functionality.
 - **The large mood-Goon library (say 40k images).** A big personal library, fed
-  to the goon algorithm and picked by mood. This is where all the pipeline
+  to the Goon play mode and picked by mood. This is where all the pipeline
   machinery below actually earns its keep.
 
 At **50 images**, almost none of the scale discussion applies: cost is pennies
@@ -242,7 +242,7 @@ You don't pre-declare a mood; you **converse, and she reads the room.** The
 persona is already an LLM agent with tools (`send_picture` exists) — so the
 tagged library becomes something she **searches from the conversation**,
 filtering by person, by the attributes you're after, and by a "heat" band she
-raises over the session (like an algorithm owns its ramp), steered live: "more
+raises over the session (like a play mode owns its ramp), steered live: "more
 legs" → bias the legs/tights attributes; "her again" / "someone new" → filter by
 person; "softer" / "not yet" → drop the heat back down; silence / building →
 keep climbing.

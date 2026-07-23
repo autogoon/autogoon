@@ -1,8 +1,8 @@
 "use client";
 
-// Goon algorithm panel. Owns the Goon engine, arms/plays the shared Player with
+// Goon play mode panel. Owns the Goon engine, arms/plays the shared Player with
 // it, and declares its commands once (button == voice). Presentation + wiring;
-// event generation lives in @/lib/algorithms/goon-engine.
+// event generation lives in @/lib/play-modes/goon-engine.
 //
 // The panel has two views, which are separate navigation levels (the page owns
 // which one shows, via the `view` prop — Home › Goon is setup, Home › Goon ›
@@ -35,7 +35,7 @@ import {
   DEFAULT_PROGRAM_MS,
   AFTER_PLAY_OPTIONS,
   type AfterPlayOption,
-} from "@/lib/algorithms/goon-engine";
+} from "@/lib/play-modes/goon-engine";
 import { JUMP_MS } from "@/lib/program";
 import { formatMs } from "@/lib/format";
 import { AFTER_PLAY_WORDS, AfterPlayCard } from "./after-play-card";
@@ -52,8 +52,8 @@ const DEFAULT_SESSION_MINUTES = DEFAULT_PROGRAM_MS / 60_000;
 // Wind-down alone by default — the behaviour Goon has always had; the darker
 // outcomes are opt-in.
 const DEFAULT_AFTER_PLAY: AfterPlayOption[] = ["wind-down"];
-// The ticked set persists across visits. Keyed per algorithm ("goon") on
-// purpose: a future softer or harsher algorithm with after-play will want its
+// The ticked set persists across visits. Keyed per play mode ("goon") on
+// purpose: a future softer or harsher play mode with after-play will want its
 // own set, not a shared one.
 const AFTER_PLAY_STORAGE_KEY = "goonAfterPlay";
 

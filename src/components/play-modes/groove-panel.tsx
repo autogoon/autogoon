@@ -1,8 +1,8 @@
 "use client";
 
-// Groove algorithm panel. Owns the Groove engine, arms/plays the shared Player,
+// Groove play mode panel. Owns the Groove engine, arms/plays the shared Player,
 // declares its commands once (button == voice). Event generation lives in
-// @/lib/algorithms/groove-engine.
+// @/lib/play-modes/groove-engine.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
@@ -21,7 +21,7 @@ import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import {
   GrooveEngine,
   type VariabilityLevel,
-} from "@/lib/algorithms/groove-engine";
+} from "@/lib/play-modes/groove-engine";
 
 const DEFAULT_SPEED = 10;
 const DEFAULT_VARIABILITY: VariabilityLevel = "medium";

@@ -2,7 +2,7 @@
 
 // Mirrors the Vacuglide cloud API as a React hook: connection, raw commands,
 // live device state, and a log of every command sent to the device. Knows
-// nothing about autopilot algorithms — those consume this via getDevice.
+// nothing about the play modes — those consume this via getDevice.
 // https://developers.autoblow.com/reference/http-api-v1-vacuglide/
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -61,7 +61,7 @@ export function useVacuglideDevice() {
   const logIdRef = useRef(0);
 
   // The one shared program Player (owns the clock + tick loop + device sends).
-  // Algorithms register a AlgorithmEngine with it; only one plays at a time.
+  // Play modes register a PlayModeEngine with it; only one plays at a time.
   const playerRef = useRef<Player | null>(null);
   playerRef.current ??= new Player({
     getDevice: () => deviceRef.current,

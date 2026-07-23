@@ -1,4 +1,4 @@
-# The Autopilot algorithm
+# The Autopilot play mode
 
 A faithful recreation of Autoblow's own Vacuglide autopilot — the official
 "hands-off" mode. Reverse-engineered from the original app's client bundle
@@ -7,7 +7,7 @@ browser, faithful down to its constants. It mirrors that build; Autoblow's own
 implementation isn't independently documented and may drift from this over time.
 Start it and let it drive.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for how it plugs into the app.
+See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
 ## The mystery script
 

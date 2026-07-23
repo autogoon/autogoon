@@ -8,7 +8,7 @@
 import { RING } from "@/components/button";
 import { Card } from "@/components/card";
 import { useKeywordFlash } from "@/components/keyword-spotter";
-import type { AfterPlayOption } from "@/lib/algorithms/goon-engine";
+import type { AfterPlayOption } from "@/lib/play-modes/goon-engine";
 
 // The spoken word that toggles each outcome. Single words on purpose — the
 // recognizer fires per word, so the labels' phrases ("wind down", "stay in")

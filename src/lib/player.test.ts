@@ -9,7 +9,7 @@ import {
 import { Player } from "./player";
 import { MIN_RATE } from "./program";
 import type {
-  AlgorithmEngine,
+  PlayModeEngine,
   PlayerContext,
   SpeedEvent,
   ValveEvent,
@@ -25,7 +25,7 @@ import type { VacuglideDevice } from "./vacuglide-device";
 // A minimal engine: constant speed 1 every 10 s, plus a fixed valve overlay
 // handed to the constructor. Keeps its own speed cursor so repeated
 // generateSpeed calls extend rather than repeat; generateValves is pure.
-class StubEngine implements AlgorithmEngine {
+class StubEngine implements PlayModeEngine {
   private nextAt = 0;
   constructor(private valves: ValveEvent[] = []) {}
   reset(): void {
@@ -204,7 +204,7 @@ describe("Player scheduled-stroke precedence", () => {
 // A stub whose generateSpeed records the ctx.currentRawSpeed it was handed, and
 // whose first cycle after a knob change starts FROM that speed (like the real
 // Groove/companion engines' startFromCurrent). Lets us assert the resume point.
-class ResumeStubEngine implements AlgorithmEngine {
+class ResumeStubEngine implements PlayModeEngine {
   seenRawSpeed: number | null = null;
   private resumeNext = false;
   reset(): void {

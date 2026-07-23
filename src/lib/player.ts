@@ -1,6 +1,6 @@
 // The shared Player: owns the program-clock, the tick loop, device sends (with
 // duplicate-send suppression), and the 5-minute lookahead. It plays a
-// AlgorithmEngine; it knows nothing about any specific algorithm. Lives in
+// PlayModeEngine; it knows nothing about any specific play mode. Lives in
 // src/lib (no React) and reaches the device through a getDevice accessor, like
 // the engines it replaces.
 
@@ -15,7 +15,7 @@ import {
   type PlayerContext,
   type PlayerState,
   type ProgramEvent,
-  type AlgorithmEngine,
+  type PlayModeEngine,
   type SpeedEvent,
   type UpcomingWindow,
   type ValveEvent,
@@ -40,7 +40,7 @@ export class Player {
   // after the drop. So the events it would be read from are gone; this snapshot,
   // refreshed at the end of every (re)build, carries it across.
   private programRawSpeed = 0;
-  source: AlgorithmEngine | null = null;
+  source: PlayModeEngine | null = null;
 
   private readonly getDevice: () => VacuglideDevice | null;
   private readonly onError?: (message: string) => void;
@@ -124,7 +124,7 @@ export class Player {
   }
 
   // Set the active source and reset the timeline for a fresh session.
-  setSource(source: AlgorithmEngine | null): void {
+  setSource(source: PlayModeEngine | null): void {
     this.source = source;
     this.clock = 0;
     this.rate = 1;
@@ -140,7 +140,7 @@ export class Player {
   // Build the preview lookahead for a source WITHOUT starting the tick loop.
   // This is "the Player minus the tick loop and device sends": upcomingWindow()
   // and seek() work off it, so a panel can preview/scrub before Start.
-  arm(source: AlgorithmEngine | null): void {
+  arm(source: PlayModeEngine | null): void {
     this.setSource(source);
     this.ensureLookahead();
     this.state = "armed";
@@ -348,7 +348,7 @@ export class Player {
     this.seek(Math.max(0, this.clock - JUMP_MS));
   }
 
-  // Jump the clock to an absolute program-time — an algorithm-specific transport
+  // Jump the clock to an absolute program-time — an play-mode-specific transport
   // (e.g. Goon's "finish" jumping to the end of its build). Clamped to >= 0; the
   // source decides what a position past its content means (Goon parks at the top).
   seekTo(to: number): void {
