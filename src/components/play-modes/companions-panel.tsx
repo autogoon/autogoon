@@ -955,6 +955,14 @@ export function CompanionsPanel({
                     void pendingImport
                       .commit()
                       .then(() => setPendingImport(null))
+                      .catch((e: unknown) => {
+                        // A failed store (quota, IDB error) must not strand
+                        // the sheet with no feedback.
+                        setPendingImport(null);
+                        setImportError(
+                          e instanceof PackError ? e.message : "import failed",
+                        );
+                      })
                   }
                   className="rounded border px-3 py-1"
                 >
