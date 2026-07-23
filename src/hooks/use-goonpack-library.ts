@@ -92,12 +92,10 @@ function buildEntries(
   const evicted: LibraryEntry[] = missing
     .filter((e) => e.base === undefined)
     .map((e) => ({
-      companion: {
-        ...packToCompanion({
-          manifest: { format: 1, id: e.id, version: e.version, name: e.name },
-          pictures: [],
-        }),
-      },
+      companion: packToCompanion({
+        manifest: { format: 1, id: e.id, version: e.version, name: e.name },
+        pictures: [],
+      }),
       builtIn: false,
       missing: true,
       variants: overlayFor(e.id),
@@ -130,12 +128,21 @@ export function useGoonpackLibrary() {
   const [entries, setEntries] = useState<LibraryEntry[]>(() =>
     buildEntries([], []),
   );
-  // Object URLs from the previous resolve — revoked when a new pick replaces
-  // them (a session holds at most one variant's pictures).
+  // Object URLs from the previous resolve — revoked only when a newer pick
+  // has successfully loaded its replacement (a failed switch must not destroy
+  // the pictures still on show).
   const urlsRef = useRef<string[]>([]);
+  // Monotonic pick counter: only the newest resolveVariant commits its URLs.
+  const resolveSeqRef = useRef(0);
+  // Refresh generation guard: a slow, earlier-started refresh must not land
+  // its stale snapshot over a newer one (import/remove trigger refreshes that
+  // can overtake the mount refresh).
+  const refreshSeqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = ++refreshSeqRef.current;
     const manifests = await listStoredManifests();
+    if (seq !== refreshSeqRef.current) return; // superseded
     const { healed, missing } = reconcile(
       readIndex(localStorage),
       manifests.map(toIndexEntry),
@@ -197,10 +204,17 @@ export function useGoonpackLibrary() {
     [refresh],
   );
 
+  // Resolve a pick to a playable Companion. Loads first, swaps after: the
+  // previous variant's object URLs are revoked only once the new content is
+  // in hand, so a failed or slow switch leaves the current pictures intact.
+  // A pick overtaken by a newer one discards its own URLs and returns null —
+  // the caller just drops it.
   const resolveVariant = useCallback(
-    async (entry: LibraryEntry, packId: string | null): Promise<Companion> => {
-      for (const url of urlsRef.current) URL.revokeObjectURL(url);
-      urlsRef.current = [];
+    async (
+      entry: LibraryEntry,
+      packId: string | null,
+    ): Promise<Companion | null> => {
+      const seq = ++resolveSeqRef.current;
       let companion: Companion;
       if (packId === null) {
         companion = entry.builtIn
@@ -212,7 +226,13 @@ export function useGoonpackLibrary() {
           : packToCompanion(await loadContent(entry.companion.id));
         companion = applyOverlay(base, await loadContent(packId));
       }
-      urlsRef.current = (companion.pictures ?? []).map((p) => p.src);
+      const newUrls = (companion.pictures ?? []).map((p) => p.src);
+      if (seq !== resolveSeqRef.current) {
+        for (const url of newUrls) URL.revokeObjectURL(url);
+        return null; // a newer pick already won
+      }
+      for (const url of urlsRef.current) URL.revokeObjectURL(url);
+      urlsRef.current = newUrls;
       localStorage.setItem(
         LAST_PLAYED_PREFIX + entry.companion.id,
         packId ?? "default",
