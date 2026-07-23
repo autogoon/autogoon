@@ -9,11 +9,12 @@
 > ([#14](https://github.com/autogoon/autogoon/pull/14)), that pair was retooled
 > into the shipped `intensity`/`variety` tools described below, and the whole
 > program was re-based from Autopilot onto Groove, completing Phase 6. The
-> remaining work — Phases 7–12 — continues in #14. This is the shared context
-> for a long-running, multi-phase feature. It records **what we're building, how
-> it works, and why we chose each path** — the shared reference any later
-> phase's work can lean on. The earlier per-phase specs and plans have been
-> retired; this doc is the surviving record.
+> remaining work — Phases 7–13 — is tracked in
+> [roadmap/COMPANIONS.md](../../../roadmap/COMPANIONS.md). This is the shared
+> context for a long-running, multi-phase feature. It records **what we're
+> building, how it works, and why we chose each path** — the shared reference
+> any later phase's work can lean on. The earlier per-phase specs and plans have
+> been retired; this doc is the surviving record.
 
 ## Goal
 
