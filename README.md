@@ -44,11 +44,13 @@ from a cloud LLM and TTS voice. The other three modes stay fully local.
 _Building it yourself or contributing? See [DEVELOPERS.md](./DEVELOPERS.md)._
 
 A Next.js app (App Router, TypeScript, Tailwind v4): a single page with a sticky
-header bar — a mic **Listen** toggle (keyword spotting), device **Connect**,
-live status, and a **Stop** button while a play mode runs — and a two-level
-navigation. **Home** lists the play modes (plus device token entry and a
-getting-started intro; a **Settings** tab beside home holds appearance and build
-info); pick a play mode by tap or by saying its name:
+header bar — a mic **Listen** toggle (keyword spotting), device **Connect** and
+live status — and a shallow navigation: a top-level tab strip of **Home**,
+**Changes** (the changelog) and **Settings** (appearance, safe word, Companions
+access, build info), with one screen per play mode below Home (and a play
+sub-level below that for a mode with a setup view, like Goon). **Home** lists
+the play modes plus device token entry and a getting-started intro; pick a play
+mode by tap or by saying its name:
 
 1. **Goon** — see [modes/GOON.md](./modes/GOON.md).
 2. **Groove** — see [modes/GROOVE.md](./modes/GROOVE.md).
@@ -70,11 +72,12 @@ While a session is running, Exit is locked (and leaves the grammar): you can't
 leave a play mode or switch to another mid-session; stop first.
 
 Keyword spotting uses [vosk-browser](https://github.com/ccoreilly/vosk-browser)
-(WASM Kaldi). The recognizer's grammar is exactly the running play mode's
-published commands plus the global words valid right now
-(`connect`/`start`/`stop`, and while stopped a switch word per play mode), and
-detections fire from vosk's settled per-utterance result (the `result` event;
-streaming partials are ignored).
+(WASM Kaldi). The recognizer's grammar is exactly the words valid right now: the
+active play mode's enabled commands plus the global words — `connect` while
+disconnected, the play mode names on home, the tab names, `exit` while idle, and
+the safe word whenever anything is playing. Detections fire from vosk's settled
+per-utterance result (the `result` event); commands never fire from streaming
+partials.
 
 ## Running hands-free (mobile caveats)
 

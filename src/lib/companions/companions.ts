@@ -21,12 +21,12 @@ export type Companion = {
   id: CompanionId; // stable key — picker selection, thread namespace
   name: string;
   description: string; // one-line blurb shown on the picker card
-  gender: "female" | "male" | "nonbinary"; // display-only, shown on the picker
+  gender: "female" | "male" | "nonbinary"; // display-only; not currently rendered anywhere
   accent_colour: string; // her signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
-  contextWindow: number; // model context window, in tokens
+  contextWindow: number; // model context window, in tokens (for future pruning; not yet read)
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
   // The pictures she can send during a call — globbed from public/companions/
   // <id>/ at build time into companion-pictures.generated.ts. Empty (or omitted)

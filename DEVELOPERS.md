@@ -18,9 +18,13 @@ Other scripts:
   issues the dev server tolerates).
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src`, `tests` and the root config/docs.
+- `npm run format` — Prettier over `src`, `tests`, and the repo's config and
+  markdown (root, `docs/`, `roadmap/`, `modes/`).
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
+
+Each main script first regenerates the companion-pictures module via a
+`gen:pictures` pre-hook (see `package.json`) — purely local, no keys needed.
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
@@ -89,16 +93,9 @@ doesn't stick in WebKit) to return a WebAudio-built `MediaStream`, and the test
 plays a committed wav of a synthesized play mode name into it once, then asserts
 the app heard it and navigated to that play mode's screen.
 
-Two hard-won details, should you write more voice tests:
-
-- The stub keeps a zero-value `ConstantSourceNode` feeding the stream at all
-  times. Firefox only produces frames while something feeds the destination
-  node, and vosk needs trailing silence to endpoint an utterance — without it
-  the word is heard but never finalised.
-- The test clicks the page **before** the audio pipeline comes up: in real use
-  the mic-permission click grants the user activation that lets Firefox/WebKit
-  run the app's `AudioContext`; the stub bypasses the prompt, so the test must
-  supply the activation itself.
+Two hard-won details — the stub's always-on silence source, and the pre-pipeline
+activation click — are load-bearing and commented in place in
+`tests/e2e/voice-tab-switch.spec.ts`; read them before writing more voice tests.
 
 Fixtures are committed under `tests/fixtures/`; regenerate them with
 `tests/fixtures/generate.sh` (macOS only — it uses `say`).
@@ -161,9 +158,9 @@ template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
 
 3. **Register it in `src/app/page.tsx`** — three edits:
    - import the panel;
-   - add a `PLAY_MODES` entry (`id`, `label`, `description`) — the id is the
-     voice switch word and the screen, and the description is the home-page
-     listing, so this one entry is the whole registration;
+   - add a `PLAY_MODES` entry — the fields are commented at the registry; the
+     `id` doubles as the voice switch word and the screen, so this one entry is
+     the whole registration;
    - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the
      others, passing `active={screen === "<name>"}`.
 4. **User-facing copy:** add `modes/<NAME>.md` (high-level and experiential,
@@ -183,37 +180,18 @@ by where the change lives (see the `Player` methods in
 | The **shape** of the speed script     | `device.invalidateFuture()` | Groove Variability; `cumming`/`finish` |
 | **Valves only**, over unchanged speed | `device.invalidateValves()` | Autopilot Vacuum Maintenance           |
 
-The program is generated once in raw **pattern space** (0–100); the Player runs
-each event through the engine's `scale()` at send time, applying the knob's
-current value. So a **magnitude** knob changes nothing about the program —
-`refresh()` just re-sends the current event at the new scale, and every future
-event is scaled as it plays.
-
-This is a deliberate optimisation, and it matters for _feel_: regenerating
-instead (`invalidateFuture()`) would build a **different** program, because
-generation has random elements (timing jitter, dip variation) — so a magnitude
-change would jump you onto a fresh pattern rather than smoothly rescaling the
-one you're already feeling. Scaling keeps the exact same shape, just louder or
-quieter.
-
-Reach for `invalidateFuture()` only when the **shape** genuinely changed: it
-drops and rebuilds the not-yet-played tail from the new engine state (accepting
-that the random tail is now a different draw). `invalidateValves()` re-lays only
-the valve overlay, leaving the speed backbone — and its randomness — intact.
+Why it matters for _feel_: generation has random elements, so regenerating for a
+mere magnitude change would jump the rider onto a fresh pattern instead of
+smoothly rescaling the one they're already feeling. The mechanics — pattern
+space, scale-at-send-time, what each invalidation drops — are commented on the
+methods themselves in [`src/lib/player.ts`](./src/lib/player.ts); read those
+before picking.
 
 ### `generateSpeed` pitfalls
 
-The contract (`program.ts`) spells these out, but they're the easy ones to get
-wrong:
-
-- Each call must return events extending **past `fromTime`**. A batch whose last
-  event lands at or before `fromTime` makes no progress, so the Player's
-  look-ahead loop spins. (Emitting in whole cycles isn't required — it's just
-  convenient, so each call resumes from a clean boundary to append the next
-  batch.)
-- Return **`[]` to park** — nothing more to play until a knob changes (this is
-  how Goon's `cumming` wind-down ends: emit the glide, then park).
-- A send-off / wind-down ramp should emit its speed events **`unscaled`** (see
-  `SpeedEvent.unscaled` in `program.ts`), so a magnitude ceiling like intensity
-  can't shrink the ramp out from under it — Goon's `buildCummingScript` does
-  this.
+The easy-to-get-wrong parts — each batch must extend **past `fromTime`** (or the
+Player's look-ahead spins), returning **`[]` parks** the program, and send-off
+ramps emit **`unscaled`** so an intensity ceiling can't shrink them — are all
+spelled out in the contract comments in
+[`src/lib/program.ts`](./src/lib/program.ts) (`generateSpeed`,
+`SpeedEvent.unscaled`). Read that file first; it's the contract.

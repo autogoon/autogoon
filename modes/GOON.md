@@ -77,10 +77,10 @@ what's coming. At least one must be ticked before you can play, and your ticks
 are remembered on this device:
 
 - **Wind-down** — the classic: the device eases off in a slow, deliberate glide
-  from a moderate pace down to a standstill over about fifteen seconds — the
-  strokes shortening as it winds down — then rests. An unhurried, drawn-out
-  finish rather than a frantic pump. Fair warning: this is simply how the author
-  likes to cum, and it won't be to everyone's taste.
+  from a moderate pace down to a standstill over about ten seconds — the strokes
+  shortening as it winds down — then rests. An unhurried, drawn-out finish
+  rather than a frantic pump. Fair warning: this is simply how the author likes
+  to cum, and it won't be to everyone's taste.
 - **Torture** — straight to full speed and held there. Indefinitely.
 - **Ruin: stay in** — stops dead, leaving you seated with the vacuum seal held.
 - **Ruin: eject** — drives the toy to push you out (a steady pace with the

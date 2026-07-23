@@ -52,7 +52,8 @@ export interface KeywordSpotter {
   // the app is listening for.
   listeningFor: string[];
   flashing: ReadonlySet<string>;
-  // The page sets the global transport words (connect/start/stop/reset).
+  // The page sets the global words (connect, the mode names, tab words, exit —
+  // whatever is valid right now; see the globalWords memo in page.tsx).
   setGlobalWords: (words: string[]) => void;
   // The active panel sets its play mode words (and clears them on deactivate).
   setPlayModeKeywords: (words: string[]) => void;

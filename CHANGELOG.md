@@ -3,6 +3,7 @@
 ## 2026-07-23
 
 - enhancement: **Algorithms are now "play modes"** — the home screen and docs now call the ways a session can run play modes: Companions was never really an algorithm, and future modes (like a raw-controls Freestyle) won't be either.
+- internal: **Doc audit against the code** — a four-agent sweep verified ~280 doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the safe word and the tab strip; stale wind-down/finish figures in the mode docs; a few wrong code comments) and replaced doc passages that duplicated code with pointers, per the new documentation philosophy in CLAUDE.md.
 - internal: **Rename algorithm → play mode across the codebase** — `src/lib/play-modes`, `src/components/play-modes`, the `PLAY_MODES` registry, `PlayModeEngine`, `setPlayModeKeywords`; the per-mode docs move to `modes/*.md` with `MODES.md` as the index.
 - internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is now an index over `roadmap/*.md`, with the goonpack and inference discussion docs moved in (reframed generically), and `DEVELOPERS.md` gains a content policy: the project never distributes content or goonpacks, indexes packs, or recommends content sources, and contributions must keep it that way.
 

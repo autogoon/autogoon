@@ -103,8 +103,8 @@ invariants, the why, and the cross-file shape. Concretely:
   `main` with `gh pr create`.
 - **Before a PR is marked ready for review**, the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, `/doc-check` run over the branch's diff,
-  and `/personal-check` if the branch touched docs or content.
+  run, the CHANGELOG entry written, `/doc-check` run over the branch's diff, and
+  `/personal-check` if the branch touched docs or content.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
@@ -114,7 +114,8 @@ invariants, the why, and the cross-file shape. Concretely:
 Read [ARCHITECTURE.md](./ARCHITECTURE.md) and [README.md](./README.md) for the
 full picture, and the per-play-mode docs ([modes/GOON.md](./modes/GOON.md),
 [modes/GROOVE.md](./modes/GROOVE.md),
-[modes/AUTOPILOT.md](./modes/AUTOPILOT.md)) before changing a play mode.
+[modes/AUTOPILOT.md](./modes/AUTOPILOT.md),
+[modes/COMPANIONS.md](./modes/COMPANIONS.md)) before changing a play mode.
 Throughout, a **program** means the timed plan of what the device will do over a
 run — the speeds and stroke changes laid out on a timeline. The cross-file
 things worth knowing up front:
@@ -136,7 +137,8 @@ things worth knowing up front:
   with it, holds its knob state (setting the engine's fields directly), and
   declares its commands. `usePlayer` (`src/hooks/use-player.ts`) mirrors the
   Player into React state **once** (in `page.tsx`) and the view is passed down
-  to the panels. There is no per-play-mode hook.
+  to the panels. There is no per-play-mode Player hook (Companions' voice
+  session has its own orchestrator hook, but the Player path is the same).
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
   replaces whoever was there, so "starting one stops the others" is a Player

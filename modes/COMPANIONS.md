@@ -1,9 +1,9 @@
 # Companions
 
 Each companion is a distinct persona the app talks to over the LLM backend. This
-doc describes how those personas are configured: **one `Companion` config object
-per companion, carrying its own OpenRouter model, context window, voice, and
-persona.**
+doc carries the design rationale; the configuration itself is one `Companion`
+object per companion in `src/lib/companions/companions.ts` — every field is
+commented there, so the type isn't repeated here.
 
 ## The model
 
@@ -12,115 +12,78 @@ Claude and the OpenAI APIs both restrict explicit content, so neither is viable
 here. OpenRouter fronts a wide range of hosted models, so each companion can
 pick whichever model suits her persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
-model**, not of OpenRouter itself — Elise currently uses a permissive model
-(`minimax/minimax-m3`) precisely because it doesn't restrict the kind of
-roleplay her persona calls for (and it calls device tools far more reliably than
-M2 did); picking a different, more restrictive model for a future companion
-would reintroduce that limit for her.
+model**, not of OpenRouter itself — Elise's current model (her `model` field in
+`companions.ts`) is picked precisely because it doesn't restrict the kind of
+roleplay her persona calls for, and it calls the device tools reliably; a more
+restrictive model for a future companion would reintroduce that limit for her.
 
 Calls go through the app's same-origin **`/api/llm` proxy route**, which
 forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
 header — same-origin for the browser (no CORS juggling), streaming passes
 straight through, and the key never reaches the client.
 
+Two field-level whys worth knowing (the rest are commented on the type):
+`voiceId` and `model` aren't secrets, so they're safe in code even in a public
+repo; and because each companion carries her own `model`, there is no global
+`LLM_MODEL` to configure — different companions can run entirely different
+models.
+
 ## One config object per companion
 
-The companions live in a **keyed record** in `src/lib/companions` (see
-`companions.ts`) — `COMPANIONS: Record<CompanionId, Companion>`, where
-`CompanionId` is a string-literal union of the ids. The picker order
-(`companionList`) and the default selection (`DEFAULT_COMPANION_ID`) derive from
-that one record. Each entry is a `Companion`:
-
-```ts
-export type Companion = {
-  id: CompanionId; // stable key — must equal the record key; picker + thread key
-  name: string;
-  description: string; // one-line blurb shown on the picker card
-  gender: "female" | "male" | "nonbinary"; // display-only, shown on the picker
-  voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
-  systemPrompt: string; // persona; sent as the LLM system message
-  model: string; // OpenRouter model slug the client requests for this companion
-  contextWindow: number; // model context window (tokens); recorded for pruning
-  passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
-  pictures?: CompanionPicture[]; // her sendable pictures (local-only; see Pictures)
-};
-```
-
-- `id` is the entry's **stable key** — it must equal the record key (a unit test
-  enforces this), and it namespaces the saved conversation thread.
-- `description` is the **one-line blurb** shown on the companion's picker card.
-- `model` is an **OpenRouter model slug** (e.g. `minimax/minimax-m3`) — the
-  client sends it directly in each chat-completions call, so different
-  companions can run entirely different models.
-- `contextWindow` records that model's context window in tokens, used to size
-  conversation-history pruning.
-- `voiceId` is an ElevenLabs voice id (not a secret; safe to keep in code).
-- `systemPrompt` is the companion's **persona**, sent as the LLM's `system`
-  message on every turn. It now lives in code rather than in a model card — see
-  `elise-prompt.ts` below.
+The companions live in a keyed record — `COMPANIONS` in
+`src/lib/companions/companions.ts`. The picker order (`companionList`) derives
+from that record, and the panel simply starts on its first entry. Each persona
+is pure data: adding a companion is a new entry plus a persona module (e.g.
+`elise-prompt.ts`) that interpolates the shared sections and fills in the
+character — the picker, switch and saved thread all derive from the record, so
+nothing else needs touching.
 
 ## Conversation memory
 
 The app keeps a **rolling conversation thread** — every user and assistant turn
 — and replays it to the model on each turn, so the companion remembers what was
-said earlier. The thread is persisted to `localStorage` under a per-companion
-key (`companions:thread:elise`), so it survives a reload; **Clear conversation**
-in the panel wipes it (button-only — Companions registers no spoken words).
+said earlier. The thread is persisted to `localStorage` per companion
+(`threadKeyFor` in `use-voice-session.ts`), so it survives a reload; **Clear
+conversation** in the panel wipes it (button-only — Companions registers no
+spoken words).
 
-`passesReasoning` marks a **reasoning model**: MiniMax M3 (Elise's model)
-returns a private thinking block (`reasoning_details`) alongside its reply and
-was trained with that reasoning present in history, so the app captures it from
-the stream and replays it verbatim on Elise's stored turns. Elise carries
-`passesReasoning: true`; a future non-reasoning companion sets it `false` and
-the field is simply never sent.
+`passesReasoning` marks a **reasoning model**: such a model returns a private
+thinking block (`reasoning_details`) alongside its reply and was trained with
+that reasoning present in history, so the app captures it from the stream and
+replays it verbatim on that companion's stored turns (the mechanics are in
+`conversation.ts`). A non-reasoning companion sets it `false` and the field is
+simply never sent.
 
 ### Shared prompt sections
 
 A `systemPrompt` is not one monolithic string per companion. The **mechanical
-rules that are the same for everyone** — how a reply is formatted (spoken words
-only, no narration), the baseline speaking style, and how the device is driven —
-live once in `shared-prompt.ts` as persona-neutral blocks
-(`OUTPUT_FORMAT_SECTION`, `SHARED_STYLE_BULLETS`, `CONTROL_SUMMARY_SECTION` —
-the in-scene one-line intro to the two knobs, dropped into INTIMACY — and
-`CONTROL_SECTION`). Each persona module interpolates them into place, so those
-rules can't drift between companions. What stays in the persona module is only
-that companion: her character, setup, tone, and disposition (crucially, **who
-leads** during play — the shared control block is neutral on that). Personas are
-written in the **second person** ("You're 21…") so they read as one voice with
-the shared blocks. `CONTROL_SECTION` ends with the `{{TOY_STATUS}}` marker, so
-it must come last in a prompt.
-
-### Adding a companion
-
-Add a new `Companion` entry (keyed by its `id`) with its own `model`,
-`contextWindow`, `voiceId`, and `systemPrompt`, and widen the `CompanionId`
-union. Give the persona its own module — e.g. `elise-prompt.ts` exports
-`ELISE_SYSTEM_PROMPT` — that interpolates the shared sections from
-`shared-prompt.ts` and fills in the rest, then import it into `companions.ts`.
-The picker, switch and thread all derive from the record, so nothing else needs
-touching.
+rules that are the same for everyone** — reply format, baseline speaking style,
+how the device is driven — live once as persona-neutral blocks in
+`shared-prompt.ts` (each export is commented with where it slots in), and each
+persona module interpolates them into place, so those rules can't drift between
+companions. What stays in the persona module is only that companion: her
+character, setup, tone, and disposition (crucially, **who leads** during play —
+the shared control block is neutral on that). Personas are written in the
+**second person** ("You're 21…") so they read as one voice with the shared
+blocks.
 
 ## Device control
 
-A companion **drives the device through LLM tools**. Each turn the app offers
-the model a set of function tools — currently `start`, `stop`, `intensity` (a
-percent 0–100 — how hard and fast the toy drives) and `variety` (`off` / `low` /
-`medium` / `high` — how much it teases and mixes up the pace) — and when she
-calls one the panel runs the same transport and knobs the on-screen controls
-use. `intensity` takes a `percent` argument and is applied **live** (scaled
-every tick, re-sent with a `refresh()`, no regeneration); `variety` takes a
-`level` and reshapes the generated dip pattern (so it drops and regenerates the
-not-yet-played future); `start`/`stop` take none. Whether she acts on a request
-or declines is a disposition written into her `systemPrompt`, not a code gate.
-Companions default to a **gentle baseline** — low intensity, light variety, plus
-a one-shot stroke-minus tease at session start — and she builds up from there.
+A companion **drives the device through LLM tools** — start/stop, the intensity
+and variety knobs, and (for a companion with pictures) `send_picture`. When she
+calls one, the panel runs **the same transport and knobs the on-screen controls
+use** — there is one path, not a parallel one. The tool definitions, argument
+shapes, and which knob applies live versus regenerates are all commented in
+`companions-panel.tsx`. Whether she acts on a request or declines is a
+disposition written into her `systemPrompt`, not a code gate. Companions default
+to a **gentle baseline** — low intensity, light variety, a one-shot stroke-minus
+tease at session start — and she builds up from there.
 
-The device's **current state is folded into her system message every turn** —
-whether the toy is **connected** to the app, whether it is **running**, and its
-current **intensity percent and variety level** — so she always knows all of it
-without a status tool, and stays in sync even when a level is changed via the
-on-screen knobs rather than her own tools. The wording is plain and avoids the
-in-app term "program."
+The device's **current state is folded into her system message every turn** (see
+`getDeviceState` in the panel) — so she always knows whether the toy is
+connected and running and where the knobs sit, without a status tool, and stays
+in sync even when a level is changed via the on-screen knobs rather than her own
+tools.
 
 **Tool calls are persisted and replayed.** Her `tool_calls` and their results
 are stored on the conversation thread and replayed to the model as a proper
@@ -131,36 +94,37 @@ is fed back for a **second round-trip** so she reacts in words to what happened.
 
 ## Pictures
 
-A companion **with pictures** gets a `send_picture` tool alongside the device
-ones, on the same persisted-and-replayed mechanism. The tool's schema lists her
-pictures numbered, one caption each — she picks the one that fits the moment by
-its caption, so the vision work happens offline, not in the call. Sending pops
-the picture open in a lightbox and leaves it in the transcript as a thumbnail;
-it's stored on the thread turn as an `imageSrc`, so a sent picture survives a
-reload. A companion with no pictures never sees the tool, and the shared
-`PICTURES` prompt block is only interpolated into a persona that has some.
+A companion **with pictures** gets the `send_picture` tool; its description
+lists her pictures numbered, one caption each, and she picks the one that fits
+the moment by number — she chooses on the _caption_, so the vision work happens
+offline, never in the call. Sending pops the picture open in a lightbox and
+leaves it in the transcript as a thumbnail, stored on the thread turn so a sent
+picture survives a reload. A companion with no pictures never sees the tool, and
+the shared pictures prompt block is only interpolated into a persona that has
+some.
 
 - **Pictures are local-only.** Drop images in `public/companions/<id>/` —
-  nothing under there is committed (the folder is gitignored bar a `.gitkeep`),
-  so supply your own. `scripts/generate-companion-pictures.mjs` globs each
-  folder into a generated module before `dev`/`build` (or on demand via
-  `npm run gen:pictures`), which is what makes `companion.pictures` a plain
-  synchronous array of `{ src, description }`.
+  nothing under there is committed, so supply your own.
+  `scripts/generate-companion-pictures.mjs` globs each folder into a generated
+  module (it runs before every npm entry point via the `gen:pictures`
+  pre-hooks), which is what makes `companion.pictures` a plain synchronous
+  array.
 - **Captions come from a vision model, offline.** A picture's description is a
-  sidecar `<basename>.txt` beside it, written by `npm run describe <path>` —
-  Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to pick another — reusing
-  the app's own `OPENROUTER_API_KEY` from `.env`. `npm run describe:missing`
-  does the same across every companion folder for images whose sidecar is
-  missing or empty, so it's safe to re-run after adding more.
+  sidecar `.txt` beside it, written by `npm run describe <path>` /
+  `npm run describe:missing` — models, env and semantics are in the two scripts'
+  header comments (`scripts/describe-image.mjs`,
+  `scripts/describe-missing.mjs`).
 
 ## Configuration
 
-Two env vars wire the app to OpenRouter (server-side only; see
-[`.env.example`](../.env.example)):
+Everything is wired through env vars documented in
+[`.env.example`](../.env.example) — `LLM_URL`, `OPENROUTER_API_KEY`,
+`ELEVENLABS_API_KEY`, all read server-side only, so no key ever reaches the
+client.
 
-- `LLM_URL` — `https://openrouter.ai/api/v1`.
-- `OPENROUTER_API_KEY` — read only by the `/api/llm` proxy route, which adds it
-  as a Bearer header. Set it in `.env` (gitignored); never commit a real key.
-
-There is no `LLM_MODEL` — each companion's `model` field picks the model per
-companion, so there's nothing global to configure.
+The one to understand is **`COMPANIONS_ACCESS_IDS`** — the access gate. The
+Companions routes spend real money (LLM, TTS, STT) behind a shared URL, so
+they're **fail-closed** (`access-check.ts`): with no IDs configured, the mode is
+hidden and every paid route rejects everything — including locally. Set at least
+one ID and enter it under Settings to unlock; hand out different IDs to
+different people and revoke one by deleting it.

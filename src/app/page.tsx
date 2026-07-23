@@ -159,9 +159,9 @@ function App() {
   const [screen, setScreen] = useState<Screen>("home");
 
   // Companions is hidden from the chooser, the home grammar and navigation until
-  // its access ID unlocks it (see useCompanionsAccess). When the gate is off
-  // (COMPANIONS_ACCESS_IDS unset) access.granted is always true, so every
-  // play mode shows exactly as before.
+  // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
+  // (see access-check.ts): with COMPANIONS_ACCESS_IDS unset nothing validates,
+  // so Companions stays hidden and the other play modes show exactly as before.
   const availablePlayModes = useMemo(
     () =>
       access.granted

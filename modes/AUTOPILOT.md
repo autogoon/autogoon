@@ -13,7 +13,7 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
 Autopilot plays a **mystery script** — it stitches together a long,
 unpredictable run from **8 hand-crafted patterns**, picking 10 of them at random
-(repeats allowed) and looping, so you never quite know what's coming. The
+(repeats allowed), then a fresh draw, so you never quite know what's coming. The
 patterns:
 
 1. **Slow full staircase** — climbs step by step from a crawl up to full and
@@ -32,7 +32,8 @@ patterns:
 8. **Quick ramp to a high hold** — a fast climb to near-full, then a sustained
    high plateau.
 
-A run is roughly 10–60 minutes before it loops. Two settings shape it.
+A draw of ten runs roughly 5–30 minutes, then a new random draw begins. Two
+settings shape it.
 
 ## Intensity → how hard
 
@@ -79,11 +80,11 @@ stroke-minus also shortens the stroke each time, keeping it topped up trends
 toward short strokes with strong suction — rarely strictly necessary, but a feel
 some enjoy:
 
-| Setting      | baseDuration | speedMultiplier | interval |
-| ------------ | -----------: | --------------: | -------: |
-| Off          |            — |               — |        — |
-| Low (little) |        200ms |             0.8 |   3000ms |
-| High (more)  |        400ms |             0.6 |   2000ms |
+| Setting        | baseDuration | speedMultiplier | interval |
+| -------------- | -----------: | --------------: | -------: |
+| Off            |            — |               — |        — |
+| Light (little) |        200ms |             0.8 |   3000ms |
+| Heavy (more)   |        400ms |             0.6 |   2000ms |
 
 A pulse fires only **when a speed move is sent** — at a script step transition,
 never mid-step — and only if at least `interval` has passed since the last
@@ -103,5 +104,5 @@ fast strokes short ones.
 - **Stroke − / Stroke +**: press-and-hold buttons that shorten (−) or lengthen
   (+) the stroke. Press opens the valve, release closes it, with a **minimum
   open time of 300 ms** so a quick tap still registers.
-- **Finish**: pushes to full speed and the most intense settings, then holds
-  there until you stop.
+- **Finish**: pushes to full speed (suction off) and holds for 30 minutes, then
+  stops itself — or until you stop it.

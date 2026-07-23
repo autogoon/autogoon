@@ -37,10 +37,10 @@ from wherever the device already is, rather than snapping back to the top first.
 ## Cumming
 
 Say **cumming** for the send-off: the device eases down in a slow glide from a
-moderate pace to a standstill over about fifteen seconds — the strokes
-shortening as it goes — then rests. It's a gentle, drawn-out finish — which is
-simply how the author likes to cum, and won't be to everyone's taste; take it as
-one way to end, not the only one.
+moderate pace to a standstill over about ten seconds — the strokes shortening as
+it goes — then rests. It's a gentle, drawn-out finish — which is simply how the
+author likes to cum, and won't be to everyone's taste; take it as one way to
+end, not the only one.
 
 ## Voice control
 
