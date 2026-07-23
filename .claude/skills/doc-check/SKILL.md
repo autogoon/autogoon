@@ -33,6 +33,10 @@ Two classes of doc, checked differently:
   CLAUDE.md, DEVELOPERS, MODES.md, `modes/*.md`). These describe **only what
   is implemented**, as it is today.
 
+Current-state docs also split by **audience**: README, MODES.md and
+`modes/*.md` are **user-facing** — written for someone using the app;
+ARCHITECTURE.md, DEVELOPERS.md and CLAUDE.md are developer-facing.
+
 `modes/AUTOPILOT.md` is deliberately exhaustive (the only record of the
 reverse-engineered algorithm): its constants must match `autopilot-engine.ts`
 exactly.
@@ -58,6 +62,12 @@ exactly.
    `TODO.md` or the roadmap, or delete it. A plain pointer _to_ those files is
    fine; describing the future in place is not. (Program-time "future events"
    and experiential "you never know what's coming" are not future work.)
+9. **Audience** — user-facing docs speak to someone _using_ the app, so repo
+   mechanics are findings there: what's committed or gitignored, generated
+   modules and build plumbing, "see the header comments in scripts/…". That
+   material belongs in DEVELOPERS.md, ARCHITECTURE.md, or the code itself. npm
+   commands a user actually runs to operate a feature (the describe scripts,
+   restarting dev) are fine — they're user instructions, not developer ones.
 
 ## Output and fixes
 

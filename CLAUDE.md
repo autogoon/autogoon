@@ -99,6 +99,10 @@ invariants, the why, and the cross-file shape. Concretely:
   [TODO.md](./TODO.md) (defined work), [ROADMAP.md](./ROADMAP.md) (direction),
   or a dated spec under `docs/` — nowhere else; a pointer to those files is
   fine, describing the future in place is not.
+- README, MODES.md and `modes/*.md` are **user-facing**: no repo mechanics
+  (committed/gitignored, generated modules, script internals) — that belongs in
+  DEVELOPERS.md, ARCHITECTURE.md, or the code. npm commands a user runs to
+  operate a feature are fine.
 - Docs that are deliberately exhaustive are the exception, and say so
   ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
   reverse-engineered algorithm).
