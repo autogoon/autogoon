@@ -104,8 +104,8 @@ invariants, the why, and the cross-file shape. Concretely:
   DEVELOPERS.md, ARCHITECTURE.md, or the code. npm commands a user runs to
   operate a feature are fine.
 - Docs speak the app's vocabulary — play mode, program, play/session — never a
-  persona's fiction ("during a call" is Elise and Aimee's video-call framing),
-  and capabilities belong to features, not to whichever companion has them.
+  persona's fiction ("during a call" is the companions' own call framing), and
+  capabilities belong to features, not to whichever companion has them.
 - Docs that are deliberately exhaustive are the exception, and say so
   ([modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is the only record of the
   reverse-engineered algorithm).

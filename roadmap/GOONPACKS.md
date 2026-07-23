@@ -35,7 +35,7 @@ with the current pieces:
 - the shared-prompt sections + system prompt,
 - the ElevenLabs voice.
 
-So the built-ins (Elise, Aimee) are effectively **built-in goonpacks**; a
+So the built-ins (Elise, Aimee, Miley) are effectively **built-in goonpacks**; a
 community goonpack is the same shape, imported.
 
 ## The one shift: build-time → runtime
