@@ -1,7 +1,6 @@
 import { ELISE_SYSTEM_PROMPT } from "./elise-prompt";
 import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
 import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
-import { COMPANION_PICTURES } from "./companion-pictures.generated";
 
 // The companions the user can pick from. One persona = one entry: its voice,
 // model and system prompt travel together here as pure data, so a new companion
@@ -32,10 +31,10 @@ export type Companion = {
   model: string; // OpenRouter model slug the client requests for this companion
   contextWindow: number; // model context window, in tokens (for future pruning; not yet read)
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
-  // The pictures she can send during a call — globbed from public/companions/
-  // <id>/ at build time into companion-pictures.generated.ts. Empty (or omitted)
-  // for a companion with no pictures: the panel then offers no send_picture
-  // tool, and her prompt gets no picture section.
+  // The pictures she can send during a call — filled by an installed goonpack
+  // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
+  // installed: the panel then offers no send_picture tool, and her prompt gets
+  // no picture section.
   pictures?: CompanionPicture[];
 };
 
@@ -72,10 +71,6 @@ export const COMPANIONS: Record<string, Companion> = {
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
-    // Globbed from public/companions/aimee/ at build time — drop images in that
-    // folder, with an optional <basename>.txt description beside each; they're
-    // picked up on the next dev/build.
-    pictures: COMPANION_PICTURES.aimee,
   },
   "autogoon.miley": {
     id: "autogoon.miley",
@@ -89,8 +84,6 @@ export const COMPANIONS: Record<string, Companion> = {
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
-    // Globbed from public/companions/miley/ at build time, same as Aimee's.
-    pictures: COMPANION_PICTURES.miley,
   },
 };
 
