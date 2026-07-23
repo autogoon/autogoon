@@ -42,6 +42,7 @@ export type Companion = {
   model: string; // OpenRouter model slug the client requests for this companion
   contextWindow: number; // model context window (tokens); recorded for pruning
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
+  pictures?: CompanionPicture[]; // her sendable pictures (local-only; see Pictures)
 };
 ```
 
@@ -127,6 +128,30 @@ agentic sequence (assistant-with-`tool_calls` → `tool` result → spoken
 reaction), so she sees her own prior actions — without which the model drifts
 back to narrating actions instead of taking them. After a tool runs, its result
 is fed back for a **second round-trip** so she reacts in words to what happened.
+
+## Pictures
+
+A companion **with pictures** gets a `send_picture` tool alongside the device
+ones, on the same persisted-and-replayed mechanism. The tool's schema lists her
+pictures numbered, one caption each — she picks the one that fits the moment by
+its caption, so the vision work happens offline, not in the call. Sending pops
+the picture open in a lightbox and leaves it in the transcript as a thumbnail;
+it's stored on the thread turn as an `imageSrc`, so a sent picture survives a
+reload. A companion with no pictures never sees the tool, and the shared
+`PICTURES` prompt block is only interpolated into a persona that has some.
+
+- **Pictures are local-only.** Drop images in `public/companions/<id>/` —
+  nothing under there is committed (the folder is gitignored bar a `.gitkeep`),
+  so supply your own. `scripts/generate-companion-pictures.mjs` globs each
+  folder into a generated module before `dev`/`build` (or on demand via
+  `npm run gen:pictures`), which is what makes `companion.pictures` a plain
+  synchronous array of `{ src, description }`.
+- **Captions come from a vision model, offline.** A picture's description is a
+  sidecar `<basename>.txt` beside it, written by `npm run describe <path>` —
+  Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to pick another — reusing
+  the app's own `OPENROUTER_API_KEY` from `.env`. `npm run describe:missing`
+  does the same across every companion folder for images whose sidecar is
+  missing or empty, so it's safe to re-run after adding more.
 
 ## Configuration
 
