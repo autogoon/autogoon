@@ -16,7 +16,7 @@ to install; just open it, enter your device token, and go.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
-- **Four modes**, each steered live by voice:
+- **Three modes**, each steered live by voice:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose (10–120 min), with an intensity dial and faster/slower
     time-stretch.
@@ -24,15 +24,22 @@ to install; just open it, enter your device token, and go.
     (intensity + dip and timing variability).
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
     own Vacuglide autopilot.
-  - **[Companions](./modes/COMPANIONS.md)** — talk to an AI companion who chats
-    back in her own voice, remembers the conversation, and drives the toy
-    herself. Access-gated — her doc covers unlocking.
-- **Companions can send pictures** — bring your own: during play she picks the
-  one that fits the moment by its caption, so no image ever goes to a vision
-  model mid-play. Setup in
-  [modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures).
 - **Switch by voice** — say a mode's name to change while stopped; once running,
   the mode locks in.
+
+## Companions — if you run it yourself
+
+There's a fourth mode: **[Companions](./modes/COMPANIONS.md)** — talk to an AI
+companion who chats back in her own voice, remembers the conversation, and
+drives the toy herself. Given pictures (bring your own), she'll send you one
+that fits the moment, picked by its caption — no image ever goes to a vision
+model mid-play.
+
+**Companions isn't usable on the public app.** Her chat, voice and hearing are
+paid cloud services, so the mode sits behind an access key and stays hidden
+without one. Run the app yourself with your own keys and it unlocks —
+[modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, unlocking and
+pictures.
 
 ## Privacy
 
