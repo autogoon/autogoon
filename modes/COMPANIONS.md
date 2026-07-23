@@ -43,8 +43,8 @@ nothing else needs touching.
 The app keeps a **rolling conversation thread** — every user and assistant turn
 — and replays it to the model on each turn, so the companion remembers what was
 said earlier. The thread is persisted to `localStorage` per companion
-(`threadKeyFor` in `use-voice-session.ts`), so it survives a reload; **Clear
-conversation** in the panel wipes it (button-only — Companions registers no
+(`threadKeyFor` in `use-voice-session.ts`), so it survives a reload; the
+**Clear** button in the panel wipes it (button-only — Companions registers no
 spoken words).
 
 `passesReasoning` marks a **reasoning model**: such a model returns a private

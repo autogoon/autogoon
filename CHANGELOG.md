@@ -44,7 +44,6 @@
 - bug: **Fix stroke pulses under dilation** — A manual stroke pulse (`up`/`down`) now rides the running program as real events instead of a wall-clock timer — its length stays true at any playback speed, and its release can no longer be lost to a knob change mid-pulse. ([#10](https://github.com/autogoon/autogoon/pull/10))
 - bug: **Fix Autopilot's vacuum maintenance** — It now works like the original: a suction pulse fires only when the speed steps, with the Low/High interval as a minimum gap between pulses — not on a fixed 2–3 second repeat, which applied far more suction than the real autopilot. ([#10](https://github.com/autogoon/autogoon/pull/10))
 - bug: **Fix coloured borders** — Coloured borders never actually rendered — a base stylesheet rule outranked every Tailwind border-colour utility, so the Connect button's connected green (and every other coloured border) showed as grey. ([#9](https://github.com/autogoon/autogoon/pull/9))
-
 - internal: **Add the first test suites** — Jest unit tests for the device client's rate-limit accounting and the Goon engine's generation contract, and a Playwright end-to-end voice test that plays a synthesized "autopilot" through a stubbed microphone and asserts the tab switches — run against real Chromium, Firefox, and WebKit. ([#8](https://github.com/autogoon/autogoon/pull/8))
 
 ## 2026-07-14

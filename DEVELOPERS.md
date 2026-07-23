@@ -23,8 +23,9 @@ Other scripts:
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
 
-Each main script first regenerates the companion-pictures module via a
-`gen:pictures` pre-hook (see `package.json`) — purely local, no keys needed.
+The app scripts (`dev`, `build`, `typecheck`, `lint`, `test`) each first
+regenerate the companion-pictures module via a `gen:pictures` pre-hook (see
+`package.json`) — purely local, no keys needed.
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed

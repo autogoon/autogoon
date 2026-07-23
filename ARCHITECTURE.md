@@ -115,8 +115,8 @@ Every play mode shares one device **and** one Player via `useVacuglideDevice`
 the `pagehide` safety-stop. An engine reaches the device only indirectly,
 through the Player. `usePlayer` (`src/hooks/use-player.ts`) mirrors the Player's
 live state into React once, at the top of the page, and passes that view down to
-the panels (sparkline, current speed, timeline position/rate, and which engine
-is currently the Player's `source`).
+the panels (sparkline, timeline position/rate, and which engine is currently the
+Player's `source`).
 
 **Mutual exclusion is a Player invariant, not a coordinator.** The Player holds
 one engine at a time; a panel arming its engine replaces whoever was there. A

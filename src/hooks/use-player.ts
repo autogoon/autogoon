@@ -2,8 +2,8 @@
 
 // The one place the shared Player is mirrored into React state. The Player is
 // plain JS (it drives the device on its own); this hook is the single bridge
-// that turns its live state into something the panels can render — current
-// speed, the upcoming-speed preview, transport position/rate. It is
+// that turns its live state into something the panels can render — the
+// upcoming-speed preview and transport position/rate. It is
 // play-mode-agnostic (the Player has one active source at a time) and is mounted
 // ONCE, so this mirror exists in exactly one place instead of being re-derived
 // inside every play mode hook.
