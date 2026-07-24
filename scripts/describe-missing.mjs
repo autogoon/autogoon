@@ -8,16 +8,21 @@
 // that already have a description are left untouched, so it's safe to re-run
 // after dropping in more. Reads OPENROUTER_API_KEY / LLM_URL from the
 // environment (the npm script loads .env via --env-file-if-exists), and
-// honours DESCRIBE_MODEL the same as `npm run goonpack:describe`, so you can
-// pick the model for a bulk run:
+// honours MODEL the same as `npm run goonpack:describe`, so you can pick the
+// model for a bulk run:
 //
-//   DESCRIBE_MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
+//   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
 import process from "node:process";
 import { readdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describeImage, sidecarPath } from "./describe-image.mjs";
+import {
+  describeImage,
+  sidecarPath,
+  green,
+  yellow,
+} from "./describe-image.mjs";
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
 
@@ -53,13 +58,17 @@ if (images.length === 0) {
 console.log(`Describing ${images.length} image(s) without a description…\n`);
 
 // Sequential — kinder to rate limits, and the output stays readable in order.
+// Each picture prints the same three parts as the single-image script: the file
+// in green, what the model observed, then the caption it settled on in yellow.
 let described = 0;
 let failed = 0;
 for (const image of images) {
   try {
-    const caption = await describeImage(image);
+    const { caption, observations } = await describeImage(image);
     writeFileSync(sidecarPath(image), `${caption}\n`);
-    console.log(`✓ ${image}\n  ${caption}\n`);
+    console.log(`✓ ${green(image)}`);
+    if (observations !== "") console.log(observations);
+    console.log(`${yellow(caption)}\n`);
     described += 1;
   } catch (e) {
     console.error(

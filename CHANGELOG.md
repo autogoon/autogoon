@@ -14,6 +14,18 @@
   truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- enhancement: **Better picture captions** — The captioning scripts now have the
+  vision model observe a picture out loud — what her weight is on, where the
+  knees and heels are, how each garment sits — before condensing that into the
+  one-line caption, with explicit tests for the poses models confuse (sitting
+  versus kneeling versus squatting). Both `npm run goonpack:describe` and
+  `goonpack:describe-missing` print those observations above the caption, so you
+  can see what a caption was based on rather than guessing. The caption itself
+  now has to carry the setting, the garments, her hair and what's actually on
+  show — down to what's only faintly visible, stated as precisely as the model
+  saw it — and leaves mood out. The `DESCRIBE_MODEL` environment variable is now
+  just `MODEL`. ([#19](https://github.com/autogoon/autogoon/pull/19))
+
 - enhancement: **Elise moves out of the app** — The built-in companions are now
   Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
   outside the repo, like all packs), so she's imported and played like any other
