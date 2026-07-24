@@ -26,6 +26,35 @@
   amber pills, and a card's controls (pack pickers, Remove) float in its top
   corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- enhancement: **Chat-first Companions play screen** — The play screen drops
+  the app header, breadcrumb, tab strip and mic status card for one slim bar:
+  a back button to the companion picker (locked while the program runs), the
+  mic toggle with a small loudness sliver, and a hamburger menu that switches
+  Session/Controls/Debug, toggles the program preview, and opens the LLM
+  request viewer. The Listen and Connect chips don't appear on this screen —
+  the chat gets the space, especially on mobile.
+  ([#19](https://github.com/autogoon/autogoon/pull/19))
+
+- enhancement: **Live voice-stage indicators** — The conversation now shows
+  what's happening as it happens: you speaking, the companion thinking, the
+  reply streaming in, her voice loading, and her speaking. In the chat it's a
+  typing-indicator-style bubble on the talker's side; over an open picture it's
+  a chunky badge in the lightbox's top corner. Icons pulse, the words shimmer,
+  and both disappear when nothing is going on.
+  ([#19](https://github.com/autogoon/autogoon/pull/19))
+
+- bug: **Ignore phantom speech partials** — The speech recognizer can
+  hallucinate a short token ("Yes.", "No.") from near-silence when its socket
+  opens; that phantom used to appear in the composer and lock it as if you were
+  dictating. Interim transcripts now only show once real speech is confirmed —
+  a decoded word while the mic hears voice — and suppressed phantoms are noted
+  in the event log. ([#19](https://github.com/autogoon/autogoon/pull/19))
+
+- bug: **No empty bubble for a silent picture** — A companion sending a picture
+  without saying anything no longer leaves an empty chat bubble next to it; the
+  picture alone is the record.
+  ([#19](https://github.com/autogoon/autogoon/pull/19))
+
 - bug: **Work on older iPhones** — A regex feature unsupported by iOS Safari
   before 16.4 (a lookbehind, in the changelog parser) was a parse-time error
   that killed the whole app bundle: the page rendered but nothing was

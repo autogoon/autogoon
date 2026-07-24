@@ -9,9 +9,32 @@ import {
   describeGap,
   describeClock,
   sameLocalDay,
+  isSilentAssistantTurn,
   GAP_MARKER_MIN_MS,
   type Thread,
 } from "./conversation";
+
+describe("isSilentAssistantTurn", () => {
+  it("is silent for an assistant turn with no spoken text", () => {
+    expect(
+      isSilentAssistantTurn({
+        role: "assistant",
+        content: "",
+        toolCalls: [{ id: "call_1", name: "send_picture", arguments: "{}" }],
+      }),
+    ).toBe(true);
+    expect(isSilentAssistantTurn({ role: "assistant", content: "  " })).toBe(
+      true,
+    );
+  });
+
+  it("is not silent for spoken assistant turns or other roles", () => {
+    expect(
+      isSilentAssistantTurn({ role: "assistant", content: "here you go" }),
+    ).toBe(false);
+    expect(isSilentAssistantTurn({ role: "user", content: "" })).toBe(false);
+  });
+});
 
 describe("conversation thread builders", () => {
   it("appendUser returns a new thread and does not mutate the input", () => {

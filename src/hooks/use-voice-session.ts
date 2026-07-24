@@ -24,6 +24,7 @@ import { startMic, type MicHandle } from "@/lib/voice/mic";
 import { createStt, type Stt } from "@/lib/voice/stt";
 import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
 import {
+  confirmSpeech,
   isBargeIn,
   partialHasWord,
   shouldOpenSocket,
@@ -65,6 +66,11 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
+  // True while her reply audio is actually playing: set where awaitingSpeech
+  // clears (first audio bytes), cleared when the utterance finishes or the
+  // turn is cancelled/superseded. The bit replyPlaying can't give a display —
+  // that flag spans the whole turn, generation included.
+  speaking: boolean;
   // The rolling conversation transcript, mirrored from threadRef so the panel
   // can render it. Reset to [] on Clear, but preserved across Stop-listening.
   thread: ThreadTurn[];
@@ -106,6 +112,7 @@ const IDLE_STATUS: VoiceStatus = {
   replyError: null,
   metrics: { llm: null, tts: null },
   awaitingSpeech: false,
+  speaking: false,
   thread: [],
 };
 
@@ -186,6 +193,10 @@ export function useVoiceSession(opts: {
   const turnRef = useRef<AbortController | null>(null);
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
+  // Whether the current utterance has confirmed real speech (see confirmSpeech)
+  // — the gate on surfacing partials in status. Reset at each utterance
+  // boundary: a committed transcript or the socket closing.
+  const speechConfirmedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
@@ -271,7 +282,7 @@ export function useVoiceSession(opts: {
     turnRef.current?.abort();
     turnRef.current = null;
     setReplyPlaying(false);
-    setStatus((s) => ({ ...s, awaitingSpeech: false }));
+    setStatus((s) => ({ ...s, awaitingSpeech: false, speaking: false }));
   }, [setReplyPlaying]);
 
   // A companion turn on arbitrary text — a typed prompt or a committed
@@ -306,6 +317,7 @@ export function useVoiceSession(opts: {
         replyError: null,
         metrics: { llm: null, tts: null },
         awaitingSpeech: false,
+        speaking: false,
       }));
       setReplyPlaying(true);
 
@@ -383,8 +395,8 @@ export function useVoiceSession(opts: {
           return { content, reasoning, toolCalls };
         };
 
-        // Speak one utterance through TTS, with the "waiting for speech" spinner
-        // and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
+        // Speak one utterance through TTS, with the awaitingSpeech/speaking
+        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
         // the reaction — so this is factored out. Returns false if the turn was
         // aborted/superseded mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
@@ -394,7 +406,7 @@ export function useVoiceSession(opts: {
           setStatus((s) => ({ ...s, awaitingSpeech: true }));
           await tts.play(text, companion.voiceId, controller.signal, () => {
             ttsTtfbMs = performance.now() - ttsStart;
-            setStatus((s) => ({ ...s, awaitingSpeech: false }));
+            setStatus((s) => ({ ...s, awaitingSpeech: false, speaking: true }));
           });
           // tts.play resolves even on barge-in/stop, so guard before recording:
           // a superseded turn must not overwrite the current turn's metrics.
@@ -403,6 +415,7 @@ export function useVoiceSession(opts: {
           }
           setStatus((s) => ({
             ...s,
+            speaking: false,
             metrics: {
               ...s.metrics,
               tts: {
@@ -551,8 +564,13 @@ export function useVoiceSession(opts: {
             turnRef.current = null;
             setReplyPlaying(false);
             // Catch-all: if TTS resolved without first audio (error/abort) the
-            // "waiting for speech" flag would otherwise stick.
-            setStatus((s) => ({ ...s, awaitingSpeech: false }));
+            // "waiting for speech" flag would otherwise stick — likewise
+            // "speaking" if the audio was cut rather than finishing.
+            setStatus((s) => ({
+              ...s,
+              awaitingSpeech: false,
+              speaking: false,
+            }));
           }
         }
       })();
@@ -576,7 +594,21 @@ export function useVoiceSession(opts: {
 
     const stt = createStt({
       onPartial: (text) => {
-        setStatus((s) => ({ ...s, partial: text }));
+        // Surface the partial (which also locks the composer into dictation)
+        // only once this utterance has confirmed real speech — sticky, so
+        // trailing partials after the VAD drops mid-sentence still show. An
+        // STT phantom arrives on near-silence, never confirms, and is logged
+        // instead of taking over the composer.
+        speechConfirmedRef.current = confirmSpeech(
+          speechConfirmedRef.current,
+          text,
+          vadSpeakingRef.current,
+        );
+        if (speechConfirmedRef.current) {
+          setStatus((s) => ({ ...s, partial: text }));
+        } else {
+          onLogRef.current?.(`phantom partial suppressed: "${text}"`, "info");
+        }
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
         // her voice leaking past AEC) no longer interrupts her mid-sentence.
@@ -594,10 +626,22 @@ export function useVoiceSession(opts: {
         // A committed transcript is a spoken turn: hands-free, so run it as a
         // "say it" (LLM → speak) without waiting on a button. Clear the interim
         // partial — the STT never emits an empty one — so "dictating" releases.
+        speechConfirmedRef.current = false;
         setStatus((s) => ({ ...s, committed: text, partial: "" }));
         submitText(text, { speak: true });
       },
-      onPhase: (phase) => setStatus((s) => ({ ...s, phase })),
+      onPhase: (phase) => {
+        // Socket closed = utterance over, committed or not: drop the speech
+        // confirmation and any uncommitted partial, so a stale partial can't
+        // hold the composer in dictation and a past utterance's confirmation
+        // can't let the next socket-open phantom through.
+        if (phase === "closed") {
+          speechConfirmedRef.current = false;
+          setStatus((s) => ({ ...s, phase, partial: "" }));
+        } else {
+          setStatus((s) => ({ ...s, phase }));
+        }
+      },
     });
     sttRef.current = stt;
 
@@ -671,6 +715,7 @@ export function useVoiceSession(opts: {
     micHandleRef.current = null;
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
+    speechConfirmedRef.current = false;
     startingRef.current = false;
     // The conversation persists across Stop-listening — only Clear (or a fresh
     // load) resets it — so re-seed the mirror from the intact threadRef.

@@ -123,6 +123,13 @@ export function describeClock(at: number): string {
   return `${weekday} ${d.getDate()} ${month} ${d.getFullYear()}, ${hour12}:${minutes} ${ampm}`;
 }
 
+// An assistant turn with no spoken text — the model called a tool (send_picture,
+// say) without saying anything. The transcript renders no bubble for these; the
+// tool chip or picture that follows is the visible record.
+export function isSilentAssistantTurn(turn: ThreadTurn): boolean {
+  return turn.role === "assistant" && turn.content.trim() === "";
+}
+
 // Whether two timestamps fall on the same local calendar day — the transcript's
 // date headers sit wherever this flips.
 export function sameLocalDay(a: number, b: number): boolean {
