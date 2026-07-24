@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
+import { TabButton } from "@/components/tab-button";
 import { AutopilotPanel } from "@/components/play-modes/autopilot-panel";
 import { CompanionsPanel } from "@/components/play-modes/companions-panel";
 import { GroovePanel } from "@/components/play-modes/groove-panel";
@@ -48,8 +49,8 @@ import {
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
 // Each entry wears its play mode's signature bright colour twice: the icon
-// (iconClass) and the row's accent — the colour name AccentCard turns into
-// the tinted border/gradient shell.
+// (iconClass) and the row's accent — the colour name Card turns into the
+// tinted border/gradient shell.
 // On the dev server Companions is always available (the paid routes are open —
 // see access-check.ts); the access gate applies to builds/deploys.
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -380,20 +381,14 @@ function App() {
             )
               .filter((t) => t.id !== "goonpacks" || goonpacksShown)
               .map((t) => (
-                <Button
+                <TabButton
                   key={t.id}
-                  flash={false}
+                  active={screen === t.id}
                   onClick={() => navigate(t.id)}
-                  className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                    t.align === "right" ? "ml-auto" : ""
-                  } ${
-                    screen === t.id
-                      ? "border-foreground text-foreground"
-                      : "text-muted-foreground hover:text-foreground border-transparent"
-                  }`}
+                  className={t.align === "right" ? "ml-auto" : undefined}
                 >
                   {t.label}
-                </Button>
+                </TabButton>
               ))}
           </nav>
         )}

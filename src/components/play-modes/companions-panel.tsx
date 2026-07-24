@@ -34,8 +34,8 @@ import {
   MicOff,
   X,
 } from "lucide-react";
-import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
+import { TabButton } from "@/components/tab-button";
 import { Card } from "@/components/card";
 import { LogCard, type LogEntry } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
@@ -855,195 +855,191 @@ export function CompanionsPanel({
       )}
 
       {view === "setup" ? (
-        <Card title="Companions">
-          <p className="text-muted-foreground text-sm">
-            Choose a companion. She listens, replies in her own voice, and runs
-            the device while you talk — cut in any time and she stops.
-          </p>
-          <div className="mt-2 flex flex-col gap-2">
-            {library.status === "loading" ? (
-              <p className="text-muted-foreground text-sm">Checking packs…</p>
-            ) : (
-              library.entries.map((entry) => {
-                const c = entry.companion;
-                // The remembered base/overlay picks, falling back — newest
-                // base, no overlay — when a remembered pack is gone (removed
-                // or now incompatible).
-                const sel = variantSel[c.id];
-                const baseOpt =
-                  entry.bases.find((b) => b.key === (sel?.base ?? null)) ??
-                  entry.bases[0]!;
-                const overlayOpt =
-                  entry.overlays.find(
-                    (o) => o.key !== null && o.key === sel?.overlay,
-                  ) ?? null;
-                // The card previews exactly what the selection plays:
-                // description, accent and the feature line all follow the
-                // selects (overlay wins, then base version, then her own).
-                const accent =
-                  overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
-                const description =
-                  overlayOpt?.description ??
-                  baseOpt.description ??
-                  c.description;
-                const features = variantFeatures({
-                  pictures: effectivePictures(overlayOpt, baseOpt.pictures),
-                  changed: overlayOpt?.changed ?? [],
-                });
-                const pick = () => {
-                  void (async () => {
-                    try {
-                      const resolved = await library.resolveVariant(
-                        entry,
-                        baseOpt.key,
-                        overlayOpt?.key ?? null,
-                      );
-                      if (resolved === null) return; // overtaken by a newer pick
-                      setCompanion(resolved);
-                      enterPlay();
-                    } catch (e) {
-                      setPickError(
-                        e instanceof PackError
-                          ? e.message
-                          : "pack failed to load",
-                      );
-                    }
-                  })();
-                };
-                return (
-                  /* One clickable card, edge to edge, in the selected
-                     variant's colour. The pickers inside stop propagation, so
-                     changing one never plays. */
-                  <AccentCard key={c.id} accent={accent} onClick={pick}>
-                    {/* Top row: her name with the pickers right-aligned —
-                        base version and overlay, both remembered per
-                        companion. One base version and no overlays means no
-                        pickers at all. */}
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-semibold">{c.name}</span>
-                      <span className="ml-auto flex items-center gap-4">
-                        {entry.bases.length > 1 && (
-                          <label
-                            className="text-muted-foreground flex items-center gap-1.5 text-sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Base:
-                            <span className="relative">
-                              <select
-                                aria-label={`${c.name} version`}
-                                value={baseOpt.key ?? "default"}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) =>
-                                  selectPacks(c.id, {
-                                    base:
-                                      e.target.value === "default"
-                                        ? null
-                                        : e.target.value,
-                                    overlay: overlayOpt?.key ?? null,
-                                  })
-                                }
-                                className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
-                              >
-                                {entry.bases.map((b) => (
-                                  <option
-                                    key={b.key ?? "default"}
-                                    value={b.key ?? "default"}
-                                  >
-                                    {b.label}
-                                    {b.version !== undefined
-                                      ? ` ${b.version}`
-                                      : ""}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-                            </span>
-                          </label>
-                        )}
-                        {entry.overlays.length > 0 && (
-                          <label
-                            className="text-muted-foreground flex items-center gap-1.5 text-sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Overlay:
-                            <span className="relative">
-                              <select
-                                aria-label={`${c.name} overlay`}
-                                value={overlayOpt?.key ?? "default"}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) =>
-                                  selectPacks(c.id, {
-                                    base: baseOpt.key,
-                                    overlay:
-                                      e.target.value === "default"
-                                        ? null
-                                        : e.target.value,
-                                  })
-                                }
-                                className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
-                              >
-                                <option value="default">default</option>
-                                {entry.overlays.map((o) => (
-                                  <option
-                                    key={o.key}
-                                    value={o.key ?? "default"}
-                                  >
-                                    {o.label}
-                                    {o.version !== undefined
-                                      ? ` ${o.version}`
-                                      : ""}
-                                  </option>
-                                ))}
-                              </select>
-                              <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-                            </span>
-                          </label>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex min-w-0 items-center gap-4">
-                      <span className="min-w-0 flex-1">
-                        <span className="text-muted-foreground block text-sm">
-                          {description}
+        <>
+          <Card title="Companions">
+            <p>
+              Choose a companion. She listens, replies in her own voice, and
+              runs the device while you talk — cut in any time and she stops.
+            </p>
+            <div className="mt-2 flex flex-col gap-2">
+              {library.status === "loading" ? (
+                <p>Checking packs…</p>
+              ) : (
+                library.entries.map((entry) => {
+                  const c = entry.companion;
+                  // The remembered base/overlay picks, falling back — newest
+                  // base, no overlay — when a remembered pack is gone (removed
+                  // or now incompatible).
+                  const sel = variantSel[c.id];
+                  const baseOpt =
+                    entry.bases.find((b) => b.key === (sel?.base ?? null)) ??
+                    entry.bases[0]!;
+                  const overlayOpt =
+                    entry.overlays.find(
+                      (o) => o.key !== null && o.key === sel?.overlay,
+                    ) ?? null;
+                  // The card previews exactly what the selection plays:
+                  // description, accent and the feature line all follow the
+                  // selects (overlay wins, then base version, then her own).
+                  const accent =
+                    overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
+                  const description =
+                    overlayOpt?.description ??
+                    baseOpt.description ??
+                    c.description;
+                  const features = variantFeatures({
+                    pictures: effectivePictures(overlayOpt, baseOpt.pictures),
+                    changed: overlayOpt?.changed ?? [],
+                  });
+                  const pick = () => {
+                    void (async () => {
+                      try {
+                        const resolved = await library.resolveVariant(
+                          entry,
+                          baseOpt.key,
+                          overlayOpt?.key ?? null,
+                        );
+                        if (resolved === null) return; // overtaken by a newer pick
+                        setCompanion(resolved);
+                        enterPlay();
+                      } catch (e) {
+                        setPickError(
+                          e instanceof PackError
+                            ? e.message
+                            : "pack failed to load",
+                        );
+                      }
+                    })();
+                  };
+                  return (
+                    /* One clickable card, edge to edge, in the selected
+                     variant's colour. The pickers ride in the card's action
+                     slot — base version and overlay, both remembered per
+                     companion; one base version and no overlays means no
+                     pickers at all. */
+                    <Card
+                      key={c.id}
+                      accent={accent}
+                      onClick={pick}
+                      title={c.name}
+                      action={
+                        <>
+                          {entry.bases.length > 1 && (
+                            <label
+                              className="text-muted-foreground flex items-center gap-1.5 text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Base:
+                              <span className="relative">
+                                <select
+                                  aria-label={`${c.name} version`}
+                                  value={baseOpt.key ?? "default"}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) =>
+                                    selectPacks(c.id, {
+                                      base:
+                                        e.target.value === "default"
+                                          ? null
+                                          : e.target.value,
+                                      overlay: overlayOpt?.key ?? null,
+                                    })
+                                  }
+                                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
+                                >
+                                  {entry.bases.map((b) => (
+                                    <option
+                                      key={b.key ?? "default"}
+                                      value={b.key ?? "default"}
+                                    >
+                                      {b.label}
+                                      {b.version !== undefined
+                                        ? ` ${b.version}`
+                                        : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
+                              </span>
+                            </label>
+                          )}
+                          {entry.overlays.length > 0 && (
+                            <label
+                              className="text-muted-foreground flex items-center gap-1.5 text-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Overlay:
+                              <span className="relative">
+                                <select
+                                  aria-label={`${c.name} overlay`}
+                                  value={overlayOpt?.key ?? "default"}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={(e) =>
+                                    selectPacks(c.id, {
+                                      base: baseOpt.key,
+                                      overlay:
+                                        e.target.value === "default"
+                                          ? null
+                                          : e.target.value,
+                                    })
+                                  }
+                                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
+                                >
+                                  <option value="default">default</option>
+                                  {entry.overlays.map((o) => (
+                                    <option
+                                      key={o.key}
+                                      value={o.key ?? "default"}
+                                    >
+                                      {o.label}
+                                      {o.version !== undefined
+                                        ? ` ${o.version}`
+                                        : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
+                              </span>
+                            </label>
+                          )}
+                        </>
+                      }
+                    >
+                      <span className="block">{description}</span>
+                      {features.length > 0 && (
+                        <span className="mt-1 block text-sm">
+                          {features.map((f, i) => (
+                            <Fragment key={f.text}>
+                              {i > 0 ? " · " : ""}
+                              {f.bold ? (
+                                <span className="text-foreground font-medium">
+                                  {f.text}
+                                </span>
+                              ) : (
+                                f.text
+                              )}
+                            </Fragment>
+                          ))}
                         </span>
-                        {features.length > 0 && (
-                          <span className="text-muted-foreground mt-1 block text-xs">
-                            {features.map((f, i) => (
-                              <Fragment key={f.text}>
-                                {i > 0 ? " · " : ""}
-                                {f.bold ? (
-                                  <span className="text-foreground font-medium">
-                                    {f.text}
-                                  </span>
-                                ) : (
-                                  f.text
-                                )}
-                              </Fragment>
-                            ))}
-                          </span>
-                        )}
-                      </span>
-                      <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-                    </div>
-                  </AccentCard>
-                );
-              })
+                      )}
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+            {pickError !== null && (
+              <p className="mt-1 text-sm text-red-500">{pickError}</p>
             )}
-          </div>
-          {pickError !== null && (
-            <p className="mt-1 text-sm text-red-500">{pickError}</p>
-          )}
-          <p className="text-muted-foreground mt-4 text-xs">
-            <span className="text-foreground font-medium">Privacy.</span> Unlike
-            the rest of Autogoon, Companions sends data off your device: your
-            speech is transcribed by{" "}
-            <span className="font-medium">ElevenLabs</span>, and replies are
+          </Card>
+
+          <Card title="Privacy">
+            Unlike the rest of Autogoon, Companions sends data off your device:
+            your speech is transcribed by{" "}
+            <span className="font-bold">ElevenLabs</span>, and replies are
             generated by an LLM through{" "}
-            <span className="font-medium">OpenRouter</span> (routed to the
-            fastest available provider). The conversation is stored in this
-            browser.
-          </p>
-        </Card>
+            <span className="font-bold">OpenRouter</span> (routed to the fastest
+            available provider). The conversation is stored in this browser.
+          </Card>
+        </>
       ) : (
         // Viewport-height column: the preview+tabs cluster is fixed height and
         // the active tab's content flexes — so expanding the preview shrinks the
@@ -1097,18 +1093,13 @@ export function CompanionsPanel({
                   { id: "debug", label: "Debug" },
                 ] as const
               ).map((t) => (
-                <Button
+                <TabButton
                   key={t.id}
-                  flash={false}
+                  active={tab === t.id}
                   onClick={() => setTab(t.id)}
-                  className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                    tab === t.id
-                      ? "border-foreground text-foreground"
-                      : "text-muted-foreground hover:text-foreground border-transparent"
-                  }`}
                 >
                   {t.label}
-                </Button>
+                </TabButton>
               ))}
             </nav>
           </div>
@@ -1283,9 +1274,7 @@ export function CompanionsPanel({
                       </div>
                     )}
                   {status.thread.length === 0 && !status.replyPlaying && (
-                    <p className="text-muted-foreground text-sm">
-                      No messages yet.
-                    </p>
+                    <p>No messages yet.</p>
                   )}
                   {status.awaitingSpeech && (
                     <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
@@ -1404,7 +1393,7 @@ export function CompanionsPanel({
               <Card title="Latency" bordered>
                 <p className="text-muted-foreground mb-1 text-xs">LLM</p>
                 {status.metrics.llm === null ? (
-                  <p className="text-muted-foreground text-sm">—</p>
+                  <p>—</p>
                 ) : (
                   <>
                     <Row label="First token">
@@ -1422,7 +1411,7 @@ export function CompanionsPanel({
                 )}
                 <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
                 {status.metrics.tts === null ? (
-                  <p className="text-muted-foreground text-sm">—</p>
+                  <p>—</p>
                 ) : (
                   <>
                     <Row label="First audio">

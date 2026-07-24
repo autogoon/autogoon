@@ -2,7 +2,7 @@
 
 ## 2026-07-24
 
-- feature: **Goonpacks** — import a companion as a portable zip: a complete new
+- feature: **Goonpacks** — Import a companion as a portable zip: a complete new
   companion, or an overlay that adds pictures or changes the voice, persona or
   colour of one you have. A Goonpacks tab (say `packs`) manages the library —
   import with a confirm step, see what every pack brings, remove per version —
@@ -14,13 +14,19 @@
   truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- enhancement: **Elise moves out of the app** — the built-in companions are now
+- enhancement: **Elise moves out of the app** — The built-in companions are now
   Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
   outside the repo, like all packs), so she's imported and played like any other
   pack. Her pack carries a new id, so built-in Elise conversations don't carry
   over. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- bug: **Changelog shows whole entries** — the in-app Changelog screen was
+- enhancement: **A bolder, more consistent look** — Body text steps up from
+  small to base size with one muted voice across every card, buttons wear a
+  visible standard style that brightens on hover, voice-command chips become
+  amber pills, and a card's controls (pack pickers, Remove) float in its top
+  corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
+
+- bug: **Changelog shows whole entries** — The in-app Changelog screen was
   dropping everything after the first line of a wrapped entry; entries now
   render in full, and the raw file can put blank lines between entries.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
@@ -30,7 +36,15 @@
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
   `goonpacks/*/pictures/`. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- internal: **goonpack:build validates like the importer** — building runs the
+- internal: **One Card component** — The home play-mode entries, the
+  Companions chooser cards, the Goonpacks rows and the import confirm sheet
+  all render a single `Card` (accent/dashed/button/voiceCommand/action/icon
+  variants); `Button` gains a default control style with `tailwind-merge`
+  override semantics, `badge` is renamed `voiceCommand` app-wide, and the
+  voice chip and underline tabs are components of their own.
+  ([#18](https://github.com/autogoon/autogoon/pull/18))
+
+- internal: **goonpack:build validates like the importer** — Building runs the
   app's own pack validation over every zip (the script is TypeScript now, run
   with `tsx`), reports every problem it finds in one pass, and writes
   `goonpacks/<dir>.zip` only when clean — a pack that builds is a pack that
@@ -38,7 +52,7 @@
 
 ## 2026-07-23
 
-- feature: **Companions notice time passing** — a companion now knows the real
+- feature: **Companions notice time passing** — A companion now knows the real
   date and time on every turn, and when you step away — an hour, overnight — she
   comes back aware of how long you were gone instead of resuming mid-sentence.
   The conversation shows each message's time and a date line where a new day
@@ -55,19 +69,19 @@
   pictures, and has three flat limits she won't move on.
   ([#16](https://github.com/autogoon/autogoon/pull/16))
 
-- enhancement: **Companions needs no access key locally** — on the dev server
+- enhancement: **Companions needs no access key locally** — On the dev server
   (`npm run dev`) the access gate is open: put your API keys in `.env` and
   Companions just appears. Builds and deploys stay fail-closed behind
   `COMPANIONS_ACCESS_IDS` exactly as before, and the Settings access box still
   checks real IDs everywhere, so the gate stays testable in dev.
   ([#15](https://github.com/autogoon/autogoon/pull/15))
 
-- enhancement: **Algorithms are now "play modes"** — the home screen and docs
+- enhancement: **Algorithms are now "play modes"** — The home screen and docs
   now call the ways a session can run play modes: Companions was never really an
   algorithm, and future modes (like a raw-controls Freestyle) won't be either.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Debug viewer for the LLM request** — a Show request button on the
+- internal: **Debug viewer for the LLM request** — A Show request button on the
   Companions Debug tab pops up the exact request JSON the next turn would send
   (system prompt with live status/time filled in, gap markers, replayed tool
   calls), for verifying what the model actually sees.
@@ -78,12 +92,12 @@
   is precise enough to pick by when you ask for a particular outfit.
   ([#16](https://github.com/autogoon/autogoon/pull/16))
 
-- internal: **Keep Claude session links out of commits** — project settings now
+- internal: **Keep Claude session links out of commits** — Project settings now
   set `attribution.sessionUrl: false`, so commits and PR bodies made with Claude
   Code never carry a `Claude-Session` link (a privacy leak on a public repo, for
   any contributor). ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Doc audit against the code** — a four-agent sweep verified ~280
+- internal: **Doc audit against the code** — A four-agent sweep verified ~280
   doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the
   safe word and the tab strip; stale wind-down/finish figures in the mode docs;
   a few wrong code comments) and replaced doc passages that duplicated code with
@@ -121,7 +135,7 @@
   the lightbox is open and it swaps to the newest.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- enhancement: **Companions run a Groove program** — the companion now drives a
+- enhancement: **Companions run a Groove program** — The companion now drives a
   smooth Groove-style program (the same dip pattern the Groove and Goon
   algorithms use) instead of the old Autopilot-style one, and you steer it
   through two controls she can also turn herself: Intensity (how hard and fast,
@@ -129,19 +143,19 @@
   and vacuum controls are gone.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- bug: **Fix a variability change before Start ramping from zero** — changing
+- bug: **Fix a variability change before Start ramping from zero** — Changing
   Groove's dip or timing variability while the program was armed but not yet
   playing made the next cycle ramp up from a standstill instead of continuing
   from where the program sits; it now resumes from the program's current point
   (Companions' Variety knob shared the same fix).
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- bug: **Open a companion's chat at the newest message** — opening a companion
+- bug: **Open a companion's chat at the newest message** — Opening a companion
   you've talked to before landed the conversation scrolled to the top; it now
   opens at the bottom, showing your most recent exchange.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Add `npm run describe` / `describe:missing`** — caption a single
+- internal: **Add `npm run describe` / `describe:missing`** — Caption a single
   companion image, or every image that's still missing a description, with a
   vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to
   override), writing the sidecar `.txt` the picture glob reads.
@@ -157,7 +171,7 @@
   unlocked with an access ID you enter under Settings.
   ([#13](https://github.com/autogoon/autogoon/pull/13))
 
-- bug: **Fix voice input dropping the opening words** — the live transcriber
+- bug: **Fix voice input dropping the opening words** — The live transcriber
   discarded the audio recorded while its socket was still connecting (a 1–2
   second window), so the first second or two of speech went missing; that audio
   is now buffered and sent as soon as the socket is live.
@@ -176,7 +190,7 @@
   called Changes — its old voice word wasn't in the recognizer's vocabulary, so
   it never answered. ([#12](https://github.com/autogoon/autogoon/pull/12))
 
-- internal: **Fix the voice e2e test's locator** — the changelog's own "Vacuum
+- internal: **Fix the voice e2e test's locator** — The changelog's own "Vacuum
   Maintenance" mentions made the test's text locator ambiguous; it now asserts
   the visible heading by role.
   ([#12](https://github.com/autogoon/autogoon/pull/12))

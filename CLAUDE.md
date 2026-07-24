@@ -70,8 +70,9 @@ work done.
   landed (`## YYYY-MM-DD`). Tag each entry `feature`, `enhancement`, `bug`, or
   `internal`, and within a day order the entries in exactly that sequence —
   features, then enhancements, then bugs, then internal (bottom priority). Open
-  each entry with a bold, few-word, commit-style summary:
-  `- tag: **Add safe word** — description…`. Link the PR:
+  each entry with a bold, few-word, commit-style summary, then the description
+  as a sentence (capital first word, unless it opens with `code`):
+  `- tag: **Add safe word** — Description…`. Link the PR:
   `([#N](https://github.com/autogoon/autogoon/pull/N))`. Inline markup is
   limited to `` `code` `` and `[links](url)` — the in-app Changelog screen
   parses exactly this format (src/lib/changelog.ts).

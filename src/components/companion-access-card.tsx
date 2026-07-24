@@ -40,12 +40,12 @@ export function CompanionAccessCard({ access }: { access: CompanionsAccess }) {
   return (
     <Card title="Companion access">
       {access.granted ? (
-        <p className="text-sm text-emerald-500">
+        <p className="text-emerald-500">
           Unlocked — Companions is available on the home screen.
         </p>
       ) : (
         <>
-          <p className="text-muted-foreground text-sm">
+          <p>
             {process.env.NODE_ENV === "development"
               ? "Dev server — Companions is already available; an access ID entered here only tests the gate."
               : "Companions is locked. Enter your access ID to unlock it — it's saved on this device, so you only do this once."}

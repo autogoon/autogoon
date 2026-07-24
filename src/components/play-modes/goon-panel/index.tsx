@@ -352,7 +352,7 @@ export function GoonPanel({
           disabled={!canPlay}
           title={playTitle}
           className="w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
-          badge="play"
+          voiceCommand="play"
         >
           Play
         </Button>
@@ -451,7 +451,7 @@ export function GoonPanel({
             onClick={back}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="back"
+            voiceCommand="back"
           >
             − 1 min
           </Button>
@@ -459,7 +459,7 @@ export function GoonPanel({
             onClick={forward}
             disabled={!canForward || unstoppable}
             className={jumpClass}
-            badge="forward"
+            voiceCommand="forward"
           >
             + 1 min
           </Button>
@@ -469,7 +469,7 @@ export function GoonPanel({
             onClick={() => device.slower()}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="slower"
+            voiceCommand="slower"
           >
             Slower
           </Button>
@@ -477,7 +477,7 @@ export function GoonPanel({
             onClick={() => device.faster()}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="faster"
+            voiceCommand="faster"
           >
             Faster
           </Button>

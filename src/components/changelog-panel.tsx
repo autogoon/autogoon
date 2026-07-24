@@ -52,38 +52,29 @@ export function ChangelogPanel() {
         <Card key={day.date}>
           {/* A larger heading than Card's own — the dates are the changelog's
               top-level structure. */}
-          <h2 className="mb-4 text-2xl font-semibold">{day.date}</h2>
+          <h2 className="text-foreground text-2xl font-semibold">{day.date}</h2>
           <ul className="flex flex-col gap-6">
             {day.entries.map((entry, i) => (
-              <li key={i}>
+              <li key={i} className="space-y-2">
                 {/* Pill + the few-word bold summary on the first line, the
                     full description as muted paragraphs below. */}
                 {entry.summary !== null && (
                   <p>
                     {entry.tag !== null && (
                       <span
-                        className={`mr-2 rounded-full px-3 py-1 font-semibold tracking-wide whitespace-nowrap text-white ${TAG_CLASS[entry.tag]}`}
+                        className={`text-foreground mr-2 rounded-full px-3 py-1 font-semibold tracking-wide whitespace-nowrap ${TAG_CLASS[entry.tag]}`}
                       >
                         {entry.tag}
                       </span>
                     )}
-                    <span className="font-semibold">{entry.summary}</span>
+                    <span className="text-foreground font-semibold">
+                      {entry.summary}
+                    </span>
                   </p>
                 )}
+
                 {entry.paragraphs.map((paragraph, j) => (
-                  <p
-                    key={j}
-                    className={`text-muted-foreground ${j > 0 || entry.summary !== null ? "mt-2" : ""}`}
-                  >
-                    {j === 0 &&
-                      entry.summary === null &&
-                      entry.tag !== null && (
-                        <span
-                          className={`mr-2 rounded-full px-3 py-1 font-semibold tracking-wide whitespace-nowrap text-white ${TAG_CLASS[entry.tag]}`}
-                        >
-                          {entry.tag}
-                        </span>
-                      )}
+                  <p key={j}>
                     {paragraph.map((segment, k) => (
                       <Inline key={k} segment={segment} />
                     ))}

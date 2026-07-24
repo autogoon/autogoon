@@ -22,7 +22,7 @@ export function FinishButton({
       className={`rounded-lg bg-linear-to-br from-amber-500 to-orange-600 py-3 text-lg font-bold text-white disabled:opacity-50 ${
         className ?? "w-full"
       }`}
-      badge="finish"
+      voiceCommand="finish"
     >
       Finish
     </Button>

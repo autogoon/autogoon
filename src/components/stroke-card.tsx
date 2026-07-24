@@ -32,7 +32,7 @@ export function StrokeCard({
       <div className="flex gap-3">
         <HoldButton
           label="Stroke −"
-          badge={voice ? "down" : undefined}
+          voiceCommand={voice ? "down" : undefined}
           disabled={strokeDisabled}
           onValve={onValveMinus}
           onError={onError}
@@ -40,7 +40,7 @@ export function StrokeCard({
         />
         <HoldButton
           label="Stroke +"
-          badge={voice ? "up" : undefined}
+          voiceCommand={voice ? "up" : undefined}
           disabled={strokeDisabled}
           onValve={onValvePlus}
           onError={onError}

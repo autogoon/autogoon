@@ -64,7 +64,7 @@ export function AfterPlayCard({
   const flashing = useKeywordFlash();
   return (
     <Card title="After-play">
-      <p className="text-muted-foreground text-sm">
+      <p>
         What happens when you say{" "}
         <span className="bg-background text-muted-foreground rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
           cumming

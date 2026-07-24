@@ -47,12 +47,7 @@ export function SettingsPanel({
   return (
     <section className="flex w-full flex-col gap-8">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="font-semibold">Appearance</h2>
-          <p className="text-muted-foreground text-sm">
-            Light, dark, or follow the system.
-          </p>
-        </div>
+        <Card title="Appearance">Light, dark, or follow the system.</Card>
         <ThemeToggle />
       </div>
 
@@ -67,7 +62,7 @@ export function SettingsPanel({
       <CompanionAccessCard access={access} />
 
       <Card title="Info">
-        <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm tabular-nums">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 tabular-nums">
           <dt>Commit</dt>
           <dd className="font-mono">
             {gitSha === "dev" ? (

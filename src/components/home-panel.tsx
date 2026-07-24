@@ -6,9 +6,8 @@
 // wearing its play mode's accent colour), and the getting-started small print.
 // Settings sits beside home as a top-level tab (see page.tsx).
 
-import { ChevronRight, Plug, type LucideIcon } from "lucide-react";
+import { Plug, type LucideIcon } from "lucide-react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import {
@@ -32,7 +31,7 @@ export function HomePanel({
     highlight?: string;
     icon: LucideIcon;
     iconClass: string;
-    // The AccentCard colour name (e.g. "fuchsia").
+    // The Card accent colour name (e.g. "fuchsia").
     accent: string;
   }>;
   onSelect: (id: string) => void;
@@ -43,29 +42,20 @@ export function HomePanel({
           title→border gap needs +4px to match the title→text gap elsewhere. */}
       <div className="flex flex-col gap-3 pt-1">
         {playModes.map((a) => (
-          <AccentCard
+          <Card
             key={a.id}
+            button
             accent={a.accent}
-            badge={a.id}
+            voiceCommand={a.id}
             onClick={() => onSelect(a.id)}
+            icon={<a.icon className={a.iconClass} aria-hidden />}
+            title={a.label}
           >
-            <span className="flex items-center gap-4 text-left">
-              <a.icon
-                className={`size-8 shrink-0 self-start ${a.iconClass}`}
-                aria-hidden
-              />
-              <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span className="block font-semibold">{a.label}</span>
-                <span className="text-muted-foreground block text-sm">
-                  {a.description}
-                </span>
-                {a.highlight !== undefined && (
-                  <span className="mt-1.5 block text-sm">{a.highlight}</span>
-                )}
-              </span>
-              <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-            </span>
-          </AccentCard>
+            <span className="block">{a.description}</span>
+            {a.highlight !== undefined && (
+              <span className="mt-1.5 block">{a.highlight}</span>
+            )}
+          </Card>
         ))}
       </div>
     </Card>
@@ -73,7 +63,7 @@ export function HomePanel({
 
   const device = (
     <Card title="Device">
-      <p className="text-muted-foreground text-sm">
+      <p>
         Enter your Vacuglide device token, then use Connect in the header bar to
         connect via the Autoblow cloud API. The token is saved on this device,
         so next time Autogoon connects automatically.
@@ -130,60 +120,57 @@ export function HomePanel({
       {chooser}
 
       <Card title="Getting started">
-        <div className="text-muted-foreground space-y-3 text-sm">
+        <p>
+          <span className="text-foreground font-medium">Autogoon</span> drives
+          your Autoblow Vacuglide stroker by voice — hands-free, from this
+          browser tab.
+        </p>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>Enter your device token above and connect.</li>
+          <li>
+            Click <span className="text-foreground">Listen</span> in the header
+            to start the mic (allow the microphone if your browser asks).
+          </li>
+          <li>Pick a play mode.</li>
+        </ol>
+        <p>
+          You can use voice controls for most things — each page explains the
+          words it recognises.
+        </p>
+        {process.env.NODE_ENV === "development" ? (
           <p>
-            <span className="text-foreground font-medium">Autogoon</span> drives
-            your Autoblow Vacuglide stroker by voice — hands-free, from this
-            browser tab.
+            <span className="text-foreground font-medium">
+              Companion pictures
+            </span>{" "}
+            are bring-your-own — the{" "}
+            <a
+              href="https://github.com/autogoon/autogoon/blob/main/modes/COMPANIONS.md"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-foreground underline underline-offset-4"
+            >
+              Companions doc
+            </a>{" "}
+            covers adding them.
           </p>
-          <ol className="list-decimal space-y-1 pl-5">
-            <li>Enter your device token above and connect.</li>
-            <li>
-              Click <span className="text-foreground">Listen</span> in the
-              header to start the mic (allow the microphone if your browser
-              asks).
-            </li>
-            <li>Pick a play mode.</li>
-          </ol>
+        ) : (
           <p>
-            You can use voice controls for most things — each page explains the
-            words it recognises.
+            <span className="text-foreground font-medium">Companions</span>{" "}
+            needs an access ID — enter it under Settings to reveal it.
           </p>
-          {process.env.NODE_ENV === "development" ? (
-            <p>
-              <span className="text-foreground font-medium">
-                Companion pictures
-              </span>{" "}
-              are bring-your-own — the{" "}
-              <a
-                href="https://github.com/autogoon/autogoon/blob/main/modes/COMPANIONS.md"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-foreground underline underline-offset-4"
-              >
-                Companions doc
-              </a>{" "}
-              covers adding them.
-            </p>
-          ) : (
-            <p>
-              <span className="text-foreground font-medium">Companions</span>{" "}
-              needs an access ID — enter it under Settings to reveal it.
-            </p>
-          )}
-          <p>
-            <span className="text-foreground font-medium">Privacy.</span> For
-            the built-in play modes, speech recognition runs entirely on your
-            machine — only the device control traffic leaves it. Companions is
-            the exception: it sends your speech and chat to ElevenLabs and
-            OpenRouter (see the note on its own screen).
-          </p>
-          <p>
-            <span className="text-foreground font-medium">On mobile,</span> keep
-            this tab foregrounded and the screen awake — backgrounded or locked
-            tabs stop the mic and the timing loop.
-          </p>
-        </div>
+        )}
+        <p>
+          <span className="text-foreground font-medium">Privacy.</span> For the
+          built-in play modes, speech recognition runs entirely on your machine
+          — only the device control traffic leaves it. Companions is the
+          exception: it sends your speech and chat to ElevenLabs and OpenRouter
+          (see the note on its own screen).
+        </p>
+        <p>
+          <span className="text-foreground font-medium">On mobile,</span> keep
+          this tab foregrounded and the screen awake — backgrounded or locked
+          tabs stop the mic and the timing loop.
+        </p>
       </Card>
     </section>
   );

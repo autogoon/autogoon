@@ -216,9 +216,9 @@ export function AutopilotPanel({
       <Card title="Edge Control">
         <Segmented
           options={[
-            { value: "gentle", label: "Gentle", badge: "gentle" },
-            { value: "moderate", label: "Moderate", badge: "moderate" },
-            { value: "intense", label: "Intense", badge: "intense" },
+            { value: "gentle", label: "Gentle", voiceCommand: "gentle" },
+            { value: "moderate", label: "Moderate", voiceCommand: "moderate" },
+            { value: "intense", label: "Intense", voiceCommand: "intense" },
           ]}
           value={edge}
           onChange={changeEdge}
@@ -229,9 +229,9 @@ export function AutopilotPanel({
       <Card title="Vacuum Maintenance">
         <Segmented
           options={[
-            { value: "off", label: "Off", badge: "off" },
-            { value: "little", label: "Light", badge: "light" },
-            { value: "more", label: "Heavy", badge: "heavy" },
+            { value: "off", label: "Off", voiceCommand: "off" },
+            { value: "little", label: "Light", voiceCommand: "light" },
+            { value: "more", label: "Heavy", voiceCommand: "heavy" },
           ]}
           value={suction}
           onChange={changeSuction}

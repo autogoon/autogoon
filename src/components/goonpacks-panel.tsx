@@ -7,7 +7,6 @@
 // removal is destructive-ish — neither wants a spoken trigger.
 
 import { useCallback, useRef, useState, type ReactNode } from "react";
-import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import {
@@ -32,9 +31,9 @@ function contents(row: PackRow): string {
   }
   if (m?.noPictures === true) parts.push("no pictures");
   if (s?.hasPrompt === true) parts.push("prompt");
-  if (m?.voiceId !== undefined) parts.push("voice");
-  if (m?.model !== undefined) parts.push("model");
-  if (m?.base !== undefined && m.accentColour !== undefined) {
+  if (m?.companion.voiceId !== undefined) parts.push("voice");
+  if (m?.companion.model !== undefined) parts.push("model");
+  if (m?.base !== undefined && m.companion.accentColour !== undefined) {
     parts.push("colour");
   }
   return parts.join(" · ");
@@ -46,15 +45,15 @@ function contents(row: PackRow): string {
 function rowAccent(row: PackRow, packs: PackRow[]): string | null {
   const m = row.manifest;
   if (row.incompatible !== undefined || m === undefined) return null;
-  if (m.accentColour !== undefined) return m.accentColour;
+  if (m.companion.accentColour !== undefined) return m.companion.accentColour;
   if (m.base !== undefined) {
     const builtIn = COMPANIONS[m.base];
     if (builtIn !== undefined) return builtIn.accentColour;
     // Any installed version of the base — newest first is the row order, so
     // find() lands on the newest.
     return (
-      packs.find((p) => keyId(p.id) === m.base)?.manifest?.accentColour ??
-      "pink"
+      packs.find((p) => keyId(p.id) === m.base)?.manifest?.companion
+        .accentColour ?? "pink"
     );
   }
   return "pink"; // a colourless complete pack — packToCompanion's default
@@ -83,14 +82,14 @@ function PackCard({
   const m = row.manifest;
   // row.id is the storage key (id@version) — split for display.
   const id = m?.id ?? keyId(row.id);
-  const name = m?.name ?? row.peek?.name;
+  const name = m?.companion.name ?? row.peek?.name;
   const version = m?.version ?? row.peek?.version ?? keyVersion(row.id);
   const base = m?.base ?? row.peek?.base;
   const about = m?.aboutThePack ?? row.peek?.aboutThePack;
   const info = [
     // The heading is always the id — this page manages packs, and the id is
-    // the identity you manage by. Her name lives here instead.
-    ...(name !== undefined ? [name] : []),
+    // the identity you manage by. The companion's name lives here instead.
+    ...(name !== undefined ? [`Provides ${name}`] : []),
     ...(base !== undefined
       ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
       : m !== undefined
@@ -99,35 +98,33 @@ function PackCard({
     ...(contents(row) !== "" ? [contents(row)] : []),
   ].join(" · ");
   return (
-    <AccentCard accent={accent} dashed={accent === null}>
-      <div className="flex items-center gap-3">
-        <span className="font-semibold">{id}</span>
-        <span className="text-muted-foreground text-sm">{version}</span>
-        {control}
-      </div>
-      {about !== undefined && (
-        <span className="text-muted-foreground block text-sm">{about}</span>
-      )}
+    <Card
+      accent={accent}
+      dashed={accent === null}
+      title={
+        <>
+          {id}{" "}
+          <span className="text-muted-foreground font-normal">{version}</span>
+        </>
+      }
+      action={control}
+    >
+      {about !== undefined && <span className="block">{about}</span>}
       {info !== "" && (
-        <span className="text-foreground mt-1 block text-xs">{info}</span>
+        <span className="text-foreground mt-1 block">{info}</span>
       )}
-      {row.incompatible !== undefined &&
-        (row.incompatible.length === 1 ? (
-          <span className="mt-1 block text-sm text-red-500">
-            Incompatible — {row.incompatible[0]}
-          </span>
-        ) : (
-          <span className="mt-1 block text-sm text-red-500">
-            Incompatible:
-            {row.incompatible.map((p) => (
-              <span key={p} className="block">
-                — {p}
-              </span>
-            ))}
-          </span>
-        ))}
+      {row.incompatible !== undefined && (
+        <span className="mt-1 block">
+          <span className="block text-red-500">Incompatible:</span>
+          {row.incompatible.map((p) => (
+            <span className="block" key={p}>
+              — {p}
+            </span>
+          ))}
+        </span>
+      )}
       {children}
-    </AccentCard>
+    </Card>
   );
 }
 
@@ -159,16 +156,17 @@ export function GoonpacksPanel() {
 
   return (
     <Card title="Goonpacks">
-      <p className="text-muted-foreground text-sm">
+      <p>
         Portable companion packs — a complete companion, or an overlay that
         changes one you have. Manage them here; pick who to play on the
         Companions screen.
       </p>
+
       <div className="mt-2 flex flex-col gap-2">
         {library.status === "loading" ? (
-          <p className="text-muted-foreground text-sm">Checking packs…</p>
+          <p>Checking packs…</p>
         ) : library.packs.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No packs imported.</p>
+          <p>No packs imported.</p>
         ) : (
           library.packs.map((row) => (
             <PackCard
@@ -178,7 +176,7 @@ export function GoonpacksPanel() {
               control={
                 <Button
                   onClick={() => void library.removePack(row.id)}
-                  className="text-muted-foreground hover:text-foreground ml-auto shrink-0 text-sm"
+                  className="text-sm"
                 >
                   Remove
                 </Button>
@@ -187,6 +185,7 @@ export function GoonpacksPanel() {
           ))
         )}
       </div>
+
       <input
         ref={fileRef}
         type="file"
@@ -199,17 +198,15 @@ export function GoonpacksPanel() {
           e.target.value = "";
         }}
       />
-      <Button
-        onClick={() => fileRef.current?.click()}
-        className="text-muted-foreground hover:text-foreground mt-2 rounded-xl border border-dashed px-4 py-2 text-sm"
-      >
-        Import pack
-      </Button>
+
+      <Button onClick={() => fileRef.current?.click()}>Import pack</Button>
+
       {importError?.map((p) => (
         <p key={p} className="mt-1 text-sm text-red-500">
           {p}
         </p>
       ))}
+
       {pendingImport !== null &&
         (() => {
           // The sheet renders the same PackCard the list will once the pack
@@ -246,16 +243,10 @@ export function GoonpacksPanel() {
                         );
                       })
                   }
-                  className="rounded border px-3 py-1"
                 >
                   {pendingImport.replaces ? "Replace" : "Import"}
                 </Button>
-                <Button
-                  onClick={() => setPendingImport(null)}
-                  className="text-muted-foreground rounded px-3 py-1"
-                >
-                  Cancel
-                </Button>
+                <Button onClick={() => setPendingImport(null)}>Cancel</Button>
               </div>
             </PackCard>
           );
