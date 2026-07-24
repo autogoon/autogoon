@@ -21,6 +21,12 @@ keys: copy [`.env.example`](./.env.example) to `.env` and fill it in. On the dev
 server Companions then unlocks with no access ID (the gate applies to
 builds/deploys only).
 
+The dev server binds `0.0.0.0`, so a phone on your network can load it — but
+Next blocks its own cross-origin dev assets by default, which looks like a
+broken app (the page renders, nothing is clickable). Set `DEV_ALLOWED_ORIGINS`
+in `.env` (documented in [`.env.example`](./.env.example)) and restart the dev
+server to fix it.
+
 Other scripts:
 
 - `npm run build` — production build (also runs `tsc`, so it catches RSC/Next
