@@ -360,12 +360,15 @@ function App() {
   const screenBase = screen.split("/")[0]!;
   const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
+  // Companions' play screen strips the app chrome — header and breadcrumb —
+  // down to the panel's own slim bar, so the chat gets the screen.
+  const chromeless = screen === "companions/play";
   const crumbLink =
     "rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
 
   return (
     <>
-      <HeaderBar kws={spotter} vacuglide={vacuglide} />
+      {!chromeless && <HeaderBar kws={spotter} vacuglide={vacuglide} />}
       <div className="mx-auto w-full max-w-2xl px-4">
         {topLevel && (
           <nav className="flex gap-6 border-b">
@@ -392,7 +395,7 @@ function App() {
               ))}
           </nav>
         )}
-        {currentPlayMode !== null && (
+        {currentPlayMode !== null && !chromeless && (
           // The breadcrumb: the way back up, locked while a session runs (the
           // old tab lock's rule — stop before you leave).
           <nav className="flex items-center gap-2 border-b py-3 text-sm">
@@ -474,6 +477,7 @@ function App() {
               active={screenBase === "companions"}
               view={atPlayLevel ? "play" : "setup"}
               onEnterPlay={() => navigate("companions/play")}
+              onExitPlay={() => navigate("companions")}
             />
           </div>
           <div className={screen === "changes" ? undefined : "hidden"}>

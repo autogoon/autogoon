@@ -134,14 +134,17 @@ into it, exit climbs back to setup. Screens mirror into the URL hash (`#goon`,
 `#goon/play`), so the browser back button, reloads and deep-links follow the
 same hierarchy — back is locked mid-session just like exit (the consumed history
 entry is pushed straight back), and a `/play` deep-link lands on its setup
-level, since the session it named didn't survive the reload. Second, the global
-voice words — `connect` while disconnected; the (unlocked) play mode names on
-home; the sibling tab words (`home`/`changes`/`settings`) on any top-level tab;
-`exit` below the top level while idle — which it sets on the recognizer and
-routes itself. Everything else is a play mode word, owned by the active panel.
-Third, the **safe word**: an always-on hard stop (`src/lib/safe-word.ts`) wired
-at the page level so no play mode can ever gate it — it stays in the grammar
-even for outcomes that deliberately ignore Stop.
+level, since the session it named didn't survive the reload. One screen opts out
+of the chrome: Companions' play screen hides the header bar and breadcrumb and
+draws its own slim bar — a back-to-picker button under the same lock, the mic,
+and a hamburger for the panel's sub-tabs — so the chat gets the screen. Second,
+the global voice words — `connect` while disconnected; the (unlocked) play mode
+names on home; the sibling tab words (`home`/`changes`/`settings`) on any
+top-level tab; `exit` below the top level while idle — which it sets on the
+recognizer and routes itself. Everything else is a play mode word, owned by the
+active panel. Third, the **safe word**: an always-on hard stop
+(`src/lib/safe-word.ts`) wired at the page level so no play mode can ever gate
+it — it stays in the grammar even for outcomes that deliberately ignore Stop.
 
 ## Controls
 

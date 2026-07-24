@@ -26,6 +26,14 @@
   amber pills, and a card's controls (pack pickers, Remove) float in its top
   corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- enhancement: **Chat-first Companions play screen** — The play screen drops
+  the app header, breadcrumb, tab strip and mic status card for one slim bar:
+  a back button to the companion picker (locked while the program runs), the
+  mic toggle with a small loudness sliver, and a hamburger menu that switches
+  Session/Controls/Debug, toggles the program preview, and opens the LLM
+  request viewer. The Listen and Connect chips don't appear on this screen —
+  the chat gets the space, especially on mobile.
+
 - enhancement: **Live voice-stage indicators** — The conversation now shows
   what's happening as it happens: you speaking, the companion thinking, the
   reply streaming in, her voice loading, and her speaking. In the chat it's a
