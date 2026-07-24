@@ -6,7 +6,7 @@
 // library. Buttons only, no voice words: importing is a file dialog and
 // removal is destructive-ish — neither wants a spoken trigger.
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
@@ -16,7 +16,7 @@ import {
   type PendingImport,
 } from "@/hooks/use-goonpack-library";
 import { COMPANIONS } from "@/lib/companions/companions";
-import { keyId, keyVersion } from "@/lib/goonpacks/entries";
+import { keyId, keyVersion, packKey } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
 
 // What a pack brings, from its manifest plus the zip-derived summary:
@@ -60,6 +60,77 @@ function rowAccent(row: PackRow, packs: PackRow[]): string | null {
   return "pink"; // a colourless complete pack — packToCompanion's default
 }
 
+// One pack, one card — the admin row and the import confirm sheet render the
+// same body, so what the sheet shows is exactly what the installed row will:
+// heading + version in the top row (`control` sits at its right edge — the
+// row's Remove button), the pack's description, then the info line, with any
+// incompatible problems under it. Mirrors the Companions chooser card. Extra
+// rows (the sheet's replaces note and buttons) come in as children.
+function PackCard({
+  row,
+  accent,
+  control,
+  children,
+}: {
+  row: PackRow;
+  accent: string | null;
+  control?: ReactNode;
+  children?: ReactNode;
+}) {
+  // An incompatible pack still describes itself as best it can: from its
+  // manifest when only cross-pack checks failed, else from the peek. Only a
+  // validated pack gets called complete.
+  const m = row.manifest;
+  // row.id is the storage key (id@version) — split for display.
+  const id = m?.id ?? keyId(row.id);
+  const name = m?.name ?? row.peek?.name;
+  const version = m?.version ?? row.peek?.version ?? keyVersion(row.id);
+  const base = m?.base ?? row.peek?.base;
+  const about = m?.aboutThePack ?? row.peek?.aboutThePack;
+  const info = [
+    // A nameless pack's heading IS the id — don't repeat it.
+    ...(name !== undefined ? [id] : []),
+    ...(base !== undefined
+      ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
+      : m !== undefined
+        ? ["complete companion"]
+        : []),
+    ...(contents(row) !== "" ? [contents(row)] : []),
+  ].join(" · ");
+  const heading = name ?? id;
+  return (
+    <AccentCard accent={accent} dashed={accent === null}>
+      <div className="flex items-center gap-3">
+        <span className="font-semibold">{heading}</span>
+        <span className="text-muted-foreground text-sm">{version}</span>
+        {control}
+      </div>
+      {about !== undefined && (
+        <span className="text-muted-foreground block text-sm">{about}</span>
+      )}
+      {info !== "" && (
+        <span className="text-foreground mt-1 block text-xs">{info}</span>
+      )}
+      {row.incompatible !== undefined &&
+        (row.incompatible.length === 1 ? (
+          <span className="mt-1 block text-sm text-red-500">
+            Incompatible — {row.incompatible[0]}
+          </span>
+        ) : (
+          <span className="mt-1 block text-sm text-red-500">
+            Incompatible:
+            {row.incompatible.map((p) => (
+              <span key={p} className="block">
+                — {p}
+              </span>
+            ))}
+          </span>
+        ))}
+      {children}
+    </AccentCard>
+  );
+}
+
 export function GoonpacksPanel() {
   const library = useGoonpackLibrary();
 
@@ -99,76 +170,21 @@ export function GoonpacksPanel() {
         ) : library.packs.length === 0 ? (
           <p className="text-muted-foreground text-sm">No packs imported.</p>
         ) : (
-          library.packs.map((row) => {
-            // An incompatible pack still describes itself as best it can:
-            // from its manifest when only cross-pack checks failed, else
-            // from the peek. Only a validated pack gets called complete.
-            const m = row.manifest;
-            // row.id is the storage key (id@version) — split for display.
-            const id = m?.id ?? keyId(row.id);
-            const name = m?.name ?? row.peek?.name;
-            const version =
-              m?.version ?? row.peek?.version ?? keyVersion(row.id);
-            const base = m?.base ?? row.peek?.base;
-            const about = m?.aboutThePack ?? row.peek?.aboutThePack;
-            const info = [
-              // A nameless pack's heading IS the id — don't repeat it.
-              ...(name !== undefined ? [id] : []),
-              ...(base !== undefined
-                ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
-                : m !== undefined
-                  ? ["complete companion"]
-                  : []),
-              ...(contents(row) !== "" ? [contents(row)] : []),
-            ].join(" · ");
-            const accent = rowAccent(row, library.packs);
-            const heading = name ?? id;
-            return (
-              /* Mirrors the Companions chooser card: name + version in the
-                 top row (Remove where the card has no control), the pack's
-                 description under it, then the info line. Incompatible rows
-                 go plain dashed. */
-              <AccentCard key={row.id} accent={accent} dashed={accent === null}>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">{heading}</span>
-                  <span className="text-muted-foreground text-sm">
-                    {version}
-                  </span>
-                  <Button
-                    onClick={() => void library.removePack(row.id)}
-                    className="text-muted-foreground hover:text-foreground ml-auto shrink-0 text-sm"
-                  >
-                    Remove
-                  </Button>
-                </div>
-                {about !== undefined && (
-                  <span className="text-muted-foreground block text-sm">
-                    {about}
-                  </span>
-                )}
-                {info !== "" && (
-                  <span className="text-foreground mt-1 block text-xs">
-                    {info}
-                  </span>
-                )}
-                {row.incompatible !== undefined &&
-                  (row.incompatible.length === 1 ? (
-                    <span className="mt-1 block text-sm text-red-500">
-                      Incompatible — {row.incompatible[0]}
-                    </span>
-                  ) : (
-                    <span className="mt-1 block text-sm text-red-500">
-                      Incompatible:
-                      {row.incompatible.map((p) => (
-                        <span key={p} className="block">
-                          — {p}
-                        </span>
-                      ))}
-                    </span>
-                  ))}
-              </AccentCard>
-            );
-          })
+          library.packs.map((row) => (
+            <PackCard
+              key={row.id}
+              row={row}
+              accent={rowAccent(row, library.packs)}
+              control={
+                <Button
+                  onClick={() => void library.removePack(row.id)}
+                  className="text-muted-foreground hover:text-foreground ml-auto shrink-0 text-sm"
+                >
+                  Remove
+                </Button>
+              }
+            />
+          ))
         )}
       </div>
       <input
@@ -194,54 +210,56 @@ export function GoonpacksPanel() {
           {p}
         </p>
       ))}
-      {pendingImport !== null && (
-        <AccentCard accent={null}>
-          <p className="font-semibold">
-            {pendingImport.manifest.name ?? pendingImport.manifest.id}
-            <span className="text-muted-foreground font-normal">
-              {" "}
-              {pendingImport.manifest.id} · {pendingImport.manifest.version}
-              {pendingImport.manifest.base !== undefined
-                ? ` · overlays ${pendingImport.manifest.base}`
-                : ""}
-            </span>
-          </p>
-          {/* The sheet describes the PACK — aboutThePack, not her
-              description. */}
-          <p className="text-muted-foreground">
-            {pendingImport.manifest.aboutThePack}
-          </p>
-          {pendingImport.replaces && (
-            <p className="mt-1">Replaces the installed pack. Threads stay.</p>
-          )}
-          <div className="mt-2 flex gap-2">
-            <Button
-              onClick={() =>
-                void pendingImport
-                  .commit()
-                  .then(() => setPendingImport(null))
-                  .catch((e: unknown) => {
-                    // A failed store (quota, IDB error) must not strand the
-                    // sheet with no feedback.
-                    setPendingImport(null);
-                    setImportError(
-                      e instanceof PackError ? e.problems : ["Import failed."],
-                    );
-                  })
-              }
-              className="rounded border px-3 py-1"
+      {pendingImport !== null &&
+        (() => {
+          // The sheet renders the same PackCard the list will once the pack
+          // is committed — a synthetic row from the parsed import.
+          const sheetRow: PackRow = {
+            id: packKey(pendingImport.manifest),
+            manifest: pendingImport.manifest,
+            summary: pendingImport.summary,
+          };
+          return (
+            <PackCard
+              row={sheetRow}
+              accent={rowAccent(sheetRow, library.packs)}
             >
-              {pendingImport.replaces ? "Replace" : "Import"}
-            </Button>
-            <Button
-              onClick={() => setPendingImport(null)}
-              className="text-muted-foreground rounded px-3 py-1"
-            >
-              Cancel
-            </Button>
-          </div>
-        </AccentCard>
-      )}
+              {pendingImport.replaces && (
+                <p className="mt-1 text-sm">
+                  Replaces the installed pack. Threads stay.
+                </p>
+              )}
+              <div className="mt-2 flex gap-2">
+                <Button
+                  onClick={() =>
+                    void pendingImport
+                      .commit()
+                      .then(() => setPendingImport(null))
+                      .catch((e: unknown) => {
+                        // A failed store (quota, IDB error) must not strand the
+                        // sheet with no feedback.
+                        setPendingImport(null);
+                        setImportError(
+                          e instanceof PackError
+                            ? e.problems
+                            : ["Import failed."],
+                        );
+                      })
+                  }
+                  className="rounded border px-3 py-1"
+                >
+                  {pendingImport.replaces ? "Replace" : "Import"}
+                </Button>
+                <Button
+                  onClick={() => setPendingImport(null)}
+                  className="text-muted-foreground rounded px-3 py-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </PackCard>
+          );
+        })()}
       <p className="text-muted-foreground mt-2 text-xs">
         Packs live in browser storage; keep your zips.
       </p>

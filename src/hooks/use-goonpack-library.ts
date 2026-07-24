@@ -43,6 +43,7 @@ import {
 export type { LibraryEntry, PackOption };
 export type PendingImport = {
   manifest: PackManifest;
+  summary: PackSummary;
   replaces: boolean; // this exact id+version is already installed
   commit(): Promise<void>;
 };
@@ -258,6 +259,7 @@ export function useGoonpackLibrary() {
       if (err !== null) throw new PackError(err);
       return {
         manifest: m,
+        summary: summarize(parsed),
         // Versions coexist: only the exact same id+version is replaced.
         replaces: validRef.current.has(packKey(m)),
         commit: async () => {
