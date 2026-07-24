@@ -52,10 +52,18 @@ export function peekPack(zipBytes: Uint8Array): PackPeek {
     if (typeof raw !== "object" || raw === null) return {};
     const m = raw as Record<string, unknown>;
     const peek: PackPeek = {};
-    for (const k of ["name", "version", "base", "aboutThePack"] as const) {
+    for (const k of ["version", "base", "aboutThePack"] as const) {
       const v = m[k];
       if (typeof v === "string") peek[k] = v;
     }
+    // The name sits in the companion section (leniently: or top-level, as a
+    // pre-restructure manifest would have it).
+    const c = m.companion;
+    const name =
+      typeof c === "object" && c !== null && !Array.isArray(c)
+        ? (c as Record<string, unknown>).name
+        : m.name;
+    if (typeof name === "string") peek.name = name;
     return peek;
   } catch {
     return {};
@@ -145,11 +153,14 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       if (systemPrompt === undefined) {
         problems.push("A complete pack needs a system-prompt.md file.");
       }
-      if (!manifest.name)
-        problems.push("A complete pack needs a name field in manifest.json.");
-      if (!manifest.voiceId) {
+      if (!manifest.companion.name) {
         problems.push(
-          "A complete pack needs a voiceId field in manifest.json.",
+          "A complete pack needs a name field in the companion section of manifest.json.",
+        );
+      }
+      if (!manifest.companion.voiceId) {
+        problems.push(
+          "A complete pack needs a voiceId field in the companion section of manifest.json.",
         );
       }
     }

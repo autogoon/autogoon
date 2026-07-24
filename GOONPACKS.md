@@ -56,19 +56,23 @@ add.
 
 ## manifest.json — every field
 
-The manifest is a small JSON file. Text values go in quotes, numbers and
-true/false don't, and fields are separated by commas:
+The manifest is a small JSON file in two halves: the top level describes the
+**pack** (what it is, its version), and the `companion` section describes
+**her**. Text values go in quotes, numbers and true/false don't, and fields are
+separated by commas:
 
     {
       "format": 1,
       "id": "yourname.luna",
       "version": "1.0.0",
       "aboutThePack": "Luna, a sleepy-voiced artist. 12 pictures.",
-      "name": "Luna",
-      "description": "A soft-spoken painter who stays up too late.",
-      "gender": "female",
-      "accentColour": "violet",
-      "voiceId": "abc123..."
+      "companion": {
+        "name": "Luna",
+        "description": "A soft-spoken painter who stays up too late.",
+        "gender": "female",
+        "accentColour": "violet",
+        "voiceId": "abc123..."
+      }
     }
 
 ### Every pack needs
@@ -90,15 +94,20 @@ true/false don't, and fields are separated by commas:
   about the pack, not her — it's what the Goonpacks list and the import
   confirmation show. Her own blurb goes in `description`.
 
-### Complete packs
+### The companion section — her fields
 
-- **`name`** (required) — her name, as her card and picker show it.
-- **`voiceId`** (required) — the ElevenLabs voice she speaks with. This is the
-  voice's id string from ElevenLabs, and it must exist in the ElevenLabs account
-  the app runs with — voices don't travel between accounts.
-- **`system-prompt.md`** (required — a file next to the manifest, not a manifest
-  field) — her persona; see below.
-- **`gender`** — `female`, `male` or `nonbinary`. Optional.
+Everything about her goes inside `companion: { … }`. For a **complete pack**,
+`name` and `voiceId` are required (plus the `system-prompt.md` file next to the
+manifest); the rest are optional. An **overlay** includes only the fields it
+changes.
+
+- **`name`** — her name, as her card and picker show it. Required on a complete
+  pack; forbidden on an overlay.
+- **`voiceId`** — the ElevenLabs voice she speaks with. This is the voice's id
+  string from ElevenLabs, and it must exist in the ElevenLabs account the app
+  runs with — voices don't travel between accounts. Required on a complete pack.
+- **`gender`** — `female`, `male` or `nonbinary`. Optional; forbidden on an
+  overlay.
 - **`description`** — a sentence about _her_, shown on her card on the
   Companions screen. Optional.
 - **`accentColour`** — the colour her card and chooser entry wear. One of: red,
@@ -115,18 +124,28 @@ true/false don't, and fields are separated by commas:
 
 ### Overlays
 
-- **`base`** (this is what makes a pack an overlay) — the `id` of the companion
-  this overlay changes: a built-in's id or a complete pack's id, never another
-  overlay's.
-- Then include **only what changes**: `pictures/`, `voiceId`,
-  `system-prompt.md`, `description`, `accentColour`, `model`, `contextWindow`,
-  `passesReasoning` — each one replaces the base's while the overlay is
+- **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
+  companion this overlay changes: a built-in's id or a complete pack's id, never
+  another overlay's.
+- Then include **only what changes**: `pictures/`, `system-prompt.md`, and any
+  `companion` fields — each one replaces the base's while the overlay is
   selected; anything left out stays the base's.
-- **`noPictures`** — `true` means the overlay deliberately strips the base's
-  pictures, so the combination has none. (Simply omitting `pictures/` keeps the
-  base's set — `noPictures` is for when "none" is the point.)
+- **`noPictures`** (top-level) — `true` means the overlay deliberately strips
+  the base's pictures, so the combination has none. (Simply omitting `pictures/`
+  keeps the base's set — `noPictures` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same her, same memory,
   as above.
+
+An overlay that changes only her colour is just:
+
+    {
+      "format": 1,
+      "id": "yourname.luna-cyan",
+      "version": "1.0.0",
+      "aboutThePack": "Luna in cyan.",
+      "base": "yourname.luna",
+      "companion": { "accentColour": "cyan" }
+    }
 
 ## system-prompt.md — her persona
 

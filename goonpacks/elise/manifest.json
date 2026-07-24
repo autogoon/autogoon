@@ -3,9 +3,11 @@
   "id": "g00ner.elise",
   "version": "1.0.0",
   "aboutThePack": "Elise, a flirty e-girl streamer. No pictures included.",
-  "name": "Elise",
-  "description": "A high-energy, flirty streamer with a dry, quieter side.",
-  "gender": "female",
-  "accentColour": "fuchsia",
-  "voiceId": "uhseMNDjn3oAF24Hh83b"
+  "companion": {
+    "name": "Elise",
+    "description": "A high-energy, flirty streamer with a dry, quieter side.",
+    "gender": "female",
+    "accentColour": "fuchsia",
+    "voiceId": "uhseMNDjn3oAF24Hh83b"
+  }
 }

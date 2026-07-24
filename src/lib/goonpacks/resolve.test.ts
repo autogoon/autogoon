@@ -22,7 +22,7 @@ const base: Companion = {
   passesReasoning: true,
 };
 const overlay = (
-  extra: object = {},
+  extra: { companion?: object; noPictures?: boolean } = {},
   pictures = [] as Companion["pictures"],
 ) => ({
   manifest: {
@@ -31,7 +31,8 @@ const overlay = (
     version: "1.0.0",
     base: "autogoon.aimee",
     aboutThePack: "test overlay",
-    ...extra,
+    noPictures: extra.noPictures,
+    companion: extra.companion ?? {},
   },
   pictures: pictures ?? [],
 });
@@ -44,17 +45,19 @@ describe("applyOverlay", () => {
   });
   it("replaces fields the overlay provides", () => {
     const out = applyOverlay(base, {
-      ...overlay({ voiceId: "v-new", description: "her goth era" }),
+      ...overlay({
+        companion: { voiceId: "v-new", description: "her goth era" },
+      }),
       systemPrompt: "yo {{NOT_A_SECTION}}",
     });
     expect(out.voiceId).toBe("v-new");
     expect(out.description).toBe("her goth era");
     expect(out.systemPrompt).toBe("yo ");
   });
-  it("never takes the overlay's name — she keeps hers", () => {
+  it("never takes the overlay's name — the base's is kept", () => {
     // The manifest rejects `name` on overlays; belt and braces, the merge
     // ignores it even if one sneaks into a stored record.
-    const out = applyOverlay(base, overlay({ name: "Amy" }));
+    const out = applyOverlay(base, overlay({ companion: { name: "Amy" } }));
     expect(out.name).toBe("Aimee");
   });
   it("fills PICTURES_SECTION when the overlay brings pictures", () => {
@@ -87,8 +90,7 @@ describe("packToCompanionRaw + applyOverlay (pack-shaped base)", () => {
         id: "some.base",
         version: "1",
         aboutThePack: "a base pack",
-        name: "Base",
-        voiceId: "v",
+        companion: { name: "Base", voiceId: "v" },
       },
       systemPrompt: "hi\n{{PICTURES_SECTION}}",
       pictures: [],
@@ -112,8 +114,7 @@ describe("packToCompanion", () => {
         id: "some.one",
         version: "1",
         aboutThePack: "a complete pack",
-        name: "One",
-        voiceId: "v1",
+        companion: { name: "One", voiceId: "v1" },
       },
       systemPrompt: "p",
       pictures: [],

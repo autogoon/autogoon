@@ -64,9 +64,9 @@ function changedSlots(p: LoadedPack): VariantSlot[] {
     out.push("pictures");
   }
   if (p.summary.hasPrompt) out.push("prompt");
-  if (p.manifest.voiceId !== undefined) out.push("voice");
-  if (p.manifest.accentColour !== undefined) out.push("colour");
-  if (p.manifest.model !== undefined) out.push("model");
+  if (p.manifest.companion.voiceId !== undefined) out.push("voice");
+  if (p.manifest.companion.accentColour !== undefined) out.push("colour");
+  if (p.manifest.companion.model !== undefined) out.push("model");
   return out;
 }
 
@@ -86,8 +86,8 @@ const baseOption = (p: LoadedPack): PackOption => ({
   key: packKey(p.manifest),
   label: publisher(p.manifest.id),
   version: p.manifest.version,
-  description: p.manifest.description,
-  accent: p.manifest.accentColour,
+  description: p.manifest.companion.description,
+  accent: p.manifest.companion.accentColour,
   pictures: p.summary.pictures,
   changed: [],
 });
@@ -96,8 +96,8 @@ const overlayOption = (p: LoadedPack): PackOption => ({
   key: packKey(p.manifest),
   label: publisher(p.manifest.id),
   version: p.manifest.version,
-  description: p.manifest.description,
-  accent: p.manifest.accentColour,
+  description: p.manifest.companion.description,
+  accent: p.manifest.companion.accentColour,
   pictures: p.summary.pictures,
   noPictures: p.manifest.noPictures,
   changed: changedSlots(p),
@@ -128,7 +128,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
     ],
     overlays: overlaysFor(c.id),
   }));
-  // Complete packs: one entry per companion id — she's the same her across
+  // Complete packs: one entry per companion id — the same companion across
   // versions (same thread) — with each version a base option, newest first.
   const completes: LibraryEntry[] = [];
   const seen = new Set<string>();

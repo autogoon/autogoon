@@ -14,7 +14,7 @@ const manifest = (extra: object = {}) =>
     }),
   );
 const complete = (extra: object = {}) =>
-  manifest({ name: "Testy", voiceId: "v123", ...extra });
+  manifest({ companion: { name: "Testy", voiceId: "v123" }, ...extra });
 
 describe("parsePack", () => {
   it("parses a complete pack with pictures and sidecars", () => {
@@ -69,7 +69,7 @@ describe("parsePack", () => {
     expect(() =>
       parsePack(
         zipSync({
-          "manifest.json": manifest({ voiceId: "v" }),
+          "manifest.json": manifest({ companion: { voiceId: "v" } }),
           "system-prompt.md": strToU8("x"),
         }),
       ),
@@ -120,21 +120,24 @@ describe("parsePack", () => {
     expect(
       problems(
         zipSync({
-          "manifest.json": manifest({ name: "Testy" }),
+          "manifest.json": manifest({ companion: { name: "Testy" } }),
           "pictures/a.gif": new Uint8Array([1]),
         }),
       ),
     ).toEqual([
       "Unsupported file in pictures/: a.gif — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.",
       "A complete pack needs a system-prompt.md file.",
-      "A complete pack needs a voiceId field in manifest.json.",
+      "A complete pack needs a voiceId field in the companion section of manifest.json.",
     ]);
     // A broken manifest: its problems merge with the zip's (completeness
     // checks need a readable manifest, so those wait).
     expect(
       problems(
         zipSync({
-          "manifest.json": manifest({ version: undefined, name: "Testy" }),
+          "manifest.json": manifest({
+            version: undefined,
+            companion: { name: "Testy" },
+          }),
           "pictures/a.gif": new Uint8Array([1]),
         }),
       ),
@@ -152,7 +155,7 @@ describe("peekPack", () => {
         JSON.stringify({
           id: "test.pack",
           version: "0.9.0",
-          name: "Testy",
+          companion: { name: "Testy" },
           base: "autogoon.aimee",
           format: "bad",
         }),
@@ -169,6 +172,7 @@ describe("peekPack", () => {
     const zip = zipSync({
       "manifest.json": strToU8(JSON.stringify({ version: 2, name: "Testy" })),
     });
+    // A top-level name (the pre-companion-section shape) still peeks.
     expect(peekPack(zip)).toEqual({ name: "Testy" });
     expect(peekPack(new Uint8Array([9, 9, 9]))).toEqual({});
     expect(peekPack(zipSync({ "manifest.json": strToU8("nope") }))).toEqual({});

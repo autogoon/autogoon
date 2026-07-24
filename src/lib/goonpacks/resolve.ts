@@ -1,7 +1,8 @@
 // Turns pack content into a playable Companion. The load-time half of the
 // prompt pipeline: shared-section tokens are filled here, live markers stay
 // for the session's per-turn fill. An overlay keeps the BASE's id — the id is
-// thread ownership, and an overlay is "my version of her", not a new her.
+// thread ownership, and an overlay is "my version of them", not a new
+// companion.
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MODEL,
@@ -36,20 +37,21 @@ export function resolveDefault(base: Companion): Companion {
 // so an overlay bringing pictures could never restore it.
 export function packToCompanionRaw(pack: PackContent): Companion {
   const m = pack.manifest;
+  const c = m.companion;
   const pictures = pack.pictures.length > 0 ? pack.pictures : undefined;
   return {
     id: m.id,
-    name: m.name ?? m.id,
+    name: c.name ?? m.id,
     // Her card description, else the pack's about-text — better than an
     // empty card line.
-    description: m.description ?? m.aboutThePack ?? "",
-    gender: m.gender ?? "female",
-    accentColour: m.accentColour ?? "pink",
-    voiceId: m.voiceId ?? "",
+    description: c.description ?? m.aboutThePack ?? "",
+    gender: c.gender ?? "female",
+    accentColour: c.accentColour ?? "pink",
+    voiceId: c.voiceId ?? "",
     systemPrompt: pack.systemPrompt ?? "",
-    model: m.model ?? DEFAULT_MODEL,
-    contextWindow: m.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
-    passesReasoning: m.passesReasoning ?? DEFAULT_PASSES_REASONING,
+    model: c.model ?? DEFAULT_MODEL,
+    contextWindow: c.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+    passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,
     pictures,
   };
 }
@@ -74,6 +76,7 @@ export function resolvePictureRef(
 
 export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const m = overlay.manifest;
+  const c = m.companion;
   // noPictures strips the base's set outright; a pictures/ folder replaces
   // it; neither keeps it. name and gender are never the overlay's to change
   // (the manifest rejects them; the spread keeps the base's regardless).
@@ -86,12 +89,12 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
   return {
     ...base, // id stays the base's — thread ownership; so do name and gender
-    description: m.description ?? base.description,
-    accentColour: m.accentColour ?? base.accentColour,
-    voiceId: m.voiceId ?? base.voiceId,
-    model: m.model ?? base.model,
-    contextWindow: m.contextWindow ?? base.contextWindow,
-    passesReasoning: m.passesReasoning ?? base.passesReasoning,
+    description: c.description ?? base.description,
+    accentColour: c.accentColour ?? base.accentColour,
+    voiceId: c.voiceId ?? base.voiceId,
+    model: c.model ?? base.model,
+    contextWindow: c.contextWindow ?? base.contextWindow,
+    passesReasoning: c.passesReasoning ?? base.passesReasoning,
     pictures,
     systemPrompt: fill(rawPrompt, pictures),
   };

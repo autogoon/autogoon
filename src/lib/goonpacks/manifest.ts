@@ -45,25 +45,56 @@ const GENDERS = new Set(["female", "male", "nonbinary"]);
 // The pack-format version this app understands. Bump only with a format change.
 export const PACK_FORMAT = 1;
 
-export type PackManifest = {
-  format: number; // pack-format version (not the pack's own version)
-  id: string; // publisher.name — unversioned identity
-  version: string; // author's own version; displayed as-is, never interpreted
-  base?: string; // overlay only: id of the companion it modifies
-  // What the pack adds or changes — about the PACK, not the companion
-  // (`description` is hers).
-  aboutThePack: string;
-  name?: string; // complete packs only — an overlay keeps her name
-  description?: string; // hers, for her card (overlay: replaces the base's while selected)
+// Every field the manifest's top level allows.
+const TOP_FIELDS = new Set([
+  "format",
+  "id",
+  "version",
+  "base",
+  "aboutThePack",
+  "noPictures",
+  "companion",
+]);
+
+// The companion half of the manifest — everything under the `companion` key.
+// The top level is about the pack; this is about the companion it makes or
+// changes.
+export type CompanionConfig = {
+  name?: string; // complete packs only — an overlay keeps the base's name
+  description?: string; // the companion's, for their card (overlay: replaces the base's while selected)
   gender?: "female" | "male" | "nonbinary"; // complete packs only, like name
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)
   model?: string; // OpenRouter slug; app default when omitted
   contextWindow?: number;
   passesReasoning?: boolean;
+};
+
+// The keys of CompanionConfig — the only fields the companion section allows.
+const COMPANION_FIELDS = [
+  "name",
+  "description",
+  "gender",
+  "accentColour",
+  "voiceId",
+  "model",
+  "contextWindow",
+  "passesReasoning",
+] as const;
+
+export type PackManifest = {
+  format: number; // pack-format version (not the pack's own version)
+  id: string; // publisher.name — unversioned identity
+  version: string; // author's own version; displayed as-is, never interpreted
+  base?: string; // overlay only: id of the companion it modifies
+  // What the pack adds or changes — about the PACK, not the companion
+  // (that's `companion.description`).
+  aboutThePack: string;
   // Overlay only: the resolved variant has NO pictures, deliberately —
   // distinct from omitting pictures/, which keeps the base's set.
   noPictures?: boolean;
+  // Always present after parsing — {} when the manifest carries none.
+  companion: CompanionConfig;
 };
 
 // Validate a decoded manifest.json. Completeness rules that depend on the rest
@@ -138,22 +169,6 @@ export function parseManifest(raw: unknown): PackManifest {
         "A pack can't overlay itself — base must be a different companion's id.",
       );
     }
-    // The id means the same her, and the thread stays hers — an overlay that
-    // renames or re-genders her is a different companion: make a complete
-    // pack instead.
-    if (m.name !== undefined) {
-      problems.push(
-        "An overlay can't change a companion's name, remove the name field from manifest.json.",
-      );
-    }
-    if (m.gender !== undefined) {
-      problems.push(
-        "An overlay can't change a companion's gender, remove the gender field from manifest.json.",
-      );
-    }
-  }
-  if (m.gender !== undefined && !GENDERS.has(m.gender as string)) {
-    problems.push("The gender field must be female, male or nonbinary.");
   }
   if (m.noPictures !== undefined) {
     if (typeof m.noPictures !== "boolean") {
@@ -165,27 +180,71 @@ export function parseManifest(raw: unknown): PackManifest {
       );
     }
   }
-  const accentColour = optionalString(m.accentColour, "accentColour");
+  // Only known fields, in their right place — an unknown name is usually a
+  // typo (accentColor, voiceID) that would otherwise be silently ignored.
+  for (const f of Object.keys(m)) {
+    if (!TOP_FIELDS.has(f)) {
+      problems.push(`Unknown field at the top level of manifest.json: ${f}.`);
+    }
+  }
+  let c: Record<string, unknown> = {};
+  if (m.companion !== undefined) {
+    if (
+      typeof m.companion !== "object" ||
+      m.companion === null ||
+      Array.isArray(m.companion)
+    ) {
+      problems.push(
+        "The companion field must be a section in braces — companion: { … } with the companion fields inside.",
+      );
+    } else {
+      c = m.companion as Record<string, unknown>;
+    }
+  }
+  for (const f of Object.keys(c)) {
+    if (!(COMPANION_FIELDS as readonly string[]).includes(f)) {
+      problems.push(`Unknown field in the companion section: ${f}.`);
+    }
+  }
+  if (m.base !== undefined) {
+    // The id means the same companion, and the thread stays theirs — an
+    // overlay that renames or re-genders them is a different companion: make
+    // a complete pack instead.
+    if (c.name !== undefined) {
+      problems.push(
+        "An overlay can't change a companion's name, remove the name field from the companion section.",
+      );
+    }
+    if (c.gender !== undefined) {
+      problems.push(
+        "An overlay can't change a companion's gender, remove the gender field from the companion section.",
+      );
+    }
+  }
+  if (c.gender !== undefined && !GENDERS.has(c.gender as string)) {
+    problems.push("The gender field must be female, male or nonbinary.");
+  }
+  const accentColour = optionalString(c.accentColour, "accentColour");
   if (accentColour !== undefined && !ACCENT_COLOURS.has(accentColour)) {
     problems.push(
       `Unknown accentColour: ${accentColour} — pick one of ${[...ACCENT_COLOURS].join(", ")}.`,
     );
   }
-  if (m.contextWindow !== undefined && typeof m.contextWindow !== "number") {
+  if (c.contextWindow !== undefined && typeof c.contextWindow !== "number") {
     problems.push("The contextWindow field must be a number (no quotes).");
   }
   if (
-    m.passesReasoning !== undefined &&
-    typeof m.passesReasoning !== "boolean"
+    c.passesReasoning !== undefined &&
+    typeof c.passesReasoning !== "boolean"
   ) {
     problems.push(
       "The passesReasoning field must be true or false (no quotes).",
     );
   }
-  const name = optionalString(m.name, "name");
-  const description = optionalString(m.description, "description");
-  const voiceId = optionalString(m.voiceId, "voiceId");
-  const model = optionalString(m.model, "model");
+  const name = optionalString(c.name, "name");
+  const description = optionalString(c.description, "description");
+  const voiceId = optionalString(c.voiceId, "voiceId");
+  const model = optionalString(c.model, "model");
   if (problems.length > 0) throw new PackError(problems);
   // The casts are sound: reaching here means every pushed check passed.
   return {
@@ -194,14 +253,16 @@ export function parseManifest(raw: unknown): PackManifest {
     version: m.version as string,
     base: m.base as string | undefined,
     aboutThePack: m.aboutThePack as string,
-    name,
-    description,
-    gender: m.gender as PackManifest["gender"],
-    accentColour,
-    voiceId,
-    model,
-    contextWindow: m.contextWindow as number | undefined,
-    passesReasoning: m.passesReasoning as boolean | undefined,
     noPictures: m.noPictures as boolean | undefined,
+    companion: {
+      name,
+      description,
+      gender: c.gender as CompanionConfig["gender"],
+      accentColour,
+      voiceId,
+      model,
+      contextWindow: c.contextWindow as number | undefined,
+      passesReasoning: c.passesReasoning as boolean | undefined,
+    },
   };
 }

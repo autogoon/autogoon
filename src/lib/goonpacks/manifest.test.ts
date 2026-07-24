@@ -37,14 +37,14 @@ describe("parseManifest", () => {
   it("rejects a pack overlaying itself", () => {
     expect(() => parseManifest({ ...good, base: good.id })).toThrow(PackError);
   });
-  it("rejects name and gender on an overlay — she keeps hers", () => {
+  it("rejects name and gender on an overlay — the base's are kept", () => {
     const overlay = { ...good, base: "autogoon.aimee" };
-    expect(() => parseManifest({ ...overlay, name: "Amy" })).toThrow(
-      /can't change a companion's name/,
-    );
-    expect(() => parseManifest({ ...overlay, gender: "female" })).toThrow(
-      /can't change a companion's gender/,
-    );
+    expect(() =>
+      parseManifest({ ...overlay, companion: { name: "Amy" } }),
+    ).toThrow(/can't change a companion's name/);
+    expect(() =>
+      parseManifest({ ...overlay, companion: { gender: "female" } }),
+    ).toThrow(/can't change a companion's gender/);
   });
   it("accepts noPictures on an overlay, rejects it elsewhere", () => {
     const overlay = { ...good, base: "autogoon.aimee" };
@@ -67,16 +67,33 @@ describe("parseManifest", () => {
     );
   });
   it("rejects an unknown accentColour", () => {
-    expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(
-      PackError,
-    );
-    expect(parseManifest({ ...good, accentColour: "teal" }).accentColour).toBe(
-      "teal",
-    );
+    expect(() =>
+      parseManifest({ ...good, companion: { accentColour: "mauve" } }),
+    ).toThrow(PackError);
+    expect(
+      parseManifest({ ...good, companion: { accentColour: "teal" } }).companion
+        .accentColour,
+    ).toBe("teal");
   });
   it("rejects a bad gender", () => {
-    expect(() => parseManifest({ ...good, gender: "robot" })).toThrow(
-      PackError,
+    expect(() =>
+      parseManifest({ ...good, companion: { gender: "robot" } }),
+    ).toThrow(PackError);
+  });
+  it("rejects unknown fields at either level — typos never pass silently", () => {
+    expect(() => parseManifest({ ...good, name: "Amy" })).toThrow(
+      "Unknown field at the top level of manifest.json: name.",
+    );
+    expect(() => parseManifest({ ...good, accentColor: "teal" })).toThrow(
+      "Unknown field at the top level of manifest.json: accentColor.",
+    );
+    expect(() =>
+      parseManifest({ ...good, companion: { voiceID: "v" } }),
+    ).toThrow("Unknown field in the companion section: voiceID.");
+  });
+  it("rejects a companion field that isn't a section", () => {
+    expect(() => parseManifest({ ...good, companion: "Amy" })).toThrow(
+      /companion field must be a section/,
     );
   });
   it("rejects non-object input", () => {

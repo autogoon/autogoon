@@ -12,35 +12,45 @@ import {
 } from "./entries";
 import type { PackManifest } from "./manifest";
 
+// Fixture extras split the way the manifest does: `top` spreads into the
+// pack level, `companion` into the companion section.
+type Extra = { top?: object; companion?: object };
 const manifest = (
   id: string,
   version: string,
-  extra: object = {},
+  e: Extra = {},
 ): PackManifest => ({
   format: 1,
   id,
   version,
   aboutThePack: "a test pack",
-  ...extra,
+  companion: e.companion ?? {},
+  ...e.top,
 });
 const NO_EXTRAS = { pictures: 0, hasPrompt: false };
 const complete = (
   id: string,
   version: string,
-  extra: object = {},
+  e: Extra = {},
   summary = NO_EXTRAS,
 ): LoadedPack => ({
-  manifest: manifest(id, version, { name: "Comp", voiceId: "v", ...extra }),
+  manifest: manifest(id, version, {
+    top: e.top,
+    companion: { name: "Comp", voiceId: "v", ...e.companion },
+  }),
   summary,
 });
 const overlay = (
   id: string,
   version: string,
   base: string,
-  extra: object = {},
+  e: Extra = {},
   summary = NO_EXTRAS,
 ): LoadedPack => ({
-  manifest: manifest(id, version, { base, ...extra }),
+  manifest: manifest(id, version, {
+    top: { base, ...e.top },
+    companion: e.companion,
+  }),
   summary,
 });
 
@@ -107,13 +117,13 @@ describe("buildEntries", () => {
       complete(
         "pub.comp",
         "1.0.0",
-        { description: "old" },
+        { companion: { description: "old" } },
         { pictures: 3, hasPrompt: true },
       ),
       complete(
         "pub.comp",
         "1.10.0",
-        { description: "new" },
+        { companion: { description: "new" } },
         { pictures: 5, hasPrompt: true },
       ),
     ];
@@ -138,12 +148,12 @@ describe("buildEntries", () => {
   it("overlay versions list newest first with their changed slots", () => {
     const base = BUILT_IN_IDS[0]!;
     const packs = [
-      overlay("pub.goth", "1.0.0", base, { voiceId: "v1" }),
+      overlay("pub.goth", "1.0.0", base, { companion: { voiceId: "v1" } }),
       overlay(
         "pub.goth",
         "1.1.0",
         base,
-        { voiceId: "v2", accentColour: "violet" },
+        { companion: { voiceId: "v2", accentColour: "violet" } },
         { pictures: 4, hasPrompt: false },
       ),
     ];
@@ -163,7 +173,7 @@ describe("buildEntries", () => {
   it("noPictures flags the overlay option", () => {
     const base = BUILT_IN_IDS[0]!;
     const entry = buildEntries([
-      overlay("pub.quiet", "1.0.0", base, { noPictures: true }),
+      overlay("pub.quiet", "1.0.0", base, { top: { noPictures: true } }),
     ]).find((e) => e.companion.id === base)!;
     expect(entry.overlays[0]).toMatchObject({
       noPictures: true,
@@ -174,7 +184,9 @@ describe("buildEntries", () => {
   it("overlays on a complete pack attach to its entry", () => {
     const packs = [
       complete("pub.comp", "1.0.0", {}, { pictures: 7, hasPrompt: true }),
-      overlay("pub.voice", "1.0.0", "pub.comp", { voiceId: "v2" }),
+      overlay("pub.voice", "1.0.0", "pub.comp", {
+        companion: { voiceId: "v2" },
+      }),
     ];
     const entry = buildEntries(packs).find(
       (e) => e.companion.id === "pub.comp",
