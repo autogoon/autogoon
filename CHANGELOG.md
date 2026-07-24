@@ -52,6 +52,13 @@
   render in full, and the raw file can put blank lines between entries.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- internal: **Roadmap: a goonpack kit** — Written up the case for moving pack
+  authoring — captioning, manifest, persona, build — out of the npm scripts and
+  into a screen in the app, along with the constraint that shapes it: it would
+  be the app's first filesystem route, so it can only exist in a dev build.
+  [roadmap/GOONPACK-KIT.md](./roadmap/GOONPACK-KIT.md)
+  ([#19](https://github.com/autogoon/autogoon/pull/19))
+
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
