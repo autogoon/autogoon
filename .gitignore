@@ -22,5 +22,9 @@ LEGAL-AND-DISTRIBUTION.md
 /public/companions/*
 
 # Local goonpack sources (images + manifests) — personal content, never
-# committed. Zip a pack directory's contents to import it in the app.
-/goonpacks/
+# committed. Zip a pack directory's contents to import it in the app. The one
+# exception is the committed, deliberately pictureless example pack
+# (goonpacks/elise/) — and even there, pictures stay local.
+/goonpacks/*
+!/goonpacks/elise/
+/goonpacks/elise/pictures/

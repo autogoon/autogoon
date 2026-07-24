@@ -49,7 +49,7 @@ offline.
   & pull request" prompt GitHub shows after you push.
 - **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change —
   user-facing ones described by what the app does, internal ones (refactors,
-  etc.) by what changed. One line per change, newest first, grouped by date,
+  etc.) by what changed. One entry per change, newest first, grouped by date,
   tagged `feature` / `enhancement` / `bug` / `internal` (in that order within a
   day), linking the PR.
 - **Before it's reviewed** — `npm run typecheck`, `lint`, and `format` must all
@@ -71,9 +71,15 @@ content, host or index goonpacks, or recommend where content can be acquired.
 Users bring their own files; everything stays on their own machine, and the app
 stays dumb about where it came from.
 
+The issue is the content — imagery — not the pack format itself: the repo
+carries one deliberately pictureless example pack
+([`goonpacks/elise/`](./goonpacks/elise/), the worked example in
+[GOONPACKS.md](./GOONPACKS.md)), and that is the only pack it will ever carry.
+
 Contributions must keep it that way. Don't submit features that:
 
-- bundle, host, or download content or goonpacks;
+- bundle, host, or download content (the pictureless example pack above is the
+  one exception, and it stays pictureless);
 - index, list, or link to packs or content sources (no "browse packs", curated
   lists, or in-app galleries of third-party content);
 - point users at places to acquire content — in the app or its docs.
@@ -114,12 +120,13 @@ tests never use the real mic, but the browsers still request the permission.)
 ## Goonpack sources
 
 `goonpacks/` (gitignored — it's where your own content lives, per the
-[content policy](#content-policy)) holds one source directory per pack you're
-assembling, plus the `.zip` files `goonpack:build` produces from them. The
-authoring workflow (directory layout, manifest fields, the two pack kinds) is
-user-facing and lives in [GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*`
-npm scripts that operate on it (`describe`, `describe-missing`, `build`) are
-commented at their definitions in `scripts/`.
+[content policy](#content-policy) — except the committed example pack `elise/`)
+holds one source directory per pack you're assembling, plus the `.zip` files
+`goonpack:build` produces from them. The authoring workflow (directory layout,
+manifest fields, the two pack kinds) is user-facing and lives in
+[GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*` npm scripts that operate
+on it (`describe`, `describe-missing`, `build`) are commented at their
+definitions in `scripts/`.
 
 ## Adding a play mode
 
