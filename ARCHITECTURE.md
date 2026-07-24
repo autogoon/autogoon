@@ -85,10 +85,10 @@ Each device-driving play mode is an **engine** and a **panel**:
   deliberate boundary so each play mode stays standalone.
 - the **panel** — the React surface in `src/components/play-modes/` (a single
   `*-panel.tsx`, or a `*-panel/` directory with the panel in `index.tsx` once it
-  splits out per-concern cards, as Goon does). It **owns** its engine instance
-  (a `useRef`), arms/plays the shared Player with it, holds its own knob state
-  (setting the engine's fields directly), and reads the shared Player view for
-  the sparkline, timeline and current state.
+  splits out per-concern pieces, as Goon and Companions do). It **owns** its
+  engine instance (a `useRef`), arms/plays the shared Player with it, holds its
+  own knob state (setting the engine's fields directly), and reads the shared
+  Player view for the sparkline, timeline and current state.
 
 There is no per-play-mode _Player_ hook and no central runner: the panel drives
 the Player directly, and mutual exclusion falls out of the Player holding one

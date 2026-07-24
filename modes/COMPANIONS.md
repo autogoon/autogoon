@@ -81,7 +81,7 @@ and variety knobs, and (for a companion with pictures) `send_picture`. When she
 calls one, the panel runs **the same transport and knobs the on-screen controls
 use** — there is one path, not a parallel one. The tool definitions, argument
 shapes, and which knob applies live versus regenerates are all commented in
-`companions-panel.tsx`. Whether she acts on a request or declines is a
+`companions-panel/index.tsx`. Whether she acts on a request or declines is a
 disposition written into her `systemPrompt`, not a code gate. Companions default
 to a **gentle baseline** — low intensity, light variety, a one-shot stroke-minus
 tease at session start — and she builds up from there.
