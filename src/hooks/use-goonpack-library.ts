@@ -38,8 +38,6 @@ export type PendingImport = {
   commit(): Promise<void>;
 };
 
-const LAST_PLAYED_PREFIX = "goonpacks:last-variant:"; // cosmetic marker
-
 // An overlay's base must be installed (built-in or a live/evicted-but-known
 // pack) and must itself be a companion, not another overlay — chaining
 // overlays isn't a supported shape (spec: "base = built-in or complete pack
@@ -143,7 +141,7 @@ export function useGoonpackLibrary() {
       manifests.map(toIndexEntry),
     );
     writeIndex(localStorage, healed);
-    setEntries(buildEntries(manifests, missing));
+    setEntries(buildEntries(stored, missing));
     setPacks(
       [
         ...stored.map((p) => ({
@@ -266,18 +264,8 @@ export function useGoonpackLibrary() {
       }
       for (const url of urlsRef.current) URL.revokeObjectURL(url);
       urlsRef.current = [...winning];
-      localStorage.setItem(
-        LAST_PLAYED_PREFIX + entry.companion.id,
-        packId ?? "default",
-      );
       return companion;
     },
-    [],
-  );
-
-  const lastPlayed = useCallback(
-    (companionId: string) =>
-      localStorage.getItem(LAST_PLAYED_PREFIX + companionId),
     [],
   );
 
@@ -287,7 +275,6 @@ export function useGoonpackLibrary() {
   return {
     entries,
     packs,
-    lastPlayed,
     importPack,
     removePack,
     resolveVariant,

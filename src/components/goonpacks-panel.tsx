@@ -119,6 +119,11 @@ export function GoonpacksPanel() {
                     {row.version} · {what}
                     {inc !== "" ? ` — ${inc}` : ""}
                   </span>
+                  {row.manifest?.aboutThePack !== undefined && (
+                    <span className="text-muted-foreground block text-sm">
+                      {row.manifest.aboutThePack}
+                    </span>
+                  )}
                   {row.missing && (
                     <span className="text-muted-foreground block text-sm">
                       Gone from browser storage. Re-import her zip.
@@ -169,9 +174,10 @@ export function GoonpacksPanel() {
                 : ""}
             </span>
           </p>
-          {pendingImport.manifest.description !== undefined && (
+          {/* The sheet describes the PACK — aboutThePack, not her blurb. */}
+          {pendingImport.manifest.aboutThePack !== undefined && (
             <p className="text-muted-foreground">
-              {pendingImport.manifest.description}
+              {pendingImport.manifest.aboutThePack}
             </p>
           )}
           {pendingImport.replaces !== null && (

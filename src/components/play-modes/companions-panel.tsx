@@ -191,6 +191,31 @@ function PictureBubble({ src, onOpen }: { src: string; onOpen: () => void }) {
   );
 }
 
+// The chooser card's feature line: what the selected variant actually plays
+// with — the picture count whenever there are any (bold when the overlay
+// supplies or strips them), plus each slot the overlay changes.
+function variantFeatures(v: Variant): { text: string; bold: boolean }[] {
+  const changed = v.changed ?? [];
+  const out: { text: string; bold: boolean }[] = [];
+  const pictures = v.pictures ?? 0;
+  if (pictures > 0) {
+    out.push({
+      text: `${pictures} picture${pictures === 1 ? "" : "s"}`,
+      bold: changed.includes("pictures"),
+    });
+  } else if (changed.includes("pictures")) {
+    out.push({ text: "no pictures", bold: true }); // noPictures strips them
+  }
+  for (const slot of changed) {
+    if (slot === "pictures") continue;
+    out.push({ text: slot, bold: true });
+  }
+  return out;
+}
+
+// The remembered per-companion variant selection lives under this key.
+const SELECTED_VARIANT_PREFIX = "goonpacks:last-variant:";
+
 // A picture from a pack that isn't loaded right now — never substitute.
 function MissingPictureBubble() {
   return (
@@ -382,6 +407,22 @@ export function CompanionsPanel({
   // Setup view: a failed variant pick surfaces here (pack admin — import,
   // remove — lives on the Goonpacks tab).
   const [pickError, setPickError] = useState<string | null>(null);
+
+  // Each card's remembered variant selection, hydrated from localStorage in
+  // an effect (never during render — the panel is server-prerendered).
+  const [variantSel, setVariantSel] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const sel: Record<string, string> = {};
+    for (const e of library.entries) {
+      const v = localStorage.getItem(SELECTED_VARIANT_PREFIX + e.companion.id);
+      if (v !== null) sel[e.companion.id] = v;
+    }
+    setVariantSel(sel);
+  }, [library.entries]);
+  const selectVariant = useCallback((companionId: string, packId: string) => {
+    setVariantSel((s) => ({ ...s, [companionId]: packId }));
+    localStorage.setItem(SELECTED_VARIANT_PREFIX + companionId, packId);
+  }, []);
 
   // The device engine — one instance, owned here. Defined before the voice
   // session because the session's tools/device-state callback both close over
@@ -799,14 +840,24 @@ export function CompanionsPanel({
           <div className="mt-2 flex flex-col gap-2">
             {library.entries.map((entry) => {
               const c = entry.companion;
-              const accent = c.accentColour;
-              const overlays = entry.variants.filter((v) => v.packId !== null);
-              const pick = (packId: string | null) => {
+              // The remembered variant, falling back to default when it's
+              // gone (pack removed) or evicted (unplayable until re-import).
+              const selectedId = variantSel[c.id] ?? "default";
+              const selected =
+                entry.variants.find(
+                  (v) => (v.packId ?? "default") === selectedId && !v.missing,
+                ) ?? entry.variants[0]!;
+              // The card previews exactly what the selection plays: blurb,
+              // accent and the feature line all follow the select.
+              const accent = selected.accent ?? c.accentColour;
+              const blurb = selected.blurb ?? c.description;
+              const features = variantFeatures(selected);
+              const pick = () => {
                 void (async () => {
                   try {
                     const resolved = await library.resolveVariant(
                       entry,
-                      packId,
+                      selected.packId,
                     );
                     if (resolved === null) return; // overtaken by a newer pick
                     setCompanion(resolved);
@@ -820,87 +871,88 @@ export function CompanionsPanel({
                   }
                 })();
               };
-              // An overlay chip — playable when its base can (built-in or an
-              // installed pack). Admin (removal) lives on the Goonpacks tab.
-              const overlayChip = (v: Variant, playable: boolean) => {
-                const packId = v.packId!;
-                return (
-                  <span
-                    key={packId}
-                    className={`text-muted-foreground flex items-center gap-0.5 rounded border px-1 py-0.5 text-xs ${
-                      v.missing ? "border-dashed" : ""
-                    }`}
-                  >
-                    {v.missing ? (
-                      <span className="px-1">{v.label} — re-import</span>
-                    ) : playable ? (
-                      <Button
-                        onClick={() => pick(packId)}
-                        className="hover:text-foreground px-1"
-                      >
-                        {v.label}
-                        {v.version !== undefined ? ` ${v.version}` : ""}
-                        {library.lastPlayed(c.id) === packId ? " •" : ""}
-                      </Button>
-                    ) : (
-                      <span className="px-1">
-                        {v.label}
-                        {v.version !== undefined ? ` ${v.version}` : ""}
-                      </span>
-                    )}
-                  </span>
-                );
-              };
               if (entry.missing) {
                 // Evicted complete pack: browser storage let it go; the zip
-                // has it. Her overlays stay listed (not playable — she can't
-                // load — but visible) so they aren't hidden.
+                // has it. Her overlays are named (not playable — she can't
+                // load) so they aren't hidden.
+                const overlays = entry.variants.filter(
+                  (v) => v.packId !== null,
+                );
                 return (
-                  <div key={c.id} className="flex flex-col gap-1">
-                    <div className="rounded-xl border border-dashed px-4 py-3">
-                      <span className="block font-semibold">{c.name}</span>
-                      <span className="text-muted-foreground block text-sm">
-                        Gone from browser storage — re-import in Goonpacks.
-                      </span>
-                    </div>
-                    {overlays.length > 0 && (
-                      <div className="flex flex-wrap gap-1 px-2">
-                        {overlays.map((v) => overlayChip(v, false))}
-                      </div>
-                    )}
+                  <div
+                    key={c.id}
+                    className="rounded-xl border border-dashed px-4 py-3"
+                  >
+                    <span className="block font-semibold">{c.name}</span>
+                    <span className="text-muted-foreground block text-sm">
+                      Gone from browser storage — re-import in Goonpacks.
+                      {overlays.length > 0
+                        ? ` Overlays wait with her: ${overlays
+                            .map((v) => v.label)
+                            .join(", ")}.`
+                        : ""}
+                    </span>
                   </div>
                 );
               }
               return (
-                <div key={c.id} className="flex flex-col gap-1">
-                  {/* Identical to the home play mode list's card, minus the
-                      icon (and no badge — Companions registers no vosk
-                      words). The accent gradient is the companion's own
-                      accentColour, interpolated in and safelisted in
-                      globals.css. */}
+                /* The main card matches the home play mode list's, minus the
+                   icon (and no badge — Companions registers no vosk words).
+                   The accent gradient follows the selected variant's colour,
+                   interpolated in and safelisted in globals.css. */
+                <div
+                  key={c.id}
+                  className={`flex items-center rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 has-[button:hover]:from-${accent}-500/25 has-[button:hover]:to-${accent}-500/10`}
+                >
                   <Button
-                    onClick={() => pick(null)}
-                    className={`flex items-center gap-4 rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 text-left hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
+                    onClick={pick}
+                    className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">{c.name}</span>
                       <span className="text-muted-foreground block text-sm">
-                        {c.description}
+                        {blurb}
                       </span>
+                      {features.length > 0 && (
+                        <span className="text-muted-foreground block text-xs">
+                          {features.map((f, i) => (
+                            <Fragment key={f.text}>
+                              {i > 0 ? " · " : ""}
+                              {f.bold ? (
+                                <span className="text-foreground font-medium">
+                                  {f.text}
+                                </span>
+                              ) : (
+                                f.text
+                              )}
+                            </Fragment>
+                          ))}
+                        </span>
+                      )}
                     </span>
                     <ChevronRight className="text-muted-foreground size-4 shrink-0" />
                   </Button>
-                  {overlays.length > 0 && (
-                    <div className="flex flex-wrap gap-1 px-2">
-                      <Button
-                        onClick={() => pick(null)}
-                        className="text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-xs"
-                      >
-                        default
-                        {library.lastPlayed(c.id) === "default" ? " •" : ""}
-                      </Button>
-                      {overlays.map((v) => overlayChip(v, true))}
-                    </div>
+                  {entry.variants.length > 1 && (
+                    /* The variant picker — remembered per companion. Evicted
+                       variants stay listed but disabled until re-imported. */
+                    <select
+                      aria-label={`${c.name} variant`}
+                      value={selectedId}
+                      onChange={(e) => selectVariant(c.id, e.target.value)}
+                      className="text-muted-foreground mr-3 shrink-0 rounded border bg-transparent px-1 py-0.5 text-xs"
+                    >
+                      {entry.variants.map((v) => (
+                        <option
+                          key={v.packId ?? "default"}
+                          value={v.packId ?? "default"}
+                          disabled={v.missing}
+                        >
+                          {v.label}
+                          {v.version !== undefined ? ` ${v.version}` : ""}
+                          {v.missing ? " — re-import" : ""}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
               );
