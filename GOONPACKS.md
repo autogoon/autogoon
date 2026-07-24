@@ -72,4 +72,4 @@ Packs live in browser storage; keep your zips. If the browser clears its storage
 the app just forgets the pack — importing the zip brings it back.
 
 A pack's `voiceId` must exist in the ElevenLabs account the app runs with;
-voices don't travel between accounts yet.
+voices don't travel between accounts.
