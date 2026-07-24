@@ -41,6 +41,12 @@ hidden without one. Run the app yourself with your own keys and it just works �
 locally, no access key needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
 covers setup and pictures.
 
+**Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
+zip — persona, voice, colour and pictures — imported straight into the app: a
+complete new companion, or an overlay that changes one you have (add pictures,
+swap her voice or persona). Assembling one is plain-text work, no coding —
+[GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in the repo.
+
 ## Privacy
 
 Everything runs in your browser; the only thing that leaves your machine is the
