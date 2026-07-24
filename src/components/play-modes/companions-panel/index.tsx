@@ -8,6 +8,10 @@
 // variety controls, and buttons-only device controls (no vosk words — open
 // dictation to the companion would otherwise transcribe them).
 //
+// The presentational pieces live one-per-file beside this index — the
+// transcript rows, overlays, chooser card, debug tab and small widgets — while
+// everything stateful (hooks, tools, effects, the tab wiring) stays here.
+//
 // Hot-path note: useVoiceSession returns one `status` object that churns ~50x/s
 // while the mic is on; keep the render cheap. The event log is split into a
 // memoized child so the rms churn doesn't reconcile it, and the fast loudness
@@ -15,7 +19,6 @@
 
 import {
   Fragment,
-  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -24,21 +27,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import Image from "next/image";
-import {
-  Braces,
-  ChevronDown,
-  ChevronRight,
-  Cog,
-  Mic,
-  MicOff,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/button";
 import { TabButton } from "@/components/tab-button";
 import { Card } from "@/components/card";
-import { LogCard, type LogEntry } from "@/components/log-card";
-import { RateLimitMeter } from "@/components/rate-limit-meter";
+import { Panel } from "@/components/panel";
+import type { LogEntry } from "@/components/log-card";
 import { Segmented } from "@/components/segmented";
 import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
@@ -52,13 +46,30 @@ import { useVoiceSession } from "@/hooks/use-voice-session";
 import { companionList, type Companion } from "@/lib/companions/companions";
 import { sameLocalDay } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
-import { effectivePictures, type VariantSlot } from "@/lib/goonpacks/entries";
+import type { LibraryEntry } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
 import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
 import {
   CompanionEngine,
   type VariabilityLevel,
 } from "@/lib/play-modes/companion-engine";
+import { ChatBubble } from "./chat-bubble";
+import {
+  ChooserCard,
+  SELECTED_VARIANT_PREFIX,
+  type PackSel,
+} from "./chooser-card";
+import { DateHeader } from "./date-header";
+import { DebugLLMButton } from "./debug-llm-button";
+import { DebugTab } from "./debug-tab";
+import { JsonOverlay } from "./json-overlay";
+import { Lightbox } from "./lightbox";
+import { MissingPictureBubble } from "./missing-picture-bubble";
+import { PictureBubble } from "./picture-bubble";
+import { RmsMeter } from "./rms-meter";
+import { Spinner } from "./spinner";
+import { StatRow } from "./stat-row";
+import { ToolChip } from "./tool-chip";
 
 // Fixed default knobs — the program is random within this baseline. Companions
 // start gentle: a low-intensity, lightly-varying program. She turns it up from
@@ -66,314 +77,6 @@ import {
 // the dip pattern.
 const DEFAULT_INTENSITY = 20;
 const DEFAULT_VARIETY: VariabilityLevel = "low";
-
-// The session's fast-moving loudness bar — repaints every frame; kept small.
-function RmsMeter({ rms, speaking }: { rms: number; speaking: boolean }) {
-  const pct = Math.min(100, Math.round(rms * 500));
-  return (
-    <div className="bg-foreground/10 h-2 w-full overflow-hidden rounded">
-      <div
-        className={`h-full ${speaking ? "bg-emerald-500" : "bg-foreground/30"}`}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  );
-}
-
-// The event log reuses the shared LogCard (monospace, timestamped, colour-by-
-// kind, auto-scrolling, dev-only) so it matches the other play modes' logs.
-// Memoized on its entries so the ~50 Hz rms churn doesn't reconcile it.
-const EventLog = memo(function EventLog({ entries }: { entries: LogEntry[] }) {
-  return <LogCard title="Events" entries={entries} />;
-});
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-4 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="tabular-nums">{children}</span>
-    </div>
-  );
-}
-
-// A small inline "in progress" spinner for the pending LLM / TTS states.
-function Spinner() {
-  return (
-    <span
-      role="status"
-      aria-label="loading"
-      className="border-foreground/30 border-t-foreground inline-block h-3 w-3 animate-spin rounded-full border-2"
-    />
-  );
-}
-
-// One transcript row: user turns right-aligned in the accent colour, hers
-// left-aligned and muted. `pending` dims the in-progress reply until it folds
-// into the thread. `at` (absent on pending bubbles and pre-timestamp turns)
-// puts a small clock time under the bubble, on its aligned side.
-function ChatBubble({
-  role,
-  text,
-  at,
-  pending = false,
-}: {
-  role: "user" | "assistant";
-  text: string;
-  at?: number;
-  pending?: boolean;
-}) {
-  const isUser = role === "user";
-  return (
-    <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
-      <div
-        className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap ${
-          isUser ? "bg-blue-600 text-white" : "bg-foreground/10"
-        } ${pending ? "opacity-70" : ""}`}
-      >
-        {/* Trim leading/trailing whitespace (M3 often opens with a blank line)
-            while keeping internal paragraph breaks under whitespace-pre-wrap. */}
-        {text.trim()}
-      </div>
-      {at !== undefined && (
-        <span className="text-muted-foreground mt-0.5 px-1 text-[10px]">
-          {new Date(at).toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// A centered date row marking where the transcript crosses into a new local
-// day (and above the first stamped message).
-function DateHeader({ at }: { at: number }) {
-  const showYear = new Date(at).getFullYear() !== new Date().getFullYear();
-  return (
-    <div className="text-muted-foreground py-1 text-center text-xs">
-      {new Date(at).toLocaleDateString(undefined, {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        ...(showYear ? { year: "numeric" } : {}),
-      })}
-    </div>
-  );
-}
-
-// A centered "action" chip marking a tool call the companion made (start/stop), so it's
-// visible in the transcript whether she actually called it.
-function ToolChip({ name, result }: { name: string; result: string }) {
-  return (
-    <div className="flex justify-center">
-      <span className="text-muted-foreground bg-foreground/5 flex items-center gap-1.5 rounded-full px-3 py-1 text-xs">
-        <Cog className="size-3" />
-        {name} → {result}
-      </span>
-    </div>
-  );
-}
-
-// A picture she sent, inline in the transcript — left-aligned like her bubbles.
-// A thumbnail; click it to open the full picture in the lightbox.
-function PictureBubble({ src, onOpen }: { src: string; onOpen: () => void }) {
-  return (
-    <div className="flex justify-start">
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label="Open picture"
-        className="ring-foreground/10 relative h-44 w-44 overflow-hidden rounded-2xl ring-1 transition hover:opacity-90"
-      >
-        <Image src={src} alt="" fill sizes="176px" className="object-cover" />
-      </button>
-    </div>
-  );
-}
-
-// The chooser card's feature line: what the selected base+overlay pair
-// actually plays with — the picture count whenever there are any (bold when
-// the overlay supplies or strips them), plus each slot the overlay changes.
-function variantFeatures(v: {
-  pictures: number;
-  changed: VariantSlot[];
-}): { text: string; bold: boolean }[] {
-  const changed = v.changed;
-  const out: { text: string; bold: boolean }[] = [];
-  const pictures = v.pictures;
-  if (pictures > 0) {
-    out.push({
-      text: `${pictures} picture${pictures === 1 ? "" : "s"}`,
-      bold: changed.includes("pictures"),
-    });
-  } else if (changed.includes("pictures")) {
-    out.push({ text: "no pictures", bold: true }); // noPictures strips them
-  }
-  for (const slot of changed) {
-    if (slot === "pictures") continue;
-    out.push({ text: slot, bold: true });
-  }
-  return out;
-}
-
-// The remembered per-companion variant selection lives under this key.
-const SELECTED_VARIANT_PREFIX = "goonpacks:last-variant:";
-
-// A picture from a pack that isn't loaded right now — never substitute.
-function MissingPictureBubble() {
-  return (
-    <div className="text-muted-foreground max-w-[60%] self-start rounded-xl border border-dashed px-3 py-2 text-xs">
-      Picture from another pack.
-    </div>
-  );
-}
-
-// How long the enter/exit fade-zoom runs — kept in sync with the `duration-200`
-// classes below so the unmount waits for the exit animation to finish.
-const LIGHTBOX_ANIM_MS = 200;
-
-// Near-fullscreen overlay for a sent picture. The backdrop or the ✕ closes it,
-// as does Escape. It's rendered with the current lightbox src, so sending a new
-// picture while it's open simply swaps the image to the newest. Closing plays an
-// exit fade-zoom before unmounting: requestClose flips to `closing` (swapping the
-// enter animation for the exit one) and unmounts after the animation.
-function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
-  const [closing, setClosing] = useState(false);
-  const timerRef = useRef<number | null>(null);
-
-  const requestClose = useCallback(() => {
-    setClosing(true);
-    timerRef.current = window.setTimeout(onClose, LIGHTBOX_ANIM_MS);
-  }, [onClose]);
-
-  // A newly-sent picture reopens the box even mid-close: cancel the pending
-  // unmount and clear the closing state so it animates back in on the new src.
-  useEffect(() => {
-    setClosing(false);
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, [src]);
-
-  useEffect(
-    () => () => {
-      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") requestClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [requestClose]);
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={requestClose}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 duration-200 ${
-        closing ? "animate-out fade-out-0" : "animate-in fade-in-0"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={requestClose}
-        aria-label="Close"
-        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-      >
-        <X className="size-6" />
-      </button>
-      {/* stopPropagation so clicking the image itself doesn't close it. */}
-      <div
-        className={`relative h-[88vh] w-[92vw] duration-200 ease-out ${
-          closing
-            ? "animate-out fade-out-0 zoom-out-95"
-            : "animate-in fade-in-0 zoom-in-95"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Image
-          src={src}
-          alt=""
-          fill
-          sizes="92vw"
-          priority
-          className="object-contain"
-        />
-      </div>
-    </div>
-  );
-}
-
-// The LLM request viewer's trigger — one button, shared by the Session mic row
-// (`short`: icon only, sized to the mic button) and the Debug tab (`long`:
-// icon + label). The click handler lives in the panel (it needs the session
-// and the overlay state); this owns the look.
-function DebugLLMButton({
-  onClick,
-  variant = "short",
-}: {
-  onClick: () => void;
-  variant?: "short" | "long";
-}) {
-  const long = variant === "long";
-  return (
-    <Button
-      onClick={onClick}
-      aria-label="Show LLM request"
-      title="Show LLM request"
-      className={`bg-foreground/10 hover:bg-foreground/20 flex shrink-0 items-center justify-center rounded-lg ${
-        long ? "gap-2 px-4 py-2 text-sm font-medium" : "p-3"
-      }`}
-    >
-      <Braces className={long ? "size-4" : "size-5"} />
-      {long && "Show request"}
-    </Button>
-  );
-}
-
-// Near-fullscreen overlay showing the Debug tab's LLM request JSON. The
-// Lightbox's shell (backdrop, ✕, Escape) without the animation machinery — a
-// debug view doesn't need the polish.
-function JsonOverlay({ json, onClose }: { json: string; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close"
-        className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
-      >
-        <X className="size-6" />
-      </button>
-      {/* stopPropagation so clicking/selecting the JSON doesn't close it. */}
-      <pre
-        onClick={(e) => e.stopPropagation()}
-        className="bg-background max-h-[88vh] w-[92vw] max-w-3xl overflow-auto rounded-xl p-4 text-xs whitespace-pre-wrap"
-      >
-        {json}
-      </pre>
-    </div>
-  );
-}
 
 export function CompanionsPanel({
   vacuglide,
@@ -415,7 +118,6 @@ export function CompanionsPanel({
   // Each card's remembered picks — base version and overlay, stored
   // together as JSON — hydrated from localStorage in an effect (never during
   // render — the panel is server-prerendered).
-  type PackSel = { base: string | null; overlay: string | null };
   const [variantSel, setVariantSel] = useState<Record<string, PackSel>>({});
   useEffect(() => {
     const sel: Record<string, PackSel> = {};
@@ -734,6 +436,31 @@ export function CompanionsPanel({
     onEnterPlay();
   }, [device, engine, onEnterPlay]);
 
+  // Resolve a chooser card's pick and enter play; a failure surfaces on the
+  // setup view.
+  const { resolveVariant } = library;
+  const pickVariant = useCallback(
+    (
+      entry: LibraryEntry,
+      baseKey: string | null,
+      overlayKey: string | null,
+    ) => {
+      void (async () => {
+        try {
+          const resolved = await resolveVariant(entry, baseKey, overlayKey);
+          if (resolved === null) return; // overtaken by a newer pick
+          setCompanion(resolved);
+          enterPlay();
+        } catch (e) {
+          setPickError(
+            e instanceof PackError ? e.message : "pack failed to load",
+          );
+        }
+      })();
+    },
+    [resolveVariant, enterPlay],
+  );
+
   const logError = useCallback(
     (message: string) => vacuglide.log(`error: ${message}`, "error"),
     [vacuglide],
@@ -837,7 +564,7 @@ export function CompanionsPanel({
   const connected = vacuglide.connected;
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       {/* TTS element — rendered once, in both views, so audioRef stays stable. */}
       <audio ref={audioRef} className="hidden" />
 
@@ -865,165 +592,15 @@ export function CompanionsPanel({
               {library.status === "loading" ? (
                 <p>Checking packs…</p>
               ) : (
-                library.entries.map((entry) => {
-                  const c = entry.companion;
-                  // The remembered base/overlay picks, falling back — newest
-                  // base, no overlay — when a remembered pack is gone (removed
-                  // or now incompatible).
-                  const sel = variantSel[c.id];
-                  const baseOpt =
-                    entry.bases.find((b) => b.key === (sel?.base ?? null)) ??
-                    entry.bases[0]!;
-                  const overlayOpt =
-                    entry.overlays.find(
-                      (o) => o.key !== null && o.key === sel?.overlay,
-                    ) ?? null;
-                  // The card previews exactly what the selection plays:
-                  // description, accent and the feature line all follow the
-                  // selects (overlay wins, then base version, then her own).
-                  const accent =
-                    overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
-                  const description =
-                    overlayOpt?.description ??
-                    baseOpt.description ??
-                    c.description;
-                  const features = variantFeatures({
-                    pictures: effectivePictures(overlayOpt, baseOpt.pictures),
-                    changed: overlayOpt?.changed ?? [],
-                  });
-                  const pick = () => {
-                    void (async () => {
-                      try {
-                        const resolved = await library.resolveVariant(
-                          entry,
-                          baseOpt.key,
-                          overlayOpt?.key ?? null,
-                        );
-                        if (resolved === null) return; // overtaken by a newer pick
-                        setCompanion(resolved);
-                        enterPlay();
-                      } catch (e) {
-                        setPickError(
-                          e instanceof PackError
-                            ? e.message
-                            : "pack failed to load",
-                        );
-                      }
-                    })();
-                  };
-                  return (
-                    /* One clickable card, edge to edge, in the selected
-                     variant's colour. The pickers ride in the card's action
-                     slot — base version and overlay, both remembered per
-                     companion; one base version and no overlays means no
-                     pickers at all. */
-                    <Card
-                      key={c.id}
-                      accent={accent}
-                      onClick={pick}
-                      title={c.name}
-                      action={
-                        <>
-                          {entry.bases.length > 1 && (
-                            <label
-                              className="text-muted-foreground flex items-center gap-1.5 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Base:
-                              <span className="relative">
-                                <select
-                                  aria-label={`${c.name} version`}
-                                  value={baseOpt.key ?? "default"}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={(e) =>
-                                    selectPacks(c.id, {
-                                      base:
-                                        e.target.value === "default"
-                                          ? null
-                                          : e.target.value,
-                                      overlay: overlayOpt?.key ?? null,
-                                    })
-                                  }
-                                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
-                                >
-                                  {entry.bases.map((b) => (
-                                    <option
-                                      key={b.key ?? "default"}
-                                      value={b.key ?? "default"}
-                                    >
-                                      {b.label}
-                                      {b.version !== undefined
-                                        ? ` ${b.version}`
-                                        : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-                              </span>
-                            </label>
-                          )}
-                          {entry.overlays.length > 0 && (
-                            <label
-                              className="text-muted-foreground flex items-center gap-1.5 text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              Overlay:
-                              <span className="relative">
-                                <select
-                                  aria-label={`${c.name} overlay`}
-                                  value={overlayOpt?.key ?? "default"}
-                                  onClick={(e) => e.stopPropagation()}
-                                  onChange={(e) =>
-                                    selectPacks(c.id, {
-                                      base: baseOpt.key,
-                                      overlay:
-                                        e.target.value === "default"
-                                          ? null
-                                          : e.target.value,
-                                    })
-                                  }
-                                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
-                                >
-                                  <option value="default">default</option>
-                                  {entry.overlays.map((o) => (
-                                    <option
-                                      key={o.key}
-                                      value={o.key ?? "default"}
-                                    >
-                                      {o.label}
-                                      {o.version !== undefined
-                                        ? ` ${o.version}`
-                                        : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-                              </span>
-                            </label>
-                          )}
-                        </>
-                      }
-                    >
-                      <span className="block">{description}</span>
-                      {features.length > 0 && (
-                        <span className="mt-1 block text-sm">
-                          {features.map((f, i) => (
-                            <Fragment key={f.text}>
-                              {i > 0 ? " · " : ""}
-                              {f.bold ? (
-                                <span className="text-foreground font-medium">
-                                  {f.text}
-                                </span>
-                              ) : (
-                                f.text
-                              )}
-                            </Fragment>
-                          ))}
-                        </span>
-                      )}
-                    </Card>
-                  );
-                })
+                library.entries.map((entry) => (
+                  <ChooserCard
+                    key={entry.companion.id}
+                    entry={entry}
+                    sel={variantSel[entry.companion.id]}
+                    onSelectPacks={selectPacks}
+                    onPick={pickVariant}
+                  />
+                ))
               )}
             </div>
             {pickError !== null && (
@@ -1052,7 +629,8 @@ export function CompanionsPanel({
                 flash={false}
                 onClick={() => setPreviewOpen((o) => !o)}
                 aria-expanded={previewOpen}
-                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 text-sm font-medium"
+                // A flat disclosure row, not a boxed control.
+                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 rounded-none border-0 bg-transparent p-0 font-medium enabled:hover:bg-transparent"
               >
                 {previewOpen ? (
                   <ChevronDown className="size-4" />
@@ -1064,10 +642,7 @@ export function CompanionsPanel({
               {previewOpen && (
                 <div className="mt-3">
                   <div className="mb-2 flex justify-end">
-                    <Button
-                      onClick={reset}
-                      className="bg-secondary rounded-md px-3 py-1 text-xs font-medium"
-                    >
+                    <Button onClick={reset} className="py-1 text-xs">
                       Reset
                     </Button>
                   </div>
@@ -1160,7 +735,7 @@ export function CompanionsPanel({
               <Card className="shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <Row label="State">
+                    <StatRow label="State">
                       <span
                         className={
                           status.vadSpeaking ? "text-emerald-500" : undefined
@@ -1168,7 +743,7 @@ export function CompanionsPanel({
                       >
                         {status.vadSpeaking ? "speaking" : "quiet"}
                       </span>
-                    </Row>
+                    </StatRow>
                     <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
                   </div>
                   <Button
@@ -1179,10 +754,10 @@ export function CompanionsPanel({
                       status.micOn ? "Stop listening" : "Start listening"
                     }
                     title={status.micOn ? "Stop listening" : "Start listening"}
-                    className={`flex shrink-0 items-center justify-center rounded-lg p-3 ${
+                    className={`flex shrink-0 items-center justify-center p-3 ${
                       status.micOn
-                        ? "bg-foreground/10 hover:bg-foreground/20"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        ? ""
+                        : "border-blue-600 bg-blue-600 text-white enabled:hover:bg-blue-700"
                     }`}
                   >
                     {status.micOn ? (
@@ -1309,7 +884,7 @@ export function CompanionsPanel({
                     placeholder={
                       dictating ? "Listening…" : "Type a message, or speak…"
                     }
-                    className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 text-sm disabled:opacity-70"
+                    className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
                   />
                   <div className="flex gap-2">
                     <Button
@@ -1318,7 +893,6 @@ export function CompanionsPanel({
                         setText("");
                       }}
                       disabled={text.trim() === "" || status.replyPlaying}
-                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
                     >
                       Send
                     </Button>
@@ -1328,14 +902,13 @@ export function CompanionsPanel({
                         setText("");
                       }}
                       disabled={text.trim() === "" || status.replyPlaying}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                      className="bg-blue-600"
                     >
                       Say it
                     </Button>
                     <Button
                       onClick={cancelReply}
                       disabled={!status.replyPlaying}
-                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
                     >
                       Stop
                     </Button>
@@ -1344,7 +917,6 @@ export function CompanionsPanel({
                       disabled={
                         status.replyPlaying || status.thread.length === 0
                       }
-                      className="bg-foreground/10 hover:bg-foreground/20 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
                     >
                       Clear
                     </Button>
@@ -1358,95 +930,15 @@ export function CompanionsPanel({
           )}
 
           {tab === "debug" && (
-            <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">
-              <Card title="STT debug" bordered>
-                <div className="text-muted-foreground flex gap-4 text-xs">
-                  <span>STT {status.phase}</span>
-                  <span>pre-roll {status.preRollFrames}</span>
-                </div>
-                <div className="mt-2 text-sm">
-                  <p className="min-h-6">
-                    <span className="text-muted-foreground text-xs">
-                      finished{" "}
-                    </span>
-                    {status.committed !== "" ? (
-                      status.committed
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </p>
-                  <p className="min-h-6">
-                    <span className="text-muted-foreground text-xs">
-                      partial{" "}
-                    </span>
-                    {status.partial !== "" ? (
-                      <span className="text-muted-foreground">
-                        {status.partial}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </p>
-                </div>
-              </Card>
-
-              <Card title="Latency" bordered>
-                <p className="text-muted-foreground mb-1 text-xs">LLM</p>
-                {status.metrics.llm === null ? (
-                  <p>—</p>
-                ) : (
-                  <>
-                    <Row label="First token">
-                      {Math.round(status.metrics.llm.ttftMs)} ms
-                    </Row>
-                    <Row label="Throughput">
-                      {status.metrics.llm.tps === null
-                        ? "—"
-                        : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
-                    </Row>
-                    <Row label="Total">
-                      {Math.round(status.metrics.llm.totalMs)} ms
-                    </Row>
-                  </>
-                )}
-                <p className="text-muted-foreground mt-3 mb-1 text-xs">TTS</p>
-                {status.metrics.tts === null ? (
-                  <p>—</p>
-                ) : (
-                  <>
-                    <Row label="First audio">
-                      {status.metrics.tts.ttfbMs === null
-                        ? "—"
-                        : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
-                    </Row>
-                    <Row label="Total">
-                      {Math.round(status.metrics.tts.totalMs)} ms
-                    </Row>
-                  </>
-                )}
-              </Card>
-
-              <Card title="LLM request" bordered>
-                <p className="text-muted-foreground text-xs">
-                  The exact request the next turn would send — system prompt,
-                  gap markers and all.
-                </p>
-                <div className="mt-2">
-                  <DebugLLMButton onClick={showLlmRequest} variant="long" />
-                </div>
-              </Card>
-
-              <EventLog entries={log} />
-
-              <LogCard
-                title="Command log"
-                header={<RateLimitMeter {...vacuglide.rateLimit} />}
-                entries={vacuglide.logEntries}
-              />
-            </div>
+            <DebugTab
+              status={status}
+              log={log}
+              vacuglide={vacuglide}
+              onShowLlmRequest={showLlmRequest}
+            />
           )}
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

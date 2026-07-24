@@ -10,6 +10,7 @@ import { Plug, type LucideIcon } from "lucide-react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import {
   CONTROL_BORDER,
   CONTROL_BUTTON_BASE,
@@ -115,7 +116,7 @@ export function HomePanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       {device}
       {chooser}
 
@@ -172,6 +173,6 @@ export function HomePanel({
           tabs stop the mic and the timing loop.
         </p>
       </Card>
-    </section>
+    </Panel>
   );
 }

@@ -361,7 +361,7 @@ function App() {
   const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
   const crumbLink =
-    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
+    "rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
 
   return (
     <>

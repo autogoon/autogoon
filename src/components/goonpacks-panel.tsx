@@ -9,6 +9,7 @@
 import { useCallback, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import {
   useGoonpackLibrary,
   type PackRow,
@@ -155,105 +156,108 @@ export function GoonpacksPanel() {
   );
 
   return (
-    <Card title="Goonpacks">
-      <p>
-        Portable companion packs — a complete companion, or an overlay that
-        changes one you have. Manage them here; pick who to play on the
-        Companions screen.
-      </p>
-
-      <div className="mt-2 flex flex-col gap-2">
-        {library.status === "loading" ? (
-          <p>Checking packs…</p>
-        ) : library.packs.length === 0 ? (
-          <p>No packs imported.</p>
-        ) : (
-          library.packs.map((row) => (
-            <PackCard
-              key={row.id}
-              row={row}
-              accent={rowAccent(row, library.packs)}
-              control={
-                <Button
-                  onClick={() => void library.removePack(row.id)}
-                  className="text-sm"
-                >
-                  Remove
-                </Button>
-              }
-            />
-          ))
-        )}
-      </div>
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".zip"
-        className="hidden"
-        data-testid="goonpack-file-input"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f !== undefined) onPickFile(f);
-          e.target.value = "";
-        }}
-      />
-
-      <Button onClick={() => fileRef.current?.click()}>Import pack</Button>
-
-      {importError?.map((p) => (
-        <p key={p} className="mt-1 text-sm text-red-500">
-          {p}
+    <Panel>
+      <Card title="Goonpacks">
+        <p>
+          Portable companion packs — a complete companion, or an overlay that
+          changes one you have. Manage them here; pick who to play on the
+          Companions screen.
         </p>
-      ))}
 
-      {pendingImport !== null &&
-        (() => {
-          // The sheet renders the same PackCard the list will once the pack
-          // is committed — a synthetic row from the parsed import.
-          const sheetRow: PackRow = {
-            id: packKey(pendingImport.manifest),
-            manifest: pendingImport.manifest,
-            summary: pendingImport.summary,
-          };
-          return (
-            <PackCard
-              row={sheetRow}
-              accent={rowAccent(sheetRow, library.packs)}
-            >
-              {pendingImport.replaces && (
-                <p className="mt-1 text-sm">
-                  Replaces the installed pack. Threads stay.
-                </p>
-              )}
-              <div className="mt-2 flex gap-2">
-                <Button
-                  onClick={() =>
-                    void pendingImport
-                      .commit()
-                      .then(() => setPendingImport(null))
-                      .catch((e: unknown) => {
-                        // A failed store (quota, IDB error) must not strand the
-                        // sheet with no feedback.
-                        setPendingImport(null);
-                        setImportError(
-                          e instanceof PackError
-                            ? e.problems
-                            : ["Import failed."],
-                        );
-                      })
-                  }
-                >
-                  {pendingImport.replaces ? "Replace" : "Import"}
-                </Button>
-                <Button onClick={() => setPendingImport(null)}>Cancel</Button>
-              </div>
-            </PackCard>
-          );
-        })()}
-      <p className="text-muted-foreground mt-2 text-xs">
-        Packs live in browser storage; keep your zips.
-      </p>
-    </Card>
+        <div className="mt-2 flex flex-col gap-2">
+          {library.status === "loading" ? (
+            <p>Checking packs…</p>
+          ) : library.packs.length === 0 ? (
+            <p>No packs imported.</p>
+          ) : (
+            library.packs.map((row) => (
+              <PackCard
+                key={row.id}
+                row={row}
+                accent={rowAccent(row, library.packs)}
+                control={
+                  <Button
+                    onClick={() => void library.removePack(row.id)}
+                    className="text-sm"
+                  >
+                    Remove
+                  </Button>
+                }
+              />
+            ))
+          )}
+        </div>
+      </Card>
+
+      <Card title="Import">
+        <p>Packs live in browser storage; keep your zips.</p>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".zip"
+          className="hidden"
+          data-testid="goonpack-file-input"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f !== undefined) onPickFile(f);
+            e.target.value = "";
+          }}
+        />
+
+        <Button onClick={() => fileRef.current?.click()}>Import pack</Button>
+
+        {importError?.map((p) => (
+          <p key={p} className="mt-1 text-sm text-red-500">
+            {p}
+          </p>
+        ))}
+
+        {pendingImport !== null &&
+          (() => {
+            // The sheet renders the same PackCard the list will once the pack
+            // is committed — a synthetic row from the parsed import.
+            const sheetRow: PackRow = {
+              id: packKey(pendingImport.manifest),
+              manifest: pendingImport.manifest,
+              summary: pendingImport.summary,
+            };
+            return (
+              <PackCard
+                row={sheetRow}
+                accent={rowAccent(sheetRow, library.packs)}
+              >
+                {pendingImport.replaces && (
+                  <p className="mt-1 text-sm">
+                    Replaces the installed pack. Threads stay.
+                  </p>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    onClick={() =>
+                      void pendingImport
+                        .commit()
+                        .then(() => setPendingImport(null))
+                        .catch((e: unknown) => {
+                          // A failed store (quota, IDB error) must not strand the
+                          // sheet with no feedback.
+                          setPendingImport(null);
+                          setImportError(
+                            e instanceof PackError
+                              ? e.problems
+                              : ["Import failed."],
+                          );
+                        })
+                    }
+                  >
+                    {pendingImport.replaces ? "Replace" : "Import"}
+                  </Button>
+                  <Button onClick={() => setPendingImport(null)}>Cancel</Button>
+                </div>
+              </PackCard>
+            );
+          })()}
+      </Card>
+    </Panel>
   );
 }

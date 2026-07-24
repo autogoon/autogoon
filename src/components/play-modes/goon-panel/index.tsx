@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { CummingButton } from "@/components/cumming-button";
 import { FinishButton } from "@/components/finish-button";
 import { LogCard } from "@/components/log-card";
@@ -331,7 +332,7 @@ export function GoonPanel({
 
   if (!inPlay) {
     return (
-      <section className="flex w-full flex-col gap-8">
+      <Panel>
         <SessionLengthCard
           minutes={sessionMinutes}
           onChange={setSessionMinutes}
@@ -362,7 +363,7 @@ export function GoonPanel({
           header={<RateLimitMeter {...vacuglide.rateLimit} />}
           entries={vacuglide.logEntries}
         />
-      </section>
+      </Panel>
     );
   }
 
@@ -376,7 +377,7 @@ export function GoonPanel({
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-50";
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <SessionControls
         state={state}
         connected={connected}
@@ -489,6 +490,6 @@ export function GoonPanel({
         header={<RateLimitMeter {...vacuglide.rateLimit} />}
         entries={vacuglide.logEntries}
       />
-    </section>
+    </Panel>
   );
 }

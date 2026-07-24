@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import type { CompanionsAccess } from "@/hooks/use-companions-access";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { CompanionAccessCard } from "@/components/companion-access-card";
 import { SafeWordField } from "@/components/safe-word-field";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -45,7 +46,7 @@ export function SettingsPanel({
   }, []);
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <div className="flex items-center justify-between gap-3">
         <Card title="Appearance">Light, dark, or follow the system.</Card>
         <ThemeToggle />
@@ -84,6 +85,6 @@ export function SettingsPanel({
           <dd className="text-foreground">{builtAt ?? "…"}</dd>
         </dl>
       </Card>
-    </section>
+    </Panel>
   );
 }

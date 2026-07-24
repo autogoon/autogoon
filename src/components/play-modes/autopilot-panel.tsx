@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { FinishButton } from "@/components/finish-button";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
@@ -165,7 +166,7 @@ export function AutopilotPanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <SessionControls
         state={state}
         connected={connected}
@@ -244,6 +245,6 @@ export function AutopilotPanel({
         header={<RateLimitMeter {...vacuglide.rateLimit} />}
         entries={vacuglide.logEntries}
       />
-    </section>
+    </Panel>
   );
 }
