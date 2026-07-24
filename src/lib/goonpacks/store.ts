@@ -97,8 +97,9 @@ function tx<T>(
 // The zip is stored as raw bytes, not a Blob: Blob records fail to store in
 // some WebKit builds (Playwright's bundled WebKit throws on any Blob put, and
 // real Safari has its own Blob-in-IDB history) — bytes structured-clone
-// everywhere.
-type StoredRecord = { manifest: unknown; zip: ArrayBuffer };
+// everywhere. `Blob` stays in the type because records written before the
+// bytes switch really do come back as one (see getPackBytes's compat branch).
+type StoredRecord = { manifest: unknown; zip: ArrayBuffer | Blob };
 
 // Every readable, valid record's manifest. Unreadable/invalid records are
 // skipped — they count as evicted and surface via reconcile as missing.

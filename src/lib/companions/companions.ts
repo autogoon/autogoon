@@ -10,10 +10,14 @@ import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// A picture a companion can send. `src` is a public path (files live in
-// public/companions/<id>/…, served from the site root); `description` is what
-// the model reads to pick a fitting one — sourced at build time from a sidecar
-// <basename>.txt beside the image, or "" when there's no such file.
+// A picture a companion can send. `src` is a session-scoped object URL,
+// created when an imported goonpack's zip is unzipped for play (built-ins
+// ship pictureless — a picture only reaches one via an overlay pack, see
+// src/lib/goonpacks/); `description` is what the model reads to pick a
+// fitting one, from the pack's <basename>.txt sidecar, or "" when there's
+// none. `ref` is the thread-stable reference (see below) — object URLs die
+// with the session, so the thread persists `ref` instead and resolves it
+// against whatever's currently loaded.
 export type CompanionPicture = {
   src: string;
   description: string;

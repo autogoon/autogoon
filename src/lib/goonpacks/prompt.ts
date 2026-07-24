@@ -10,8 +10,9 @@ import {
   SHARED_STYLE_BULLETS,
 } from "@/lib/companions/shared-prompt";
 
-// Placeholder name = shared-prompt export name, on purpose: adding an export
-// there makes it addressable from a pack with no extra wiring.
+// Placeholder name = shared-prompt export name, on purpose — but a new
+// shared-prompt export still needs adding to SECTIONS below explicitly; this
+// record is deliberate, not auto-derived from the module's exports.
 const SECTIONS: Record<string, string> = {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,

@@ -82,6 +82,15 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       throw new PackError(`unsupported file in pictures/: ${file}`);
     }
   }
+  const stems = new Set<string>();
+  for (const p of pictures) {
+    // Different extensions, same stem (a.jpg + a.png) would collide to one
+    // thread ref (goonpack:<packId>/a) — reject at import, not silently drop.
+    if (stems.has(p.name)) {
+      throw new PackError(`duplicate picture: ${p.name}`);
+    }
+    stems.add(p.name);
+  }
   for (const p of pictures) p.description = sidecars.get(p.name) ?? "";
   pictures.sort((a, b) => a.name.localeCompare(b.name));
 

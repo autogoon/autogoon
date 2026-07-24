@@ -53,6 +53,15 @@ describe("parsePack", () => {
     const zip = zipSync({ "pack/manifest.json": complete() });
     expect(() => parsePack(zip)).toThrow(/root/);
   });
+  it("rejects duplicate picture stems across extensions", () => {
+    const zip = zipSync({
+      "manifest.json": manifest({ base: "autogoon.aimee" }),
+      "pictures/a.jpg": new Uint8Array([1]),
+      "pictures/a.png": new Uint8Array([2]),
+    });
+    expect(() => parsePack(zip)).toThrow(PackError);
+    expect(() => parsePack(zip)).toThrow(/duplicate/);
+  });
   it("rejects unsupported files under pictures/", () => {
     const zip = zipSync({
       "manifest.json": manifest({ base: "autogoon.aimee" }),
