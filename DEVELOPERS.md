@@ -236,6 +236,6 @@ the entry, so there is nothing else to wire up. The fields are commented on the
    **pictureless**, like the other built-ins — pictures reach her via an
    [overlay goonpack](./GOONPACKS.md), not the repo.
 3. **Test** — the registry test already enforces id = record key for every
-   entry; add a config `describe` block for her alongside Elise's and Aimee's
+   entry; add a config `describe` block for her alongside Aimee's and Miley's
    (`src/lib/companions/companions.test.ts`).
 4. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).

@@ -1,4 +1,4 @@
-// Prompt sections shared across companions. A persona module (elise-prompt.ts,
+// Prompt sections shared across companions. A persona module (aimee-prompt.ts,
 // aimee-prompt.ts) carries only its own character, setup and disposition; the
 // mechanical rules that are the same for everyone — how a reply is formatted,
 // the baseline style of speech, and how the device is controlled — live here so

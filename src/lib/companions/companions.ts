@@ -1,4 +1,3 @@
-import { ELISE_SYSTEM_PROMPT } from "./elise-prompt";
 import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
 import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
 
@@ -51,19 +50,6 @@ export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
 
 export const COMPANIONS: Record<string, Companion> = {
-  "autogoon.elise": {
-    id: "autogoon.elise",
-    name: "Elise",
-    description: "A high-energy, flirty streamer with a dry, quieter side.",
-    gender: "female",
-    accentColour: "fuchsia",
-    // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
-    voiceId: "uhseMNDjn3oAF24Hh83b", // normal
-    systemPrompt: ELISE_SYSTEM_PROMPT,
-    model: DEFAULT_MODEL,
-    contextWindow: DEFAULT_CONTEXT_WINDOW,
-    passesReasoning: DEFAULT_PASSES_REASONING,
-  },
   "autogoon.aimee": {
     id: "autogoon.aimee",
     name: "Aimee",

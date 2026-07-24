@@ -63,8 +63,7 @@ interrupted-turn commit rule (the user turn is committed immediately, the
 assistant turn only on generation-complete, which can leave a dangling user turn
 when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
-the system prompts. _(Elise's prompt has had one rewrite pass; the on-hardware
-feel tuning remains.)_
+the system prompts. _(The on-hardware feel tuning remains.)_
 
 ### Personas shape their programs
 
