@@ -34,7 +34,7 @@ test("import, persist, and remove a goonpack", async ({ page }) => {
     mimeType: "application/zip",
     buffer: Buffer.from(completePack),
   });
-  await expect(page.getByText("e2e.testy · v1.0.0")).toBeVisible();
+  await expect(page.getByText("e2e.testy · 1.0.0")).toBeVisible();
   await page.getByRole("button", { name: "Import", exact: true }).click();
   await expect(page.getByText("Testy")).toBeVisible();
 

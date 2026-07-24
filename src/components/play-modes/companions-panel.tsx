@@ -54,6 +54,7 @@ import { useVoiceSession } from "@/hooks/use-voice-session";
 import { companionList, type Companion } from "@/lib/companions/companions";
 import { sameLocalDay } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
+import type { Variant } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
 import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
 import {
@@ -832,18 +833,62 @@ export function CompanionsPanel({
                   }
                 })();
               };
+              // An overlay chip — playable when its base can (built-in or an
+              // installed pack), always removable (even evicted: its index
+              // entry is what lingers, and removePack handles that fine).
+              const overlayChip = (v: Variant, playable: boolean) => {
+                const packId = v.packId!;
+                return (
+                  <span
+                    key={packId}
+                    className={`text-muted-foreground flex items-center gap-0.5 rounded border px-1 py-0.5 text-xs ${
+                      v.missing ? "border-dashed" : ""
+                    }`}
+                  >
+                    {v.missing ? (
+                      <span className="px-1">{v.label} — re-import</span>
+                    ) : playable ? (
+                      <Button
+                        onClick={() => pick(packId)}
+                        className="hover:text-foreground px-1"
+                      >
+                        {v.label}
+                        {v.version !== undefined ? ` ${v.version}` : ""}
+                        {library.lastPlayed(c.id) === packId ? " •" : ""}
+                      </Button>
+                    ) : (
+                      <span className="px-1">
+                        {v.label}
+                        {v.version !== undefined ? ` ${v.version}` : ""}
+                      </span>
+                    )}
+                    <Button
+                      onClick={() => void library.removePack(packId)}
+                      className="hover:text-foreground px-1"
+                      aria-label={`Remove ${v.label}`}
+                    >
+                      ✕
+                    </Button>
+                  </span>
+                );
+              };
               if (entry.missing) {
                 // Evicted complete pack: browser storage let it go; the zip
-                // has it.
+                // has it. Her overlays stay listed (not playable — she can't
+                // load — but visible and removable) so they aren't hidden.
                 return (
-                  <div
-                    key={c.id}
-                    className="rounded-xl border border-dashed px-4 py-3"
-                  >
-                    <span className="block font-semibold">{c.name}</span>
-                    <span className="text-muted-foreground block text-sm">
-                      Gone from browser storage. Re-import her zip.
-                    </span>
+                  <div key={c.id} className="flex flex-col gap-1">
+                    <div className="rounded-xl border border-dashed px-4 py-3">
+                      <span className="block font-semibold">{c.name}</span>
+                      <span className="text-muted-foreground block text-sm">
+                        Gone from browser storage. Re-import her zip.
+                      </span>
+                    </div>
+                    {overlays.length > 0 && (
+                      <div className="flex flex-wrap gap-1 px-2">
+                        {overlays.map((v) => overlayChip(v, false))}
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -868,29 +913,14 @@ export function CompanionsPanel({
                   </Button>
                   {overlays.length > 0 && (
                     <div className="flex flex-wrap gap-1 px-2">
-                      {entry.variants.map((v) =>
-                        v.missing ? (
-                          <span
-                            key={v.packId}
-                            className="text-muted-foreground rounded border border-dashed px-2 py-0.5 text-xs"
-                          >
-                            {v.label} — re-import
-                          </span>
-                        ) : (
-                          <Button
-                            key={v.packId ?? "default"}
-                            onClick={() => pick(v.packId)}
-                            className="text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-xs"
-                          >
-                            {v.label}
-                            {v.version !== undefined ? ` ${v.version}` : ""}
-                            {library.lastPlayed(c.id) ===
-                            (v.packId ?? "default")
-                              ? " •"
-                              : ""}
-                          </Button>
-                        ),
-                      )}
+                      <Button
+                        onClick={() => pick(null)}
+                        className="text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-xs"
+                      >
+                        default
+                        {library.lastPlayed(c.id) === "default" ? " •" : ""}
+                      </Button>
+                      {overlays.map((v) => overlayChip(v, true))}
                     </div>
                   )}
                   {!entry.builtIn && (
@@ -932,8 +962,7 @@ export function CompanionsPanel({
                 {pendingImport.manifest.name ?? pendingImport.manifest.id}
                 <span className="text-muted-foreground font-normal">
                   {" "}
-                  {pendingImport.manifest.id} · v
-                  {pendingImport.manifest.version}
+                  {pendingImport.manifest.id} · {pendingImport.manifest.version}
                   {pendingImport.manifest.base !== undefined
                     ? ` · overlays ${pendingImport.manifest.base}`
                     : ""}
@@ -946,7 +975,7 @@ export function CompanionsPanel({
               )}
               {pendingImport.replaces !== null && (
                 <p className="mt-1">
-                  Replaces v{pendingImport.replaces.version}. Threads stay.
+                  Replaces {pendingImport.replaces.version}. Threads stay.
                 </p>
               )}
               <div className="mt-2 flex gap-2">
