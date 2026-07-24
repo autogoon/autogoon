@@ -20,8 +20,10 @@ import { fileURLToPath } from "node:url";
 import {
   describeImage,
   sidecarPath,
+  inlineImage,
   green,
   yellow,
+  dim,
 } from "./describe-image.mjs";
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
@@ -58,22 +60,30 @@ if (images.length === 0) {
 console.log(`Describing ${images.length} image(s) without a description…\n`);
 
 // Sequential — kinder to rate limits, and the output stays readable in order.
-// Each picture prints the same three parts as the single-image script: the file
-// in green, what the model observed, then the caption it settled on in yellow.
+// Each picture narrates itself exactly as the single-image script does: the file
+// in yellow, each step as it starts, what the model observed, the caption in
+// green, then the picture itself to check it against — so a long bulk run can be
+// watched going past.
 let described = 0;
 let failed = 0;
 for (const image of images) {
+  console.log(yellow(image));
   try {
-    const { caption, observations } = await describeImage(image);
+    let picture = "";
+    const { caption, observations } = await describeImage(image, {
+      onStep: (s) => console.log(dim(s)),
+      onImage: (b64) => {
+        picture = inlineImage(b64);
+      },
+    });
     writeFileSync(sidecarPath(image), `${caption}\n`);
-    console.log(`✓ ${green(image)}`);
-    if (observations !== "") console.log(observations);
-    console.log(`${yellow(caption)}\n`);
+    if (observations !== "") console.log(dim(observations));
+    console.log(green(caption));
+    if (picture !== "") console.log(picture);
+    console.log("");
     described += 1;
   } catch (e) {
-    console.error(
-      `✗ ${image}\n  ${e instanceof Error ? e.message : String(e)}\n`,
-    );
+    console.error(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
     failed += 1;
   }
 }

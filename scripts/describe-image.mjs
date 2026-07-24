@@ -130,13 +130,20 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
 - Hands: where is each one and what is it doing or touching?
 - Clothing: each garment, its specific colour, and how it is arranged — pushed up,
   pulled aside, half off, straps down, unfastened.  Mention topless if there is no
-  bra or top.
-- Exposed: which parts are bare and how much is actually visible — back,
-  nipples (or nipples showing through fabric), stomach, thighs, buttocks.  Grade each
+  bra or top.  Mention whether the clothing is tight or not.
+- Exposed: which parts are bare and how much is actually visible — back, stomach, thighs, buttocks.  Grade each
   one "fully", "partly", "faintly" (made out through fabric or
   in shadow) or "not at all". Never write "not clearly" or similar — if you can make
-  it out at all, however faintly, that is "faintly", not "not at all".
+  it out at all that is "faintly", not "not at all".
 - Genitals: if you can clearly see them.
+- Fabric over her breasts: sheer (skin tone shows through it, as with lace or thin
+  wet fabric) or opaque (no skin tone through it, however tightly it fits)? Answer
+  this before the next one.
+- Nipples: a fitted opaque garment showing the shape of the breast is NOT nipples —
+  the outline of a breast is not a nipple, and nor are lace pattern, seams, folds,
+  shadow, or the cut of a cup. Say which is true: nipples bare and visible; their
+  colour showing through sheer fabric; their shape standing out distinctly against
+  otherwise even fabric; unsure; or not visible.
 - Setting, and the quality and direction of the light.
 - Hair: what it is doing — loose or tied, where it falls, whether she is holding,
   lifting or pushing it.
@@ -148,8 +155,7 @@ is optional:
 - the pose,
 - the setting and the light,
 - the clothing: the garments, their colours, and how they are arranged,
-- what is bare or showing, and how much — include anything showing even faintly,
-  such as nipples through fabric,
+- what is bare or showing, and how much,
 - what her hair is doing,
 - which way she is looking.
 Carry the grades from your observations exactly: never merge two parts you graded
@@ -165,11 +171,27 @@ OBSERVATIONS:
 
 CAPTION: <the single caption sentence>`;
 
-// Output colours, shared with describe-missing.mjs: green names the image,
-// yellow the caption it ended up with, and the observations in between are left
-// plain. Colour only on a TTY, so piped output stays clean.
-export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
+// Output colours, shared with describe-missing.mjs: yellow names the picture,
+// dim carries the working-out (the steps and the model's observations), green is
+// the caption that ends up in the sidecar. Colour only on a TTY, so piped output
+// stays clean.
 export const yellow = (s) => (process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s);
+export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
+export const dim = (s) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
+
+// How many terminal rows an inlined picture takes.
+const INLINE_HEIGHT = 30;
+
+// iTerm2's inline-image escape: prints the picture itself into the terminal, so
+// a caption can be judged against what it describes without opening the file.
+// Returns "" anywhere else — every other terminal would print the raw escape
+// sequence as garbage — so callers skip an empty string.
+export function inlineImage(base64) {
+  if (!process.stdout.isTTY || process.env.TERM_PROGRAM !== 'iTerm.app') {
+    return '';
+  }
+  return `\x1b]1337;File=inline=1;height=${INLINE_HEIGHT};preserveAspectRatio=1:${base64}\x07`;
+}
 
 // The sidecar description path for an image: <basename>.txt beside it.
 export function sidecarPath(imagePath) {
@@ -184,7 +206,15 @@ export function sidecarPath(imagePath) {
 // (`""` if it skipped them) for a human to eyeball — only the caption is ever
 // written to disk. Throws on any failure (unsupported type, missing key, API
 // error, empty or unusable reply) so callers can decide how to report it.
-export async function describeImage(imagePath) {
+//
+// The stages are slow enough to be worth narrating, so callers pass `onStep` (a
+// short label as each begins) and `onImage` (the downscaled JPEG as base64, the
+// moment it exists) — the picture the model is about to see, not the original,
+// which is the one worth putting on screen next to what it says about it.
+export async function describeImage(
+  imagePath,
+  { onStep = () => {}, onImage = () => {} } = {},
+) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {
     throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
@@ -199,9 +229,12 @@ export async function describeImage(imagePath) {
     throw new Error(`Unsupported image type: ${ext || '(none)'}`);
   }
   // Always send a downscaled JPEG, whatever the source format.
-  const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
-    'base64',
-  )}`;
+  onStep(`Resizing to ${MAX_EDGE}px…`);
+  const base64 = resizedJpeg(imagePath).toString('base64');
+  onImage(base64);
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+
+  onStep(`Analysing — ${model}…`);
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -287,12 +320,21 @@ async function main() {
     console.error('Usage: npm run goonpack:describe <path-to-image>');
     process.exit(1);
   }
+  console.log(yellow(basename(imagePath)));
   try {
-    const { caption, observations } = await describeImage(imagePath);
+    // Held back rather than printed as it arrives: the picture reads best under
+    // the caption, as the thing you check the words against.
+    let picture = '';
+    const { caption, observations } = await describeImage(imagePath, {
+      onStep: (s) => console.log(dim(s)),
+      onImage: (b64) => {
+        picture = inlineImage(b64);
+      },
+    });
     writeFileSync(sidecarPath(imagePath), `${caption}\n`);
-    console.log(green(basename(imagePath)));
-    if (observations !== '') console.log(`${observations}\n`);
-    console.log(yellow(caption));
+    if (observations !== '') console.log(dim(observations));
+    console.log(green(caption));
+    if (picture !== '') console.log(picture);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     process.exit(1);

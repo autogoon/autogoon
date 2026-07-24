@@ -18,9 +18,12 @@
   vision model observe a picture out loud — what her weight is on, where the
   knees and heels are, how each garment sits — before condensing that into the
   one-line caption, with explicit tests for the poses models confuse (sitting
-  versus kneeling versus squatting). Both `npm run goonpack:describe` and
-  `goonpack:describe-missing` print those observations above the caption, so you
-  can see what a caption was based on rather than guessing. The caption itself
+  versus kneeling versus squatting), and a check that stops a close-fitting
+  opaque garment being read as see-through. Both `npm run goonpack:describe` and
+  `goonpack:describe-missing` now narrate each step, print those observations,
+  and (in iTerm2) show the picture itself under its caption at the size the
+  model saw it — so you can watch a run go past and judge each caption against
+  what it describes. The caption itself
   now has to carry the setting, the garments, her hair and what's actually on
   show — down to what's only faintly visible, stated as precisely as the model
   saw it — and leaves mood out. The `DESCRIBE_MODEL` environment variable is now
