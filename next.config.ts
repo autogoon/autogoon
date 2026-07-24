@@ -3,9 +3,13 @@ import { join } from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Add hosts here to reach the dev server from
-  // another device on your network (HMR etc.).
-  allowedDevOrigins: [],
+  // Reach the dev server from another device on your network (HMR etc.):
+  // Next blocks cross-origin dev asset requests unless the origin is listed,
+  // and its wildcards can't span an IP's trailing octets — so the literal
+  // origin comes from the gitignored .env (see .env.example), keeping
+  // machine-specific config out of the repo.
+  allowedDevOrigins:
+    process.env.DEV_ALLOWED_ORIGINS?.split(",").map((s) => s.trim()) ?? [],
 
   // Build stamp, so the running app can show what's live (see the Info card in
   // Settings). On Vercel the VERCEL_GIT_* vars are injected automatically;

@@ -26,6 +26,12 @@
   amber pills, and a card's controls (pack pickers, Remove) float in its top
   corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- bug: **Work on older iPhones** — A regex feature unsupported by iOS Safari
+  before 16.4 (a lookbehind, in the changelog parser) was a parse-time error
+  that killed the whole app bundle: the page rendered but nothing was
+  clickable. Rewritten without it.
+  ([#18](https://github.com/autogoon/autogoon/pull/18))
+
 - bug: **Changelog shows whole entries** — The in-app Changelog screen was
   dropping everything after the first line of a wrapped entry; entries now
   render in full, and the raw file can put blank lines between entries.
@@ -35,6 +41,12 @@
   generated module and its pre-hooks are gone; pictures reach companions via
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
   `goonpacks/*/pictures/`. ([#18](https://github.com/autogoon/autogoon/pull/18))
+
+- internal: **Use the dev server from your phone** — Next blocks cross-origin
+  dev asset requests (page visible, nothing clickable); the dev machine's LAN
+  origin now comes from `DEV_ALLOWED_ORIGINS` in `.env` (documented in
+  `.env.example`) since Next's wildcards can't span an IP's trailing octets.
+  ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 - internal: **One Card component** — The home play-mode entries, the
   Companions chooser cards, the Goonpacks rows and the import confirm sheet

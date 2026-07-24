@@ -68,7 +68,11 @@ function splitParagraphs(segments: InlineSegment[]): InlineSegment[][] {
       push(segment);
       continue;
     }
-    segment.text.split(/(?<=[.!?])\s+(?=[A-Z])/).forEach((part, i) => {
+    // Split after a sentence ender followed by a capital — marker + lookahead
+    // rather than a lookbehind, which is a parse-time SyntaxError on older
+    // mobile Safari and would take the whole bundle down with it.
+    const marked = segment.text.replace(/([.!?])\s+(?=[A-Z])/g, "$1\u0000");
+    marked.split("\u0000").forEach((part, i) => {
       if (i > 0) paragraphs.push([]);
       if (part !== "") push({ kind: "text", text: part });
     });
