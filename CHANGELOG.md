@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-24
+
+- feature: **Goonpacks** — import a companion as a portable zip: a complete new
+  companion, or an overlay that adds pictures or changes the voice/persona of
+  one you have. Cards gain variant picking; packs cache in browser storage with
+  your zip as the source of truth. Assembly guide in
+  [GOONPACKS.md](./GOONPACKS.md).
+  ([#N](https://github.com/autogoon/autogoon/pull/N))
+- internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
+  generated module and its pre-hooks are gone; pictures reach companions via
+  goonpacks, and the describe scripts moved to `goonpack:*` scanning
+  `goonpacks/*/pictures/`. ([#N](https://github.com/autogoon/autogoon/pull/N))
+
 ## 2026-07-23
 
 - feature: **Companions notice time passing** — a companion now knows the real date and time on every turn, and when you step away — an hour, overnight — she comes back aware of how long you were gone instead of resuming mid-sentence. The conversation shows each message's time and a date line where a new day starts. Conversations saved before this update have no times on their older messages. ([#17](https://github.com/autogoon/autogoon/pull/17))

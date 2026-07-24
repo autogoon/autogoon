@@ -110,19 +110,17 @@ picture survives a reload. A companion with no pictures never sees the tool, and
 the shared pictures prompt block is only interpolated into a persona that has
 some.
 
-Pictures are **bring-your-own** — they live only on your machine and never ship
-with the app. To give a companion pictures:
+Pictures are **bring-your-own** — they arrive via a [goonpack](../GOONPACKS.md),
+never bundled with the app. The built-in companions ship pictureless; give one
+pictures by importing an overlay pack for her.
 
-1. **Drop images into `public/companions/<id>/`** — `<id>` is her name in
-   lowercase (e.g. `public/companions/aimee/`).
-2. **Caption them: `npm run describe:missing`** writes a `.txt` caption next to
-   every image that doesn't have one, using a vision model over your
-   `OPENROUTER_API_KEY` (`npm run describe <path>` does a single image;
-   `DESCRIBE_MODEL` picks a different model). Captions are plain text files —
-   read them, and hand-fix any the model got wrong; the caption is exactly what
-   she chooses by.
-3. **Restart the app** (or run `npm run gen:pictures`) and she'll offer to send
-   them.
+## Goonpacks
+
+The Companions screen lists the built-ins alongside any packs you've imported. A
+companion's card shows her variants — the default plus any overlays you've added
+— so you can pick which one to play; import and remove both happen right there
+on the chooser. See [GOONPACKS.md](../GOONPACKS.md) for assembling and importing
+a pack.
 
 ## Configuration
 

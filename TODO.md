@@ -116,44 +116,9 @@ never refuses to play because it's 4am where she lives.
 
 ## Goonpacks
 
-A companion persona as a **portable, self-contained pack** the app imports — a
-`.zip` with everything one companion needs: the images with their description
-sidecars, the ElevenLabs voice config, the system prompt, and the companion
-config (id, display name, knob defaults, accent). The app is a _player_ for
-persona content; a pack is how one persona travels. Distribution stays
-import-your-own-file only, per the
-[content policy](./DEVELOPERS.md#content-policy) — the project never hosts,
-indexes, or points at packs.
+Goonpacks — importing a companion as a portable pack — has shipped; see
+[GOONPACKS.md](./GOONPACKS.md). One follow-up remains:
 
-The core work is **build-time-baked → runtime-loaded**: a companion today is
-code (`companions.ts`, the prompt modules, the generated pictures module); a
-pack is that same data loaded at runtime. The zip unpacks in the browser and its
-images become in-memory object URLs (a picture's `src` is already just a string
-handed to `<img>`); **the zip file is the source of truth** — IndexedDB holds
-the blobs only as a rehydration cache, so eviction (Safari wipes script-writable
-storage after 7 days of disuse) costs a re-import, never data. Built-ins stay
-pure code, never touch browser storage, and **ship pictureless** — pictures
-reach a built-in via an overlay pack, and the build-time picture pipeline
-(`gen:pictures`, `public/companions/`) retires with this work.
-
-Settled design points:
-
-- **Identity is `publisher.name`** (`autogoon.elise`, `somecontributor.elise`),
-  both halves strict slugs (`[a-z0-9-]`, single dot separator) — ids end up in
-  storage keys and paths. **Unversioned**: the id means _the same her_ — the
-  thread is keyed by it, so a compatible update keeps the id (and her memory),
-  and an incompatible one is a new companion. The namespace is a convention, not
-  verification: importing a pack whose id already exists is a deliberate full
-  replacement, user-confirmed (the zip's info is right there to show on import).
-- **Stock companions move to `autogoon.*` ids.** No thread migration: threads
-  saved under the old bare ids are orphaned by the rename — accepted.
-- **Overlays**: a pack with its own id plus a `base` field naming the companion
-  it modifies — extra pictures, or a replacement voice or system prompt, applied
-  over the built-in at load. This is also how the stock companions get pictures
-  on a fresh install: the repo can't distribute images (`public/companions/` is
-  gitignored), so users supply their own.
-- The chooser disambiguates colliding display names by publisher — names aren't
-  unique; ids are.
 - **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
   account, so a pack's voice doesn't truly travel. The follow-up carries a voice
   _prompt_ instead: the app submits it to ElevenLabs voice design, gets three
