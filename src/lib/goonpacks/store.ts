@@ -1,67 +1,10 @@
-// Pack storage. IndexedDB is a CACHE keyed by pack id ({manifest, zip blob});
-// the user's zip files are the store of record. localStorage carries a small
-// derived index so startup can tell "evicted" from "never imported" — spec:
-// "Eviction can be partial — never assume all-or-nothing."
-import type { PackManifest } from "./manifest";
-import { parseManifest } from "./manifest";
-
-export type IndexEntry = {
-  id: string;
-  version: string;
-  name?: string;
-  base?: string;
-};
-
-const INDEX_KEY = "goonpacks:index";
-
-export function toIndexEntry(m: PackManifest): IndexEntry {
-  const e: IndexEntry = { id: m.id, version: m.version };
-  if (m.name !== undefined) e.name = m.name;
-  if (m.base !== undefined) e.base = m.base;
-  return e;
-}
-
-export function readIndex(storage: Storage): IndexEntry[] {
-  try {
-    const parsed: unknown = JSON.parse(storage.getItem(INDEX_KEY) ?? "[]");
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (e): e is IndexEntry =>
-        typeof e === "object" && e !== null && typeof e.id === "string",
-    );
-  } catch {
-    return [];
-  }
-}
-
-export function writeIndex(storage: Storage, entries: IndexEntry[]): void {
-  try {
-    storage.setItem(INDEX_KEY, JSON.stringify(entries));
-  } catch {
-    // Quota/unavailable: the index is derived state; losing it only costs
-    // "evicted vs never imported" hints, never data.
-  }
-}
-
-// Stored records win over stale index entries; index entries with no record
-// are the evicted ones the UI shows as awaiting re-import.
-export function reconcile(
-  index: IndexEntry[],
-  stored: IndexEntry[],
-): { healed: IndexEntry[]; missing: IndexEntry[] } {
-  const storedById = new Map(stored.map((e) => [e.id, e]));
-  const missing = index.filter((e) => !storedById.has(e.id));
-  const healedIds = new Set<string>();
-  const healed: IndexEntry[] = [];
-  for (const e of [...stored, ...missing]) {
-    if (healedIds.has(e.id)) continue;
-    healedIds.add(e.id);
-    healed.push(e);
-  }
-  return { healed, missing };
-}
-
-// --- IndexedDB (browser only, kept too thin to unit-test) ---
+// Pack storage: IndexedDB holds ONE thing — each imported pack's zip bytes,
+// keyed by pack id. Everything else (manifest, summary, validity) is
+// re-derived from the zips at load by the same pipeline that imports them, so
+// there is exactly one notion of a valid pack and no stored state to drift or
+// migrate; a record that fails today's rules surfaces as incompatible, never
+// half-works. The user's zip files remain the store of record — this is a
+// cache ("Packs live in browser storage; keep your zips").
 
 const DB_NAME = "autogoon-goonpacks";
 const STORE = "packs";
@@ -94,54 +37,41 @@ function tx<T>(
   );
 }
 
-// Zip-level facts the manifest can't tell (computed from the parsed pack at
-// import; the admin list shows them without re-unzipping). Optional on the
-// record: packs stored before this existed are backfilled on first list.
-export type PackSummary = { pictures: number; hasPrompt: boolean };
+// A stored record, unvalidated: `zip` is whatever the browser hands back
+// (records from older app versions may hold anything) — the load pipeline
+// decides whether it parses.
+export type PackRecord = { id: string; zip: unknown };
 
-// The zip is stored as raw bytes, not a Blob: Blob records fail to store in
-// some WebKit builds (Playwright's bundled WebKit throws on any Blob put, and
-// real Safari has its own Blob-in-IDB history) — bytes structured-clone
-// everywhere. `Blob` stays in the type because records written before the
-// bytes switch really do come back as one (see getPackBytes's compat branch).
-type StoredRecord = {
-  manifest: unknown;
-  zip: ArrayBuffer | Blob;
-  summary?: PackSummary;
-};
-
-// Every readable, valid record's manifest (+ summary when the record carries
-// one). Unreadable/invalid records are skipped — they count as evicted and
-// surface via reconcile as missing.
-export async function listStoredPacks(): Promise<
-  { manifest: PackManifest; summary?: PackSummary }[]
-> {
-  let records: unknown[];
+export async function listPackRecords(): Promise<PackRecord[]> {
   try {
-    records = await tx("readonly", (s) => s.getAll());
+    const db = await openDb();
+    return await new Promise((resolve, reject) => {
+      const t = db.transaction(STORE, "readonly");
+      const s = t.objectStore(STORE);
+      const keysReq = s.getAllKeys();
+      const valsReq = s.getAll();
+      t.oncomplete = () => {
+        db.close();
+        resolve(
+          (keysReq.result as string[]).map((id, i) => ({
+            id,
+            zip: (valsReq.result as unknown[])[i],
+          })),
+        );
+      };
+      t.onerror = () => {
+        db.close();
+        reject(t.error ?? new Error("indexeddb failed"));
+      };
+      t.onabort = () => db.close();
+    });
   } catch {
-    return [];
+    return []; // no database, no packs
   }
-  const out: { manifest: PackManifest; summary?: PackSummary }[] = [];
-  for (const r of records) {
-    try {
-      out.push({
-        manifest: parseManifest((r as StoredRecord).manifest),
-        summary: (r as StoredRecord).summary,
-      });
-    } catch {
-      // skip — treated as evicted
-    }
-  }
-  return out;
 }
 
-export async function putPack(
-  manifest: PackManifest,
-  zip: ArrayBuffer,
-  summary: PackSummary,
-): Promise<void> {
-  await tx("readwrite", (s) => s.put({ manifest, zip, summary }, manifest.id));
+export async function putPack(id: string, zip: ArrayBuffer): Promise<void> {
+  await tx("readwrite", (s) => s.put(zip, id));
 }
 
 export async function deletePack(id: string): Promise<void> {
@@ -150,13 +80,8 @@ export async function deletePack(id: string): Promise<void> {
 
 export async function getPackBytes(id: string): Promise<ArrayBuffer | null> {
   try {
-    const r = (await tx("readonly", (s) => s.get(id))) as
-      StoredRecord | undefined;
-    if (r === undefined) return null;
-    // Records written before the bytes switch stored a Blob; read them too
-    // rather than treating them as evicted.
-    if (r.zip instanceof Blob) return await r.zip.arrayBuffer();
-    return r.zip ?? null;
+    const r: unknown = await tx("readonly", (s) => s.get(id));
+    return r instanceof ArrayBuffer ? r : null;
   } catch {
     return null;
   }

@@ -838,132 +838,108 @@ export function CompanionsPanel({
             the device while you talk — cut in any time and she stops.
           </p>
           <div className="mt-2 flex flex-col gap-2">
-            {library.entries.map((entry) => {
-              const c = entry.companion;
-              // The remembered variant, falling back to default when it's
-              // gone (pack removed) or evicted (unplayable until re-import).
-              const selectedId = variantSel[c.id] ?? "default";
-              const selected =
-                entry.variants.find(
-                  (v) => (v.packId ?? "default") === selectedId && !v.missing,
-                ) ?? entry.variants[0]!;
-              // The card previews exactly what the selection plays: description,
-              // accent and the feature line all follow the select.
-              const accent = selected.accent ?? c.accentColour;
-              const description = selected.description ?? c.description;
-              const features = variantFeatures(selected);
-              const pick = () => {
-                void (async () => {
-                  try {
-                    const resolved = await library.resolveVariant(
-                      entry,
-                      selected.packId,
-                    );
-                    if (resolved === null) return; // overtaken by a newer pick
-                    setCompanion(resolved);
-                    enterPlay();
-                  } catch (e) {
-                    setPickError(
-                      e instanceof PackError
-                        ? e.message
-                        : "pack failed to load",
-                    );
-                  }
-                })();
-              };
-              if (entry.missing) {
-                // Evicted complete pack: browser storage let it go; the zip
-                // has it. Her overlays are named (not playable — she can't
-                // load) so they aren't hidden.
-                const overlays = entry.variants.filter(
-                  (v) => v.packId !== null,
-                );
+            {library.status === "loading" ? (
+              <p className="text-muted-foreground text-sm">Checking packs…</p>
+            ) : (
+              library.entries.map((entry) => {
+                const c = entry.companion;
+                // The remembered variant, falling back to default when it's
+                // gone (pack removed or now incompatible).
+                const selectedId = variantSel[c.id] ?? "default";
+                const selected =
+                  entry.variants.find(
+                    (v) => (v.packId ?? "default") === selectedId,
+                  ) ?? entry.variants[0]!;
+                // The card previews exactly what the selection plays:
+                // description, accent and the feature line all follow the
+                // select.
+                const accent = selected.accent ?? c.accentColour;
+                const description = selected.description ?? c.description;
+                const features = variantFeatures(selected);
+                const pick = () => {
+                  void (async () => {
+                    try {
+                      const resolved = await library.resolveVariant(
+                        entry,
+                        selected.packId,
+                      );
+                      if (resolved === null) return; // overtaken by a newer pick
+                      setCompanion(resolved);
+                      enterPlay();
+                    } catch (e) {
+                      setPickError(
+                        e instanceof PackError
+                          ? e.message
+                          : "pack failed to load",
+                      );
+                    }
+                  })();
+                };
                 return (
+                  /* One clickable card, edge to edge — a div with onClick
+                     rather than a Button, because the variant <select> lives
+                     inside it and selects can't nest in buttons (it stops
+                     propagation so changing variant never plays). Matches the
+                     home play mode list's card, minus the icon; the accent
+                     gradient follows the selected variant's colour,
+                     interpolated in and safelisted in globals.css. */
                   <div
                     key={c.id}
-                    className="rounded-xl border border-dashed px-4 py-3"
+                    onClick={pick}
+                    className={`cursor-pointer rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
                   >
-                    <span className="block font-semibold">{c.name}</span>
-                    <span className="text-muted-foreground block text-sm">
-                      Gone from browser storage — re-import in Goonpacks.
-                      {overlays.length > 0
-                        ? ` Overlays wait with her: ${overlays
-                            .map((v) => v.label)
-                            .join(", ")}.`
-                        : ""}
-                    </span>
+                    {/* Top row: her name with the variant picker right beside
+                        it — remembered per companion. */}
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold">{c.name}</span>
+                      {entry.variants.length > 1 && (
+                        <select
+                          aria-label={`${c.name} variant`}
+                          value={selectedId}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => selectVariant(c.id, e.target.value)}
+                          className={`text-foreground border-${accent}-500 bg-background rounded-lg border px-2 py-1 text-sm`}
+                        >
+                          {entry.variants.map((v) => (
+                            <option
+                              key={v.packId ?? "default"}
+                              value={v.packId ?? "default"}
+                            >
+                              {v.label}
+                              {v.version !== undefined ? ` ${v.version}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span className="min-w-0 flex-1">
+                        <span className="text-muted-foreground block text-sm">
+                          {description}
+                        </span>
+                        {features.length > 0 && (
+                          <span className="text-muted-foreground mt-1 block text-xs">
+                            {features.map((f, i) => (
+                              <Fragment key={f.text}>
+                                {i > 0 ? " · " : ""}
+                                {f.bold ? (
+                                  <span className="text-foreground font-medium">
+                                    {f.text}
+                                  </span>
+                                ) : (
+                                  f.text
+                                )}
+                              </Fragment>
+                            ))}
+                          </span>
+                        )}
+                      </span>
+                      <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+                    </div>
                   </div>
                 );
-              }
-              return (
-                /* The main card matches the home play mode list's, minus the
-                   icon (and no badge — Companions registers no vosk words).
-                   The accent gradient follows the selected variant's colour,
-                   interpolated in and safelisted in globals.css. */
-                <div
-                  key={c.id}
-                  className={`relative rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 has-[button:hover]:from-${accent}-500/25 has-[button:hover]:to-${accent}-500/10`}
-                >
-                  <Button
-                    onClick={pick}
-                    className="flex w-full min-w-0 items-center gap-4 px-4 py-3 text-left"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block font-semibold ${
-                          entry.variants.length > 1 ? "pr-28" : ""
-                        }`}
-                      >
-                        {c.name}
-                      </span>
-                      <span className="text-muted-foreground block text-sm">
-                        {description}
-                      </span>
-                      {features.length > 0 && (
-                        <span className="text-muted-foreground block text-xs">
-                          {features.map((f, i) => (
-                            <Fragment key={f.text}>
-                              {i > 0 ? " · " : ""}
-                              {f.bold ? (
-                                <span className="text-foreground font-medium">
-                                  {f.text}
-                                </span>
-                              ) : (
-                                f.text
-                              )}
-                            </Fragment>
-                          ))}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-                  </Button>
-                  {entry.variants.length > 1 && (
-                    /* The variant picker — top row, right of her name;
-                       remembered per companion. Evicted variants stay listed
-                       but disabled until re-imported. */
-                    <select
-                      aria-label={`${c.name} variant`}
-                      value={selectedId}
-                      onChange={(e) => selectVariant(c.id, e.target.value)}
-                      className="text-muted-foreground absolute top-3 right-3 rounded border bg-transparent px-1 py-0.5 text-xs"
-                    >
-                      {entry.variants.map((v) => (
-                        <option
-                          key={v.packId ?? "default"}
-                          value={v.packId ?? "default"}
-                          disabled={v.missing}
-                        >
-                          {v.label}
-                          {v.version !== undefined ? ` ${v.version}` : ""}
-                          {v.missing ? " — re-import" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              );
-            })}
+              })
+            )}
           </div>
           {pickError !== null && (
             <p className="mt-1 text-sm text-red-500">{pickError}</p>

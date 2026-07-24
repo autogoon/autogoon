@@ -1,10 +1,17 @@
-// Library entries: reconciles built-ins with imported and evicted packs into
-// what the chooser renders. Pure — no React, no storage I/O; the hook feeds
-// this whatever it already read from IndexedDB/localStorage.
+// Library entries: built-ins merged with the VALID imported packs into what
+// the chooser renders. Pure — no React, no storage I/O; the hook feeds this
+// the packs that survived the load-time re-validation (incompatible packs
+// never reach here — they list only on the Goonpacks screen).
 import { companionList, type Companion } from "@/lib/companions/companions";
 import type { PackManifest } from "./manifest";
 import { packToCompanion } from "./resolve";
-import type { IndexEntry, PackSummary } from "./store";
+
+// Zip-level facts the manifest can't tell, derived at load/import from the
+// parsed pack (pictures count, prompt presence).
+export type PackSummary = { pictures: number; hasPrompt: boolean };
+
+// A pack that passed the full load-time validation.
+export type LoadedPack = { manifest: PackManifest; summary: PackSummary };
 
 // The overridable slots a variant can change — the chooser's feature line
 // bolds exactly these.
@@ -14,33 +21,27 @@ export type Variant = {
   packId: string | null; // null = default
   label: string;
   version?: string;
-  missing: boolean;
-  // What the card shows while this variant is selected (all undefined for a
-  // missing variant — there's nothing readable to show):
+  // What the card shows while this variant is selected:
   description?: string; // override; the card falls back to the base's
   accent?: string; // accentColour override
-  pictures?: number; // effective picture count for this selection
-  changed?: VariantSlot[]; // slots this overlay changes/adds — bolded
+  pictures: number; // effective picture count for this selection
+  changed: VariantSlot[]; // slots this overlay changes/adds — bolded
 };
 export type LibraryEntry = {
   companion: Companion;
   builtIn: boolean;
-  missing: boolean;
   variants: Variant[];
 };
 
 export const publisher = (id: string) => id.split(".")[0]!;
 
-type StoredPack = { manifest: PackManifest; summary?: PackSummary };
-
 // Which slots an overlay changes, from its manifest + zip summary.
-function changedSlots(p: StoredPack): VariantSlot[] {
+function changedSlots(p: LoadedPack): VariantSlot[] {
   const out: VariantSlot[] = [];
-  const s = p.summary;
-  if ((s?.pictures ?? 0) > 0 || p.manifest.noPictures === true) {
+  if (p.summary.pictures > 0 || p.manifest.noPictures === true) {
     out.push("pictures");
   }
-  if (s?.hasPrompt === true) out.push("prompt");
+  if (p.summary.hasPrompt) out.push("prompt");
   if (p.manifest.voiceId !== undefined) out.push("voice");
   if (p.manifest.accentColour !== undefined) out.push("colour");
   if (p.manifest.model !== undefined) out.push("model");
@@ -49,18 +50,12 @@ function changedSlots(p: StoredPack): VariantSlot[] {
 
 // The picture count a selection actually plays with: the overlay's own set
 // when it brings one (or deliberately none), else the base's.
-function effectivePictures(p: StoredPack, basePictures: number): number {
+function effectivePictures(p: LoadedPack, basePictures: number): number {
   if (p.manifest.noPictures === true) return 0;
-  const own = p.summary?.pictures ?? 0;
-  return own > 0 ? own : basePictures;
+  return p.summary.pictures > 0 ? p.summary.pictures : basePictures;
 }
 
-// Library state assembled from whatever survived storage: manifests (+ zip
-// summaries) for live records, index entries standing in for evicted ones.
-export function buildEntries(
-  packs: StoredPack[],
-  missing: IndexEntry[],
-): LibraryEntry[] {
+export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
   const variantsFor = (
     companionId: string,
     basePictures: number,
@@ -68,7 +63,6 @@ export function buildEntries(
     {
       packId: null,
       label: "default",
-      missing: false,
       pictures: basePictures,
       changed: [],
     },
@@ -78,25 +72,15 @@ export function buildEntries(
         packId: p.manifest.id,
         label: publisher(p.manifest.id),
         version: p.manifest.version,
-        missing: false,
         description: p.manifest.description,
         accent: p.manifest.accentColour,
         pictures: effectivePictures(p, basePictures),
         changed: changedSlots(p),
       })),
-    ...missing
-      .filter((e) => e.base === companionId)
-      .map((e) => ({
-        packId: e.id,
-        label: publisher(e.id),
-        version: e.version,
-        missing: true,
-      })),
   ];
   const builtIns: LibraryEntry[] = companionList.map((c) => ({
     companion: c,
     builtIn: true,
-    missing: false,
     variants: variantsFor(c.id, c.pictures?.length ?? 0),
   }));
   const completes: LibraryEntry[] = packs
@@ -104,19 +88,7 @@ export function buildEntries(
     .map((p) => ({
       companion: packToCompanion({ manifest: p.manifest, pictures: [] }),
       builtIn: false,
-      missing: false,
-      variants: variantsFor(p.manifest.id, p.summary?.pictures ?? 0),
+      variants: variantsFor(p.manifest.id, p.summary.pictures),
     }));
-  const evicted: LibraryEntry[] = missing
-    .filter((e) => e.base === undefined)
-    .map((e) => ({
-      companion: packToCompanion({
-        manifest: { format: 1, id: e.id, version: e.version, name: e.name },
-        pictures: [],
-      }),
-      builtIn: false,
-      missing: true,
-      variants: variantsFor(e.id, 0),
-    }));
-  return [...builtIns, ...completes, ...evicted];
+  return [...builtIns, ...completes];
 }

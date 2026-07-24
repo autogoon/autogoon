@@ -1,16 +1,27 @@
 "use client";
-// The chooser's library: built-ins + imported packs, reconciled against
-// partial eviction on every load. All pack knowledge for the panel flows
-// through here; the panel never touches the store directly.
+// The pack library. IndexedDB stores only zips; every load re-runs the full
+// import pipeline over them (parse → validate → derive), so validity is one
+// live verdict: a pack either passes today's rules and is offered, or it
+// lists on the Goonpacks screen as incompatible — with the reason — and is
+// offered nowhere. No stored derived state, no legacy special cases; an
+// incompatible pack can heal on a later load (e.g. its base gets imported).
+// All pack knowledge for the panels flows through here.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { COMPANIONS, type Companion } from "@/lib/companions/companions";
 import {
   buildEntries,
   type LibraryEntry,
+  type LoadedPack,
+  type PackSummary,
   type Variant,
 } from "@/lib/goonpacks/entries";
 import { PackError, type PackManifest } from "@/lib/goonpacks/manifest";
-import { parsePack } from "@/lib/goonpacks/pack";
+import {
+  parsePack,
+  peekPack,
+  type PackPeek,
+  type ParsedPack,
+} from "@/lib/goonpacks/pack";
 import {
   applyOverlay,
   packToCompanion,
@@ -21,46 +32,54 @@ import {
 import {
   deletePack,
   getPackBytes,
-  listStoredPacks,
+  listPackRecords,
   putPack,
-  readIndex,
-  reconcile,
-  toIndexEntry,
-  writeIndex,
-  type IndexEntry,
-  type PackSummary,
 } from "@/lib/goonpacks/store";
 
 export type { LibraryEntry, Variant };
 export type PendingImport = {
   manifest: PackManifest;
-  replaces: IndexEntry | null;
+  replaces: boolean; // an installed pack already holds this id
   commit(): Promise<void>;
 };
 
-// An overlay's base must be installed (built-in or a live/evicted-but-known
-// pack) and must itself be a companion, not another overlay — chaining
-// overlays isn't a supported shape (spec: "base = built-in or complete pack
-// only"). Shared between import-time and commit-time validation (item 7:
-// installed at import can go missing again by the time Import is clicked).
-function overlayBaseError(base: string): PackError | null {
-  const index = readIndex(localStorage);
-  const baseEntry = index.find((e) => e.id === base);
-  const baseIsBuiltIn = COMPANIONS[base] !== undefined;
-  if (!baseIsBuiltIn && baseEntry === undefined) {
-    return new PackError(`needs its base installed first: ${base}`);
+// One row of the Goonpacks admin list. A valid pack carries its manifest and
+// summary. An incompatible one carries the reason it failed today's rules,
+// plus whatever we can still say about it: its manifest when only the
+// cross-pack checks failed, or a best-effort peek when validation itself did.
+export type PackRow = {
+  id: string;
+  manifest?: PackManifest;
+  summary?: PackSummary;
+  peek?: PackPeek;
+  incompatible?: string;
+};
+
+const summarize = (parsed: ParsedPack): PackSummary => ({
+  pictures: parsed.pictures.length,
+  hasPrompt: parsed.systemPrompt !== undefined,
+});
+
+// Cross-pack rules a zip can't know about itself: an overlay's base must be
+// installed and must be a companion (built-in or complete pack), never
+// another overlay. Applied at load over the parsed set — and at import for
+// immediate feedback.
+function baseError(
+  manifest: PackManifest,
+  isInstalled: (id: string) => "companion" | "overlay" | undefined,
+): string | null {
+  if (manifest.base === undefined) return null;
+  const base = isInstalled(manifest.base);
+  if (base === undefined) {
+    return `needs its base installed first: ${manifest.base}`;
   }
-  if (baseEntry?.base !== undefined) {
-    return new PackError("base must be a companion, not an overlay");
-  }
+  if (base === "overlay") return "base must be a companion, not an overlay";
   return null;
 }
 
-// Unzip a stored pack. Missing/unreadable → PackError (the card's re-import
-// path); pictures become object URLs, revoked by the caller when replaced.
-// `collect`, when given, gets every object URL created — resolveVariant uses
-// it to account for and revoke the losing side of a base/overlay picture pick
-// (see resolveVariant).
+// Unzip a stored pack for play. Missing record → PackError (rare: removed
+// between refreshes); pictures become object URLs, accounted for by
+// resolveVariant. `collect` gets every object URL created.
 async function loadContent(
   packId: string,
   collect?: string[],
@@ -87,23 +106,16 @@ async function loadContent(
   };
 }
 
-// One row of the Goonpacks admin list: a live pack (manifest + zip-level
-// summary) or an evicted one (index entry only — awaiting re-import).
-export type PackRow = {
-  id: string;
-  version: string;
-  name?: string;
-  base?: string;
-  missing: boolean;
-  manifest?: PackManifest;
-  summary?: PackSummary;
-};
-
 export function useGoonpackLibrary() {
+  // "loading" while the zips reindex (parse + validate, every load) — the
+  // panels show a loading line rather than a half-empty library.
+  const [status, setStatus] = useState<"loading" | "ready">("loading");
   const [entries, setEntries] = useState<LibraryEntry[]>(() =>
-    buildEntries([], []),
+    buildEntries([]),
   );
   const [packs, setPacks] = useState<PackRow[]>([]);
+  // The currently-valid set, for import-time base checks.
+  const validRef = useRef<Map<string, PackManifest>>(new Map());
   // Object URLs of the currently-committed pick — the only ones that should
   // ever be alive between resolveVariant calls.
   const urlsRef = useRef<string[]>([]);
@@ -114,45 +126,76 @@ export function useGoonpackLibrary() {
   // can overtake the mount refresh).
   const refreshSeqRef = useRef(0);
 
+  // Reindex: re-import every stored zip through the one pipeline.
   const refresh = useCallback(async () => {
     const seq = ++refreshSeqRef.current;
-    const stored = await listStoredPacks();
-    // Backfill: records from before summaries existed get one now, computed
-    // from their own bytes — once per legacy pack, then it's stored.
-    for (const p of stored) {
-      if (p.summary !== undefined) continue;
-      const bytes = await getPackBytes(p.manifest.id);
-      if (bytes === null) continue;
+    const records = await listPackRecords();
+    const valid: (LoadedPack & { id: string })[] = [];
+    const bad: PackRow[] = [];
+    for (const r of records) {
+      // A stored value that isn't zip bytes is garbage, not a pack — it can
+      // never validate, so drop the record rather than list it.
+      if (!(r.zip instanceof ArrayBuffer)) {
+        await deletePack(r.id);
+        continue;
+      }
+      const bytes = new Uint8Array(r.zip);
       try {
-        const parsed = parsePack(new Uint8Array(bytes));
-        p.summary = {
-          pictures: parsed.pictures.length,
-          hasPrompt: parsed.systemPrompt !== undefined,
-        };
-        await putPack(p.manifest, bytes, p.summary);
-      } catch {
-        // Unreadable bytes: leave the summary off; the pack still lists.
+        const parsed = parsePack(bytes);
+        if (parsed.manifest.id !== r.id) {
+          throw new PackError("zip id doesn't match its slot");
+        }
+        valid.push({
+          id: r.id,
+          manifest: parsed.manifest,
+          summary: summarize(parsed),
+        });
+      } catch (e) {
+        bad.push({
+          id: r.id,
+          peek: peekPack(bytes),
+          incompatible: e instanceof PackError ? e.message : "unreadable zip",
+        });
       }
     }
-    if (seq !== refreshSeqRef.current) return; // superseded
-    const manifests = stored.map((p) => p.manifest);
-    const { healed, missing } = reconcile(
-      readIndex(localStorage),
-      manifests.map(toIndexEntry),
+    // Cross-pack pass: a complete pack squatting a built-in id, then overlay
+    // base rules against what remains.
+    const completes = new Map(
+      valid
+        .filter((p) => p.manifest.base === undefined)
+        .map((p) => [p.id, p] as const),
     );
-    writeIndex(localStorage, healed);
-    setEntries(buildEntries(stored, missing));
+    const survivors: (LoadedPack & { id: string })[] = [];
+    for (const p of valid) {
+      let reason: string | null = null;
+      if (p.manifest.base === undefined && COMPANIONS[p.id] !== undefined) {
+        reason = "that id belongs to a built-in companion";
+      } else {
+        reason = baseError(p.manifest, (id) =>
+          COMPANIONS[id] !== undefined || completes.has(id)
+            ? "companion"
+            : valid.some((v) => v.id === id)
+              ? "overlay"
+              : undefined,
+        );
+      }
+      if (reason === null) survivors.push(p);
+      else bad.push({ id: p.id, manifest: p.manifest, incompatible: reason });
+    }
+    if (seq !== refreshSeqRef.current) return; // superseded
+    validRef.current = new Map(survivors.map((p) => [p.id, p.manifest]));
+    setEntries(buildEntries(survivors));
     setPacks(
       [
-        ...stored.map((p) => ({
-          ...toIndexEntry(p.manifest),
-          missing: false,
+        ...survivors.map((p) => ({
+          id: p.id,
           manifest: p.manifest,
           summary: p.summary,
         })),
-        ...missing.map((e) => ({ ...e, missing: true })),
+        ...bad,
       ].sort((a, b) => a.id.localeCompare(b.id)),
     );
+    setStatus("ready");
   }, []);
 
   useEffect(() => {
@@ -164,32 +207,22 @@ export function useGoonpackLibrary() {
       const bytes = await file.arrayBuffer();
       const parsed = parsePack(new Uint8Array(bytes));
       const m = parsed.manifest;
-      if (m.base !== undefined) {
-        const err = overlayBaseError(m.base);
-        if (err !== null) throw err;
-      } else if (COMPANIONS[m.id] !== undefined) {
-        // Same-id replacement of an IMPORTED pack stays allowed (the confirm
-        // sheet's replace path) — this only blocks squatting a built-in id.
+      // Immediate feedback on what the load pass would reject anyway.
+      if (m.base === undefined && COMPANIONS[m.id] !== undefined) {
         throw new PackError("that id belongs to a built-in companion");
       }
-      const replaces =
-        readIndex(localStorage).find((e) => e.id === m.id) ?? null;
+      const err = baseError(m, (id) => {
+        if (COMPANIONS[id] !== undefined) return "companion";
+        const installed = validRef.current.get(id);
+        if (installed === undefined) return undefined;
+        return installed.base === undefined ? "companion" : "overlay";
+      });
+      if (err !== null) throw new PackError(err);
       return {
         manifest: m,
-        replaces,
+        replaces: validRef.current.has(m.id),
         commit: async () => {
-          if (m.base !== undefined) {
-            const err = overlayBaseError(m.base);
-            if (err !== null) throw err;
-          }
-          await putPack(m, bytes, {
-            pictures: parsed.pictures.length,
-            hasPrompt: parsed.systemPrompt !== undefined,
-          });
-          writeIndex(localStorage, [
-            ...readIndex(localStorage).filter((e) => e.id !== m.id),
-            toIndexEntry(m),
-          ]);
+          await putPack(m.id, bytes);
           await refresh();
         },
       };
@@ -197,20 +230,12 @@ export function useGoonpackLibrary() {
     [refresh],
   );
 
+  // Removal never cascades: overlays of a removed base stay stored and simply
+  // list as incompatible ("needs its base installed") until the base returns.
+  // Threads are untouched either way.
   const removePack = useCallback(
     async (id: string) => {
-      // User-initiated removal cascades to the pack's overlays (never on
-      // eviction). Threads are untouched — re-import brings her back whole.
-      const index = readIndex(localStorage);
-      const doomed = [
-        id,
-        ...index.filter((e) => e.base === id).map((e) => e.id),
-      ];
-      for (const d of doomed) await deletePack(d);
-      writeIndex(
-        localStorage,
-        index.filter((e) => !doomed.includes(e.id)),
-      );
+      await deletePack(id);
       await refresh();
     },
     [refresh],
@@ -273,6 +298,7 @@ export function useGoonpackLibrary() {
   // each hold their own instance of this hook: a pack imported or removed on
   // one screen reaches the other by re-syncing when that screen shows.
   return {
+    status,
     entries,
     packs,
     importPack,

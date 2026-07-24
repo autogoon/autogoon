@@ -1,7 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
 import { PackError, parseManifest } from "./manifest";
 
-const good = { format: 1, id: "g00ner.aimee", version: "1.0.0" };
+const good = {
+  format: 1,
+  id: "g00ner.aimee",
+  version: "1.0.0",
+  aboutThePack: "a test pack",
+};
 
 describe("parseManifest", () => {
   it("accepts a minimal overlay manifest", () => {
@@ -53,10 +58,13 @@ describe("parseManifest", () => {
       PackError,
     );
   });
-  it("passes aboutThePack through", () => {
-    expect(
-      parseManifest({ ...good, aboutThePack: "adds things" }).aboutThePack,
-    ).toBe("adds things");
+  it("requires aboutThePack", () => {
+    expect(() => parseManifest({ ...good, aboutThePack: undefined })).toThrow(
+      /aboutThePack/,
+    );
+    expect(() => parseManifest({ ...good, aboutThePack: "" })).toThrow(
+      /aboutThePack/,
+    );
   });
   it("rejects an unknown accentColour", () => {
     expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(

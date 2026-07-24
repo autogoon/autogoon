@@ -13,6 +13,7 @@ const completePack = zipSync({
       format: 1,
       id: "e2e.testy",
       version: "1.0.0",
+      aboutThePack: "an e2e test pack",
       name: "Testy",
       description: "e2e import fixture",
       voiceId: "v-e2e",

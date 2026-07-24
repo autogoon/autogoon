@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { strToU8, zipSync } from "fflate";
 import { PackError } from "./manifest";
-import { parsePack } from "./pack";
+import { parsePack, peekPack } from "./pack";
 
 const manifest = (extra: object = {}) =>
   strToU8(
@@ -106,5 +106,35 @@ describe("parsePack", () => {
   });
   it("rejects an unreadable zip", () => {
     expect(() => parsePack(new Uint8Array([9, 9, 9]))).toThrow(PackError);
+  });
+});
+
+describe("peekPack", () => {
+  it("reads the manifest's string fields from a zip parsePack rejects", () => {
+    const zip = zipSync({
+      "manifest.json": strToU8(
+        JSON.stringify({
+          id: "test.pack",
+          version: "0.9.0",
+          name: "Testy",
+          base: "autogoon.aimee",
+          format: "bad",
+        }),
+      ),
+    });
+    expect(() => parsePack(zip)).toThrow(PackError);
+    expect(peekPack(zip)).toEqual({
+      name: "Testy",
+      version: "0.9.0",
+      base: "autogoon.aimee",
+    });
+  });
+  it("ignores non-string fields and unreadable input", () => {
+    const zip = zipSync({
+      "manifest.json": strToU8(JSON.stringify({ version: 2, name: "Testy" })),
+    });
+    expect(peekPack(zip)).toEqual({ name: "Testy" });
+    expect(peekPack(new Uint8Array([9, 9, 9]))).toEqual({});
+    expect(peekPack(zipSync({ "manifest.json": strToU8("nope") }))).toEqual({});
   });
 });

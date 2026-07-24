@@ -17,10 +17,10 @@ import {
 import { COMPANIONS } from "@/lib/companions/companions";
 import { PackError } from "@/lib/goonpacks/manifest";
 
-// What a pack brings, from its manifest plus the zip-level summary stored at
-// import: pictures and prompt live in the zip; the rest are manifest fields.
-// For an overlay these are the base's overridden parts; for a complete pack,
-// simply its contents.
+// What a pack brings, from its manifest plus the zip-derived summary:
+// pictures and prompt live in the zip; the rest are manifest fields. For an
+// overlay these are the base's overridden parts; for a complete pack, simply
+// its contents.
 function contents(row: PackRow): string {
   const parts: string[] = [];
   const s = row.summary;
@@ -28,11 +28,11 @@ function contents(row: PackRow): string {
   if (s !== undefined && s.pictures > 0) {
     parts.push(`${s.pictures} picture${s.pictures === 1 ? "" : "s"}`);
   }
+  if (m?.noPictures === true) parts.push("no pictures");
   if (s?.hasPrompt === true) parts.push("prompt");
   if (m?.voiceId !== undefined) parts.push("voice");
   if (m?.model !== undefined) parts.push("model");
-  if (row.base !== undefined && m?.name !== undefined) parts.push("name");
-  if (row.base !== undefined && m?.accentColour !== undefined) {
+  if (m?.base !== undefined && m.accentColour !== undefined) {
     parts.push("colour");
   }
   return parts.join(" · ");
@@ -40,18 +40,15 @@ function contents(row: PackRow): string {
 
 // A row's accent: the pack's own colour when its manifest names one, else the
 // base's (for an overlay) — the same either-or the resolved companion ends up
-// wearing. Evicted rows have no manifest to read and stay plain.
+// wearing. Incompatible rows stay plain.
 function rowAccent(row: PackRow, packs: PackRow[]): string | null {
-  if (row.missing) return null;
-  if (row.manifest?.accentColour !== undefined) {
-    return row.manifest.accentColour;
-  }
-  if (row.base !== undefined) {
-    const builtIn = COMPANIONS[row.base];
+  const m = row.manifest;
+  if (row.incompatible !== undefined || m === undefined) return null;
+  if (m.accentColour !== undefined) return m.accentColour;
+  if (m.base !== undefined) {
+    const builtIn = COMPANIONS[m.base];
     if (builtIn !== undefined) return builtIn.accentColour;
-    return (
-      packs.find((p) => p.id === row.base)?.manifest?.accentColour ?? "pink"
-    );
+    return packs.find((p) => p.id === m.base)?.manifest?.accentColour ?? "pink";
   }
   return "pink"; // a colourless complete pack — packToCompanion's default
 }
@@ -88,58 +85,75 @@ export function GoonpacksPanel() {
         Companions screen.
       </p>
       <div className="mt-2 flex flex-col gap-2">
-        {library.packs.length === 0 && (
+        {library.status === "loading" ? (
+          <p className="text-muted-foreground text-sm">Checking packs…</p>
+        ) : library.packs.length === 0 ? (
           <p className="text-muted-foreground text-sm">No packs imported.</p>
-        )}
-        {library.packs.map((row) => {
-          const what =
-            row.base !== undefined
-              ? `overlays ${COMPANIONS[row.base]?.name ?? row.base}`
-              : "complete companion";
-          const inc = contents(row);
-          const hasOverlays = library.packs.some((p) => p.base === row.id);
-          const accent = rowAccent(row, library.packs);
-          return (
-            <div
-              key={row.id}
-              className={
-                accent !== null
-                  ? `rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3`
-                  : "rounded-xl border border-dashed px-4 py-3"
-              }
-            >
-              <div className="flex items-start gap-4">
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold">
-                    {row.name ?? row.id}
+        ) : (
+          library.packs.map((row) => {
+            // An incompatible pack still describes itself as best it can:
+            // from its manifest when only cross-pack checks failed, else
+            // from the peek. Only a validated pack gets called complete.
+            const m = row.manifest;
+            const name = m?.name ?? row.peek?.name;
+            const version = m?.version ?? row.peek?.version;
+            const base = m?.base ?? row.peek?.base;
+            const about = m?.aboutThePack ?? row.peek?.aboutThePack;
+            const detail = [
+              // A nameless pack's heading IS the id — don't repeat it.
+              ...(name !== undefined ? [row.id] : []),
+              ...(version !== undefined ? [version] : []),
+              ...(base !== undefined
+                ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
+                : m !== undefined
+                  ? ["complete companion"]
+                  : []),
+            ].join(" · ");
+            const inc = contents(row);
+            const accent = rowAccent(row, library.packs);
+            const heading = name ?? row.id;
+            return (
+              <div
+                key={row.id}
+                className={
+                  accent !== null
+                    ? `rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3`
+                    : "rounded-xl border border-dashed px-4 py-3"
+                }
+              >
+                <div className="flex items-start gap-4">
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{heading}</span>
+                    {(detail !== "" || inc !== "") && (
+                      <span className="text-muted-foreground block text-sm">
+                        {detail}
+                        {inc !== ""
+                          ? `${detail !== "" ? " — " : ""}${inc}`
+                          : ""}
+                      </span>
+                    )}
+                    {about !== undefined && (
+                      <span className="text-muted-foreground block text-sm">
+                        {about}
+                      </span>
+                    )}
+                    {row.incompatible !== undefined && (
+                      <span className="block text-sm text-red-500">
+                        Incompatible — {row.incompatible}
+                      </span>
+                    )}
                   </span>
-                  <span className="text-muted-foreground block text-sm">
-                    {/* A nameless pack's heading IS the id — don't repeat it. */}
-                    {row.name !== undefined ? `${row.id} · ` : ""}
-                    {row.version} · {what}
-                    {inc !== "" ? ` — ${inc}` : ""}
-                  </span>
-                  {row.manifest?.aboutThePack !== undefined && (
-                    <span className="text-muted-foreground block text-sm">
-                      {row.manifest.aboutThePack}
-                    </span>
-                  )}
-                  {row.missing && (
-                    <span className="text-muted-foreground block text-sm">
-                      Gone from browser storage. Re-import her zip.
-                    </span>
-                  )}
-                </span>
-                <Button
-                  onClick={() => void library.removePack(row.id)}
-                  className="text-muted-foreground hover:text-foreground shrink-0 text-sm"
-                >
-                  Remove{hasOverlays ? " (and her overlays)" : ""}
-                </Button>
+                  <Button
+                    onClick={() => void library.removePack(row.id)}
+                    className="text-muted-foreground hover:text-foreground shrink-0 text-sm"
+                  >
+                    Remove
+                  </Button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
       <input
         ref={fileRef}
@@ -174,16 +188,13 @@ export function GoonpacksPanel() {
                 : ""}
             </span>
           </p>
-          {/* The sheet describes the PACK — aboutThePack, not her description. */}
-          {pendingImport.manifest.aboutThePack !== undefined && (
-            <p className="text-muted-foreground">
-              {pendingImport.manifest.aboutThePack}
-            </p>
-          )}
-          {pendingImport.replaces !== null && (
-            <p className="mt-1">
-              Replaces {pendingImport.replaces.version}. Threads stay.
-            </p>
+          {/* The sheet describes the PACK — aboutThePack, not her
+              description. */}
+          <p className="text-muted-foreground">
+            {pendingImport.manifest.aboutThePack}
+          </p>
+          {pendingImport.replaces && (
+            <p className="mt-1">Replaces the installed pack. Threads stay.</p>
           )}
           <div className="mt-2 flex gap-2">
             <Button
@@ -202,7 +213,7 @@ export function GoonpacksPanel() {
               }
               className="rounded border px-3 py-1"
             >
-              {pendingImport.replaces !== null ? "Replace" : "Import"}
+              {pendingImport.replaces ? "Replace" : "Import"}
             </Button>
             <Button
               onClick={() => setPendingImport(null)}

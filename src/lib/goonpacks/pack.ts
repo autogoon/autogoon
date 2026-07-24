@@ -33,6 +33,35 @@ function isJunk(path: string): boolean {
   );
 }
 
+// Best-effort look inside a zip that failed validation, so the admin row can
+// still say what the pack claims to be (name, version, what it overlays).
+// String fields are taken at face value — this describes, never validates;
+// anything unreadable just comes back empty.
+export type PackPeek = {
+  name?: string;
+  version?: string;
+  base?: string;
+  aboutThePack?: string;
+};
+
+export function peekPack(zipBytes: Uint8Array): PackPeek {
+  try {
+    const entry = unzipSync(zipBytes)["manifest.json"];
+    if (entry === undefined) return {};
+    const raw: unknown = JSON.parse(strFromU8(entry));
+    if (typeof raw !== "object" || raw === null) return {};
+    const m = raw as Record<string, unknown>;
+    const peek: PackPeek = {};
+    for (const k of ["name", "version", "base", "aboutThePack"] as const) {
+      const v = m[k];
+      if (typeof v === "string") peek[k] = v;
+    }
+    return peek;
+  } catch {
+    return {};
+  }
+}
+
 export function parsePack(zipBytes: Uint8Array): ParsedPack {
   let entries: Record<string, Uint8Array>;
   try {
@@ -102,13 +131,6 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
     if (!manifest.voiceId) {
       throw new PackError("a complete pack needs a voiceId");
     }
-  }
-  // Required on import (but tolerated as absent by parseManifest, so records
-  // stored before the field existed still read).
-  if (!manifest.aboutThePack) {
-    throw new PackError(
-      "a pack needs aboutThePack — say what it adds or changes",
-    );
   }
   if (manifest.noPictures === true && pictures.length > 0) {
     throw new PackError("noPictures with a pictures/ folder — pick one");

@@ -42,9 +42,8 @@ export type PackManifest = {
   version: string; // author's own version; displayed as-is, never interpreted
   base?: string; // overlay only: id of the companion it modifies
   // What the pack adds or changes — about the PACK, not the companion
-  // (`description` is hers). Required at import (parsePack); optional here so
-  // records stored before the field existed still parse.
-  aboutThePack?: string;
+  // (`description` is hers).
+  aboutThePack: string;
   name?: string; // complete packs only — an overlay keeps her name
   description?: string; // hers, for her card (overlay: replaces the base's while selected)
   gender?: "female" | "male" | "nonbinary"; // complete packs only, like name
@@ -82,6 +81,11 @@ export function parseManifest(raw: unknown): PackManifest {
   }
   if (typeof m.version !== "string" || m.version === "") {
     throw new PackError("missing version");
+  }
+  if (typeof m.aboutThePack !== "string" || m.aboutThePack === "") {
+    throw new PackError(
+      "a pack needs aboutThePack — say what it adds or changes",
+    );
   }
   if (m.base !== undefined) {
     if (typeof m.base !== "string" || !PACK_ID_RE.test(m.base)) {
@@ -132,7 +136,7 @@ export function parseManifest(raw: unknown): PackManifest {
     id: m.id,
     version: m.version,
     base: m.base as string | undefined,
-    aboutThePack: optionalString(m.aboutThePack, "aboutThePack"),
+    aboutThePack: m.aboutThePack,
     name: optionalString(m.name, "name"),
     description: optionalString(m.description, "description"),
     gender: m.gender as PackManifest["gender"],
