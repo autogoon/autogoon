@@ -26,11 +26,12 @@
   amber pills, and a card's controls (pack pickers, Remove) float in its top
   corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- enhancement: **Live status badge on the lightbox** — While a sent picture is
-  open, a chunky badge in its top corner shows what's happening in the
-  conversation as it happens: you speaking, the companion thinking, the reply
-  streaming in, her voice loading, and her speaking. It disappears when nothing
-  is going on.
+- enhancement: **Live voice-stage indicators** — The conversation now shows
+  what's happening as it happens: you speaking, the companion thinking, the
+  reply streaming in, her voice loading, and her speaking. In the chat it's a
+  typing-indicator-style bubble on the talker's side; over an open picture it's
+  a chunky badge in the lightbox's top corner. Icons pulse, the words shimmer,
+  and both disappear when nothing is going on.
 
 - bug: **Ignore phantom speech partials** — The speech recognizer can
   hallucinate a short token ("Yes.", "No.") from near-silence when its socket

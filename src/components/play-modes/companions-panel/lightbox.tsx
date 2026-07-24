@@ -10,7 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 import type { VoiceStage } from "@/lib/voice/session-policy";
-import { VoiceStageBadge } from "./voice-stage-badge";
+import { VoiceStageBadge } from "./voice-stage";
 
 // How long the enter/exit fade-zoom runs — kept in sync with the `duration-200`
 // classes below so the unmount waits for the exit animation to finish.

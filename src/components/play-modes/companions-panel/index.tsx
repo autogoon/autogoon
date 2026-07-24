@@ -71,7 +71,7 @@ import { Lightbox } from "./lightbox";
 import { MissingPictureBubble } from "./missing-picture-bubble";
 import { PictureBubble } from "./picture-bubble";
 import { RmsMeter } from "./rms-meter";
-import { Spinner } from "./spinner";
+import { VoiceStageBubble } from "./voice-stage";
 import { StatRow } from "./stat-row";
 import { ToolChip } from "./tool-chip";
 
@@ -510,6 +510,19 @@ export function CompanionsPanel({
   // STT results are present. The composer shows the live partial and is locked.
   const dictating = status.vadSpeaking || status.partial !== "";
 
+  // The session's live stage, shared by the lightbox badge and the
+  // transcript's stage bubble.
+  const stage = voiceStage(status);
+
+  // In-progress reply bubble: shown only until the assistant turn commits —
+  // once the thread's last non-tool turn is the assistant turn, the committed
+  // bubble replaces it, even while a spoken reply is still playing.
+  const pendingReplyVisible =
+    status.replyPlaying &&
+    status.replyText !== "" &&
+    [...status.thread].reverse().find((t) => t.role !== "tool")?.role !==
+      "assistant";
+
   // Play-view sub-tabs. Session (mic + conversation) opens first.
   const [tab, setTab] = useState<"session" | "controls" | "debug">("session");
   // The LLM request viewer: the pretty-printed JSON of the exact request a
@@ -576,7 +589,7 @@ export function CompanionsPanel({
       {lightboxSrc !== null && (
         <Lightbox
           src={lightboxSrc}
-          stage={voiceStage(status)}
+          stage={stage}
           onClose={() => setLightboxSrc(null)}
         />
       )}
@@ -832,39 +845,24 @@ export function CompanionsPanel({
                       </Fragment>
                     );
                   })}
-                  {/* In-progress reply: a live, dimmed companion bubble shown only until
-                  the assistant turn commits — once the thread's last turn is the
-                  assistant turn (the tail check below), the committed bubble
-                  replaces it, even while a spoken reply is still playing. */}
-                  {status.replyPlaying &&
-                    status.replyText !== "" &&
-                    [...status.thread].reverse().find((t) => t.role !== "tool")
-                      ?.role !== "assistant" && (
-                      <ChatBubble
-                        role="assistant"
-                        text={status.replyText}
-                        pending
-                      />
-                    )}
-                  {/* Pre-first-token gap: the existing Thinking… spinner. */}
-                  {status.replyPlaying &&
-                    status.replyText === "" &&
-                    status.replyError === null && (
-                      <div className="flex justify-start">
-                        <p className="text-muted-foreground flex min-h-6 items-center gap-2 rounded-2xl px-3 py-2 text-sm">
-                          <Spinner />
-                          Thinking…
-                        </p>
-                      </div>
-                    )}
+                  {pendingReplyVisible && (
+                    <ChatBubble
+                      role="assistant"
+                      text={status.replyText}
+                      pending
+                    />
+                  )}
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
-                  {status.awaitingSpeech && (
-                    <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
-                      <Spinner />
-                      Waiting for speech…
-                    </p>
+                  {/* Live stage as a chat-style bubble — the "other person is
+                  typing" slot, same icon vocabulary as the lightbox badge.
+                  While the reply is streaming into the pending bubble above,
+                  that bubble is the indicator, so the stage bubble stays out
+                  of the way. Replaces the old Thinking… / Waiting for speech…
+                  spinners. */}
+                  {!(stage === "streaming" && pendingReplyVisible) && (
+                    <VoiceStageBubble stage={stage} />
                   )}
                 </div>
 

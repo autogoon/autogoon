@@ -395,8 +395,8 @@ export function useVoiceSession(opts: {
           return { content, reasoning, toolCalls };
         };
 
-        // Speak one utterance through TTS, with the "waiting for speech" spinner
-        // and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
+        // Speak one utterance through TTS, with the awaitingSpeech/speaking
+        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
         // the reaction — so this is factored out. Returns false if the turn was
         // aborted/superseded mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
