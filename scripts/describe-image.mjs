@@ -132,10 +132,11 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
   pulled aside, half off, straps down, unfastened.  Mention topless if there is no
   bra or top.
 - Exposed: which parts are bare and how much is actually visible — back,
-  nipples (or nipples showing through fabric), stomach, thighs, buttocks,
-  genitals. Grade each one "fully", "partly", "faintly" (made out through fabric or
+  nipples (or nipples showing through fabric), stomach, thighs, buttocks.  Grade each
+  one "fully", "partly", "faintly" (made out through fabric or
   in shadow) or "not at all". Never write "not clearly" or similar — if you can make
   it out at all, however faintly, that is "faintly", not "not at all".
+- Genitals: if you can clearly see them.
 - Setting, and the quality and direction of the light.
 - Hair: what it is doing — loose or tied, where it falls, whether she is holding,
   lifting or pushing it.
