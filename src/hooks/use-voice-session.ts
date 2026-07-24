@@ -66,6 +66,11 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
+  // True while her reply audio is actually playing: set where awaitingSpeech
+  // clears (first audio bytes), cleared when the utterance finishes or the
+  // turn is cancelled/superseded. The bit replyPlaying can't give a display —
+  // that flag spans the whole turn, generation included.
+  speaking: boolean;
   // The rolling conversation transcript, mirrored from threadRef so the panel
   // can render it. Reset to [] on Clear, but preserved across Stop-listening.
   thread: ThreadTurn[];
@@ -107,6 +112,7 @@ const IDLE_STATUS: VoiceStatus = {
   replyError: null,
   metrics: { llm: null, tts: null },
   awaitingSpeech: false,
+  speaking: false,
   thread: [],
 };
 
@@ -276,7 +282,7 @@ export function useVoiceSession(opts: {
     turnRef.current?.abort();
     turnRef.current = null;
     setReplyPlaying(false);
-    setStatus((s) => ({ ...s, awaitingSpeech: false }));
+    setStatus((s) => ({ ...s, awaitingSpeech: false, speaking: false }));
   }, [setReplyPlaying]);
 
   // A companion turn on arbitrary text — a typed prompt or a committed
@@ -311,6 +317,7 @@ export function useVoiceSession(opts: {
         replyError: null,
         metrics: { llm: null, tts: null },
         awaitingSpeech: false,
+        speaking: false,
       }));
       setReplyPlaying(true);
 
@@ -399,7 +406,7 @@ export function useVoiceSession(opts: {
           setStatus((s) => ({ ...s, awaitingSpeech: true }));
           await tts.play(text, companion.voiceId, controller.signal, () => {
             ttsTtfbMs = performance.now() - ttsStart;
-            setStatus((s) => ({ ...s, awaitingSpeech: false }));
+            setStatus((s) => ({ ...s, awaitingSpeech: false, speaking: true }));
           });
           // tts.play resolves even on barge-in/stop, so guard before recording:
           // a superseded turn must not overwrite the current turn's metrics.
@@ -408,6 +415,7 @@ export function useVoiceSession(opts: {
           }
           setStatus((s) => ({
             ...s,
+            speaking: false,
             metrics: {
               ...s.metrics,
               tts: {
@@ -556,8 +564,13 @@ export function useVoiceSession(opts: {
             turnRef.current = null;
             setReplyPlaying(false);
             // Catch-all: if TTS resolved without first audio (error/abort) the
-            // "waiting for speech" flag would otherwise stick.
-            setStatus((s) => ({ ...s, awaitingSpeech: false }));
+            // "waiting for speech" flag would otherwise stick — likewise
+            // "speaking" if the audio was cut rather than finishing.
+            setStatus((s) => ({
+              ...s,
+              awaitingSpeech: false,
+              speaking: false,
+            }));
           }
         }
       })();

@@ -50,6 +50,7 @@ import {
 } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
 import type { LibraryEntry } from "@/lib/goonpacks/entries";
+import { voiceStage } from "@/lib/voice/session-policy";
 import { PackError } from "@/lib/goonpacks/manifest";
 import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
 import {
@@ -573,7 +574,11 @@ export function CompanionsPanel({
 
       {/* Lightbox for a sent picture — above everything, in either view. */}
       {lightboxSrc !== null && (
-        <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+        <Lightbox
+          src={lightboxSrc}
+          stage={voiceStage(status)}
+          onClose={() => setLightboxSrc(null)}
+        />
       )}
 
       {/* The Debug tab's LLM request viewer. */}

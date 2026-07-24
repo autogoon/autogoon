@@ -5,7 +5,17 @@ import {
   isBargeIn,
   partialHasWord,
   confirmSpeech,
+  voiceStage,
 } from "./session-policy";
+
+// A convenient idle baseline for voiceStage tests.
+const IDLE = {
+  partial: "",
+  replyPlaying: false,
+  replyText: "",
+  awaitingSpeech: false,
+  speaking: false,
+};
 
 describe("session-policy", () => {
   it("opens on onset only when closed", () => {
@@ -50,5 +60,49 @@ describe("session-policy", () => {
     expect(partialHasWord("")).toBe(false);
     expect(partialHasWord("  ")).toBe(false);
     expect(partialHasWord("...")).toBe(false);
+  });
+
+  it("is idle with nothing in flight", () => {
+    expect(voiceStage(IDLE)).toBe("idle");
+  });
+
+  it("walks a spoken turn through its stages", () => {
+    // Request sent, no first token yet.
+    expect(voiceStage({ ...IDLE, replyPlaying: true })).toBe("thinking");
+    // Tokens arriving.
+    expect(voiceStage({ ...IDLE, replyPlaying: true, replyText: "hey" })).toBe(
+      "streaming",
+    );
+    // TTS requested, no audio yet.
+    expect(
+      voiceStage({
+        ...IDLE,
+        replyPlaying: true,
+        replyText: "hey",
+        awaitingSpeech: true,
+      }),
+    ).toBe("tts");
+    // Audio playing.
+    expect(
+      voiceStage({
+        ...IDLE,
+        replyPlaying: true,
+        replyText: "hey",
+        speaking: true,
+      }),
+    ).toBe("speaking");
+  });
+
+  it("is listening whenever a partial is showing, over any reply state", () => {
+    expect(voiceStage({ ...IDLE, partial: "so I was" })).toBe("listening");
+    expect(
+      voiceStage({
+        ...IDLE,
+        partial: "so I was",
+        replyPlaying: true,
+        replyText: "hey",
+        speaking: true,
+      }),
+    ).toBe("listening");
   });
 });

@@ -45,3 +45,27 @@ export function confirmSpeech(
 ): boolean {
   return alreadyConfirmed || (partialHasWord(partial) && vadSpeaking);
 }
+
+// What the voice session is doing right now, as one stage for status displays
+// (the lightbox badge). Precedence: the user's own speech streaming in wins
+// over everything (a confirmed partial is about to barge in anyway), then the
+// reply pipeline in reverse order — audio playing, TTS requested, tokens
+// arriving, request sent. On a tool-call turn the stages replay naturally
+// (speaking → thinking → streaming → tts → speaking) because the hook clears
+// replyText before the reaction call.
+export type VoiceStage =
+  "idle" | "listening" | "thinking" | "streaming" | "tts" | "speaking";
+
+export function voiceStage(s: {
+  partial: string;
+  replyPlaying: boolean;
+  replyText: string;
+  awaitingSpeech: boolean;
+  speaking: boolean;
+}): VoiceStage {
+  if (s.partial !== "") return "listening";
+  if (s.speaking) return "speaking";
+  if (s.awaitingSpeech) return "tts";
+  if (s.replyPlaying) return s.replyText !== "" ? "streaming" : "thinking";
+  return "idle";
+}
