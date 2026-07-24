@@ -902,14 +902,20 @@ export function CompanionsPanel({
                    interpolated in and safelisted in globals.css. */
                 <div
                   key={c.id}
-                  className={`flex items-center rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 has-[button:hover]:from-${accent}-500/25 has-[button:hover]:to-${accent}-500/10`}
+                  className={`relative rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 has-[button:hover]:from-${accent}-500/25 has-[button:hover]:to-${accent}-500/10`}
                 >
                   <Button
                     onClick={pick}
-                    className="flex min-w-0 flex-1 items-center gap-4 px-4 py-3 text-left"
+                    className="flex w-full min-w-0 items-center gap-4 px-4 py-3 text-left"
                   >
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold">{c.name}</span>
+                      <span
+                        className={`block font-semibold ${
+                          entry.variants.length > 1 ? "pr-28" : ""
+                        }`}
+                      >
+                        {c.name}
+                      </span>
                       <span className="text-muted-foreground block text-sm">
                         {blurb}
                       </span>
@@ -933,13 +939,14 @@ export function CompanionsPanel({
                     <ChevronRight className="text-muted-foreground size-4 shrink-0" />
                   </Button>
                   {entry.variants.length > 1 && (
-                    /* The variant picker — remembered per companion. Evicted
-                       variants stay listed but disabled until re-imported. */
+                    /* The variant picker — top row, right of her name;
+                       remembered per companion. Evicted variants stay listed
+                       but disabled until re-imported. */
                     <select
                       aria-label={`${c.name} variant`}
                       value={selectedId}
                       onChange={(e) => selectVariant(c.id, e.target.value)}
-                      className="text-muted-foreground mr-3 shrink-0 rounded border bg-transparent px-1 py-0.5 text-xs"
+                      className="text-muted-foreground absolute top-3 right-3 rounded border bg-transparent px-1 py-0.5 text-xs"
                     >
                       {entry.variants.map((v) => (
                         <option
