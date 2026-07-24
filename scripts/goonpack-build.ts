@@ -42,22 +42,12 @@ let built = 0;
 for (const entry of entries) {
   if (!entry.isDirectory()) continue;
   const dir = join(packsDir, entry.name);
-  // Only enough manifest reading to name the output zip — parsePack below is
-  // the actual judge of the manifest.
-  let manifest: Record<string, unknown>;
+  // A directory without a manifest isn't a pack source — skip it quietly;
+  // everything else is parsePack's to judge.
   try {
-    const raw: unknown = JSON.parse(
-      readFileSync(join(dir, "manifest.json"), "utf8"),
-    );
-    if (typeof raw !== "object" || raw === null) throw new Error("not JSON");
-    manifest = raw as Record<string, unknown>;
+    statSync(join(dir, "manifest.json"));
   } catch {
-    console.warn(`skipping ${entry.name}: no readable manifest.json`);
-    continue;
-  }
-  const id = manifest.id;
-  if (typeof id !== "string" || id === "") {
-    console.warn(`skipping ${entry.name}: manifest has no id`);
+    console.warn(`skipping ${entry.name}: no manifest.json`);
     continue;
   }
   const files: Record<string, Uint8Array> = {};
@@ -93,10 +83,12 @@ for (const entry of entries) {
     process.exitCode = 1;
     continue; // invalid — don't write a zip that can't import
   }
-  const out = join(packsDir, `${id}.zip`);
+  // The zip is named after the source directory, not the pack id — two
+  // directories can hold two versions of the same id without clobbering.
+  const out = join(packsDir, `${entry.name}.zip`);
   writeFileSync(out, zip);
   console.log(green(`${entry.name}: 0 errors`));
-  console.log(`  built, ${id}.zip`);
+  console.log(`  built, ${entry.name}.zip`);
   built++;
 }
 console.log(`${built} pack(s) built`);

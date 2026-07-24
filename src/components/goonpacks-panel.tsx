@@ -15,6 +15,7 @@ import {
   type PendingImport,
 } from "@/hooks/use-goonpack-library";
 import { COMPANIONS } from "@/lib/companions/companions";
+import { keyId, keyVersion } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
 
 // What a pack brings, from its manifest plus the zip-derived summary:
@@ -48,7 +49,12 @@ function rowAccent(row: PackRow, packs: PackRow[]): string | null {
   if (m.base !== undefined) {
     const builtIn = COMPANIONS[m.base];
     if (builtIn !== undefined) return builtIn.accentColour;
-    return packs.find((p) => p.id === m.base)?.manifest?.accentColour ?? "pink";
+    // Any installed version of the base — newest first is the row order, so
+    // find() lands on the newest.
+    return (
+      packs.find((p) => keyId(p.id) === m.base)?.manifest?.accentColour ??
+      "pink"
+    );
   }
   return "pink"; // a colourless complete pack — packToCompanion's default
 }
@@ -97,24 +103,30 @@ export function GoonpacksPanel() {
             // from its manifest when only cross-pack checks failed, else
             // from the peek. Only a validated pack gets called complete.
             const m = row.manifest;
+            // row.id is the storage key (id@version) — split for display.
+            const id = m?.id ?? keyId(row.id);
             const name = m?.name ?? row.peek?.name;
-            const version = m?.version ?? row.peek?.version;
+            const version =
+              m?.version ?? row.peek?.version ?? keyVersion(row.id);
             const base = m?.base ?? row.peek?.base;
             const about = m?.aboutThePack ?? row.peek?.aboutThePack;
-            const detail = [
+            const info = [
               // A nameless pack's heading IS the id — don't repeat it.
-              ...(name !== undefined ? [row.id] : []),
-              ...(version !== undefined ? [version] : []),
+              ...(name !== undefined ? [id] : []),
               ...(base !== undefined
                 ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
                 : m !== undefined
                   ? ["complete companion"]
                   : []),
+              ...(contents(row) !== "" ? [contents(row)] : []),
             ].join(" · ");
-            const inc = contents(row);
             const accent = rowAccent(row, library.packs);
-            const heading = name ?? row.id;
+            const heading = name ?? id;
             return (
+              /* Mirrors the Companions chooser card: name + version in the
+                 top row (Remove where the card has no control), the pack's
+                 description under it, then the info line. Same accent border
+                 and gradient; incompatible rows go plain dashed. */
               <div
                 key={row.id}
                 className={
@@ -123,45 +135,43 @@ export function GoonpacksPanel() {
                     : "rounded-xl border border-dashed px-4 py-3"
                 }
               >
-                <div className="flex items-start gap-4">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{heading}</span>
-                    {(detail !== "" || inc !== "") && (
-                      <span className="text-muted-foreground block text-sm">
-                        {detail}
-                        {inc !== ""
-                          ? `${detail !== "" ? " — " : ""}${inc}`
-                          : ""}
-                      </span>
-                    )}
-                    {about !== undefined && (
-                      <span className="text-muted-foreground block text-sm">
-                        {about}
-                      </span>
-                    )}
-                    {row.incompatible !== undefined &&
-                      (row.incompatible.length === 1 ? (
-                        <span className="block text-sm text-red-500">
-                          Incompatible — {row.incompatible[0]}
-                        </span>
-                      ) : (
-                        <span className="block text-sm text-red-500">
-                          Incompatible:
-                          {row.incompatible.map((p) => (
-                            <span key={p} className="block">
-                              — {p}
-                            </span>
-                          ))}
-                        </span>
-                      ))}
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold">{heading}</span>
+                  <span className="text-muted-foreground text-sm">
+                    {version}
                   </span>
                   <Button
                     onClick={() => void library.removePack(row.id)}
-                    className="text-muted-foreground hover:text-foreground shrink-0 text-sm"
+                    className="text-muted-foreground hover:text-foreground ml-auto shrink-0 text-sm"
                   >
                     Remove
                   </Button>
                 </div>
+                {about !== undefined && (
+                  <span className="text-muted-foreground block text-sm">
+                    {about}
+                  </span>
+                )}
+                {info !== "" && (
+                  <span className="text-foreground mt-1 block text-xs">
+                    {info}
+                  </span>
+                )}
+                {row.incompatible !== undefined &&
+                  (row.incompatible.length === 1 ? (
+                    <span className="mt-1 block text-sm text-red-500">
+                      Incompatible — {row.incompatible[0]}
+                    </span>
+                  ) : (
+                    <span className="mt-1 block text-sm text-red-500">
+                      Incompatible:
+                      {row.incompatible.map((p) => (
+                        <span key={p} className="block">
+                          — {p}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
               </div>
             );
           })

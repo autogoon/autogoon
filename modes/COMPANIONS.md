@@ -12,7 +12,7 @@ Claude and the OpenAI APIs both restrict explicit content, so neither is viable
 here. OpenRouter fronts a wide range of hosted models, so each companion can
 pick whichever model suits her persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
-model**, not of OpenRouter itself — Elise's current model (her `model` field in
+model**, not of OpenRouter itself — a companion's model (her `model` field in
 `companions.ts`) is picked precisely because it doesn't restrict the kind of
 roleplay her persona calls for, and it calls the device tools reliably.
 
@@ -32,7 +32,7 @@ The companions live in a keyed record — `COMPANIONS` in
 `src/lib/companions/companions.ts`. The picker order (`companionList`) derives
 from that record, and the panel simply starts on its first entry. Each persona
 is pure data: adding a companion is a new entry plus a persona module (e.g.
-`elise-prompt.ts`) that interpolates the shared sections and fills in the
+`aimee-prompt.ts`) that interpolates the shared sections and fills in the
 character — the picker, switch and saved thread all derive from the record, so
 nothing else needs touching.
 
@@ -117,10 +117,10 @@ pictures by importing an overlay pack for her.
 ## Goonpacks
 
 The Companions screen lists the built-ins alongside any packs you've imported. A
-companion's card shows her variants — the default plus any overlays you've added
-— so you can pick which one to play; import and remove both happen right there
-on the chooser. See [GOONPACKS.md](../GOONPACKS.md) for assembling and importing
-a pack.
+companion's card carries pickers for her pack version and any overlay, so you
+choose exactly what plays; pack admin — importing, removing, seeing what each
+pack brings — lives on the Goonpacks tab. See [GOONPACKS.md](../GOONPACKS.md)
+for assembling and importing a pack.
 
 ## Configuration
 

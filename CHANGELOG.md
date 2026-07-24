@@ -3,15 +3,30 @@
 ## 2026-07-24
 
 - feature: **Goonpacks** — import a companion as a portable zip: a complete new
-  companion, or an overlay that adds pictures or changes the voice/persona of
-  one you have. Cards gain variant picking; packs cache in browser storage with
-  your zip as the source of truth. Assembly guide in
-  [GOONPACKS.md](./GOONPACKS.md).
+  companion, or an overlay that adds pictures or changes the voice, persona or
+  colour of one you have. A Goonpacks tab (say `packs`) manages the library —
+  import with a confirm step, see what every pack brings, remove per version —
+  and versions of a pack install side by side. Companion cards gain pack
+  pickers: her version and an overlay, newest first and remembered per
+  companion. Every load re-checks stored packs against the current rules; one
+  that fails lists as incompatible with plain-English reasons instead of
+  half-working. Packs cache in browser storage with your zip as the source of
+  truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
   ([#18](https://github.com/autogoon/autogoon/pull/18))
+- enhancement: **Elise moves out of the app** — the built-in companions are now
+  Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
+  outside the repo, like all packs), so she's imported and played like any
+  other pack. Her pack carries a new id, so built-in Elise conversations don't
+  carry over. ([#18](https://github.com/autogoon/autogoon/pull/18))
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
   `goonpacks/*/pictures/`. ([#18](https://github.com/autogoon/autogoon/pull/18))
+- internal: **goonpack:build validates like the importer** — building runs the
+  app's own pack validation over every zip (the script is TypeScript now, run
+  with `tsx`), reports every problem it finds in one pass, and writes
+  `goonpacks/<dir>.zip` only when clean — a pack that builds is a pack that
+  imports. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 ## 2026-07-23
 

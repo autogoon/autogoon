@@ -10,10 +10,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { COMPANIONS, type Companion } from "@/lib/companions/companions";
 import {
   buildEntries,
+  keyId,
+  keyVersion,
+  newestFirst,
+  packKey,
   type LibraryEntry,
   type LoadedPack,
+  type PackOption,
   type PackSummary,
-  type Variant,
 } from "@/lib/goonpacks/entries";
 import { PackError, type PackManifest } from "@/lib/goonpacks/manifest";
 import {
@@ -36,20 +40,20 @@ import {
   putPack,
 } from "@/lib/goonpacks/store";
 
-export type { LibraryEntry, Variant };
+export type { LibraryEntry, PackOption };
 export type PendingImport = {
   manifest: PackManifest;
-  replaces: boolean; // an installed pack already holds this id
+  replaces: boolean; // this exact id+version is already installed
   commit(): Promise<void>;
 };
 
-// One row of the Goonpacks admin list. A valid pack carries its manifest and
-// summary. An incompatible one carries every problem validation could
-// determine, plus whatever we can still say about it: its manifest when only
-// the cross-pack checks failed, or a best-effort peek when validation itself
-// did.
+// One row of the Goonpacks admin list, one per stored id@version. A valid
+// pack carries its manifest and summary. An incompatible one carries every
+// problem validation could determine, plus whatever we can still say about
+// it: its manifest when only the cross-pack checks failed, or a best-effort
+// peek when validation itself did.
 export type PackRow = {
-  id: string;
+  id: string; // the storage key (id@version)
   manifest?: PackManifest;
   summary?: PackSummary;
   peek?: PackPeek;
@@ -84,10 +88,10 @@ function baseError(
 // between refreshes); pictures become object URLs, accounted for by
 // resolveVariant. `collect` gets every object URL created.
 async function loadContent(
-  packId: string,
+  key: string, // storage key (id@version)
   collect?: string[],
 ): Promise<PackContent> {
-  const zip = await getPackBytes(packId);
+  const zip = await getPackBytes(key);
   if (zip === null)
     throw new PackError(
       "The pack is gone from browser storage — re-import its zip.",
@@ -106,7 +110,7 @@ async function loadContent(
         description: p.description,
         // Stable thread reference: object URLs die with the session, so the
         // thread persists this ref and rendering resolves it (see spec Threads).
-        ref: `goonpack:${packId}/${p.name}`,
+        ref: `goonpack:${key}/${p.name}`,
       };
     }),
   };
@@ -136,7 +140,7 @@ export function useGoonpackLibrary() {
   const refresh = useCallback(async () => {
     const seq = ++refreshSeqRef.current;
     const records = await listPackRecords();
-    const valid: (LoadedPack & { id: string })[] = [];
+    const valid: (LoadedPack & { key: string })[] = [];
     const bad: PackRow[] = [];
     for (const r of records) {
       // A stored value that isn't zip bytes is garbage, not a pack — it can
@@ -148,13 +152,13 @@ export function useGoonpackLibrary() {
       const bytes = new Uint8Array(r.zip);
       try {
         const parsed = parsePack(bytes);
-        if (parsed.manifest.id !== r.id) {
+        if (packKey(parsed.manifest) !== r.id) {
           throw new PackError(
-            "The zip's id doesn't match the id it was imported under.",
+            "The zip's id and version don't match the pack it was imported as.",
           );
         }
         valid.push({
-          id: r.id,
+          key: r.id,
           manifest: parsed.manifest,
           summary: summarize(parsed),
         });
@@ -169,45 +173,60 @@ export function useGoonpackLibrary() {
         });
       }
     }
-    // Cross-pack pass: a complete pack squatting a built-in id, then overlay
-    // base rules against what remains.
-    const completes = new Map(
-      valid
-        .filter((p) => p.manifest.base === undefined)
-        .map((p) => [p.id, p] as const),
-    );
-    const survivors: (LoadedPack & { id: string })[] = [];
+    // Cross-pack pass over ids (versions of an id stand or fall together
+    // for these): a complete pack squatting a built-in id, an id whose
+    // versions disagree about being overlay or complete, then overlay base
+    // rules against what remains.
+    const kinds = new Map<string, Set<string>>();
     for (const p of valid) {
+      const set = kinds.get(p.manifest.id) ?? new Set<string>();
+      set.add(p.manifest.base === undefined ? "complete" : "overlay");
+      kinds.set(p.manifest.id, set);
+    }
+    const isInstalled = (id: string): "companion" | "overlay" | undefined =>
+      COMPANIONS[id] !== undefined || kinds.get(id)?.has("complete") === true
+        ? "companion"
+        : kinds.has(id)
+          ? "overlay"
+          : undefined;
+    const survivors: (LoadedPack & { key: string })[] = [];
+    for (const p of valid) {
+      const id = p.manifest.id;
       let reason: string | null = null;
-      if (p.manifest.base === undefined && COMPANIONS[p.id] !== undefined) {
+      if (kinds.get(id)!.size > 1) {
+        reason =
+          "Installed versions of this id disagree about being an overlay or a complete companion.";
+      } else if (
+        p.manifest.base === undefined &&
+        COMPANIONS[id] !== undefined
+      ) {
         reason =
           "The pack's id belongs to a built-in companion — pick a different id.";
       } else {
-        reason = baseError(p.manifest, (id) =>
-          COMPANIONS[id] !== undefined || completes.has(id)
-            ? "companion"
-            : valid.some((v) => v.id === id)
-              ? "overlay"
-              : undefined,
-        );
+        reason = baseError(p.manifest, isInstalled);
       }
       if (reason === null) survivors.push(p);
       else {
-        bad.push({ id: p.id, manifest: p.manifest, incompatible: [reason] });
+        bad.push({ id: p.key, manifest: p.manifest, incompatible: [reason] });
       }
     }
     if (seq !== refreshSeqRef.current) return; // superseded
-    validRef.current = new Map(survivors.map((p) => [p.id, p.manifest]));
+    validRef.current = new Map(survivors.map((p) => [p.key, p.manifest]));
     setEntries(buildEntries(survivors));
     setPacks(
       [
         ...survivors.map((p) => ({
-          id: p.id,
+          id: p.key,
           manifest: p.manifest,
           summary: p.summary,
         })),
         ...bad,
-      ].sort((a, b) => a.id.localeCompare(b.id)),
+      ].sort(
+        // Rows: ids alphabetical, versions newest first within an id.
+        (a, b) =>
+          keyId(a.id).localeCompare(keyId(b.id)) ||
+          newestFirst(keyVersion(a.id), keyVersion(b.id)),
+      ),
     );
     setStatus("ready");
   }, []);
@@ -229,16 +248,20 @@ export function useGoonpackLibrary() {
       }
       const err = baseError(m, (id) => {
         if (COMPANIONS[id] !== undefined) return "companion";
-        const installed = validRef.current.get(id);
-        if (installed === undefined) return undefined;
-        return installed.base === undefined ? "companion" : "overlay";
+        for (const v of validRef.current.values()) {
+          if (v.id === id) {
+            return v.base === undefined ? "companion" : "overlay";
+          }
+        }
+        return undefined;
       });
       if (err !== null) throw new PackError(err);
       return {
         manifest: m,
-        replaces: validRef.current.has(m.id),
+        // Versions coexist: only the exact same id+version is replaced.
+        replaces: validRef.current.has(packKey(m)),
         commit: async () => {
-          await putPack(m.id, bytes);
+          await putPack(packKey(m), bytes);
           await refresh();
         },
       };
@@ -274,23 +297,29 @@ export function useGoonpackLibrary() {
   const resolveVariant = useCallback(
     async (
       entry: LibraryEntry,
-      packId: string | null,
+      // The card's two selects: which base version (null = the built-in
+      // herself) and which overlay version (null = none).
+      baseKey: string | null,
+      overlayKey: string | null,
     ): Promise<Companion | null> => {
       const seq = ++resolveSeqRef.current;
       const created: string[] = [];
       let companion: Companion;
       try {
-        if (packId === null) {
-          companion = entry.builtIn
-            ? resolveDefault(entry.companion)
-            : packToCompanion(await loadContent(entry.companion.id, created));
+        if (overlayKey === null) {
+          companion =
+            baseKey === null
+              ? resolveDefault(entry.companion)
+              : packToCompanion(await loadContent(baseKey, created));
         } else {
-          const base = entry.builtIn
-            ? entry.companion
-            : packToCompanionRaw(
-                await loadContent(entry.companion.id, created),
-              );
-          companion = applyOverlay(base, await loadContent(packId, created));
+          const base =
+            baseKey === null
+              ? entry.companion
+              : packToCompanionRaw(await loadContent(baseKey, created));
+          companion = applyOverlay(
+            base,
+            await loadContent(overlayKey, created),
+          );
         }
       } catch (e) {
         for (const url of created) URL.revokeObjectURL(url);

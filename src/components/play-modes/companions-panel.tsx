@@ -3,10 +3,10 @@
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
-// shared Player, so the device runs Elise's program while she talks. One
+// shared Player, so the device runs the companion's program while she talks. One
 // companion, a random program on fixed default knobs, on-screen intensity/
 // variety controls, and buttons-only device controls (no vosk words — open
-// dictation to Elise would otherwise transcribe them).
+// dictation to the companion would otherwise transcribe them).
 //
 // Hot-path note: useVoiceSession returns one `status` object that churns ~50x/s
 // while the mic is on; keep the render cheap. The event log is split into a
@@ -51,7 +51,7 @@ import { useVoiceSession } from "@/hooks/use-voice-session";
 import { companionList, type Companion } from "@/lib/companions/companions";
 import { sameLocalDay } from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
-import type { Variant } from "@/lib/goonpacks/entries";
+import { effectivePictures, type VariantSlot } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
 import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
 import {
@@ -60,7 +60,7 @@ import {
 } from "@/lib/play-modes/companion-engine";
 
 // Fixed default knobs — the program is random within this baseline. Companions
-// start gentle: a low-intensity, lightly-varying program. Elise turns it up from
+// start gentle: a low-intensity, lightly-varying program. She turns it up from
 // there via her intensity/variety tools. Speed is applied live; variety reshapes
 // the dip pattern.
 const DEFAULT_INTENSITY = 20;
@@ -106,7 +106,7 @@ function Spinner() {
   );
 }
 
-// One transcript row: user turns right-aligned in the accent colour, Elise's
+// One transcript row: user turns right-aligned in the accent colour, hers
 // left-aligned and muted. `pending` dims the in-progress reply until it folds
 // into the thread. `at` (absent on pending bubbles and pre-timestamp turns)
 // puts a small clock time under the bubble, on its aligned side.
@@ -161,7 +161,7 @@ function DateHeader({ at }: { at: number }) {
   );
 }
 
-// A centered "action" chip marking a tool call Elise made (start/stop), so it's
+// A centered "action" chip marking a tool call the companion made (start/stop), so it's
 // visible in the transcript whether she actually called it.
 function ToolChip({ name, result }: { name: string; result: string }) {
   return (
@@ -191,13 +191,16 @@ function PictureBubble({ src, onOpen }: { src: string; onOpen: () => void }) {
   );
 }
 
-// The chooser card's feature line: what the selected variant actually plays
-// with — the picture count whenever there are any (bold when the overlay
-// supplies or strips them), plus each slot the overlay changes.
-function variantFeatures(v: Variant): { text: string; bold: boolean }[] {
-  const changed = v.changed ?? [];
+// The chooser card's feature line: what the selected base+overlay pair
+// actually plays with — the picture count whenever there are any (bold when
+// the overlay supplies or strips them), plus each slot the overlay changes.
+function variantFeatures(v: {
+  pictures: number;
+  changed: VariantSlot[];
+}): { text: string; bold: boolean }[] {
+  const changed = v.changed;
   const out: { text: string; bold: boolean }[] = [];
-  const pictures = v.pictures ?? 0;
+  const pictures = v.pictures;
   if (pictures > 0) {
     out.push({
       text: `${pictures} picture${pictures === 1 ? "" : "s"}`,
@@ -408,20 +411,39 @@ export function CompanionsPanel({
   // remove — lives on the Goonpacks tab).
   const [pickError, setPickError] = useState<string | null>(null);
 
-  // Each card's remembered variant selection, hydrated from localStorage in
-  // an effect (never during render — the panel is server-prerendered).
-  const [variantSel, setVariantSel] = useState<Record<string, string>>({});
+  // Each card's remembered picks — base version and overlay, stored
+  // together as JSON — hydrated from localStorage in an effect (never during
+  // render — the panel is server-prerendered).
+  type PackSel = { base: string | null; overlay: string | null };
+  const [variantSel, setVariantSel] = useState<Record<string, PackSel>>({});
   useEffect(() => {
-    const sel: Record<string, string> = {};
+    const sel: Record<string, PackSel> = {};
     for (const e of library.entries) {
-      const v = localStorage.getItem(SELECTED_VARIANT_PREFIX + e.companion.id);
-      if (v !== null) sel[e.companion.id] = v;
+      const raw = localStorage.getItem(
+        SELECTED_VARIANT_PREFIX + e.companion.id,
+      );
+      if (raw === null) continue;
+      try {
+        const v: unknown = JSON.parse(raw);
+        if (typeof v === "object" && v !== null) {
+          const { base, overlay } = v as Partial<PackSel>;
+          sel[e.companion.id] = {
+            base: typeof base === "string" ? base : null,
+            overlay: typeof overlay === "string" ? overlay : null,
+          };
+        }
+      } catch {
+        /* a pre-two-select selection — ignore */
+      }
     }
     setVariantSel(sel);
   }, [library.entries]);
-  const selectVariant = useCallback((companionId: string, packId: string) => {
-    setVariantSel((s) => ({ ...s, [companionId]: packId }));
-    localStorage.setItem(SELECTED_VARIANT_PREFIX + companionId, packId);
+  const selectPacks = useCallback((companionId: string, sel: PackSel) => {
+    setVariantSel((s) => ({ ...s, [companionId]: sel }));
+    localStorage.setItem(
+      SELECTED_VARIANT_PREFIX + companionId,
+      JSON.stringify(sel),
+    );
   }, []);
 
   // The device engine — one instance, owned here. Defined before the voice
@@ -496,7 +518,7 @@ export function CompanionsPanel({
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const showPicture = useCallback((src: string) => setLightboxSrc(src), []);
 
-  // The tools Elise can call, and the live device-state line injected each turn.
+  // The tools the companion can call, and the live device-state line injected each turn.
   // Return type annotated on the callback (not via useMemo's generic) so each
   // array element is checked against CompanionTool individually — otherwise TS's
   // array-literal inference merges the differently-shaped `intensity`/`variety`
@@ -631,7 +653,7 @@ export function CompanionsPanel({
 
   // The toy's state in plain terms — connection, whether it's actually running
   // (running implies connected), and the current intensity/variety levels. This
-  // is the ground-truth line Elise reads each turn; the level is here (not just
+  // is the ground-truth line the companion reads each turn; the level is here (not just
   // in her tool history) so she stays in sync when the knobs are changed
   // manually. No "program" (in-app jargon).
   const getDeviceState = useCallback((): string => {
@@ -843,25 +865,37 @@ export function CompanionsPanel({
             ) : (
               library.entries.map((entry) => {
                 const c = entry.companion;
-                // The remembered variant, falling back to default when it's
-                // gone (pack removed or now incompatible).
-                const selectedId = variantSel[c.id] ?? "default";
-                const selected =
-                  entry.variants.find(
-                    (v) => (v.packId ?? "default") === selectedId,
-                  ) ?? entry.variants[0]!;
+                // The remembered base/overlay picks, falling back — newest
+                // base, no overlay — when a remembered pack is gone (removed
+                // or now incompatible).
+                const sel = variantSel[c.id];
+                const baseOpt =
+                  entry.bases.find((b) => b.key === (sel?.base ?? null)) ??
+                  entry.bases[0]!;
+                const overlayOpt =
+                  entry.overlays.find(
+                    (o) => o.key !== null && o.key === sel?.overlay,
+                  ) ?? null;
                 // The card previews exactly what the selection plays:
                 // description, accent and the feature line all follow the
-                // select.
-                const accent = selected.accent ?? c.accentColour;
-                const description = selected.description ?? c.description;
-                const features = variantFeatures(selected);
+                // selects (overlay wins, then base version, then her own).
+                const accent =
+                  overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
+                const description =
+                  overlayOpt?.description ??
+                  baseOpt.description ??
+                  c.description;
+                const features = variantFeatures({
+                  pictures: effectivePictures(overlayOpt, baseOpt.pictures),
+                  changed: overlayOpt?.changed ?? [],
+                });
                 const pick = () => {
                   void (async () => {
                     try {
                       const resolved = await library.resolveVariant(
                         entry,
-                        selected.packId,
+                        baseOpt.key,
+                        overlayOpt?.key ?? null,
                       );
                       if (resolved === null) return; // overtaken by a newer pick
                       setCompanion(resolved);
@@ -888,25 +922,60 @@ export function CompanionsPanel({
                     onClick={pick}
                     className={`cursor-pointer rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3 hover:from-${accent}-500/25 hover:to-${accent}-500/10`}
                   >
-                    {/* Top row: her name with the variant picker right beside
-                        it — remembered per companion. */}
+                    {/* Top row: her name with the pickers beside it — base
+                        version and overlay, both remembered per companion.
+                        One base version and no overlays means no selects at
+                        all. */}
                     <div className="flex items-center gap-3">
                       <span className="font-semibold">{c.name}</span>
-                      {entry.variants.length > 1 && (
+                      {entry.bases.length > 1 && (
                         <select
-                          aria-label={`${c.name} variant`}
-                          value={selectedId}
+                          aria-label={`${c.name} version`}
+                          value={baseOpt.key ?? "default"}
                           onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => selectVariant(c.id, e.target.value)}
+                          onChange={(e) =>
+                            selectPacks(c.id, {
+                              base:
+                                e.target.value === "default"
+                                  ? null
+                                  : e.target.value,
+                              overlay: overlayOpt?.key ?? null,
+                            })
+                          }
                           className={`text-foreground border-${accent}-500 bg-background rounded-lg border px-2 py-1 text-sm`}
                         >
-                          {entry.variants.map((v) => (
+                          {entry.bases.map((b) => (
                             <option
-                              key={v.packId ?? "default"}
-                              value={v.packId ?? "default"}
+                              key={b.key ?? "default"}
+                              value={b.key ?? "default"}
                             >
-                              {v.label}
-                              {v.version !== undefined ? ` ${v.version}` : ""}
+                              {b.label}
+                              {b.version !== undefined ? ` ${b.version}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      {entry.overlays.length > 0 && (
+                        <select
+                          aria-label={`${c.name} overlay`}
+                          value={overlayOpt?.key ?? "default"}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            selectPacks(c.id, {
+                              base: baseOpt.key,
+                              overlay:
+                                e.target.value === "default"
+                                  ? null
+                                  : e.target.value,
+                            })
+                          }
+                          className={`text-foreground border-${accent}-500 bg-background rounded-lg border px-2 py-1 text-sm`}
+                        >
+                          <option value="default">default</option>
+                          {entry.overlays.map((o) => (
+                            <option key={o.key} value={o.key ?? "default"}>
+                              {o.label}
+                              {o.version !== undefined ? ` ${o.version}` : ""}
                             </option>
                           ))}
                         </select>
@@ -1168,7 +1237,7 @@ export function CompanionsPanel({
                       </Fragment>
                     );
                   })}
-                  {/* In-progress reply: a live, dimmed Elise bubble shown only until
+                  {/* In-progress reply: a live, dimmed companion bubble shown only until
                   the assistant turn commits — once the thread's last turn is the
                   assistant turn (the tail check below), the committed bubble
                   replaces it, even while a spoken reply is still playing. */}
