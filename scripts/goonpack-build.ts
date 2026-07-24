@@ -1,15 +1,26 @@
 // Zips each goonpacks/<dir>/ into goonpacks/<id>.zip — the id read from the
 // pack's manifest, so directory names stay free. Run: npm run goonpack:build
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+// (runs under tsx, so it imports the app's importer directly: every built
+// zip passes parsePack — the same checks importing runs — or the build
+// fails. Only the app-level cross-pack checks, like "is the base
+// installed", can't run here.)
+import {
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+  type Dirent,
+} from "node:fs";
 import { join, dirname } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { zipSync } from "fflate";
+import { parsePack } from "../src/lib/goonpacks/pack";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const packsDir = join(root, "goonpacks");
 
-let entries;
+let entries: Dirent[];
 try {
   entries = readdirSync(packsDir, { withFileTypes: true });
 } catch {
@@ -23,20 +34,26 @@ let built = 0;
 for (const entry of entries) {
   if (!entry.isDirectory()) continue;
   const dir = join(packsDir, entry.name);
-  const manifestPath = join(dir, "manifest.json");
-  let manifest;
+  // Only enough manifest reading to name the output zip — parsePack below is
+  // the actual judge of the manifest.
+  let manifest: Record<string, unknown>;
   try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const raw: unknown = JSON.parse(
+      readFileSync(join(dir, "manifest.json"), "utf8"),
+    );
+    if (typeof raw !== "object" || raw === null) throw new Error("not JSON");
+    manifest = raw as Record<string, unknown>;
   } catch {
     console.warn(`skipping ${entry.name}: no readable manifest.json`);
     continue;
   }
-  if (typeof manifest.id !== "string" || manifest.id === "") {
+  const id = manifest.id;
+  if (typeof id !== "string" || id === "") {
     console.warn(`skipping ${entry.name}: manifest has no id`);
     continue;
   }
-  const files = {};
-  const add = (rel) => {
+  const files: Record<string, Uint8Array> = {};
+  const add = (rel: string) => {
     files[rel] = new Uint8Array(readFileSync(join(dir, rel)));
   };
   add("manifest.json");
@@ -54,9 +71,19 @@ for (const entry of entries) {
   } catch {
     /* no pictures dir */
   }
-  const out = join(packsDir, `${manifest.id}.zip`);
-  writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
-  console.log(`${entry.name} → ${manifest.id}.zip`);
+  const zip = zipSync(files, { level: 0 }); // jpegs don't recompress
+  try {
+    parsePack(zip);
+  } catch (e) {
+    console.error(
+      `${entry.name}: ${e instanceof Error ? e.message : String(e)}`,
+    );
+    process.exitCode = 1;
+    continue; // invalid — don't write a zip that can't import
+  }
+  const out = join(packsDir, `${id}.zip`);
+  writeFileSync(out, zip);
+  console.log(`${entry.name} → ${id}.zip`);
   built++;
 }
 console.log(`${built} pack(s) built`);
