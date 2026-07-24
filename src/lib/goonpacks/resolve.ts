@@ -29,7 +29,12 @@ export function resolveDefault(base: Companion): Companion {
   return { ...base, systemPrompt: fill(base.systemPrompt, base.pictures) };
 }
 
-export function packToCompanion(pack: PackContent): Companion {
+// Pack → Companion with the prompt left UNFILLED — for a pack used as an
+// overlay's base, where applyOverlay does the (single) fill against the
+// merged picture set. Filling here too would fill twice: the first pass
+// drops {{PICTURES_SECTION}} for good when the base itself is pictureless,
+// so an overlay bringing pictures could never restore it.
+export function packToCompanionRaw(pack: PackContent): Companion {
   const m = pack.manifest;
   const pictures = pack.pictures.length > 0 ? pack.pictures : undefined;
   return {
@@ -39,12 +44,19 @@ export function packToCompanion(pack: PackContent): Companion {
     gender: m.gender ?? "female",
     accent_colour: m.accentColour ?? "pink",
     voiceId: m.voiceId ?? "",
-    systemPrompt: fill(pack.systemPrompt ?? "", pictures),
+    systemPrompt: pack.systemPrompt ?? "",
     model: m.model ?? DEFAULT_MODEL,
     contextWindow: m.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
     passesReasoning: m.passesReasoning ?? DEFAULT_PASSES_REASONING,
     pictures,
   };
+}
+
+// A pack played directly (no overlay) — "default" in the variant list for an
+// imported complete pack. Fills once, here.
+export function packToCompanion(pack: PackContent): Companion {
+  const raw = packToCompanionRaw(pack);
+  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.pictures) };
 }
 
 // A thread's persisted picture ref → a renderable src, or null when the

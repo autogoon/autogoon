@@ -4,6 +4,7 @@ import type { Companion, CompanionPicture } from "@/lib/companions/companions";
 import {
   applyOverlay,
   packToCompanion,
+  packToCompanionRaw,
   resolveDefault,
   resolvePictureRef,
 } from "./resolve";
@@ -55,6 +56,34 @@ describe("applyOverlay", () => {
       `hi\n${PICTURES_SECTION}`,
     );
     expect(applyOverlay(base, overlay()).systemPrompt).toBe("hi\n");
+  });
+});
+
+describe("packToCompanionRaw + applyOverlay (pack-shaped base)", () => {
+  // A non-built-in base must go through the overlay resolve unfilled
+  // (packToCompanionRaw), so applyOverlay's fill is the only one — filling
+  // twice would strip {{PICTURES_SECTION}} for good on the first (pictureless)
+  // pass, before the overlay's own pictures ever get a say.
+  const pictureLessBase = () =>
+    packToCompanionRaw({
+      manifest: {
+        format: 1,
+        id: "some.base",
+        version: "1",
+        name: "Base",
+        voiceId: "v",
+      },
+      systemPrompt: "hi\n{{PICTURES_SECTION}}",
+      pictures: [],
+    });
+  it("restores PICTURES_SECTION when the overlay brings pictures over a pictureless base", () => {
+    const pics = [{ src: "blob:overlay", description: "d" }];
+    const out = applyOverlay(pictureLessBase(), overlay({}, pics));
+    expect(out.systemPrompt).toBe(`hi\n${PICTURES_SECTION}`);
+  });
+  it("stays dropped when neither the base nor the overlay bring pictures", () => {
+    const out = applyOverlay(pictureLessBase(), overlay());
+    expect(out.systemPrompt).toBe("hi\n");
   });
 });
 
