@@ -130,12 +130,15 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
 - Hands: where is each one and what is it doing or touching?
 - Clothing: each garment, its specific colour, and how it is arranged — pushed up,
   pulled aside, half off, straps down, unfastened.  Mention topless if there is no
-  bra or top.  Mention whether the clothing is tight or not.
+  bra or top, and naked if she is wearing nothing at all.  Mention whether the
+  clothing is tight or not.
 - Exposed: which parts are bare and how much is actually visible — back, stomach, thighs, buttocks.  Grade each
   one "fully", "partly", "faintly" (made out through fabric or
   in shadow) or "not at all". Never write "not clearly" or similar — if you can make
   it out at all that is "faintly", not "not at all".
 - Genitals: if you can clearly see them.
+- Breasts: bare and uncovered, or covered by a garment? If bare, say so plainly —
+  and say whether both or only one.
 - Fabric over her breasts: sheer (skin tone shows through it, as with lace or thin
   wet fabric) or opaque (no skin tone through it, however tightly it fits)? Answer
   this before the next one.
@@ -145,24 +148,27 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
   colour showing through sheer fabric; their shape standing out distinctly against
   otherwise even fabric; unsure; or not visible.
 - Setting, and the quality and direction of the light.
-- Hair: what it is doing — loose or tied, where it falls, whether she is holding,
-  lifting or pushing it.
+- Hair: its colour, and what it is doing — loose or tied, where it falls, whether
+  she is holding, lifting or pushing it.
 - Gaze direction, expression, overall mood.
 
-STEP 2 — CAPTION. Condense the observations into ONE sentence of roughly 30–40 words,
+STEP 2 — CAPTION. Condense the observations into ONE sentence of roughly 35–45 words,
 present tense, no leading pronoun, covering all of these in this order — none of them
 is optional:
 - the pose,
 - the setting and the light,
 - the clothing: the garments, their colours, and how they are arranged,
-- what is bare or showing, and how much,
-- what her hair is doing,
+- what is bare or showing, and how much: say topless if she has no top or bra, and
+  naked if she is wearing nothing at all; say her breasts are bare when they are;
+  and include the nipples and the genitals whenever the observations above put them
+  as visible at all, however partly, in the terms used there,
+- her hair: its colour and what it is doing,
 - which way she is looking.
 Carry the grades from your observations exactly: never merge two parts you graded
-differently, and never soften a grade. Nipples are always stated separately from
-breasts. Say only what IS visible: never state that something is covered, hidden or not
-visible — leaving it out says that. Leave mood and expression out altogether. State only
-what you concluded above — drop anything you flagged as uncertain rather than hedging.
+differently, and never soften a grade. Say only what IS visible: never state that
+something is covered, hidden or not visible — leaving it out says that. Leave mood and
+expression out altogether. State only what you concluded above — drop anything you
+flagged as uncertain rather than hedging.
 
 Reply in exactly this format, with nothing after the caption line:
 
