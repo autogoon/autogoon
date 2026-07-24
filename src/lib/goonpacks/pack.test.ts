@@ -86,7 +86,7 @@ describe("parsePack", () => {
       "pictures/a.png": new Uint8Array([2]),
     });
     expect(() => parsePack(zip)).toThrow(PackError);
-    expect(() => parsePack(zip)).toThrow(/duplicate/);
+    expect(() => parsePack(zip)).toThrow(/share the name/);
   });
   it("rejects unsupported files under pictures/", () => {
     const zip = zipSync({
@@ -106,6 +106,42 @@ describe("parsePack", () => {
   });
   it("rejects an unreadable zip", () => {
     expect(() => parsePack(new Uint8Array([9, 9, 9]))).toThrow(PackError);
+  });
+  it("collects every problem it can determine in one throw", () => {
+    const problems = (zip: Uint8Array): string[] => {
+      try {
+        parsePack(zip);
+        return [];
+      } catch (e) {
+        return (e as PackError).problems;
+      }
+    };
+    // A valid manifest: completeness and zip problems all report together.
+    expect(
+      problems(
+        zipSync({
+          "manifest.json": manifest({ name: "Testy" }),
+          "pictures/a.gif": new Uint8Array([1]),
+        }),
+      ),
+    ).toEqual([
+      "Unsupported file in pictures/: a.gif — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.",
+      "A complete pack needs a system-prompt.md file.",
+      "A complete pack needs a voiceId field in manifest.json.",
+    ]);
+    // A broken manifest: its problems merge with the zip's (completeness
+    // checks need a readable manifest, so those wait).
+    expect(
+      problems(
+        zipSync({
+          "manifest.json": manifest({ version: undefined, name: "Testy" }),
+          "pictures/a.gif": new Uint8Array([1]),
+        }),
+      ),
+    ).toEqual([
+      "manifest.json is missing the version field - this is the version number of your pack",
+      "Unsupported file in pictures/: a.gif — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.",
+    ]);
   });
 });
 

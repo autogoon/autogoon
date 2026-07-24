@@ -15,10 +15,18 @@ import { join, dirname } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { zipSync } from "fflate";
+import { PackError } from "../src/lib/goonpacks/manifest";
 import { parsePack } from "../src/lib/goonpacks/pack";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const packsDir = join(root, "goonpacks");
+
+// Per-pack status lines: green for a clean build, red for errors. Plain when
+// piped.
+const green = (s: string): string =>
+  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
+const red = (s: string): string =>
+  process.stderr.isTTY ? `\x1b[31m${s}\x1b[0m` : s;
 
 let entries: Dirent[];
 try {
@@ -75,15 +83,20 @@ for (const entry of entries) {
   try {
     parsePack(zip);
   } catch (e) {
-    console.error(
-      `${entry.name}: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    const problems =
+      e instanceof PackError
+        ? e.problems
+        : [e instanceof Error ? e.message : String(e)];
+    const n = problems.length;
+    console.error(red(`${entry.name}: ${n} error${n === 1 ? "" : "s"}`));
+    for (const p of problems) console.error(`  ${p}`);
     process.exitCode = 1;
     continue; // invalid — don't write a zip that can't import
   }
   const out = join(packsDir, `${id}.zip`);
   writeFileSync(out, zip);
-  console.log(`${entry.name} → ${id}.zip`);
+  console.log(green(`${entry.name}: 0 errors`));
+  console.log(`  built, ${id}.zip`);
   built++;
 }
 console.log(`${built} pack(s) built`);

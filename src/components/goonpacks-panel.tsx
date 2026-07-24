@@ -63,7 +63,7 @@ export function GoonpacksPanel() {
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(
     null,
   );
-  const [importError, setImportError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string[] | null>(null);
   const onPickFile = useCallback(
     (file: File) => {
       setImportError(null);
@@ -71,7 +71,9 @@ export function GoonpacksPanel() {
         .importPack(file)
         .then(setPendingImport)
         .catch((e: unknown) =>
-          setImportError(e instanceof PackError ? e.message : "import failed"),
+          setImportError(
+            e instanceof PackError ? e.problems : ["Import failed."],
+          ),
         );
     },
     [library],
@@ -137,11 +139,21 @@ export function GoonpacksPanel() {
                         {about}
                       </span>
                     )}
-                    {row.incompatible !== undefined && (
-                      <span className="block text-sm text-red-500">
-                        Incompatible — {row.incompatible}
-                      </span>
-                    )}
+                    {row.incompatible !== undefined &&
+                      (row.incompatible.length === 1 ? (
+                        <span className="block text-sm text-red-500">
+                          Incompatible — {row.incompatible[0]}
+                        </span>
+                      ) : (
+                        <span className="block text-sm text-red-500">
+                          Incompatible:
+                          {row.incompatible.map((p) => (
+                            <span key={p} className="block">
+                              — {p}
+                            </span>
+                          ))}
+                        </span>
+                      ))}
                   </span>
                   <Button
                     onClick={() => void library.removePack(row.id)}
@@ -173,9 +185,11 @@ export function GoonpacksPanel() {
       >
         Import pack
       </Button>
-      {importError !== null && (
-        <p className="mt-1 text-sm text-red-500">{importError}</p>
-      )}
+      {importError?.map((p) => (
+        <p key={p} className="mt-1 text-sm text-red-500">
+          {p}
+        </p>
+      ))}
       {pendingImport !== null && (
         <div className="mt-2 rounded-xl border px-4 py-3 text-sm">
           <p className="font-semibold">
@@ -207,7 +221,7 @@ export function GoonpacksPanel() {
                     // sheet with no feedback.
                     setPendingImport(null);
                     setImportError(
-                      e instanceof PackError ? e.message : "import failed",
+                      e instanceof PackError ? e.problems : ["Import failed."],
                     );
                   })
               }

@@ -44,15 +44,16 @@ export type PendingImport = {
 };
 
 // One row of the Goonpacks admin list. A valid pack carries its manifest and
-// summary. An incompatible one carries the reason it failed today's rules,
-// plus whatever we can still say about it: its manifest when only the
-// cross-pack checks failed, or a best-effort peek when validation itself did.
+// summary. An incompatible one carries every problem validation could
+// determine, plus whatever we can still say about it: its manifest when only
+// the cross-pack checks failed, or a best-effort peek when validation itself
+// did.
 export type PackRow = {
   id: string;
   manifest?: PackManifest;
   summary?: PackSummary;
   peek?: PackPeek;
-  incompatible?: string;
+  incompatible?: string[];
 };
 
 const summarize = (parsed: ParsedPack): PackSummary => ({
@@ -71,9 +72,11 @@ function baseError(
   if (manifest.base === undefined) return null;
   const base = isInstalled(manifest.base);
   if (base === undefined) {
-    return `needs its base installed first: ${manifest.base}`;
+    return `This overlay changes ${manifest.base}, which isn't installed — import that pack first.`;
   }
-  if (base === "overlay") return "base must be a companion, not an overlay";
+  if (base === "overlay") {
+    return "The base must be a complete companion, not another overlay.";
+  }
   return null;
 }
 
@@ -85,7 +88,10 @@ async function loadContent(
   collect?: string[],
 ): Promise<PackContent> {
   const zip = await getPackBytes(packId);
-  if (zip === null) throw new PackError("pack missing — re-import its zip");
+  if (zip === null)
+    throw new PackError(
+      "The pack is gone from browser storage — re-import its zip.",
+    );
   const parsed = parsePack(new Uint8Array(zip));
   return {
     manifest: parsed.manifest,
@@ -143,7 +149,9 @@ export function useGoonpackLibrary() {
       try {
         const parsed = parsePack(bytes);
         if (parsed.manifest.id !== r.id) {
-          throw new PackError("zip id doesn't match its slot");
+          throw new PackError(
+            "The zip's id doesn't match the id it was imported under.",
+          );
         }
         valid.push({
           id: r.id,
@@ -154,7 +162,10 @@ export function useGoonpackLibrary() {
         bad.push({
           id: r.id,
           peek: peekPack(bytes),
-          incompatible: e instanceof PackError ? e.message : "unreadable zip",
+          incompatible:
+            e instanceof PackError
+              ? e.problems
+              : ["The stored zip couldn't be read."],
         });
       }
     }
@@ -169,7 +180,8 @@ export function useGoonpackLibrary() {
     for (const p of valid) {
       let reason: string | null = null;
       if (p.manifest.base === undefined && COMPANIONS[p.id] !== undefined) {
-        reason = "that id belongs to a built-in companion";
+        reason =
+          "The pack's id belongs to a built-in companion — pick a different id.";
       } else {
         reason = baseError(p.manifest, (id) =>
           COMPANIONS[id] !== undefined || completes.has(id)
@@ -180,7 +192,9 @@ export function useGoonpackLibrary() {
         );
       }
       if (reason === null) survivors.push(p);
-      else bad.push({ id: p.id, manifest: p.manifest, incompatible: reason });
+      else {
+        bad.push({ id: p.id, manifest: p.manifest, incompatible: [reason] });
+      }
     }
     if (seq !== refreshSeqRef.current) return; // superseded
     validRef.current = new Map(survivors.map((p) => [p.id, p.manifest]));
@@ -209,7 +223,9 @@ export function useGoonpackLibrary() {
       const m = parsed.manifest;
       // Immediate feedback on what the load pass would reject anyway.
       if (m.base === undefined && COMPANIONS[m.id] !== undefined) {
-        throw new PackError("that id belongs to a built-in companion");
+        throw new PackError(
+          "The pack's id belongs to a built-in companion — pick a different id.",
+        );
       }
       const err = baseError(m, (id) => {
         if (COMPANIONS[id] !== undefined) return "companion";
@@ -231,7 +247,8 @@ export function useGoonpackLibrary() {
   );
 
   // Removal never cascades: overlays of a removed base stay stored and simply
-  // list as incompatible ("needs its base installed") until the base returns.
+  // list as incompatible ("base companion isn't installed") until the base
+  // returns.
   // Threads are untouched either way.
   const removePack = useCallback(
     async (id: string) => {

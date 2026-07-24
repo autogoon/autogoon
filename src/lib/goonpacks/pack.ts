@@ -62,27 +62,34 @@ export function peekPack(zipBytes: Uint8Array): PackPeek {
   }
 }
 
+// Like parseManifest, parsePack reports every problem it can determine in
+// one throw: the manifest's problems plus the zip-level ones. Only a zip we
+// can't read at all — or one with no root manifest — fails alone.
 export function parsePack(zipBytes: Uint8Array): ParsedPack {
   let entries: Record<string, Uint8Array>;
   try {
     entries = unzipSync(zipBytes);
   } catch {
-    throw new PackError("not a readable zip");
+    throw new PackError("Not a readable zip file.");
   }
   const files = Object.entries(entries).filter(([path]) => !isJunk(path));
 
   const manifestEntry = files.find(([path]) => path === "manifest.json");
   if (manifestEntry === undefined) {
     throw new PackError(
-      "no manifest.json at the zip root — zip the pack folder's contents, not the folder",
+      "No manifest.json at the zip root — zip the pack folder's contents, not the folder.",
     );
   }
-  let manifest: PackManifest;
+  const problems: string[] = [];
+  let manifest: PackManifest | undefined;
   try {
     manifest = parseManifest(JSON.parse(strFromU8(manifestEntry[1])));
   } catch (e) {
-    if (e instanceof PackError) throw e;
-    throw new PackError("manifest.json is not valid JSON");
+    if (e instanceof PackError) problems.push(...e.problems);
+    else
+      problems.push(
+        "manifest.json isn't valid JSON — check for missing quotes or commas.",
+      );
   }
 
   const promptEntry = files.find(([path]) => path === "system-prompt.md");
@@ -94,7 +101,10 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
   for (const [path, bytes] of files) {
     if (!path.startsWith("pictures/")) continue;
     const file = path.slice("pictures/".length);
-    if (file.includes("/")) throw new PackError(`nested folder: ${path}`);
+    if (file.includes("/")) {
+      problems.push(`pictures/ can't contain subfolders — found ${path}.`);
+      continue;
+    }
     const dot = file.lastIndexOf(".");
     const stem = dot === -1 ? file : file.slice(0, dot);
     const ext = dot === -1 ? "" : file.slice(dot + 1).toLowerCase();
@@ -108,7 +118,9 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
         mimeType: IMAGE_TYPES[ext],
       });
     } else {
-      throw new PackError(`unsupported file in pictures/: ${file}`);
+      problems.push(
+        `Unsupported file in pictures/: ${file} — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.`,
+      );
     }
   }
   const stems = new Set<string>();
@@ -116,24 +128,39 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
     // Different extensions, same stem (a.jpg + a.png) would collide to one
     // thread ref (goonpack:<packId>/a) — reject at import, not silently drop.
     if (stems.has(p.name)) {
-      throw new PackError(`duplicate picture: ${p.name}`);
+      problems.push(
+        `Two pictures share the name ${p.name} — same name with different file types; rename one.`,
+      );
     }
     stems.add(p.name);
   }
   for (const p of pictures) p.description = sidecars.get(p.name) ?? "";
   pictures.sort((a, b) => a.name.localeCompare(b.name));
 
-  if (manifest.base === undefined) {
-    if (systemPrompt === undefined) {
-      throw new PackError("a complete pack needs system-prompt.md");
+  // Completeness rules need a readable manifest to know overlay from
+  // complete — without one, the manifest's own problems already tell the
+  // story.
+  if (manifest !== undefined) {
+    if (manifest.base === undefined) {
+      if (systemPrompt === undefined) {
+        problems.push("A complete pack needs a system-prompt.md file.");
+      }
+      if (!manifest.name)
+        problems.push("A complete pack needs a name field in manifest.json.");
+      if (!manifest.voiceId) {
+        problems.push(
+          "A complete pack needs a voiceId field in manifest.json.",
+        );
+      }
     }
-    if (!manifest.name) throw new PackError("a complete pack needs a name");
-    if (!manifest.voiceId) {
-      throw new PackError("a complete pack needs a voiceId");
+    if (manifest.noPictures === true && pictures.length > 0) {
+      problems.push(
+        "noPictures is set but the pack has a pictures/ folder — remove one or the other.",
+      );
     }
   }
-  if (manifest.noPictures === true && pictures.length > 0) {
-    throw new PackError("noPictures with a pictures/ folder — pick one");
+  if (problems.length > 0 || manifest === undefined) {
+    throw new PackError(problems);
   }
   return { manifest, systemPrompt, pictures };
 }

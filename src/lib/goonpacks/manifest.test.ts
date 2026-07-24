@@ -40,10 +40,10 @@ describe("parseManifest", () => {
   it("rejects name and gender on an overlay — she keeps hers", () => {
     const overlay = { ...good, base: "autogoon.aimee" };
     expect(() => parseManifest({ ...overlay, name: "Amy" })).toThrow(
-      /keeps her name/,
+      /can't change a companion's name/,
     );
     expect(() => parseManifest({ ...overlay, gender: "female" })).toThrow(
-      /keeps her gender/,
+      /can't change a companion's gender/,
     );
   });
   it("accepts noPictures on an overlay, rejects it elsewhere", () => {
@@ -52,7 +52,7 @@ describe("parseManifest", () => {
       true,
     );
     expect(() => parseManifest({ ...good, noPictures: true })).toThrow(
-      /for overlays/,
+      /for overlay packs/,
     );
     expect(() => parseManifest({ ...overlay, noPictures: "yes" })).toThrow(
       PackError,
@@ -81,5 +81,18 @@ describe("parseManifest", () => {
   });
   it("rejects non-object input", () => {
     expect(() => parseManifest("nope")).toThrow(PackError);
+  });
+  it("collects every problem, not just the first", () => {
+    let thrown: unknown;
+    try {
+      parseManifest({ format: 1, id: "g00ner.aimee", base: "autogoon.aimee" });
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(PackError);
+    expect((thrown as PackError).problems).toEqual([
+      "manifest.json is missing the version field - this is the version number of your pack",
+      "manifest.json is missing the aboutThePack field — say what the pack adds or changes.",
+    ]);
   });
 });
