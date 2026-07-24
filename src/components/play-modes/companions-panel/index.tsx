@@ -899,7 +899,7 @@ export function CompanionsPanel({
                         setText("");
                       }}
                       disabled={text.trim() === "" || status.replyPlaying}
-                      className="bg-blue-600"
+                      className="text-foreground bg-blue-600"
                     >
                       Say it
                     </Button>
