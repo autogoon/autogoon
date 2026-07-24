@@ -88,8 +88,9 @@ function PackCard({
   const base = m?.base ?? row.peek?.base;
   const about = m?.aboutThePack ?? row.peek?.aboutThePack;
   const info = [
-    // A nameless pack's heading IS the id — don't repeat it.
-    ...(name !== undefined ? [id] : []),
+    // The heading is always the id — this page manages packs, and the id is
+    // the identity you manage by. Her name lives here instead.
+    ...(name !== undefined ? [name] : []),
     ...(base !== undefined
       ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
       : m !== undefined
@@ -97,11 +98,10 @@ function PackCard({
         : []),
     ...(contents(row) !== "" ? [contents(row)] : []),
   ].join(" · ");
-  const heading = name ?? id;
   return (
     <AccentCard accent={accent} dashed={accent === null}>
       <div className="flex items-center gap-3">
-        <span className="font-semibold">{heading}</span>
+        <span className="font-semibold">{id}</span>
         <span className="text-muted-foreground text-sm">{version}</span>
         {control}
       </div>

@@ -223,10 +223,12 @@ export function useGoonpackLibrary() {
         })),
         ...bad,
       ].sort(
-        // Rows: ids alphabetical, versions newest first within an id.
+        // Rows: ids alphabetical, versions ascending within an id — the
+        // whole inventory reads one way (the chooser's pickers are where
+        // newest-first means something).
         (a, b) =>
           keyId(a.id).localeCompare(keyId(b.id)) ||
-          newestFirst(keyVersion(a.id), keyVersion(b.id)),
+          newestFirst(keyVersion(b.id), keyVersion(a.id)),
       ),
     );
     setStatus("ready");
