@@ -14,7 +14,7 @@ const base: Companion = {
   name: "Aimee",
   description: "sweet",
   gender: "female",
-  accent_colour: "emerald",
+  accentColour: "emerald",
   voiceId: "v-base",
   systemPrompt: "hi\n{{PICTURES_SECTION}}",
   model: "m",
@@ -43,12 +43,18 @@ describe("applyOverlay", () => {
   });
   it("replaces fields the overlay provides", () => {
     const out = applyOverlay(base, {
-      ...overlay({ voiceId: "v-new", name: "Amy" }),
+      ...overlay({ voiceId: "v-new", description: "her goth era" }),
       systemPrompt: "yo {{NOT_A_SECTION}}",
     });
     expect(out.voiceId).toBe("v-new");
-    expect(out.name).toBe("Amy");
+    expect(out.description).toBe("her goth era");
     expect(out.systemPrompt).toBe("yo ");
+  });
+  it("never takes the overlay's name — she keeps hers", () => {
+    // The manifest rejects `name` on overlays; belt and braces, the merge
+    // ignores it even if one sneaks into a stored record.
+    const out = applyOverlay(base, overlay({ name: "Amy" }));
+    expect(out.name).toBe("Aimee");
   });
   it("fills PICTURES_SECTION when the overlay brings pictures", () => {
     const pics = [{ src: "blob:x", description: "d" }];
@@ -56,6 +62,15 @@ describe("applyOverlay", () => {
       `hi\n${PICTURES_SECTION}`,
     );
     expect(applyOverlay(base, overlay()).systemPrompt).toBe("hi\n");
+  });
+  it("noPictures strips the base's pictures and the section", () => {
+    const basePics: Companion = {
+      ...base,
+      pictures: [{ src: "blob:b", description: "d" }],
+    };
+    const out = applyOverlay(basePics, overlay({ noPictures: true }));
+    expect(out.pictures).toBeUndefined();
+    expect(out.systemPrompt).toBe("hi\n");
   });
 });
 
@@ -105,7 +120,7 @@ describe("packToCompanion", () => {
     expect(c.contextWindow).toBe(1_000_000);
     expect(c.passesReasoning).toBe(true);
     expect(c.gender).toBe("female");
-    expect(c.accent_colour).toBe("pink");
+    expect(c.accentColour).toBe("pink");
   });
 });
 

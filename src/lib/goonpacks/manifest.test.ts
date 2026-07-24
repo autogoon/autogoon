@@ -32,6 +32,32 @@ describe("parseManifest", () => {
   it("rejects a pack overlaying itself", () => {
     expect(() => parseManifest({ ...good, base: good.id })).toThrow(PackError);
   });
+  it("rejects name and gender on an overlay — she keeps hers", () => {
+    const overlay = { ...good, base: "autogoon.aimee" };
+    expect(() => parseManifest({ ...overlay, name: "Amy" })).toThrow(
+      /keeps her name/,
+    );
+    expect(() => parseManifest({ ...overlay, gender: "female" })).toThrow(
+      /keeps her gender/,
+    );
+  });
+  it("accepts noPictures on an overlay, rejects it elsewhere", () => {
+    const overlay = { ...good, base: "autogoon.aimee" };
+    expect(parseManifest({ ...overlay, noPictures: true }).noPictures).toBe(
+      true,
+    );
+    expect(() => parseManifest({ ...good, noPictures: true })).toThrow(
+      /for overlays/,
+    );
+    expect(() => parseManifest({ ...overlay, noPictures: "yes" })).toThrow(
+      PackError,
+    );
+  });
+  it("passes aboutThePack through", () => {
+    expect(
+      parseManifest({ ...good, aboutThePack: "adds things" }).aboutThePack,
+    ).toBe("adds things");
+  });
   it("rejects an unknown accentColour", () => {
     expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(
       PackError,

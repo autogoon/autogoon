@@ -5,7 +5,13 @@ import { parsePack } from "./pack";
 
 const manifest = (extra: object = {}) =>
   strToU8(
-    JSON.stringify({ format: 1, id: "test.pack", version: "1.0.0", ...extra }),
+    JSON.stringify({
+      format: 1,
+      id: "test.pack",
+      version: "1.0.0",
+      aboutThePack: "a test pack",
+      ...extra,
+    }),
   );
 const complete = (extra: object = {}) =>
   manifest({ name: "Testy", voiceId: "v123", ...extra });
@@ -35,6 +41,26 @@ describe("parsePack", () => {
       "manifest.json": manifest({ base: "autogoon.aimee" }),
     });
     expect(parsePack(zip).pictures).toEqual([]);
+  });
+  it("requires aboutThePack at import", () => {
+    const zip = zipSync({
+      "manifest.json": manifest({
+        base: "autogoon.aimee",
+        aboutThePack: undefined,
+      }),
+    });
+    expect(() => parsePack(zip)).toThrow(/aboutThePack/);
+  });
+  it("rejects noPictures alongside a pictures/ folder", () => {
+    const zip = zipSync({
+      "manifest.json": manifest({ base: "autogoon.aimee", noPictures: true }),
+      "pictures/a.jpg": new Uint8Array([1]),
+    });
+    expect(() => parsePack(zip)).toThrow(/noPictures/);
+    const clean = zipSync({
+      "manifest.json": manifest({ base: "autogoon.aimee", noPictures: true }),
+    });
+    expect(parsePack(clean).manifest.noPictures).toBe(true);
   });
   it("rejects a complete pack missing prompt/name/voiceId", () => {
     expect(() => parsePack(zipSync({ "manifest.json": complete() }))).toThrow(

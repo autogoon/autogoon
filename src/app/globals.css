@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /* Companion picker cards build their classes by interpolating each companion's
-   `accent_colour` (e.g. `border-fuchsia-500`), so Tailwind can't see them in
+   `accentColour` (e.g. `border-fuchsia-500`), so Tailwind can't see them in
    the source. They wear the same accent-gradient as the home play mode cards,
    so safelist those shapes across the whole palette — then a companion's colour
    lives only in its data, changed in one place. */

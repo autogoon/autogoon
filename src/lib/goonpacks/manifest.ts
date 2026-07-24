@@ -41,14 +41,21 @@ export type PackManifest = {
   id: string; // publisher.name — unversioned identity
   version: string; // author's own version; displayed as-is, never interpreted
   base?: string; // overlay only: id of the companion it modifies
-  name?: string;
-  description?: string;
-  gender?: "female" | "male" | "nonbinary";
+  // What the pack adds or changes — about the PACK, not the companion
+  // (`description` is hers). Required at import (parsePack); optional here so
+  // records stored before the field existed still parse.
+  aboutThePack?: string;
+  name?: string; // complete packs only — an overlay keeps her name
+  description?: string; // the companion's card blurb (overlay: shown while selected)
+  gender?: "female" | "male" | "nonbinary"; // complete packs only, like name
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)
   model?: string; // OpenRouter slug; app default when omitted
   contextWindow?: number;
   passesReasoning?: boolean;
+  // Overlay only: the resolved variant has NO pictures, deliberately —
+  // distinct from omitting pictures/, which keeps the base's set.
+  noPictures?: boolean;
 };
 
 function optionalString(v: unknown, field: string): string | undefined {
@@ -86,9 +93,26 @@ export function parseManifest(raw: unknown): PackManifest {
     if (m.base === m.id) {
       throw new PackError("a pack can't overlay itself");
     }
+    // The id means the same her, and the thread stays hers — an overlay that
+    // renames or re-genders her is a different companion: make a complete
+    // pack instead.
+    if (m.name !== undefined) {
+      throw new PackError("an overlay keeps her name");
+    }
+    if (m.gender !== undefined) {
+      throw new PackError("an overlay keeps her gender");
+    }
   }
   if (m.gender !== undefined && !GENDERS.has(m.gender as string)) {
     throw new PackError("unknown gender");
+  }
+  if (m.noPictures !== undefined) {
+    if (typeof m.noPictures !== "boolean") {
+      throw new PackError("noPictures must be true or false");
+    }
+    if (m.base === undefined) {
+      throw new PackError("noPictures is for overlays");
+    }
   }
   const accentColour = optionalString(m.accentColour, "accentColour");
   if (accentColour !== undefined && !ACCENT_COLOURS.has(accentColour)) {
@@ -108,6 +132,7 @@ export function parseManifest(raw: unknown): PackManifest {
     id: m.id,
     version: m.version,
     base: m.base as string | undefined,
+    aboutThePack: optionalString(m.aboutThePack, "aboutThePack"),
     name: optionalString(m.name, "name"),
     description: optionalString(m.description, "description"),
     gender: m.gender as PackManifest["gender"],
@@ -116,5 +141,6 @@ export function parseManifest(raw: unknown): PackManifest {
     model: optionalString(m.model, "model"),
     contextWindow: m.contextWindow as number | undefined,
     passesReasoning: m.passesReasoning as boolean | undefined,
+    noPictures: m.noPictures as boolean | undefined,
   };
 }

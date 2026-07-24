@@ -40,9 +40,11 @@ export function packToCompanionRaw(pack: PackContent): Companion {
   return {
     id: m.id,
     name: m.name ?? m.id,
-    description: m.description ?? "",
+    // Card blurb: her own description, else the pack's about-text — better
+    // than an empty card line.
+    description: m.description ?? m.aboutThePack ?? "",
     gender: m.gender ?? "female",
-    accent_colour: m.accentColour ?? "pink",
+    accentColour: m.accentColour ?? "pink",
     voiceId: m.voiceId ?? "",
     systemPrompt: pack.systemPrompt ?? "",
     model: m.model ?? DEFAULT_MODEL,
@@ -72,15 +74,20 @@ export function resolvePictureRef(
 
 export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const m = overlay.manifest;
+  // noPictures strips the base's set outright; a pictures/ folder replaces
+  // it; neither keeps it. name and gender are never the overlay's to change
+  // (the manifest rejects them; the spread keeps the base's regardless).
   const pictures =
-    overlay.pictures.length > 0 ? overlay.pictures : base.pictures;
+    m.noPictures === true
+      ? undefined
+      : overlay.pictures.length > 0
+        ? overlay.pictures
+        : base.pictures;
   const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
   return {
-    ...base, // id stays the base's — thread ownership
-    name: m.name ?? base.name,
+    ...base, // id stays the base's — thread ownership; so do name and gender
     description: m.description ?? base.description,
-    gender: m.gender ?? base.gender,
-    accent_colour: m.accentColour ?? base.accent_colour,
+    accentColour: m.accentColour ?? base.accentColour,
     voiceId: m.voiceId ?? base.voiceId,
     model: m.model ?? base.model,
     contextWindow: m.contextWindow ?? base.contextWindow,

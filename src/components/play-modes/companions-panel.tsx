@@ -43,10 +43,7 @@ import { SessionControls } from "@/components/session-controls";
 import { Slider } from "@/components/slider";
 import { Sparkline } from "@/components/sparkline";
 import { StrokeCard } from "@/components/stroke-card";
-import {
-  useGoonpackLibrary,
-  type PendingImport,
-} from "@/hooks/use-goonpack-library";
+import { useGoonpackLibrary } from "@/hooks/use-goonpack-library";
 import type { PlayerView } from "@/hooks/use-player";
 import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
@@ -365,6 +362,13 @@ export function CompanionsPanel({
   const device = vacuglide.player;
 
   const library = useGoonpackLibrary();
+  // Panels are always mounted (hidden by CSS), and pack admin lives on the
+  // Goonpacks tab with its own hook instance — re-sync the chooser whenever
+  // this screen comes back into view so imports/removals made there show.
+  const { refresh: refreshLibrary } = library;
+  useEffect(() => {
+    if (active) void refreshLibrary();
+  }, [active, refreshLibrary]);
 
   // The picked, fully-resolved companion (variant applied, prompt sections
   // filled). Chosen in the setup view and fixed for the play session (the nav
@@ -375,26 +379,9 @@ export function CompanionsPanel({
     resolveDefault(companionList[0]!),
   );
 
-  // Setup view: pack import. fileRef triggers the hidden file input;
-  // pendingImport holds a parsed-but-not-yet-committed import for the confirm
-  // sheet; importError surfaces a failed import or variant pick.
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [pendingImport, setPendingImport] = useState<PendingImport | null>(
-    null,
-  );
-  const [importError, setImportError] = useState<string | null>(null);
-  const onPickFile = useCallback(
-    (file: File) => {
-      setImportError(null);
-      void library
-        .importPack(file)
-        .then(setPendingImport)
-        .catch((e: unknown) =>
-          setImportError(e instanceof PackError ? e.message : "import failed"),
-        );
-    },
-    [library],
-  );
+  // Setup view: a failed variant pick surfaces here (pack admin — import,
+  // remove — lives on the Goonpacks tab).
+  const [pickError, setPickError] = useState<string | null>(null);
 
   // The device engine — one instance, owned here. Defined before the voice
   // session because the session's tools/device-state callback both close over
@@ -812,7 +799,7 @@ export function CompanionsPanel({
           <div className="mt-2 flex flex-col gap-2">
             {library.entries.map((entry) => {
               const c = entry.companion;
-              const accent = c.accent_colour;
+              const accent = c.accentColour;
               const overlays = entry.variants.filter((v) => v.packId !== null);
               const pick = (packId: string | null) => {
                 void (async () => {
@@ -825,7 +812,7 @@ export function CompanionsPanel({
                     setCompanion(resolved);
                     enterPlay();
                   } catch (e) {
-                    setImportError(
+                    setPickError(
                       e instanceof PackError
                         ? e.message
                         : "pack failed to load",
@@ -834,8 +821,7 @@ export function CompanionsPanel({
                 })();
               };
               // An overlay chip — playable when its base can (built-in or an
-              // installed pack), always removable (even evicted: its index
-              // entry is what lingers, and removePack handles that fine).
+              // installed pack). Admin (removal) lives on the Goonpacks tab.
               const overlayChip = (v: Variant, playable: boolean) => {
                 const packId = v.packId!;
                 return (
@@ -862,26 +848,19 @@ export function CompanionsPanel({
                         {v.version !== undefined ? ` ${v.version}` : ""}
                       </span>
                     )}
-                    <Button
-                      onClick={() => void library.removePack(packId)}
-                      className="hover:text-foreground px-1"
-                      aria-label={`Remove ${v.label}`}
-                    >
-                      ✕
-                    </Button>
                   </span>
                 );
               };
               if (entry.missing) {
                 // Evicted complete pack: browser storage let it go; the zip
                 // has it. Her overlays stay listed (not playable — she can't
-                // load — but visible and removable) so they aren't hidden.
+                // load — but visible) so they aren't hidden.
                 return (
                   <div key={c.id} className="flex flex-col gap-1">
                     <div className="rounded-xl border border-dashed px-4 py-3">
                       <span className="block font-semibold">{c.name}</span>
                       <span className="text-muted-foreground block text-sm">
-                        Gone from browser storage. Re-import her zip.
+                        Gone from browser storage — re-import in Goonpacks.
                       </span>
                     </div>
                     {overlays.length > 0 && (
@@ -897,7 +876,7 @@ export function CompanionsPanel({
                   {/* Identical to the home play mode list's card, minus the
                       icon (and no badge — Companions registers no vosk
                       words). The accent gradient is the companion's own
-                      accent_colour, interpolated in and safelisted in
+                      accentColour, interpolated in and safelisted in
                       globals.css. */}
                   <Button
                     onClick={() => pick(null)}
@@ -923,92 +902,13 @@ export function CompanionsPanel({
                       {overlays.map((v) => overlayChip(v, true))}
                     </div>
                   )}
-                  {!entry.builtIn && (
-                    <Button
-                      onClick={() => void library.removePack(c.id)}
-                      className="text-muted-foreground hover:text-foreground self-start px-2 text-xs"
-                    >
-                      Remove{overlays.length > 0 ? " (and her overlays)" : ""}
-                    </Button>
-                  )}
                 </div>
               );
             })}
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".zip"
-            className="hidden"
-            data-testid="goonpack-file-input"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f !== undefined) onPickFile(f);
-              e.target.value = "";
-            }}
-          />
-          <Button
-            onClick={() => fileRef.current?.click()}
-            className="text-muted-foreground hover:text-foreground mt-2 rounded-xl border border-dashed px-4 py-2 text-sm"
-          >
-            Import pack
-          </Button>
-          {importError !== null && (
-            <p className="mt-1 text-sm text-red-500">{importError}</p>
+          {pickError !== null && (
+            <p className="mt-1 text-sm text-red-500">{pickError}</p>
           )}
-          {pendingImport !== null && (
-            <div className="mt-2 rounded-xl border px-4 py-3 text-sm">
-              <p className="font-semibold">
-                {pendingImport.manifest.name ?? pendingImport.manifest.id}
-                <span className="text-muted-foreground font-normal">
-                  {" "}
-                  {pendingImport.manifest.id} · {pendingImport.manifest.version}
-                  {pendingImport.manifest.base !== undefined
-                    ? ` · overlays ${pendingImport.manifest.base}`
-                    : ""}
-                </span>
-              </p>
-              {pendingImport.manifest.description !== undefined && (
-                <p className="text-muted-foreground">
-                  {pendingImport.manifest.description}
-                </p>
-              )}
-              {pendingImport.replaces !== null && (
-                <p className="mt-1">
-                  Replaces {pendingImport.replaces.version}. Threads stay.
-                </p>
-              )}
-              <div className="mt-2 flex gap-2">
-                <Button
-                  onClick={() =>
-                    void pendingImport
-                      .commit()
-                      .then(() => setPendingImport(null))
-                      .catch((e: unknown) => {
-                        // A failed store (quota, IDB error) must not strand
-                        // the sheet with no feedback.
-                        setPendingImport(null);
-                        setImportError(
-                          e instanceof PackError ? e.message : "import failed",
-                        );
-                      })
-                  }
-                  className="rounded border px-3 py-1"
-                >
-                  {pendingImport.replaces !== null ? "Replace" : "Import"}
-                </Button>
-                <Button
-                  onClick={() => setPendingImport(null)}
-                  className="text-muted-foreground rounded px-3 py-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-          <p className="text-muted-foreground mt-2 text-xs">
-            Packs live in browser storage; keep your zips.
-          </p>
           <p className="text-muted-foreground mt-4 text-xs">
             <span className="text-foreground font-medium">Privacy.</span> Unlike
             the rest of Autogoon, Companions sends data off your device: your

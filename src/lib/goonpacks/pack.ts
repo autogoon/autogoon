@@ -103,5 +103,15 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       throw new PackError("a complete pack needs a voiceId");
     }
   }
+  // Required on import (but tolerated as absent by parseManifest, so records
+  // stored before the field existed still read).
+  if (!manifest.aboutThePack) {
+    throw new PackError(
+      "a pack needs aboutThePack — say what it adds or changes",
+    );
+  }
+  if (manifest.noPictures === true && pictures.length > 0) {
+    throw new PackError("noPictures with a pictures/ folder — pick one");
+  }
   return { manifest, systemPrompt, pictures };
 }

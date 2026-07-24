@@ -21,13 +21,14 @@ import {
 import {
   deletePack,
   getPackBytes,
-  listStoredManifests,
+  listStoredPacks,
   putPack,
   readIndex,
   reconcile,
   toIndexEntry,
   writeIndex,
   type IndexEntry,
+  type PackSummary,
 } from "@/lib/goonpacks/store";
 
 export type { LibraryEntry, Variant };
@@ -88,10 +89,23 @@ async function loadContent(
   };
 }
 
+// One row of the Goonpacks admin list: a live pack (manifest + zip-level
+// summary) or an evicted one (index entry only — awaiting re-import).
+export type PackRow = {
+  id: string;
+  version: string;
+  name?: string;
+  base?: string;
+  missing: boolean;
+  manifest?: PackManifest;
+  summary?: PackSummary;
+};
+
 export function useGoonpackLibrary() {
   const [entries, setEntries] = useState<LibraryEntry[]>(() =>
     buildEntries([], []),
   );
+  const [packs, setPacks] = useState<PackRow[]>([]);
   // Object URLs of the currently-committed pick — the only ones that should
   // ever be alive between resolveVariant calls.
   const urlsRef = useRef<string[]>([]);
@@ -104,14 +118,43 @@ export function useGoonpackLibrary() {
 
   const refresh = useCallback(async () => {
     const seq = ++refreshSeqRef.current;
-    const manifests = await listStoredManifests();
+    const stored = await listStoredPacks();
+    // Backfill: records from before summaries existed get one now, computed
+    // from their own bytes — once per legacy pack, then it's stored.
+    for (const p of stored) {
+      if (p.summary !== undefined) continue;
+      const bytes = await getPackBytes(p.manifest.id);
+      if (bytes === null) continue;
+      try {
+        const parsed = parsePack(new Uint8Array(bytes));
+        p.summary = {
+          pictures: parsed.pictures.length,
+          hasPrompt: parsed.systemPrompt !== undefined,
+        };
+        await putPack(p.manifest, bytes, p.summary);
+      } catch {
+        // Unreadable bytes: leave the summary off; the pack still lists.
+      }
+    }
     if (seq !== refreshSeqRef.current) return; // superseded
+    const manifests = stored.map((p) => p.manifest);
     const { healed, missing } = reconcile(
       readIndex(localStorage),
       manifests.map(toIndexEntry),
     );
     writeIndex(localStorage, healed);
     setEntries(buildEntries(manifests, missing));
+    setPacks(
+      [
+        ...stored.map((p) => ({
+          ...toIndexEntry(p.manifest),
+          missing: false,
+          manifest: p.manifest,
+          summary: p.summary,
+        })),
+        ...missing.map((e) => ({ ...e, missing: true })),
+      ].sort((a, b) => a.id.localeCompare(b.id)),
+    );
   }, []);
 
   useEffect(() => {
@@ -141,7 +184,10 @@ export function useGoonpackLibrary() {
             const err = overlayBaseError(m.base);
             if (err !== null) throw err;
           }
-          await putPack(m, bytes);
+          await putPack(m, bytes, {
+            pictures: parsed.pictures.length,
+            hasPrompt: parsed.systemPrompt !== undefined,
+          });
           writeIndex(localStorage, [
             ...readIndex(localStorage).filter((e) => e.id !== m.id),
             toIndexEntry(m),
@@ -235,5 +281,16 @@ export function useGoonpackLibrary() {
     [],
   );
 
-  return { entries, lastPlayed, importPack, removePack, resolveVariant };
+  // `refresh` is exposed because the chooser and the Goonpacks admin screen
+  // each hold their own instance of this hook: a pack imported or removed on
+  // one screen reaches the other by re-syncing when that screen shows.
+  return {
+    entries,
+    packs,
+    lastPlayed,
+    importPack,
+    removePack,
+    resolveVariant,
+    refresh,
+  };
 }

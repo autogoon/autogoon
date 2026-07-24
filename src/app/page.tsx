@@ -13,9 +13,10 @@
 // names, a play mode screen's word is `exit` (back up), and exit is locked
 // while a session runs, so the grammar always matches the visible screen and
 // the illegal mid-session switch simply cannot be said or tapped. The
-// exception is the top-level tab strip (Home / Changes / Settings): those
-// three screens are siblings, so each other's tab words are live there —
-// sideways moves between tabs are exactly what the visible tabs offer.
+// exception is the top-level tab strip (Home / Goonpacks / Changes /
+// Settings): those screens are siblings, so each other's tab words are live
+// there — sideways moves between tabs are exactly what the visible tabs
+// offer.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
@@ -25,6 +26,7 @@ import { CompanionsPanel } from "@/components/play-modes/companions-panel";
 import { GroovePanel } from "@/components/play-modes/groove-panel";
 import { GoonPanel } from "@/components/play-modes/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
+import { GoonpacksPanel } from "@/components/goonpacks-panel";
 import { HomePanel } from "@/components/home-panel";
 import { ChangelogPanel } from "@/components/changelog-panel";
 import { SettingsPanel } from "@/components/settings-panel";
@@ -101,13 +103,20 @@ type PlayModeId = (typeof PLAY_MODES)[number]["id"];
 // below (`#goon/play`) — for play modes that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
 type Screen =
-  "home" | "settings" | "changes" | PlayModeId | `${PlayModeId}/play`;
+  | "home"
+  | "goonpacks"
+  | "settings"
+  | "changes"
+  | PlayModeId
+  | `${PlayModeId}/play`;
 
-// The three sibling tabs at the top level — see the tab strip below. Their ids
-// double as their voice words, live on whichever of the three you're on.
-type TabId = "home" | "settings" | "changes";
+// The sibling tabs at the top level — see the tab strip below. Their ids
+// double as their voice words, live on whichever tab you're on — except
+// Goonpacks, whose spoken word is `packs` ("goonpacks" isn't in vosk's
+// lexicon, so the compound would never be spotted).
+type TabId = "home" | "goonpacks" | "settings" | "changes";
 const isTabId = (id: string): id is TabId =>
-  id === "home" || id === "settings" || id === "changes";
+  id === "home" || id === "goonpacks" || id === "settings" || id === "changes";
 
 const isPlayModeId = (id: string): id is PlayModeId =>
   PLAY_MODES.some((a) => a.id === id);
@@ -119,7 +128,9 @@ const hashScreen = (): Screen => {
   if (base !== undefined && isPlayModeId(base)) {
     return sub === "play" ? `${base}/play` : base;
   }
-  return base === "settings" || base === "changes" ? base : "home";
+  return base === "goonpacks" || base === "settings" || base === "changes"
+    ? base
+    : "home";
 };
 
 // One level up: play -> its play mode's setup, everything else -> home.
@@ -138,6 +149,7 @@ const SAFE_WORD_RESERVED = [
   "stop",
   "reset",
   "changes",
+  "packs", // the Goonpacks tab's spoken word
   ...PLAY_MODES.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
@@ -175,6 +187,9 @@ function App() {
         : PLAY_MODES.filter((a) => a.id !== "companions"),
     [access.granted],
   );
+  // The Goonpacks tab manages companion packs, so it shows (and its word is
+  // live) exactly when Companions itself is available.
+  const goonpacksShown = access.granted || IS_DEV;
 
   // A session is in progress whenever the Player is not idle. You can only
   // start one from its play mode's screen and you can't leave while it runs
@@ -214,18 +229,21 @@ function App() {
     if (isTabId(screen)) {
       if (screen === "home") words.push(...availablePlayModes.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
-      // of the grammar; so is the tab that would go nowhere).
+      // of the grammar; so is the tab that would go nowhere). Goonpacks
+      // speaks as `packs`, and only while its tab shows.
       words.push(
         ...(["home", "changes", "settings"] as const).filter(
           (t) => t !== screen,
         ),
       );
+      if (goonpacksShown && screen !== "goonpacks") words.push("packs");
     } else if (!running) {
       words.push("exit");
     }
     setGlobalWords(words);
   }, [
     connected,
+    goonpacksShown,
     running,
     playing,
     safeWord,
@@ -282,7 +300,7 @@ function App() {
       access.checked &&
       !access.granted &&
       !IS_DEV &&
-      screen.split("/")[0] === "companions"
+      (screen.split("/")[0] === "companions" || screen === "goonpacks")
     ) {
       navigate("home");
     }
@@ -326,7 +344,12 @@ function App() {
         navigate(word);
         return;
       }
-      // A tab's word, heard on a sibling tab, is a sideways move.
+      // A tab's word, heard on a sibling tab, is a sideways move. Goonpacks
+      // answers to `packs` (see TabId's comment).
+      if (word === "packs" && isTabId(screenRef.current)) {
+        navigate("goonpacks");
+        return;
+      }
       if (isTabId(word) && isTabId(screenRef.current)) {
         navigate(word);
       }
@@ -354,25 +377,28 @@ function App() {
                 // `align: "right"` marks where the right-hand cluster starts
                 // (ml-auto); the tabs after it just follow.
                 { id: "home", label: "Home", align: "left" },
+                { id: "goonpacks", label: "Goonpacks", align: "left" },
                 { id: "changes", label: "Changes", align: "right" },
                 { id: "settings", label: "Settings", align: "left" },
               ] as const
-            ).map((t) => (
-              <Button
-                key={t.id}
-                flash={false}
-                onClick={() => navigate(t.id)}
-                className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                  t.align === "right" ? "ml-auto" : ""
-                } ${
-                  screen === t.id
-                    ? "border-foreground text-foreground"
-                    : "text-muted-foreground hover:text-foreground border-transparent"
-                }`}
-              >
-                {t.label}
-              </Button>
-            ))}
+            )
+              .filter((t) => t.id !== "goonpacks" || goonpacksShown)
+              .map((t) => (
+                <Button
+                  key={t.id}
+                  flash={false}
+                  onClick={() => navigate(t.id)}
+                  className={`-mb-px border-b-2 py-3 text-sm font-medium ${
+                    t.align === "right" ? "ml-auto" : ""
+                  } ${
+                    screen === t.id
+                      ? "border-foreground text-foreground"
+                      : "text-muted-foreground hover:text-foreground border-transparent"
+                  }`}
+                >
+                  {t.label}
+                </Button>
+              ))}
           </nav>
         )}
         {currentPlayMode !== null && (
@@ -412,6 +438,9 @@ function App() {
           </nav>
         )}
         <main className="py-6">
+          <div className={screen === "goonpacks" ? undefined : "hidden"}>
+            <GoonpacksPanel />
+          </div>
           <div className={screen === "home" ? undefined : "hidden"}>
             <HomePanel
               vacuglide={vacuglide}

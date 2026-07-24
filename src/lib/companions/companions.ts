@@ -30,7 +30,7 @@ export type Companion = {
   name: string;
   description: string; // one-line blurb shown on the picker card
   gender: "female" | "male" | "nonbinary"; // display-only; not currently rendered anywhere
-  accent_colour: string; // her signature colour name, e.g. "pink" or "emerald"
+  accentColour: string; // her signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
@@ -56,7 +56,7 @@ export const COMPANIONS: Record<string, Companion> = {
     name: "Elise",
     description: "A high-energy, flirty streamer with a dry, quieter side.",
     gender: "female",
-    accent_colour: "fuchsia",
+    accentColour: "fuchsia",
     // voiceId: "exHJXWRRhHzWYCoZrSF1", // sexy
     voiceId: "uhseMNDjn3oAF24Hh83b", // normal
     systemPrompt: ELISE_SYSTEM_PROMPT,
@@ -70,7 +70,7 @@ export const COMPANIONS: Record<string, Companion> = {
     description:
       "A sweet, eager-to-please girlfriend who lets you lead - and tease.",
     gender: "female",
-    accent_colour: "emerald",
+    accentColour: "emerald",
     voiceId: "WLWvwOJfGYaBppWieVa7",
     systemPrompt: AIMEE_SYSTEM_PROMPT,
     model: DEFAULT_MODEL,
@@ -83,7 +83,7 @@ export const COMPANIONS: Record<string, Companion> = {
     description:
       "A dry, dressed-up Portland pro - up for anything, no strings.",
     gender: "female",
-    accent_colour: "violet",
+    accentColour: "violet",
     voiceId: "TsdN21EAs7m8pjYUDEQ1",
     systemPrompt: MILEY_SYSTEM_PROMPT,
     model: DEFAULT_MODEL,

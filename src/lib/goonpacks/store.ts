@@ -94,26 +94,41 @@ function tx<T>(
   );
 }
 
+// Zip-level facts the manifest can't tell (computed from the parsed pack at
+// import; the admin list shows them without re-unzipping). Optional on the
+// record: packs stored before this existed are backfilled on first list.
+export type PackSummary = { pictures: number; hasPrompt: boolean };
+
 // The zip is stored as raw bytes, not a Blob: Blob records fail to store in
 // some WebKit builds (Playwright's bundled WebKit throws on any Blob put, and
 // real Safari has its own Blob-in-IDB history) — bytes structured-clone
 // everywhere. `Blob` stays in the type because records written before the
 // bytes switch really do come back as one (see getPackBytes's compat branch).
-type StoredRecord = { manifest: unknown; zip: ArrayBuffer | Blob };
+type StoredRecord = {
+  manifest: unknown;
+  zip: ArrayBuffer | Blob;
+  summary?: PackSummary;
+};
 
-// Every readable, valid record's manifest. Unreadable/invalid records are
-// skipped — they count as evicted and surface via reconcile as missing.
-export async function listStoredManifests(): Promise<PackManifest[]> {
+// Every readable, valid record's manifest (+ summary when the record carries
+// one). Unreadable/invalid records are skipped — they count as evicted and
+// surface via reconcile as missing.
+export async function listStoredPacks(): Promise<
+  { manifest: PackManifest; summary?: PackSummary }[]
+> {
   let records: unknown[];
   try {
     records = await tx("readonly", (s) => s.getAll());
   } catch {
     return [];
   }
-  const out: PackManifest[] = [];
+  const out: { manifest: PackManifest; summary?: PackSummary }[] = [];
   for (const r of records) {
     try {
-      out.push(parseManifest((r as StoredRecord).manifest));
+      out.push({
+        manifest: parseManifest((r as StoredRecord).manifest),
+        summary: (r as StoredRecord).summary,
+      });
     } catch {
       // skip — treated as evicted
     }
@@ -124,8 +139,9 @@ export async function listStoredManifests(): Promise<PackManifest[]> {
 export async function putPack(
   manifest: PackManifest,
   zip: ArrayBuffer,
+  summary: PackSummary,
 ): Promise<void> {
-  await tx("readwrite", (s) => s.put({ manifest, zip }, manifest.id));
+  await tx("readwrite", (s) => s.put({ manifest, zip, summary }, manifest.id));
 }
 
 export async function deletePack(id: string): Promise<void> {
