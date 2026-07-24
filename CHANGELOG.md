@@ -7,11 +7,11 @@
   one you have. Cards gain variant picking; packs cache in browser storage with
   your zip as the source of truth. Assembly guide in
   [GOONPACKS.md](./GOONPACKS.md).
-  ([#N](https://github.com/autogoon/autogoon/pull/N))
+  ([#18](https://github.com/autogoon/autogoon/pull/18))
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
-  `goonpacks/*/pictures/`. ([#N](https://github.com/autogoon/autogoon/pull/N))
+  `goonpacks/*/pictures/`. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 ## 2026-07-23
 
