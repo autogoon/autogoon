@@ -31,3 +31,17 @@ export function isBargeIn(
 export function partialHasWord(partial: string): boolean {
   return /[\p{L}\p{N}]/u.test(partial);
 }
+
+// Whether the current utterance has confirmed real speech: a worded partial
+// arriving while the VAD hears voice. Sticky (`alreadyConfirmed` carries
+// forward) so trailing partials that land after the VAD drops mid-sentence
+// still count — but an STT phantom ("Yes"/"No" hallucinated on near-silence
+// when the socket opens) never confirms, because the mic is quiet when it
+// arrives. Callers reset the sticky flag at each utterance boundary.
+export function confirmSpeech(
+  alreadyConfirmed: boolean,
+  partial: string,
+  vadSpeaking: boolean,
+): boolean {
+  return alreadyConfirmed || (partialHasWord(partial) && vadSpeaking);
+}

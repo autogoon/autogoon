@@ -4,6 +4,7 @@ import {
   shouldCloseSocket,
   isBargeIn,
   partialHasWord,
+  confirmSpeech,
 } from "./session-policy";
 
 describe("session-policy", () => {
@@ -24,6 +25,23 @@ describe("session-policy", () => {
     expect(isBargeIn(true, true)).toBe(true);
     expect(isBargeIn(false, true)).toBe(false);
     expect(isBargeIn(true, false)).toBe(false);
+  });
+
+  it("does not confirm speech on a phantom partial with the VAD silent", () => {
+    expect(confirmSpeech(false, "No.", false)).toBe(false);
+    expect(confirmSpeech(false, "Yes", false)).toBe(false);
+  });
+
+  it("confirms speech on a worded partial with live mic energy", () => {
+    expect(confirmSpeech(false, "hey there", true)).toBe(true);
+  });
+
+  it("stays confirmed for trailing partials after the VAD drops", () => {
+    expect(confirmSpeech(true, "hey there and", false)).toBe(true);
+  });
+
+  it("does not confirm on mic energy without a decoded word", () => {
+    expect(confirmSpeech(false, "...", true)).toBe(false);
   });
 
   it("counts a partial as a word only once it holds a real word", () => {

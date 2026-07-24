@@ -24,6 +24,7 @@ import { startMic, type MicHandle } from "@/lib/voice/mic";
 import { createStt, type Stt } from "@/lib/voice/stt";
 import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
 import {
+  confirmSpeech,
   isBargeIn,
   partialHasWord,
   shouldOpenSocket,
@@ -186,6 +187,10 @@ export function useVoiceSession(opts: {
   const turnRef = useRef<AbortController | null>(null);
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
+  // Whether the current utterance has confirmed real speech (see confirmSpeech)
+  // — the gate on surfacing partials in status. Reset at each utterance
+  // boundary: a committed transcript or the socket closing.
+  const speechConfirmedRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
@@ -576,7 +581,21 @@ export function useVoiceSession(opts: {
 
     const stt = createStt({
       onPartial: (text) => {
-        setStatus((s) => ({ ...s, partial: text }));
+        // Surface the partial (which also locks the composer into dictation)
+        // only once this utterance has confirmed real speech — sticky, so
+        // trailing partials after the VAD drops mid-sentence still show. An
+        // STT phantom arrives on near-silence, never confirms, and is logged
+        // instead of taking over the composer.
+        speechConfirmedRef.current = confirmSpeech(
+          speechConfirmedRef.current,
+          text,
+          vadSpeakingRef.current,
+        );
+        if (speechConfirmedRef.current) {
+          setStatus((s) => ({ ...s, partial: text }));
+        } else {
+          onLogRef.current?.(`phantom partial suppressed: "${text}"`, "info");
+        }
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
         // her voice leaking past AEC) no longer interrupts her mid-sentence.
@@ -594,10 +613,22 @@ export function useVoiceSession(opts: {
         // A committed transcript is a spoken turn: hands-free, so run it as a
         // "say it" (LLM → speak) without waiting on a button. Clear the interim
         // partial — the STT never emits an empty one — so "dictating" releases.
+        speechConfirmedRef.current = false;
         setStatus((s) => ({ ...s, committed: text, partial: "" }));
         submitText(text, { speak: true });
       },
-      onPhase: (phase) => setStatus((s) => ({ ...s, phase })),
+      onPhase: (phase) => {
+        // Socket closed = utterance over, committed or not: drop the speech
+        // confirmation and any uncommitted partial, so a stale partial can't
+        // hold the composer in dictation and a past utterance's confirmation
+        // can't let the next socket-open phantom through.
+        if (phase === "closed") {
+          speechConfirmedRef.current = false;
+          setStatus((s) => ({ ...s, phase, partial: "" }));
+        } else {
+          setStatus((s) => ({ ...s, phase }));
+        }
+      },
     });
     sttRef.current = stt;
 
@@ -671,6 +702,7 @@ export function useVoiceSession(opts: {
     micHandleRef.current = null;
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
+    speechConfirmedRef.current = false;
     startingRef.current = false;
     // The conversation persists across Stop-listening — only Clear (or a fresh
     // load) resets it — so re-seed the mirror from the intact threadRef.

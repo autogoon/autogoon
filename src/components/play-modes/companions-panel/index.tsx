@@ -44,7 +44,10 @@ import { useStrokeControls } from "@/hooks/use-stroke-controls";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
 import { useVoiceSession } from "@/hooks/use-voice-session";
 import { companionList, type Companion } from "@/lib/companions/companions";
-import { sameLocalDay } from "@/lib/companions/conversation";
+import {
+  isSilentAssistantTurn,
+  sameLocalDay,
+} from "@/lib/companions/conversation";
 import type { CompanionTool } from "@/lib/companions/tools";
 import type { LibraryEntry } from "@/lib/goonpacks/entries";
 import { PackError } from "@/lib/goonpacks/manifest";
@@ -802,6 +805,10 @@ export function CompanionsPanel({
                           <ToolChip name={turn.name} result={turn.result} />
                         );
                       }
+                    } else if (isSilentAssistantTurn(turn)) {
+                      // She called a tool without saying anything: no bubble —
+                      // the tool chip or picture that follows is the record.
+                      row = null;
                     } else {
                       row = (
                         <ChatBubble
