@@ -15,7 +15,7 @@ export function HoldButton({
   onValve,
   onError,
   forcedActive = false,
-  badge,
+  voiceCommand,
 }: {
   label: string;
   disabled: boolean;
@@ -24,8 +24,8 @@ export function HoldButton({
   // Highlight the button even without a pointer press — e.g. a voice pulse
   // driving the same valve.
   forcedActive?: boolean;
-  // The voice command that pulses this valve, shown as a badge.
-  badge?: string;
+  // The voice command that pulses this valve, shown as a voiceCommand.
+  voiceCommand?: string;
 }) {
   const [active, setActive] = useState(false);
   const pressedAtRef = useRef(0);
@@ -75,7 +75,7 @@ export function HoldButton({
   return (
     <Button
       disabled={disabled}
-      badge={badge}
+      voiceCommand={voiceCommand}
       onPointerDown={press}
       onPointerUp={release}
       onPointerLeave={release}

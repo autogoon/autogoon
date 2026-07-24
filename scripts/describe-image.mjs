@@ -1,10 +1,10 @@
 // Describe an image with a vision model and write the caption to a sidecar
-// <basename>.txt — the exact file scripts/generate-companion-pictures.mjs globs
-// into a companion's pictures. So the flow is: drop an image in
-// public/companions/<id>/, run `npm run describe <path>`, then it's picked up on
-// the next dev/build.
+// <basename>.txt — the description a goonpack carries beside each picture. So
+// the flow is: drop an image in goonpacks/<dir>/pictures/, run
+// `npm run goonpack:describe <path>`, then `npm run goonpack:build` bundles it
+// into the pack.
 //
-//   npm run describe public/companions/aimee/whatever.jpg
+//   npm run goonpack:describe goonpacks/aimee/pictures/whatever.jpg
 //
 // Uses Qwen3-VL on OpenRouter by default; override with DESCRIBE_MODEL. Reads
 // OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script loads
@@ -28,28 +28,28 @@
 //     Qwen3-VL 235B            qwen/qwen3-vl-235b-a22b-instruct  (strongest open-weight; the default below)
 //     Qwen2.5-VL 72B           qwen/qwen2.5-vl-72b-instruct
 //
-//   Cheap, good for bulk captioning (describe:missing over a whole folder):
+//   Cheap, good for bulk captioning (goonpack:describe-missing over a whole folder):
 //     Gemini 2.5 Flash         google/gemini-2.5-flash
 //     Gemini 2.5 Flash Lite    google/gemini-2.5-flash-lite
 //     Qwen3-VL 32B             qwen/qwen3-vl-32b-instruct
 //     Qwen3-VL 30B A3B         qwen/qwen3-vl-30b-a3b-instruct
 //     Qwen3-VL 8B              qwen/qwen3-vl-8b-instruct
 
-import process from 'node:process';
-import { readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { basename, extname, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
-import { randomUUID } from 'node:crypto';
+import process from "node:process";
+import { readFileSync, writeFileSync, rmSync } from "node:fs";
+import { basename, extname, dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { randomUUID } from "node:crypto";
 
 const MIME = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.avif': 'image/avif',
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".avif": "image/avif",
 };
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
@@ -65,21 +65,21 @@ function resizedJpeg(imagePath) {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
     execFileSync(
-      'sips',
+      "sips",
       [
-        '-Z',
+        "-Z",
         String(MAX_EDGE),
-        '-s',
-        'format',
-        'jpeg',
-        '-s',
-        'formatOptions',
+        "-s",
+        "format",
+        "jpeg",
+        "-s",
+        "formatOptions",
         String(JPEG_QUALITY),
         imagePath,
-        '--out',
+        "--out",
         tmp,
       ],
-      { stdio: 'ignore' },
+      { stdio: "ignore" },
     );
     return readFileSync(tmp);
   } catch (e) {
@@ -125,40 +125,40 @@ export function sidecarPath(imagePath) {
 // so callers can decide how to report it.
 export async function describeImage(imagePath) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (apiKey === undefined || apiKey === '') {
-    throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
+  if (apiKey === undefined || apiKey === "") {
+    throw new Error("OPENROUTER_API_KEY is not set — put it in .env.");
   }
-  const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
+  const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
   // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
   // DESCRIBE_MODEL to try another (see the list at the top of this file).
   const model =
-    process.env.DESCRIBE_MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
+    process.env.DESCRIBE_MODEL ?? "qwen/qwen3-vl-235b-a22b-instruct";
 
   const ext = extname(imagePath).toLowerCase();
   if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
+    throw new Error(`Unsupported image type: ${ext || "(none)"}`);
   }
   // Always send a downscaled JPEG, whatever the source format.
   const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
-    'base64',
+    "base64",
   )}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'http://localhost:8931',
-      'X-Title': 'autogoon describe-image',
+      "HTTP-Referer": "http://localhost:8931",
+      "X-Title": "autogoon describe-image",
     },
     body: JSON.stringify({
       model,
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: PROMPT },
-            { type: 'image_url', image_url: { url: dataUri } },
+            { type: "text", text: PROMPT },
+            { type: "image_url", image_url: { url: dataUri } },
           ],
         },
       ],
@@ -173,7 +173,7 @@ export async function describeImage(imagePath) {
 
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== 'string' || raw.trim() === '') {
+  if (typeof raw !== "string" || raw.trim() === "") {
     throw new Error(
       `No caption was returned:\n${JSON.stringify(data, null, 2)}`,
     );
@@ -181,9 +181,9 @@ export async function describeImage(imagePath) {
 
   // Collapse to one line and strip any wrapping quotes the model may add.
   return raw
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim()
-    .replace(/^["']|["']$/g, '')
+    .replace(/^["']|["']$/g, "")
     .trim();
 }
 
@@ -191,8 +191,8 @@ export async function describeImage(imagePath) {
 // directly (not when imported by describe-missing.mjs).
 async function main() {
   const imagePath = process.argv[2];
-  if (imagePath === undefined || imagePath === '') {
-    console.error('Usage: npm run describe <path-to-image>');
+  if (imagePath === undefined || imagePath === "") {
+    console.error("Usage: npm run goonpack:describe <path-to-image>");
     process.exit(1);
   }
   try {

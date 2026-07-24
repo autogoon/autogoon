@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { FinishButton } from "@/components/finish-button";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
@@ -165,7 +166,7 @@ export function AutopilotPanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <SessionControls
         state={state}
         connected={connected}
@@ -216,9 +217,9 @@ export function AutopilotPanel({
       <Card title="Edge Control">
         <Segmented
           options={[
-            { value: "gentle", label: "Gentle", badge: "gentle" },
-            { value: "moderate", label: "Moderate", badge: "moderate" },
-            { value: "intense", label: "Intense", badge: "intense" },
+            { value: "gentle", label: "Gentle", voiceCommand: "gentle" },
+            { value: "moderate", label: "Moderate", voiceCommand: "moderate" },
+            { value: "intense", label: "Intense", voiceCommand: "intense" },
           ]}
           value={edge}
           onChange={changeEdge}
@@ -229,9 +230,9 @@ export function AutopilotPanel({
       <Card title="Vacuum Maintenance">
         <Segmented
           options={[
-            { value: "off", label: "Off", badge: "off" },
-            { value: "little", label: "Light", badge: "light" },
-            { value: "more", label: "Heavy", badge: "heavy" },
+            { value: "off", label: "Off", voiceCommand: "off" },
+            { value: "little", label: "Light", voiceCommand: "light" },
+            { value: "more", label: "Heavy", voiceCommand: "heavy" },
           ]}
           value={suction}
           onChange={changeSuction}
@@ -244,6 +245,6 @@ export function AutopilotPanel({
         header={<RateLimitMeter {...vacuglide.rateLimit} />}
         entries={vacuglide.logEntries}
       />
-    </section>
+    </Panel>
   );
 }

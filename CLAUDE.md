@@ -65,12 +65,14 @@ can span several commits, and commits land after a PR is opened). If you
 finished something a user would notice, it gets an entry before you consider the
 work done.
 
-- **Format:** one line per change, newest first, grouped under the date it
-  landed (`## YYYY-MM-DD`). Tag each line `feature`, `enhancement`, `bug`, or
+- **Format:** one bullet per change — wrapped over indented lines and separated
+  by blank lines for readability — newest first, grouped under the date it
+  landed (`## YYYY-MM-DD`). Tag each entry `feature`, `enhancement`, `bug`, or
   `internal`, and within a day order the entries in exactly that sequence —
   features, then enhancements, then bugs, then internal (bottom priority). Open
-  each entry with a bold, few-word, commit-style summary:
-  `- tag: **Add safe word** — description…`. Link the PR:
+  each entry with a bold, few-word, commit-style summary, then the description
+  as a sentence (capital first word, unless it opens with `code`):
+  `- tag: **Add safe word** — Description…`. Link the PR:
   `([#N](https://github.com/autogoon/autogoon/pull/N))`. Inline markup is
   limited to `` `code` `` and `[links](url)` — the in-app Changelog screen
   parses exactly this format (src/lib/changelog.ts).
@@ -154,13 +156,13 @@ things worth knowing up front:
   program: it owns the clock, the tick loop, device sends, and transport
   (play/pause/seek/playback-rate, and dropping + regenerating the not-yet-played
   tail). A **panel** (`src/components/play-modes/*-panel.tsx`, or a `*-panel/`
-  directory with the panel in `index.tsx` when it splits out per-concern cards,
-  as Goon does) owns its engine instance (a `useRef`), arms/plays the Player
-  with it, holds its knob state (setting the engine's fields directly), and
-  declares its commands. `usePlayer` (`src/hooks/use-player.ts`) mirrors the
-  Player into React state **once** (in `page.tsx`) and the view is passed down
-  to the panels. There is no per-play-mode Player hook (Companions' voice
-  session has its own orchestrator hook, but the Player path is the same).
+  directory with the panel in `index.tsx` when it splits out per-concern pieces,
+  as Goon and Companions do) owns its engine instance (a `useRef`), arms/plays
+  the Player with it, holds its knob state (setting the engine's fields
+  directly), and declares its commands. `usePlayer` (`src/hooks/use-player.ts`)
+  mirrors the Player into React state **once** (in `page.tsx`) and the view is
+  passed down to the panels. There is no per-play-mode Player hook (Companions'
+  voice session has its own orchestrator hook, but the Player path is the same).
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
   replaces whoever was there, so "starting one stops the others" is a Player
@@ -175,10 +177,10 @@ things worth knowing up front:
   panel's enabled words with the recognizer and routes detections back.
 - **Voice-first**: the app is operated hands-free, so nearly every interactive
   control should also be a voice command — when adding a control, give it a word
-  (and the on-screen badge that comes with it) by default. The exceptions are
-  free-text input (the safe word field) and continuous input better served by
-  discrete step words (a slider gets `more`/`less`-style steps, not a spoken
-  value).
+  (and the on-screen voice-command chip that comes with it) by default. The
+  exceptions are free-text input (the safe word field) and continuous input
+  better served by discrete step words (a slider gets `more`/`less`-style steps,
+  not a spoken value).
 - **Engines are intentionally self-contained**: they do not import from each
   other. Goon deliberately duplicates Groove's generation helpers rather than
   sharing a module — a chosen boundary, so don't refactor engines into a shared

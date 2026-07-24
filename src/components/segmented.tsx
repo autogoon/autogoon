@@ -11,7 +11,7 @@ export function Segmented<T extends string>({
   onChange,
   activeClass,
 }: {
-  options: ReadonlyArray<{ value: T; label: string; badge?: string }>;
+  options: ReadonlyArray<{ value: T; label: string; voiceCommand?: string }>;
   value: T;
   onChange: (value: T) => void;
   activeClass: string;
@@ -25,12 +25,12 @@ export function Segmented<T extends string>({
         <Button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          badge={opt.badge}
-          className={`flex-1 py-3 ${i > 0 ? "border-l" : ""} ${
-            i === 0 ? "rounded-l-lg" : ""
-          } ${i === options.length - 1 ? "rounded-r-lg" : ""} ${
-            value === opt.value ? activeClass : "text-muted-foreground"
-          }`}
+          voiceCommand={opt.voiceCommand}
+          className={`border-border flex-1 rounded-none border-0 bg-transparent py-3 enabled:hover:bg-transparent ${
+            i > 0 ? "border-l" : ""
+          } ${i === 0 ? "rounded-l-lg" : ""} ${
+            i === options.length - 1 ? "rounded-r-lg" : ""
+          } ${value === opt.value ? activeClass : "text-muted-foreground"}`}
         >
           {opt.label}
         </Button>

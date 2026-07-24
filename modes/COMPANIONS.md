@@ -12,7 +12,7 @@ Claude and the OpenAI APIs both restrict explicit content, so neither is viable
 here. OpenRouter fronts a wide range of hosted models, so each companion can
 pick whichever model suits her persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
-model**, not of OpenRouter itself — Elise's current model (her `model` field in
+model**, not of OpenRouter itself — a companion's model (her `model` field in
 `companions.ts`) is picked precisely because it doesn't restrict the kind of
 roleplay her persona calls for, and it calls the device tools reliably.
 
@@ -32,7 +32,7 @@ The companions live in a keyed record — `COMPANIONS` in
 `src/lib/companions/companions.ts`. The picker order (`companionList`) derives
 from that record, and the panel simply starts on its first entry. Each persona
 is pure data: adding a companion is a new entry plus a persona module (e.g.
-`elise-prompt.ts`) that interpolates the shared sections and fills in the
+`aimee-prompt.ts`) that interpolates the shared sections and fills in the
 character — the picker, switch and saved thread all derive from the record, so
 nothing else needs touching.
 
@@ -81,7 +81,7 @@ and variety knobs, and (for a companion with pictures) `send_picture`. When she
 calls one, the panel runs **the same transport and knobs the on-screen controls
 use** — there is one path, not a parallel one. The tool definitions, argument
 shapes, and which knob applies live versus regenerates are all commented in
-`companions-panel.tsx`. Whether she acts on a request or declines is a
+`companions-panel/index.tsx`. Whether she acts on a request or declines is a
 disposition written into her `systemPrompt`, not a code gate. Companions default
 to a **gentle baseline** — low intensity, light variety, a one-shot stroke-minus
 tease at session start — and she builds up from there.
@@ -110,19 +110,17 @@ picture survives a reload. A companion with no pictures never sees the tool, and
 the shared pictures prompt block is only interpolated into a persona that has
 some.
 
-Pictures are **bring-your-own** — they live only on your machine and never ship
-with the app. To give a companion pictures:
+Pictures are **bring-your-own** — they arrive via a [goonpack](../GOONPACKS.md),
+never bundled with the app. The built-in companions ship pictureless; give one
+pictures by importing an overlay pack for her.
 
-1. **Drop images into `public/companions/<id>/`** — `<id>` is her name in
-   lowercase (e.g. `public/companions/aimee/`).
-2. **Caption them: `npm run describe:missing`** writes a `.txt` caption next to
-   every image that doesn't have one, using a vision model over your
-   `OPENROUTER_API_KEY` (`npm run describe <path>` does a single image;
-   `DESCRIBE_MODEL` picks a different model). Captions are plain text files —
-   read them, and hand-fix any the model got wrong; the caption is exactly what
-   she chooses by.
-3. **Restart the app** (or run `npm run gen:pictures`) and she'll offer to send
-   them.
+## Goonpacks
+
+The Companions screen lists the built-ins alongside any packs you've imported. A
+companion's card carries pickers for her pack version and any overlay, so you
+choose exactly what plays; pack admin — importing, removing, seeing what each
+pack brings — lives on the Goonpacks tab. See [GOONPACKS.md](../GOONPACKS.md)
+for assembling and importing a pack.
 
 ## Configuration
 

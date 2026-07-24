@@ -6,6 +6,7 @@
 // PR links open on GitHub.
 
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import {
   parseChangelog,
   type ChangeTag,
@@ -47,53 +48,43 @@ function Inline({ segment }: { segment: InlineSegment }) {
 
 export function ChangelogPanel() {
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       {DAYS.map((day) => (
-        <Card key={day.date}>
-          {/* A larger heading than Card's own — the dates are the changelog's
-              top-level structure. */}
-          <h2 className="mb-4 text-2xl font-semibold">{day.date}</h2>
-          <ul className="flex flex-col gap-6">
-            {day.entries.map((entry, i) => (
-              <li key={i}>
-                {/* Pill + the few-word bold summary on the first line, the
-                    full description as muted paragraphs below. */}
-                {entry.summary !== null && (
-                  <p>
+        <Card key={day.date} title={day.date}>
+          {day.entries.map((entry, i) => (
+            /* One card per change: tag pill then summary as the title, the
+               description as the body. */
+            <Card
+              key={i}
+              className="mb-4"
+              title={
+                entry.summary !== null || entry.tag !== null ? (
+                  <>
                     {entry.tag !== null && (
+                      // text-base: the pill keeps its own size against the
+                      // title's larger type.
                       <span
-                        className={`mr-2 rounded-full px-3 py-1 font-semibold tracking-wide whitespace-nowrap text-white ${TAG_CLASS[entry.tag]}`}
+                        className={`text-foreground mr-2 rounded-full px-3 py-1 text-base font-semibold tracking-wide whitespace-nowrap ${TAG_CLASS[entry.tag]}`}
                       >
                         {entry.tag}
                       </span>
                     )}
-                    <span className="font-semibold">{entry.summary}</span>
-                  </p>
-                )}
-                {entry.paragraphs.map((paragraph, j) => (
-                  <p
-                    key={j}
-                    className={`text-muted-foreground ${j > 0 || entry.summary !== null ? "mt-2" : ""}`}
-                  >
-                    {j === 0 &&
-                      entry.summary === null &&
-                      entry.tag !== null && (
-                        <span
-                          className={`mr-2 rounded-full px-3 py-1 font-semibold tracking-wide whitespace-nowrap text-white ${TAG_CLASS[entry.tag]}`}
-                        >
-                          {entry.tag}
-                        </span>
-                      )}
-                    {paragraph.map((segment, k) => (
-                      <Inline key={k} segment={segment} />
-                    ))}
-                  </p>
-                ))}
-              </li>
-            ))}
-          </ul>
+                    {entry.summary}
+                  </>
+                ) : undefined
+              }
+            >
+              {entry.paragraphs.map((paragraph, j) => (
+                <p key={j}>
+                  {paragraph.map((segment, k) => (
+                    <Inline key={k} segment={segment} />
+                  ))}
+                </p>
+              ))}
+            </Card>
+          ))}
         </Card>
       ))}
-    </section>
+    </Panel>
   );
 }

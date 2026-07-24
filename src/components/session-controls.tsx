@@ -38,7 +38,7 @@ export function SessionControls({
         disabled={stopDisabled}
         title={stopDisabled ? stopDisabledTitle : undefined}
         className="w-full rounded-lg bg-red-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
-        badge="stop"
+        voiceCommand="stop"
       >
         Stop
       </Button>
@@ -51,7 +51,7 @@ export function SessionControls({
       disabled={!connected}
       title={!connected ? "Connect the device first" : undefined}
       className={`${showReset ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50`}
-      badge="start"
+      voiceCommand="start"
     >
       Start
     </Button>
@@ -65,7 +65,7 @@ export function SessionControls({
       <Button
         onClick={onReset}
         className="bg-secondary rounded-lg px-6 py-3.5 text-lg font-bold"
-        badge="reset"
+        voiceCommand="reset"
       >
         Reset
       </Button>

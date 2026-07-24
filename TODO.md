@@ -63,8 +63,7 @@ interrupted-turn commit rule (the user turn is committed immediately, the
 assistant turn only on generation-complete, which can leave a dangling user turn
 when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
-the system prompts. _(Elise's prompt has had one rewrite pass; the on-hardware
-feel tuning remains.)_
+the system prompts. _(The on-hardware feel tuning remains.)_
 
 ### Personas shape their programs
 
@@ -92,9 +91,9 @@ Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
 app** instead of the server's `.env` — entered once, stored client-side, never
 on the server. This is what makes a **hosted public build** viable: every user
 funds their own usage, so there's nothing for accounts or per-user rate limiting
-to protect, and it's a **prerequisite for [goonpacks](./roadmap/GOONPACKS.md)**
-(a portable pack's persona needs a voice and a model wherever the app is
-hosted).
+to protect. [Goonpacks](#goonpacks) are orthogonal — an imported pack runs on
+whatever keys the build has (locally the server's `.env`, on a hosted build the
+user's own), the same way companions do today.
 
 To settle: whether the browser calls providers directly or the proxy routes
 accept the user's key per-request, and what `.env` keys remain as a local-dev
@@ -113,3 +112,15 @@ wrong about DST); she only roleplays the two clocks.
 
 One rule ships with it: her clock colours the fiction, never gates it — she
 never refuses to play because it's 4am where she lives.
+
+## Goonpacks
+
+Goonpacks — importing a companion as a portable pack — has shipped; see
+[GOONPACKS.md](./GOONPACKS.md). One follow-up remains:
+
+- **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
+  account, so a pack's voice doesn't truly travel. The follow-up carries a voice
+  _prompt_ instead: the app submits it to ElevenLabs voice design, gets three
+  candidate voices back, and the user picks or iterates — a small in-app
+  recreation of that ElevenLabs UI. v1 ships `voiceId` and accepts the
+  limitation.

@@ -345,7 +345,7 @@ export function useKeywordSpotter(): KeywordSpotter {
 }
 
 // The set of words flashing right now, for controls that light up when their
-// voice word is recognised (the Button badge). Tolerates being called outside a
+// voice word is recognised (the voiceCommand chip). Tolerates being called outside a
 // provider (returns empty) so Button stays usable anywhere.
 const NO_FLASH: ReadonlySet<string> = new Set();
 export function useKeywordFlash(): ReadonlySet<string> {

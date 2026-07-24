@@ -1,7 +1,8 @@
 // Parses CHANGELOG.md's deliberately strict format (see CLAUDE.md) into data
 // the Changelog screen renders: `## YYYY-MM-DD` day headings, one
-// `- tag: text` line per change, and only `code` spans and [text](url) links
-// inline. Pure — no React, no environment.
+// `- tag: text` bullet per change (wrapped over indented continuation lines
+// freely, with blank lines between entries welcome), and only `code` spans
+// and [text](url) links inline. Pure — no React, no environment.
 
 export type ChangeTag = "feature" | "enhancement" | "bug" | "internal";
 
@@ -67,7 +68,11 @@ function splitParagraphs(segments: InlineSegment[]): InlineSegment[][] {
       push(segment);
       continue;
     }
-    segment.text.split(/(?<=[.!?])\s+(?=[A-Z])/).forEach((part, i) => {
+    // Split after a sentence ender followed by a capital — marker + lookahead
+    // rather than a lookbehind, which is a parse-time SyntaxError on older
+    // mobile Safari and would take the whole bundle down with it.
+    const marked = segment.text.replace(/([.!?])\s+(?=[A-Z])/g, "$1\u0000");
+    marked.split("\u0000").forEach((part, i) => {
       if (i > 0) paragraphs.push([]);
       if (part !== "") push({ kind: "text", text: part });
     });
@@ -96,19 +101,34 @@ function parseEntry(line: string): ChangelogEntry {
 
 export function parseChangelog(markdown: string): ChangelogDay[] {
   const days: ChangelogDay[] = [];
+  // The bullet text being accumulated — a wrapped entry spans its `- ` line
+  // plus any indented continuation lines, joined with spaces.
+  let open: string | null = null;
+  const flush = () => {
+    const day = days[days.length - 1];
+    if (open !== null && day !== undefined) day.entries.push(parseEntry(open));
+    open = null;
+  };
   for (const raw of markdown.split("\n")) {
     const line = raw.trimEnd();
     const heading = /^## (.+)$/.exec(line);
     if (heading !== null) {
+      flush();
       days.push({ date: heading[1]!, entries: [] });
       continue;
     }
     const bullet = /^- (.*)$/.exec(line);
-    const day = days[days.length - 1];
-    if (bullet !== null && day !== undefined) {
-      day.entries.push(parseEntry(bullet[1]!));
+    if (bullet !== null) {
+      flush();
+      open = bullet[1]!;
+      continue;
+    }
+    if (open !== null && /^\s+\S/.test(line)) {
+      open += ` ${line.trim()}`;
+      continue;
     }
     // Anything else (the H1, blank lines) is structure, not content.
   }
+  flush();
   return days;
 }

@@ -21,6 +21,12 @@ keys: copy [`.env.example`](./.env.example) to `.env` and fill it in. On the dev
 server Companions then unlocks with no access ID (the gate applies to
 builds/deploys only).
 
+The dev server binds `0.0.0.0`, so a phone on your network can load it — but
+Next blocks its own cross-origin dev assets by default, which looks like a
+broken app (the page renders, nothing is clickable). Set `DEV_ALLOWED_ORIGINS`
+in `.env` (documented in [`.env.example`](./.env.example)) and restart the dev
+server to fix it.
+
 Other scripts:
 
 - `npm run build` — production build (also runs `tsc`, so it catches RSC/Next
@@ -31,10 +37,6 @@ Other scripts:
   markdown (root, `docs/`, `roadmap/`, `modes/`).
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
-
-The app scripts (`dev`, `build`, `typecheck`, `lint`, `test`) each first
-regenerate the companion-pictures module via a `gen:pictures` pre-hook (see
-`package.json`) — purely local, no keys needed.
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
@@ -53,7 +55,7 @@ offline.
   & pull request" prompt GitHub shows after you push.
 - **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change —
   user-facing ones described by what the app does, internal ones (refactors,
-  etc.) by what changed. One line per change, newest first, grouped by date,
+  etc.) by what changed. One entry per change, newest first, grouped by date,
   tagged `feature` / `enhancement` / `bug` / `internal` (in that order within a
   day), linking the PR.
 - **Before it's reviewed** — `npm run typecheck`, `lint`, and `format` must all
@@ -75,9 +77,15 @@ content, host or index goonpacks, or recommend where content can be acquired.
 Users bring their own files; everything stays on their own machine, and the app
 stays dumb about where it came from.
 
+The issue is the content — imagery — not the pack format itself: the repo
+carries one deliberately pictureless example pack
+([`goonpacks/elise/`](./goonpacks/elise/), the worked example in
+[GOONPACKS.md](./GOONPACKS.md)), and that is the only pack it will ever carry.
+
 Contributions must keep it that way. Don't submit features that:
 
-- bundle, host, or download content or goonpacks;
+- bundle, host, or download content (the pictureless example pack above is the
+  one exception, and it stays pictureless);
 - index, list, or link to packs or content sources (no "browse packs", curated
   lists, or in-app galleries of third-party content);
 - point users at places to acquire content — in the app or its docs.
@@ -114,6 +122,17 @@ Fixtures are committed under `tests/fixtures/`; regenerate them with
 The first time the suite runs a given browser, macOS asks whether to allow it to
 use the microphone — approve it once per browser and it won't ask again. (The
 tests never use the real mic, but the browsers still request the permission.)
+
+## Goonpack sources
+
+`goonpacks/` (gitignored — it's where your own content lives, per the
+[content policy](#content-policy) — except the committed example pack `elise/`)
+holds one source directory per pack you're assembling, plus the `.zip` files
+`goonpack:build` produces from them. The authoring workflow (directory layout,
+manifest fields, the two pack kinds) is user-facing and lives in
+[GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*` npm scripts that operate
+on it (`describe`, `describe-missing`, `build`) are commented at their
+definitions in `scripts/`.
 
 ## Adding a play mode
 
@@ -222,16 +241,14 @@ the entry, so there is nothing else to wire up. The fields are commented on the
    `{{TOY_STATUS}}` markers), write her in the **second person**, and keep only
    what is _her_ in the module: character, setup, tone, and disposition —
    crucially, **who leads** during play, which the shared blocks are neutral on.
-2. **Register her** — widen the `CompanionId` union and add the `COMPANIONS`
-   entry (model, context window, voice, prompt). Pick an ElevenLabs `voiceId`
-   (not a secret) and a model that suits the persona — explicit-content
-   suitability and reliable tool-calling are properties of the model, so test
-   hers before settling.
-3. **Pictures (optional)** — drop images in `public/companions/<id>/` and
-   caption them; the user-facing steps are in
-   [modes/COMPANIONS.md](./modes/COMPANIONS.md#pictures). A companion without
-   pictures simply never offers them.
-4. **Test** — the registry test already enforces id = record key for every
-   entry; add a config `describe` block for her alongside Elise's and Aimee's
+2. **Register her** — add the `COMPANIONS` entry (id, model, context window,
+   voice, prompt). Give her an `autogoon.<name>` id, matching the stock
+   companions. Pick an ElevenLabs `voiceId` (not a secret) and a model that
+   suits the persona — explicit-content suitability and reliable tool-calling
+   are properties of the model, so test hers before settling. She ships
+   **pictureless**, like the other built-ins — pictures reach her via an
+   [overlay goonpack](./GOONPACKS.md), not the repo.
+3. **Test** — the registry test already enforces id = record key for every
+   entry; add a config `describe` block for her alongside Aimee's and Miley's
    (`src/lib/companions/companions.test.ts`).
-5. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).
+4. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).

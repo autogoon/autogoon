@@ -82,6 +82,26 @@ describe("parseChangelog", () => {
     ]);
   });
 
+  it("joins a wrapped entry's continuation lines", () => {
+    const days = parseChangelog(
+      "## 2026-01-01\n\n- feature: **Long one** — starts here\n  and wraps here.\n- bug: Next entry.\n",
+    );
+    expect(days[0]!.entries).toHaveLength(2);
+    expect(days[0]!.entries[0]!.paragraphs).toEqual([
+      [{ kind: "text", text: "starts here and wraps here." }],
+    ]);
+  });
+
+  it("allows blank lines between entries", () => {
+    const days = parseChangelog(
+      "## 2026-01-01\n\n- feature: One thing\n  wrapped.\n\n- bug: Another.\n",
+    );
+    expect(days[0]!.entries.map((e) => e.tag)).toEqual(["feature", "bug"]);
+    expect(days[0]!.entries[0]!.paragraphs).toEqual([
+      [{ kind: "text", text: "One thing wrapped." }],
+    ]);
+  });
+
   it("parses the empty string to no days", () => {
     expect(parseChangelog("")).toEqual([]);
   });

@@ -13,7 +13,7 @@
 export const CONTROL_BORDER = "border-foreground/30";
 
 export const CONTROL_BUTTON_BASE =
-  "rounded-lg border bg-secondary/70 px-3 py-2 text-sm disabled:opacity-50";
+  "rounded-lg border bg-secondary/70 px-3 py-2 text-sm enabled:hover:bg-secondary disabled:opacity-50";
 
 export const CONTROL_BUTTON = `${CONTROL_BUTTON_BASE} ${CONTROL_BORDER}`;
 

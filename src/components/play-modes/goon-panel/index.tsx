@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { CummingButton } from "@/components/cumming-button";
 import { FinishButton } from "@/components/finish-button";
 import { LogCard } from "@/components/log-card";
@@ -331,7 +332,7 @@ export function GoonPanel({
 
   if (!inPlay) {
     return (
-      <section className="flex w-full flex-col gap-8">
+      <Panel>
         <SessionLengthCard
           minutes={sessionMinutes}
           onChange={setSessionMinutes}
@@ -352,7 +353,7 @@ export function GoonPanel({
           disabled={!canPlay}
           title={playTitle}
           className="w-full rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50"
-          badge="play"
+          voiceCommand="play"
         >
           Play
         </Button>
@@ -362,7 +363,7 @@ export function GoonPanel({
           header={<RateLimitMeter {...vacuglide.rateLimit} />}
           entries={vacuglide.logEntries}
         />
-      </section>
+      </Panel>
     );
   }
 
@@ -376,7 +377,7 @@ export function GoonPanel({
     "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-50";
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <SessionControls
         state={state}
         connected={connected}
@@ -451,7 +452,7 @@ export function GoonPanel({
             onClick={back}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="back"
+            voiceCommand="back"
           >
             − 1 min
           </Button>
@@ -459,7 +460,7 @@ export function GoonPanel({
             onClick={forward}
             disabled={!canForward || unstoppable}
             className={jumpClass}
-            badge="forward"
+            voiceCommand="forward"
           >
             + 1 min
           </Button>
@@ -469,7 +470,7 @@ export function GoonPanel({
             onClick={() => device.slower()}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="slower"
+            voiceCommand="slower"
           >
             Slower
           </Button>
@@ -477,7 +478,7 @@ export function GoonPanel({
             onClick={() => device.faster()}
             disabled={!isCurrent || unstoppable}
             className={jumpClass}
-            badge="faster"
+            voiceCommand="faster"
           >
             Faster
           </Button>
@@ -489,6 +490,6 @@ export function GoonPanel({
         header={<RateLimitMeter {...vacuglide.rateLimit} />}
         entries={vacuglide.logEntries}
       />
-    </section>
+    </Panel>
   );
 }

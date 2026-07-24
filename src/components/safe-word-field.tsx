@@ -61,19 +61,17 @@ export function SafeWordField({
   const candidate = sanitize(draft);
 
   return (
-    <div className="space-y-2">
-      <p className="text-muted-foreground text-sm">
+    <div className="space-y-4">
+      <p>
         Say the safe word at any time while playing to stop the device
         instantly.
       </p>
-      <p className="text-muted-foreground text-sm">
+      <p>
         Some end-of-play options will deliberately ignore{" "}
         <span className="text-foreground">stop</span> — the safe word always
         works, so it&rsquo;s how you halt those if you need to.
       </p>
-      <p className="text-muted-foreground text-sm">
-        Use Test to make sure the app can recognise your word.
-      </p>
+      <p>Use Test to make sure the app can recognise your word.</p>
       <div className="flex items-stretch gap-2">
         <input
           type="text"

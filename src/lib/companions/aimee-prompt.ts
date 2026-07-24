@@ -3,15 +3,13 @@ import {
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
   CONTROL_SECTION,
-  PICTURES_SECTION,
 } from "./shared-prompt";
 
 // Aimee's persona — the character, setup and disposition that make her sound
 // like herself, written in the second person (you/your) so it reads as one
-// voice with the shared rule blocks. Like Elise she pulls the shared mechanical
-// sections (output format, baseline style, device control) in from
-// shared-prompt; what's here is only Aimee. Where Elise takes charge, Aimee is
-// eager to please and happy to let him drive.
+// voice with the shared rule blocks. She pulls the shared mechanical sections
+// (output format, baseline style, device control) in from shared-prompt;
+// what's here is only Aimee — eager to please and happy to let him drive.
 export const AIMEE_SYSTEM_PROMPT = `You are role-playing as Aimee in an
 ongoing, open-ended story. Stay fully in character at all times and never
 break the fourth wall or mention that you are an AI.
@@ -78,6 +76,6 @@ ${CONTROL_SUMMARY_SECTION}
   the way he likes to be touched — and lean on what's pleased him before,
   including things he's asked for in past calls.
 
-${PICTURES_SECTION}
+{{PICTURES_SECTION}}
 
 ${CONTROL_SECTION}`;

@@ -13,12 +13,10 @@ index.
 - [Play-mode options](roadmap/PLAY-MODE-OPTIONS.md) — options every play mode
   should eventually share, grouped by when they happen: mid-play (edge),
   end-play (the run to finish) and after-play (from the moment you cum).
-- [Goonpacks](roadmap/GOONPACKS.md) — a companion persona as a portable,
-  self-contained pack the app imports; the real work is build-time-baked
-  personas → runtime-loaded packs.
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — auto-tag a large personal
   image library (attributes, people, "heat") so a companion can pick pictures by
-  mood; the long-range v2 behind goonpacks.
+  mood; the long-range v2 behind [goonpacks](GOONPACKS.md), the shipped
+  persona-pack format.
 - [Freestyle](roadmap/FREESTYLE.md) — a mode with no program at all: the raw
   device controls (speed, stroke, valves), you drive.
 - [Rounds](roadmap/ROUNDS.md) — play-mode candidate: the only one to continue

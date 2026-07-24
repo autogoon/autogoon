@@ -13,18 +13,21 @@
 // names, a play mode screen's word is `exit` (back up), and exit is locked
 // while a session runs, so the grammar always matches the visible screen and
 // the illegal mid-session switch simply cannot be said or tapped. The
-// exception is the top-level tab strip (Home / Changes / Settings): those
-// three screens are siblings, so each other's tab words are live there —
-// sideways moves between tabs are exactly what the visible tabs offer.
+// exception is the top-level tab strip (Home / Goonpacks / Changes /
+// Settings): those screens are siblings, so each other's tab words are live
+// there — sideways moves between tabs are exactly what the visible tabs
+// offer.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/button";
+import { TabButton } from "@/components/tab-button";
 import { AutopilotPanel } from "@/components/play-modes/autopilot-panel";
 import { CompanionsPanel } from "@/components/play-modes/companions-panel";
 import { GroovePanel } from "@/components/play-modes/groove-panel";
 import { GoonPanel } from "@/components/play-modes/goon-panel";
 import { HeaderBar } from "@/components/header-bar";
+import { GoonpacksPanel } from "@/components/goonpacks-panel";
 import { HomePanel } from "@/components/home-panel";
 import { ChangelogPanel } from "@/components/changelog-panel";
 import { SettingsPanel } from "@/components/settings-panel";
@@ -46,8 +49,8 @@ import {
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
 // Each entry wears its play mode's signature bright colour twice: the icon
-// (iconClass) and the row's accent — a diagonal tint of the same colour with a
-// matching border.
+// (iconClass) and the row's accent — the colour name Card turns into the
+// tinted border/gradient shell.
 // On the dev server Companions is always available (the paid routes are open —
 // see access-check.ts); the access gate applies to builds/deploys.
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -62,8 +65,7 @@ const PLAY_MODES = [
       "New: choose what cumming brings — wind-down, torture or a ruin (stay in, or eject), drawn at random from the outcomes you tick.",
     icon: TrendingUp,
     iconClass: "text-fuchsia-500",
-    accent:
-      "border-fuchsia-500 bg-linear-to-br from-fuchsia-500/15 to-fuchsia-500/5 hover:from-fuchsia-500/25 hover:to-fuchsia-500/10",
+    accent: "fuchsia",
   },
   {
     id: "groove",
@@ -72,8 +74,7 @@ const PLAY_MODES = [
       "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
     icon: AudioWaveform,
     iconClass: "text-cyan-500",
-    accent:
-      "border-cyan-500 bg-linear-to-br from-cyan-500/15 to-cyan-500/5 hover:from-cyan-500/25 hover:to-cyan-500/10",
+    accent: "cyan",
   },
   {
     id: "autopilot",
@@ -81,8 +82,7 @@ const PLAY_MODES = [
     description: "A faithful recreation of the Vacuglide's own autopilot.",
     icon: Bot,
     iconClass: "text-orange-500",
-    accent:
-      "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
+    accent: "orange",
   },
   {
     id: "companions",
@@ -91,8 +91,7 @@ const PLAY_MODES = [
       "Pick a companion and talk — she listens, replies in her own voice, and you can cut in any time.",
     icon: MessagesSquare,
     iconClass: "text-emerald-500",
-    accent:
-      "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 hover:from-emerald-500/25 hover:to-emerald-500/10",
+    accent: "emerald",
   },
 ] as const;
 
@@ -101,13 +100,20 @@ type PlayModeId = (typeof PLAY_MODES)[number]["id"];
 // below (`#goon/play`) — for play modes that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
 type Screen =
-  "home" | "settings" | "changes" | PlayModeId | `${PlayModeId}/play`;
+  | "home"
+  | "goonpacks"
+  | "settings"
+  | "changes"
+  | PlayModeId
+  | `${PlayModeId}/play`;
 
-// The three sibling tabs at the top level — see the tab strip below. Their ids
-// double as their voice words, live on whichever of the three you're on.
-type TabId = "home" | "settings" | "changes";
+// The sibling tabs at the top level — see the tab strip below. Their ids
+// double as their voice words, live on whichever tab you're on — except
+// Goonpacks, whose spoken word is `packs` ("goonpacks" isn't in vosk's
+// lexicon, so the compound would never be spotted).
+type TabId = "home" | "goonpacks" | "settings" | "changes";
 const isTabId = (id: string): id is TabId =>
-  id === "home" || id === "settings" || id === "changes";
+  id === "home" || id === "goonpacks" || id === "settings" || id === "changes";
 
 const isPlayModeId = (id: string): id is PlayModeId =>
   PLAY_MODES.some((a) => a.id === id);
@@ -119,7 +125,9 @@ const hashScreen = (): Screen => {
   if (base !== undefined && isPlayModeId(base)) {
     return sub === "play" ? `${base}/play` : base;
   }
-  return base === "settings" || base === "changes" ? base : "home";
+  return base === "goonpacks" || base === "settings" || base === "changes"
+    ? base
+    : "home";
 };
 
 // One level up: play -> its play mode's setup, everything else -> home.
@@ -138,6 +146,7 @@ const SAFE_WORD_RESERVED = [
   "stop",
   "reset",
   "changes",
+  "packs", // the Goonpacks tab's spoken word
   ...PLAY_MODES.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
@@ -175,6 +184,9 @@ function App() {
         : PLAY_MODES.filter((a) => a.id !== "companions"),
     [access.granted],
   );
+  // The Goonpacks tab manages companion packs, so it shows (and its word is
+  // live) exactly when Companions itself is available.
+  const goonpacksShown = access.granted || IS_DEV;
 
   // A session is in progress whenever the Player is not idle. You can only
   // start one from its play mode's screen and you can't leave while it runs
@@ -214,18 +226,21 @@ function App() {
     if (isTabId(screen)) {
       if (screen === "home") words.push(...availablePlayModes.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
-      // of the grammar; so is the tab that would go nowhere).
+      // of the grammar; so is the tab that would go nowhere). Goonpacks
+      // speaks as `packs`, and only while its tab shows.
       words.push(
         ...(["home", "changes", "settings"] as const).filter(
           (t) => t !== screen,
         ),
       );
+      if (goonpacksShown && screen !== "goonpacks") words.push("packs");
     } else if (!running) {
       words.push("exit");
     }
     setGlobalWords(words);
   }, [
     connected,
+    goonpacksShown,
     running,
     playing,
     safeWord,
@@ -282,7 +297,7 @@ function App() {
       access.checked &&
       !access.granted &&
       !IS_DEV &&
-      screen.split("/")[0] === "companions"
+      (screen.split("/")[0] === "companions" || screen === "goonpacks")
     ) {
       navigate("home");
     }
@@ -326,7 +341,12 @@ function App() {
         navigate(word);
         return;
       }
-      // A tab's word, heard on a sibling tab, is a sideways move.
+      // A tab's word, heard on a sibling tab, is a sideways move. Goonpacks
+      // answers to `packs` (see TabId's comment).
+      if (word === "packs" && isTabId(screenRef.current)) {
+        navigate("goonpacks");
+        return;
+      }
       if (isTabId(word) && isTabId(screenRef.current)) {
         navigate(word);
       }
@@ -341,7 +361,7 @@ function App() {
   const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith("/play");
   const crumbLink =
-    "text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
+    "rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
 
   return (
     <>
@@ -354,25 +374,22 @@ function App() {
                 // `align: "right"` marks where the right-hand cluster starts
                 // (ml-auto); the tabs after it just follow.
                 { id: "home", label: "Home", align: "left" },
+                { id: "goonpacks", label: "Goonpacks", align: "left" },
                 { id: "changes", label: "Changes", align: "right" },
                 { id: "settings", label: "Settings", align: "left" },
               ] as const
-            ).map((t) => (
-              <Button
-                key={t.id}
-                flash={false}
-                onClick={() => navigate(t.id)}
-                className={`-mb-px border-b-2 py-3 text-sm font-medium ${
-                  t.align === "right" ? "ml-auto" : ""
-                } ${
-                  screen === t.id
-                    ? "border-foreground text-foreground"
-                    : "text-muted-foreground hover:text-foreground border-transparent"
-                }`}
-              >
-                {t.label}
-              </Button>
-            ))}
+            )
+              .filter((t) => t.id !== "goonpacks" || goonpacksShown)
+              .map((t) => (
+                <TabButton
+                  key={t.id}
+                  active={screen === t.id}
+                  onClick={() => navigate(t.id)}
+                  className={t.align === "right" ? "ml-auto" : undefined}
+                >
+                  {t.label}
+                </TabButton>
+              ))}
           </nav>
         )}
         {currentPlayMode !== null && (
@@ -412,6 +429,9 @@ function App() {
           </nav>
         )}
         <main className="py-6">
+          <div className={screen === "goonpacks" ? undefined : "hidden"}>
+            <GoonpacksPanel />
+          </div>
           <div className={screen === "home" ? undefined : "hidden"}>
             <HomePanel
               vacuglide={vacuglide}

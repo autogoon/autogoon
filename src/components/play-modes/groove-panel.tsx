@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/card";
+import { Panel } from "@/components/panel";
 import { CummingButton } from "@/components/cumming-button";
 import { LogCard } from "@/components/log-card";
 import { RateLimitMeter } from "@/components/rate-limit-meter";
@@ -189,7 +190,7 @@ export function GroovePanel({
   );
 
   return (
-    <section className="flex w-full flex-col gap-8">
+    <Panel>
       <SessionControls
         state={state}
         connected={connected}
@@ -256,10 +257,10 @@ export function GroovePanel({
       <Card title="Timing variability">
         <Segmented
           options={[
-            { value: "off", label: "Off", badge: "off" },
-            { value: "low", label: "Low", badge: "low" },
-            { value: "medium", label: "Medium", badge: "medium" },
-            { value: "high", label: "High", badge: "high" },
+            { value: "off", label: "Off", voiceCommand: "off" },
+            { value: "low", label: "Low", voiceCommand: "low" },
+            { value: "medium", label: "Medium", voiceCommand: "medium" },
+            { value: "high", label: "High", voiceCommand: "high" },
           ]}
           value={variability}
           onChange={changeVariability}
@@ -272,6 +273,6 @@ export function GroovePanel({
         header={<RateLimitMeter {...vacuglide.rateLimit} />}
         entries={vacuglide.logEntries}
       />
-    </section>
+    </Panel>
   );
 }

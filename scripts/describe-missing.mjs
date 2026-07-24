@@ -1,16 +1,17 @@
-// Describe every companion image that doesn't have a description yet.
+// Describe every goonpack image that doesn't have a description yet.
 //
-//   npm run describe:missing
+//   npm run goonpack:describe-missing
 //
-// Scans public/companions/<id>/ for images whose sidecar <basename>.txt is
+// Scans goonpacks/<dir>/pictures/ for images whose sidecar <basename>.txt is
 // missing or empty, and captions each one (writing the .txt) via the same
-// describeImage() the single-image `npm run describe` uses. Images that already
-// have a description are left untouched, so it's safe to re-run after dropping
-// in more. Reads OPENROUTER_API_KEY / LLM_URL from the environment (the npm
-// script loads .env via --env-file-if-exists), and honours DESCRIBE_MODEL the
-// same as `npm run describe`, so you can pick the model for a bulk run:
+// describeImage() the single-image `npm run goonpack:describe` uses. Images
+// that already have a description are left untouched, so it's safe to re-run
+// after dropping in more. Reads OPENROUTER_API_KEY / LLM_URL from the
+// environment (the npm script loads .env via --env-file-if-exists), and
+// honours DESCRIBE_MODEL the same as `npm run goonpack:describe`, so you can
+// pick the model for a bulk run:
 //
-//   DESCRIBE_MODEL=google/gemini-2.5-flash npm run describe:missing
+//   DESCRIBE_MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
 import process from "node:process";
 import { readdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -21,15 +22,16 @@ import { describeImage, sidecarPath } from "./describe-image.mjs";
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const companionsDir = join(root, "public", "companions");
+const goonpacksDir = join(root, "goonpacks");
 
-// Every companion image with no (non-empty) sidecar description yet, sorted.
+// Every goonpack image with no (non-empty) sidecar description yet, sorted.
 function missingImages() {
   const out = [];
-  if (!existsSync(companionsDir)) return out;
-  for (const entry of readdirSync(companionsDir, { withFileTypes: true })) {
+  if (!existsSync(goonpacksDir)) return out;
+  for (const entry of readdirSync(goonpacksDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const dir = join(companionsDir, entry.name);
+    const dir = join(goonpacksDir, entry.name, "pictures");
+    if (!existsSync(dir)) continue;
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
@@ -44,7 +46,7 @@ function missingImages() {
 
 const images = missingImages();
 if (images.length === 0) {
-  console.log("All companion images already have descriptions.");
+  console.log("All goonpack images already have descriptions.");
   process.exit(0);
 }
 
