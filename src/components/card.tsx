@@ -42,6 +42,7 @@ export function Card({
   button = false,
   voiceCommand,
   onClick,
+  fill = false,
   className,
   bordered = false,
   children,
@@ -58,6 +59,11 @@ export function Card({
   button?: boolean;
   voiceCommand?: string;
   onClick?: () => void;
+  // The card is a stretching flex column — shell, interior and body all
+  // become min-h-0 flex columns, so a child can flex-1 and own scrolling
+  // (the Conversation card). Not for cards with an icon, chevron or corner
+  // controls, whose float layout a flex interior would break.
+  fill?: boolean;
   className?: string;
   bordered?: boolean;
   children: ReactNode;
@@ -81,6 +87,7 @@ export function Card({
         ? `hover:from-${accent}-500/25 hover:to-${accent}-500/10`
         : "",
       clickable ? `cursor-pointer ${ACTIVE_RING}` : "",
+      fill ? "flex min-h-0 flex-1 flex-col" : "",
       button ? "text-left" : "",
       className ?? "",
       // The voice flash merges last so a custom look never disables it.
@@ -105,14 +112,22 @@ export function Card({
   );
 
   const core = (
-    <span className="flow-root">
+    <span className={fill ? "flex min-h-0 flex-1 flex-col" : "flow-root"}>
       {corner}
       {title !== undefined && (
         <span className="text-foreground mb-1 block text-xl font-semibold">
           {title}
         </span>
       )}
-      <span className="text-muted-foreground block space-y-2">{children}</span>
+      <span
+        className={
+          fill
+            ? "text-muted-foreground flex min-h-0 flex-1 flex-col space-y-2"
+            : "text-muted-foreground block space-y-2"
+        }
+      >
+        {children}
+      </span>
     </span>
   );
 

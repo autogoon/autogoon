@@ -771,10 +771,7 @@ export function CompanionsPanel({
                 </div>
               </Card>
 
-              <Card
-                title="Conversation"
-                className="flex min-h-0 flex-1 flex-col"
-              >
+              <Card title="Conversation" fill>
                 {/* Scrolling transcript — fills the space; newest at the bottom
                     (auto-scrolled via messagesRef). */}
                 <div
