@@ -2,7 +2,7 @@
 
 A goonpack is one companion in a zip: her pictures, voice, persona and config.
 The app imports packs — it never ships, hosts, or points at them (see the
-content policy in DEVELOPERS.md).
+[content policy](./DEVELOPERS.md#content-policy)).
 
 ## Assembling a pack
 
