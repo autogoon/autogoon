@@ -202,3 +202,33 @@ orchestrated by `src/hooks/use-voice-session.ts` over `src/lib/voice/`,
 `src/app/api/` gated by the Companions access ID — fail-closed in
 builds/deploys, open on the dev server. The design and rationale live in
 [modes/COMPANIONS.md](./modes/COMPANIONS.md).
+
+## Goonpacks
+
+Companions arrive as [goonpacks](./GOONPACKS.md) — one companion per zip. The
+shape worth knowing:
+
+- **One import pipeline, run at every load.** The zip bytes are the source of
+  truth, stored per `id@version` in IndexedDB (`src/lib/goonpacks/store.ts` —
+  bytes, not Blobs; some WebKit builds reject Blob puts). Every app load re-runs
+  the same `parsePack` the importer and `goonpack:build` use over every stored
+  zip, so "installed" is re-derived against the current rules, never trusted
+  from a cached index — a pack that fails lists as incompatible with its
+  reasons, and comes back when the cause is fixed.
+- **A pure lib under a stateful hook.** `src/lib/goonpacks/` (manifest
+  parsing/validation, zip parsing, shared-prompt fill, pack→`Companion`
+  resolution, chooser entries) is React-free and unit-tested.
+  `src/hooks/use-goonpack-library.ts` owns everything stateful: the reindex, the
+  cross-pack rules a zip can't know about itself (its base being installed, a
+  built-in's id being squatted), and the object-URL lifecycle for pack pictures.
+- **The id means the same companion.** Storage keys carry the version so
+  versions install side by side, but a resolved companion keeps the unversioned
+  pack id — conversation threads belong to that id, so they survive version
+  switches, and an overlay reads and writes its **base's** thread. Sent pictures
+  persist as stable `goonpack:` refs resolved against whatever's loaded, never
+  copied.
+- **Two surfaces.** Pack admin (import, per-version rows, remove) is the
+  Goonpacks tab (`src/components/goonpacks-panel.tsx`); choosing what plays is
+  the Companions chooser, whose base/overlay pickers feed `resolveVariant` —
+  producing the one fully-resolved `Companion` object the voice session
+  consumes.
