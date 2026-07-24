@@ -43,21 +43,21 @@
 //     Qwen3-VL 30B A3B         qwen/qwen3-vl-30b-a3b-instruct
 //     Qwen3-VL 8B              qwen/qwen3-vl-8b-instruct
 
-import process from "node:process";
-import { readFileSync, writeFileSync, rmSync } from "node:fs";
-import { basename, extname, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import process from 'node:process';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { basename, extname, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 const MIME = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".avif": "image/avif",
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.avif': 'image/avif',
 };
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
@@ -73,21 +73,21 @@ function resizedJpeg(imagePath) {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
     execFileSync(
-      "sips",
+      'sips',
       [
-        "-Z",
+        '-Z',
         String(MAX_EDGE),
-        "-s",
-        "format",
-        "jpeg",
-        "-s",
-        "formatOptions",
+        '-s',
+        'format',
+        'jpeg',
+        '-s',
+        'formatOptions',
         String(JPEG_QUALITY),
         imagePath,
-        "--out",
+        '--out',
         tmp,
       ],
-      { stdio: "ignore" },
+      { stdio: 'ignore' },
     );
     return readFileSync(tmp);
   } catch (e) {
@@ -131,7 +131,7 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
 - Clothing: each garment, its specific colour, and how it is arranged — pushed up,
   pulled aside, half off, straps down, unfastened.
 - Exposed: which parts are bare and how much is actually visible — back, breasts,
-  nipples (or nipples showing through fabric), stomach, thighs, buttocks, pubic hair,
+  nipples (or nipples showing through fabric), stomach, thighs, buttocks,
   genitals. Grade each one "fully", "partly", "faintly" (made out through fabric or
   in shadow) or "not at all". Never write "not clearly" or similar — if you can make
   it out at all, however faintly, that is "faintly", not "not at all".
@@ -166,10 +166,8 @@ CAPTION: <the single caption sentence>`;
 // Output colours, shared with describe-missing.mjs: green names the image,
 // yellow the caption it ended up with, and the observations in between are left
 // plain. Colour only on a TTY, so piped output stays clean.
-export const green = (s) =>
-  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
-export const yellow = (s) =>
-  process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
+export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
+export const yellow = (s) => (process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s);
 
 // The sidecar description path for an image: <basename>.txt beside it.
 export function sidecarPath(imagePath) {
@@ -186,31 +184,30 @@ export function sidecarPath(imagePath) {
 // error, empty or unusable reply) so callers can decide how to report it.
 export async function describeImage(imagePath) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (apiKey === undefined || apiKey === "") {
-    throw new Error("OPENROUTER_API_KEY is not set — put it in .env.");
+  if (apiKey === undefined || apiKey === '') {
+    throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
   }
-  const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
+  const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
   // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
   // MODEL to try another (see the list at the top of this file).
-  const model =
-    process.env.MODEL ?? "qwen/qwen3-vl-235b-a22b-instruct";
+  const model = process.env.MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
 
   const ext = extname(imagePath).toLowerCase();
   if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || "(none)"}`);
+    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
   }
   // Always send a downscaled JPEG, whatever the source format.
   const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
-    "base64",
+    'base64',
   )}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "http://localhost:8931",
-      "X-Title": "autogoon describe-image",
+      'HTTP-Referer': 'http://localhost:8931',
+      'X-Title': 'autogoon describe-image',
     },
     body: JSON.stringify({
       model,
@@ -219,10 +216,10 @@ export async function describeImage(imagePath) {
       temperature: 0,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: PROMPT },
-            { type: "image_url", image_url: { url: dataUri } },
+            { type: 'text', text: PROMPT },
+            { type: 'image_url', image_url: { url: dataUri } },
           ],
         },
       ],
@@ -237,7 +234,7 @@ export async function describeImage(imagePath) {
 
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== "string" || raw.trim() === "") {
+  if (typeof raw !== 'string' || raw.trim() === '') {
     throw new Error(
       `No caption was returned:\n${JSON.stringify(data, null, 2)}`,
     );
@@ -256,22 +253,22 @@ export async function describeImage(imagePath) {
     caption = last[1];
     observations = reply
       .slice(0, last.index)
-      .replace(/^\s*OBSERVATIONS:[ \t]*/i, "")
+      .replace(/^\s*OBSERVATIONS:[ \t]*/i, '')
       .trim();
   } else {
-    const lines = reply.split("\n").map((l) => l.trim());
-    const nonEmpty = lines.filter((l) => l !== "");
+    const lines = reply.split('\n').map((l) => l.trim());
+    const nonEmpty = lines.filter((l) => l !== '');
     caption = nonEmpty[nonEmpty.length - 1];
-    observations = nonEmpty.slice(0, -1).join("\n");
+    observations = nonEmpty.slice(0, -1).join('\n');
   }
 
   // Collapse to one line and strip any wrapping quotes the model may add.
   caption = caption
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, ' ')
     .trim()
-    .replace(/^["']|["']$/g, "")
+    .replace(/^["']|["']$/g, '')
     .trim();
-  if (caption === "") {
+  if (caption === '') {
     throw new Error(`No caption could be read from the reply:\n${reply}`);
   }
 
@@ -284,15 +281,15 @@ export async function describeImage(imagePath) {
 // the caption — that's how you tell a better prompt from a luckier one.
 async function main() {
   const imagePath = process.argv[2];
-  if (imagePath === undefined || imagePath === "") {
-    console.error("Usage: npm run goonpack:describe <path-to-image>");
+  if (imagePath === undefined || imagePath === '') {
+    console.error('Usage: npm run goonpack:describe <path-to-image>');
     process.exit(1);
   }
   try {
     const { caption, observations } = await describeImage(imagePath);
     writeFileSync(sidecarPath(imagePath), `${caption}\n`);
     console.log(green(basename(imagePath)));
-    if (observations !== "") console.log(`${observations}\n`);
+    if (observations !== '') console.log(`${observations}\n`);
     console.log(yellow(caption));
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
