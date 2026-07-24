@@ -80,6 +80,12 @@ export function parseManifest(raw: unknown): PackManifest {
     if (typeof m.base !== "string" || !PACK_ID_RE.test(m.base)) {
       throw new PackError("base must be a companion id (publisher.name)");
     }
+    // Structurally nonsensical, and it slips the library's install-state
+    // checks (the "base" it finds is the pack it's replacing): committing it
+    // would strand an overlay-of-itself no card or chip ever lists.
+    if (m.base === m.id) {
+      throw new PackError("a pack can't overlay itself");
+    }
   }
   if (m.gender !== undefined && !GENDERS.has(m.gender as string)) {
     throw new PackError("unknown gender");

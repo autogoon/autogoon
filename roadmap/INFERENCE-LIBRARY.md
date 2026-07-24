@@ -4,9 +4,9 @@ How to auto-tag an image library so a companion/goon feature can pick pictures
 by person and by "how sexy" — running locally where the hardware justifies it,
 cloud where it doesn't. Also covers the **v2 library system** built on this
 pipeline (mood retrieval, storage, two-tier architecture). Companion to
-[goonpacks](../TODO.md#goonpacks) (the current, simpler persona-pack format, now
-defined work in the TODO). All of this operates on the **user's own images, on
-their own machine** — see the [content policy](../DEVELOPERS.md#content-policy).
+[goonpacks](../GOONPACKS.md) (the shipped, simpler persona-pack format). All of
+this operates on the **user's own images, on their own machine** — see the
+[content policy](../DEVELOPERS.md#content-policy).
 
 ## Two distinct jobs — don't conflate them
 
@@ -231,10 +231,10 @@ This is the eventual _shippable_ shape of the whole inference project, **not** a
 near-term format. Everything above — the tagging, embeddings, person-ID, dedup,
 sampling, and review — is the substantial body of work that has to happen first;
 the "supergoonpack" is only where it eventually lands. Where a
-[goonpack](../TODO.md#goonpacks) is a small curated zip you could ship today,
-this is the big inference-powered library: tens of thousands of images, tagged
-by the pipeline above, picked by _mood_. (No settled name yet — "supergoonpack"
-is the placeholder.)
+[goonpack](../GOONPACKS.md) is a small curated zip you can ship today, this is
+the big inference-powered library: tens of thousands of images, tagged by the
+pipeline above, picked by _mood_. (No settled name yet — "supergoonpack" is the
+placeholder.)
 
 ### Persona-driven picture feed
 
@@ -267,7 +267,7 @@ unzipping GBs in a tab is grim).
 ### Two-tier: portable vs local
 
 - **Portable goonpack (browser / IndexedDB).** Small, self-contained, runs on a
-  _hosted public_ build. This is the current [goonpacks](../TODO.md#goonpacks)
+  _hosted public_ build. This is the shipped [goonpacks](../GOONPACKS.md)
   format.
 - **Local library (server-backed).** The user's own library folder served by the
   app's **own local Next server** (`npm run dev`) from a configured directory,

@@ -15,8 +15,8 @@ index.
   end-play (the run to finish) and after-play (from the moment you cum).
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — auto-tag a large personal
   image library (attributes, people, "heat") so a companion can pick pictures by
-  mood; the long-range v2 behind [goonpacks](TODO.md#goonpacks) (now defined
-  work in the TODO).
+  mood; the long-range v2 behind [goonpacks](GOONPACKS.md), the shipped
+  persona-pack format.
 - [Freestyle](roadmap/FREESTYLE.md) — a mode with no program at all: the raw
   device controls (speed, stroke, valves), you drive.
 - [Rounds](roadmap/ROUNDS.md) — play-mode candidate: the only one to continue

@@ -2,10 +2,11 @@ import { ELISE_SYSTEM_PROMPT } from "./elise-prompt";
 import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
 import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
 
-// The companions the user can pick from. One persona = one entry: its voice,
-// model and system prompt travel together here as pure data, so a new companion
-// is a new entry, nothing else. The picker, the play session and the saved
-// thread all key off the chosen entry.
+// The built-in companions. One persona = one entry: its voice, model and
+// system prompt travel together here as pure data, so a new built-in is a new
+// entry, nothing else — and imported goonpacks add further companions at
+// runtime (src/lib/goonpacks/). The picker, the play session and the saved
+// thread all key off a companion's id.
 // Ids are `publisher.name` (see src/lib/goonpacks/manifest.ts) — the stock
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;

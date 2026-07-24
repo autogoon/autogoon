@@ -29,6 +29,9 @@ describe("parseManifest", () => {
   it("rejects a bad base id", () => {
     expect(() => parseManifest({ ...good, base: "nope" })).toThrow(PackError);
   });
+  it("rejects a pack overlaying itself", () => {
+    expect(() => parseManifest({ ...good, base: good.id })).toThrow(PackError);
+  });
   it("rejects an unknown accentColour", () => {
     expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(
       PackError,
