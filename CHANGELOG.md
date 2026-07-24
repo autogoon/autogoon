@@ -13,15 +13,23 @@
   half-working. Packs cache in browser storage with your zip as the source of
   truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
   ([#18](https://github.com/autogoon/autogoon/pull/18))
+
 - enhancement: **Elise moves out of the app** — the built-in companions are now
   Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
-  outside the repo, like all packs), so she's imported and played like any
-  other pack. Her pack carries a new id, so built-in Elise conversations don't
-  carry over. ([#18](https://github.com/autogoon/autogoon/pull/18))
+  outside the repo, like all packs), so she's imported and played like any other
+  pack. Her pack carries a new id, so built-in Elise conversations don't carry
+  over. ([#18](https://github.com/autogoon/autogoon/pull/18))
+
+- bug: **Changelog shows whole entries** — the in-app Changelog screen was
+  dropping everything after the first line of a wrapped entry; entries now
+  render in full, and the raw file can put blank lines between entries.
+  ([#18](https://github.com/autogoon/autogoon/pull/18))
+
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via
   goonpacks, and the describe scripts moved to `goonpack:*` scanning
   `goonpacks/*/pictures/`. ([#18](https://github.com/autogoon/autogoon/pull/18))
+
 - internal: **goonpack:build validates like the importer** — building runs the
   app's own pack validation over every zip (the script is TypeScript now, run
   with `tsx`), reports every problem it finds in one pass, and writes
@@ -30,85 +38,371 @@
 
 ## 2026-07-23
 
-- feature: **Companions notice time passing** — a companion now knows the real date and time on every turn, and when you step away — an hour, overnight — she comes back aware of how long you were gone instead of resuming mid-sentence. The conversation shows each message's time and a date line where a new day starts. Conversations saved before this update have no times on their older messages. ([#17](https://github.com/autogoon/autogoon/pull/17))
-- feature: **Add a third companion — Miley** — Companions now has three to pick from. Miley is an American sex-chat girl in Portland who's taken your call: dry, deadpan and funny, dressed up in tights and stockings, and up for pretty much anything you ask for. She has no illusions about what this is — she's working, there are no feelings involved, and she says so — but she's completely obliging with it, tells you out loud what she's doing to herself, and is generous rather than cruel with the toy. She has her own voice, sends pictures, and has three flat limits she won't move on. ([#16](https://github.com/autogoon/autogoon/pull/16))
-- enhancement: **Companions needs no access key locally** — on the dev server (`npm run dev`) the access gate is open: put your API keys in `.env` and Companions just appears. Builds and deploys stay fail-closed behind `COMPANIONS_ACCESS_IDS` exactly as before, and the Settings access box still checks real IDs everywhere, so the gate stays testable in dev. ([#15](https://github.com/autogoon/autogoon/pull/15))
-- enhancement: **Algorithms are now "play modes"** — the home screen and docs now call the ways a session can run play modes: Companions was never really an algorithm, and future modes (like a raw-controls Freestyle) won't be either. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- internal: **Debug viewer for the LLM request** — a Show request button on the Companions Debug tab pops up the exact request JSON the next turn would send (system prompt with live status/time filled in, gap markers, replayed tool calls), for verifying what the model actually sees. ([#17](https://github.com/autogoon/autogoon/pull/17))
-- internal: **Caption images with their colours** — `npm run describe` now asks the vision model for the specific colours of what she's wearing, so a caption is precise enough to pick by when you ask for a particular outfit. ([#16](https://github.com/autogoon/autogoon/pull/16))
-- internal: **Keep Claude session links out of commits** — project settings now set `attribution.sessionUrl: false`, so commits and PR bodies made with Claude Code never carry a `Claude-Session` link (a privacy leak on a public repo, for any contributor). ([#14](https://github.com/autogoon/autogoon/pull/14))
-- internal: **Doc audit against the code** — a four-agent sweep verified ~280 doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the safe word and the tab strip; stale wind-down/finish figures in the mode docs; a few wrong code comments) and replaced doc passages that duplicated code with pointers, per the new documentation philosophy in CLAUDE.md. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- internal: **Rename algorithm → play mode across the codebase** — `src/lib/play-modes`, `src/components/play-modes`, the `PLAY_MODES` registry, `PlayModeEngine`, `setPlayModeKeywords`; the per-mode docs move to `modes/*.md` with `MODES.md` as the index. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is now an index over `roadmap/*.md`, with the goonpack and inference discussion docs moved in (reframed generically), and `DEVELOPERS.md` gains a content policy: the project never distributes content or goonpacks, indexes packs, or recommends content sources, and contributions must keep it that way. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- feature: **Companions notice time passing** — a companion now knows the real
+  date and time on every turn, and when you step away — an hour, overnight — she
+  comes back aware of how long you were gone instead of resuming mid-sentence.
+  The conversation shows each message's time and a date line where a new day
+  starts. Conversations saved before this update have no times on their older
+  messages. ([#17](https://github.com/autogoon/autogoon/pull/17))
+
+- feature: **Add a third companion — Miley** — Companions now has three to pick
+  from. Miley is an American sex-chat girl in Portland who's taken your call:
+  dry, deadpan and funny, dressed up in tights and stockings, and up for pretty
+  much anything you ask for. She has no illusions about what this is — she's
+  working, there are no feelings involved, and she says so — but she's
+  completely obliging with it, tells you out loud what she's doing to herself,
+  and is generous rather than cruel with the toy. She has her own voice, sends
+  pictures, and has three flat limits she won't move on.
+  ([#16](https://github.com/autogoon/autogoon/pull/16))
+
+- enhancement: **Companions needs no access key locally** — on the dev server
+  (`npm run dev`) the access gate is open: put your API keys in `.env` and
+  Companions just appears. Builds and deploys stay fail-closed behind
+  `COMPANIONS_ACCESS_IDS` exactly as before, and the Settings access box still
+  checks real IDs everywhere, so the gate stays testable in dev.
+  ([#15](https://github.com/autogoon/autogoon/pull/15))
+
+- enhancement: **Algorithms are now "play modes"** — the home screen and docs
+  now call the ways a session can run play modes: Companions was never really an
+  algorithm, and future modes (like a raw-controls Freestyle) won't be either.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- internal: **Debug viewer for the LLM request** — a Show request button on the
+  Companions Debug tab pops up the exact request JSON the next turn would send
+  (system prompt with live status/time filled in, gap markers, replayed tool
+  calls), for verifying what the model actually sees.
+  ([#17](https://github.com/autogoon/autogoon/pull/17))
+
+- internal: **Caption images with their colours** — `npm run describe` now asks
+  the vision model for the specific colours of what she's wearing, so a caption
+  is precise enough to pick by when you ask for a particular outfit.
+  ([#16](https://github.com/autogoon/autogoon/pull/16))
+
+- internal: **Keep Claude session links out of commits** — project settings now
+  set `attribution.sessionUrl: false`, so commits and PR bodies made with Claude
+  Code never carry a `Claude-Session` link (a privacy leak on a public repo, for
+  any contributor). ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- internal: **Doc audit against the code** — a four-agent sweep verified ~280
+  doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the
+  safe word and the tab strip; stale wind-down/finish figures in the mode docs;
+  a few wrong code comments) and replaced doc passages that duplicated code with
+  pointers, per the new documentation philosophy in CLAUDE.md.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- internal: **Rename algorithm → play mode across the codebase** —
+  `src/lib/play-modes`, `src/components/play-modes`, the `PLAY_MODES` registry,
+  `PlayModeEngine`, `setPlayModeKeywords`; the per-mode docs move to
+  `modes/*.md` with `MODES.md` as the index.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is
+  now an index over `roadmap/*.md`, with the goonpack and inference discussion
+  docs moved in (reframed generically), and `DEVELOPERS.md` gains a content
+  policy: the project never distributes content or goonpacks, indexes packs, or
+  recommends content sources, and contributions must keep it that way.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 ## 2026-07-22
 
-- feature: **Add a second companion — Aimee** — Companions now has two to pick from. Aimee is your sweet, eager-to-please Welsh girlfriend on a late-night video call: where Elise takes the lead, Aimee lets you drive — she follows your pace, likes it slow and soft with a gentle build, tells you out loud what she's doing to herself, and will match the toy to it if you like. She has her own voice, and remembers your conversation just like Elise. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- feature: **Companions can send you pictures** — During play, a companion with pictures can send you a photo of herself, choosing one that fits the moment — ask her for a particular pose and she'll pick accordingly. It opens filling the screen in a lightbox (tap the backdrop, ✕ or Escape to close), and stays in your conversation as a thumbnail you can tap to reopen; send another while the lightbox is open and it swaps to the newest. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- enhancement: **Companions run a Groove program** — the companion now drives a smooth Groove-style program (the same dip pattern the Groove and Goon algorithms use) instead of the old Autopilot-style one, and you steer it through two controls she can also turn herself: Intensity (how hard and fast, 0–100%) and Variety (how much it teases and mixes up the pace). The old edge and vacuum controls are gone. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- bug: **Fix a variability change before Start ramping from zero** — changing Groove's dip or timing variability while the program was armed but not yet playing made the next cycle ramp up from a standstill instead of continuing from where the program sits; it now resumes from the program's current point (Companions' Variety knob shared the same fix). ([#14](https://github.com/autogoon/autogoon/pull/14))
-- bug: **Open a companion's chat at the newest message** — opening a companion you've talked to before landed the conversation scrolled to the top; it now opens at the bottom, showing your most recent exchange. ([#14](https://github.com/autogoon/autogoon/pull/14))
-- internal: **Add `npm run describe` / `describe:missing`** — caption a single companion image, or every image that's still missing a description, with a vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to override), writing the sidecar `.txt` the picture glob reads. ([#14](https://github.com/autogoon/autogoon/pull/14))
+- feature: **Add a second companion — Aimee** — Companions now has two to pick
+  from. Aimee is your sweet, eager-to-please Welsh girlfriend on a late-night
+  video call: where Elise takes the lead, Aimee lets you drive — she follows
+  your pace, likes it slow and soft with a gentle build, tells you out loud what
+  she's doing to herself, and will match the toy to it if you like. She has her
+  own voice, and remembers your conversation just like Elise.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- feature: **Companions can send you pictures** — During play, a companion with
+  pictures can send you a photo of herself, choosing one that fits the moment —
+  ask her for a particular pose and she'll pick accordingly. It opens filling
+  the screen in a lightbox (tap the backdrop, ✕ or Escape to close), and stays
+  in your conversation as a thumbnail you can tap to reopen; send another while
+  the lightbox is open and it swaps to the newest.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- enhancement: **Companions run a Groove program** — the companion now drives a
+  smooth Groove-style program (the same dip pattern the Groove and Goon
+  algorithms use) instead of the old Autopilot-style one, and you steer it
+  through two controls she can also turn herself: Intensity (how hard and fast,
+  0–100%) and Variety (how much it teases and mixes up the pace). The old edge
+  and vacuum controls are gone.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- bug: **Fix a variability change before Start ramping from zero** — changing
+  Groove's dip or timing variability while the program was armed but not yet
+  playing made the next cycle ramp up from a standstill instead of continuing
+  from where the program sits; it now resumes from the program's current point
+  (Companions' Variety knob shared the same fix).
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- bug: **Open a companion's chat at the newest message** — opening a companion
+  you've talked to before landed the conversation scrolled to the top; it now
+  opens at the bottom, showing your most recent exchange.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
+
+- internal: **Add `npm run describe` / `describe:missing`** — caption a single
+  companion image, or every image that's still missing a description, with a
+  vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to
+  override), writing the sidecar `.txt` the picture glob reads.
+  ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 ## 2026-07-21
 
-- feature: **Companions — talk to an AI companion** — A new hands-free algorithm: pick Elise and talk to her out loud. She transcribes what you say, replies in her own streamed voice, remembers the conversation across the session (and reloads), and can start and stop the toy herself as things unfold — speak over her and she stops mid-sentence to listen. For now Companions is unlocked with an access ID you enter under Settings. ([#13](https://github.com/autogoon/autogoon/pull/13))
-- bug: **Fix voice input dropping the opening words** — the live transcriber discarded the audio recorded while its socket was still connecting (a 1–2 second window), so the first second or two of speech went missing; that audio is now buffered and sent as soon as the socket is live. ([#13](https://github.com/autogoon/autogoon/pull/13))
+- feature: **Companions — talk to an AI companion** — A new hands-free
+  algorithm: pick Elise and talk to her out loud. She transcribes what you say,
+  replies in her own streamed voice, remembers the conversation across the
+  session (and reloads), and can start and stop the toy herself as things unfold
+  — speak over her and she stops mid-sentence to listen. For now Companions is
+  unlocked with an access ID you enter under Settings.
+  ([#13](https://github.com/autogoon/autogoon/pull/13))
+
+- bug: **Fix voice input dropping the opening words** — the live transcriber
+  discarded the audio recorded while its socket was still connecting (a 1–2
+  second window), so the first second or two of speech went missing; that audio
+  is now buffered and sent as soon as the socket is live.
+  ([#13](https://github.com/autogoon/autogoon/pull/13))
 
 ## 2026-07-17
 
-- feature: **Voice words for the after-play ticks** — Goon's four after-play outcomes now answer to voice in setup: say `gentle` (wind-down), `torture`, `stay` or `eject` to tick or untick one. Each row shows its word and flashes when heard, just like a button. ([#12](https://github.com/autogoon/autogoon/pull/12))
-- enhancement: **Navigate the tabs by voice** — Say `home`, `changes` or `settings` from any top-level tab to switch to it. The Changelog tab is now called Changes — its old voice word wasn't in the recognizer's vocabulary, so it never answered. ([#12](https://github.com/autogoon/autogoon/pull/12))
-- internal: **Fix the voice e2e test's locator** — the changelog's own "Vacuum Maintenance" mentions made the test's text locator ambiguous; it now asserts the visible heading by role. ([#12](https://github.com/autogoon/autogoon/pull/12))
+- feature: **Voice words for the after-play ticks** — Goon's four after-play
+  outcomes now answer to voice in setup: say `gentle` (wind-down), `torture`,
+  `stay` or `eject` to tick or untick one. Each row shows its word and flashes
+  when heard, just like a button.
+  ([#12](https://github.com/autogoon/autogoon/pull/12))
+
+- enhancement: **Navigate the tabs by voice** — Say `home`, `changes` or
+  `settings` from any top-level tab to switch to it. The Changelog tab is now
+  called Changes — its old voice word wasn't in the recognizer's vocabulary, so
+  it never answered. ([#12](https://github.com/autogoon/autogoon/pull/12))
+
+- internal: **Fix the voice e2e test's locator** — the changelog's own "Vacuum
+  Maintenance" mentions made the test's text locator ambiguous; it now asserts
+  the visible heading by role.
+  ([#12](https://github.com/autogoon/autogoon/pull/12))
 
 ## 2026-07-16
 
-- feature: **Add a Changelog screen** — The app now shows this changelog: a Changelog tab sits just before Settings (say `changelog` on home), listing each day's changes with their tag pill and summary. It's baked in at build time, so what you read always matches the build you're running. ([#11](https://github.com/autogoon/autogoon/pull/11))
-- feature: **Add after-play outcomes to Goon** — Goon now asks what `cumming` should bring. Tick any of four after-play outcomes in setup — wind-down (the classic glide, still the default), torture (straight to full speed and held), ruin: stay in (stops dead, seal held) and ruin: eject (pushes you out, then rests) — and one is drawn at random at the cumming point, so with several ticked you don't know what's coming. Torture and both ruins deliberately ignore your voice once started — Stop, and every other command with it; only the safe word halts them — and your ticks are remembered on this device. The Goon card on home shouts about it, and each algorithm now wears its own icon while we're at it. ([#11](https://github.com/autogoon/autogoon/pull/11))
-- feature: **Add safe word** — Saying it while anything is playing always stops the device instantly, on every algorithm, exactly like Stop (nothing is reset). It defaults to `pineapple` and can be changed under Settings or on Goon's setup view, with a Test button that narrows the recogniser to just that word so you can check it's actually recognisable before relying on it. Unlike `stop`, which belongs to the algorithm, the safe word can never be disabled. ([#9](https://github.com/autogoon/autogoon/pull/9))
-- feature: **Replace tabs with a home screen** — The app now opens on a home screen: device connection, the algorithm chooser (say one's name, or tap it, to enter) and getting-started steps, with Settings as a tab beside home (appearance, build info). Inside an algorithm, Exit (the breadcrumb, the spoken word, or the browser's back button) returns home; all of them are locked while a session runs, so you still can't switch algorithms mid-session. Reloading the page lands you back on the screen you were on.
-- feature: **Give Goon a setup view** — Choose your session length (10–120 minutes, default 30 — say `shorter` / `longer` to step it) and hit Play (or say it). The build scales to fit — a 15-minute session compresses the ramp, an hour-long one stretches it. Setup and play are separate levels (Home › Goon › Play): setup choices lock once you're playing, Reset restarts the session from time 0, and Exit climbs back up to setup.
-- enhancement: **Start the clock on Cumming and Finish** — Cumming and Finish now start the session clock themselves if it isn't running — on every algorithm — since the thing that prompts them can happen outside the app. ([#11](https://github.com/autogoon/autogoon/pull/11))
-- enhancement: **Hide command logs on live** — The command logs are a development tool now — live builds hide them everywhere. ([#11](https://github.com/autogoon/autogoon/pull/11))
-- enhancement: **Move voice words onto controls** — The "Listening for" bar is gone from every algorithm screen — the voice words are shown on the buttons and cards themselves, and the breadcrumb hints at `exit`.
-- enhancement: **Simplify Goon's auto-tease** — Goon's automatic teasing is now just a single 10-second stroke− application at session start — the every-minute stroke− pulses and the five-minutely stroke+ pulses are gone.
-- enhancement: **Flatten the UI** — The whole app now wears the home screen's flat look — the boxed cards are gone (headings and whitespace do the separating), Start and Play are one calm blue everywhere, the Stroke −/+ buttons wear a cyan tint instead of black, and the algorithm chooser entries carry a big colour-coded icon on a soft diagonal tint of the same colour. Small controls — the token and safe word inputs, Test, Connect and the header chips — share a single lifted style so they stand out on the dark background. ([#9](https://github.com/autogoon/autogoon/pull/9))
-- enhancement: **Give scheduled strokes precedence** — Manual strokes now yield to the program's own: while an algorithm holds a valve open (a suction pulse, a tease, an ending), the Stroke buttons and `up`/`down` words disable, and a scheduled stroke arriving mid-press releases your stroke first — the release always fires — then takes over. A ruin or torture ending can no longer be interfered with. ([#10](https://github.com/autogoon/autogoon/pull/10))
-- bug: **Fix stroke pulses under dilation** — A manual stroke pulse (`up`/`down`) now rides the running program as real events instead of a wall-clock timer — its length stays true at any playback speed, and its release can no longer be lost to a knob change mid-pulse. ([#10](https://github.com/autogoon/autogoon/pull/10))
-- bug: **Fix Autopilot's vacuum maintenance** — It now works like the original: a suction pulse fires only when the speed steps, with the Low/High interval as a minimum gap between pulses — not on a fixed 2–3 second repeat, which applied far more suction than the real autopilot. ([#10](https://github.com/autogoon/autogoon/pull/10))
-- bug: **Fix coloured borders** — Coloured borders never actually rendered — a base stylesheet rule outranked every Tailwind border-colour utility, so the Connect button's connected green (and every other coloured border) showed as grey. ([#9](https://github.com/autogoon/autogoon/pull/9))
-- internal: **Add the first test suites** — Jest unit tests for the device client's rate-limit accounting and the Goon engine's generation contract, and a Playwright end-to-end voice test that plays a synthesized "autopilot" through a stubbed microphone and asserts the tab switches — run against real Chromium, Firefox, and WebKit. ([#8](https://github.com/autogoon/autogoon/pull/8))
+- feature: **Add a Changelog screen** — The app now shows this changelog: a
+  Changelog tab sits just before Settings (say `changelog` on home), listing
+  each day's changes with their tag pill and summary. It's baked in at build
+  time, so what you read always matches the build you're running.
+  ([#11](https://github.com/autogoon/autogoon/pull/11))
+
+- feature: **Add after-play outcomes to Goon** — Goon now asks what `cumming`
+  should bring. Tick any of four after-play outcomes in setup — wind-down (the
+  classic glide, still the default), torture (straight to full speed and held),
+  ruin: stay in (stops dead, seal held) and ruin: eject (pushes you out, then
+  rests) — and one is drawn at random at the cumming point, so with several
+  ticked you don't know what's coming. Torture and both ruins deliberately
+  ignore your voice once started — Stop, and every other command with it; only
+  the safe word halts them — and your ticks are remembered on this device. The
+  Goon card on home shouts about it, and each algorithm now wears its own icon
+  while we're at it. ([#11](https://github.com/autogoon/autogoon/pull/11))
+
+- feature: **Add safe word** — Saying it while anything is playing always stops
+  the device instantly, on every algorithm, exactly like Stop (nothing is
+  reset). It defaults to `pineapple` and can be changed under Settings or on
+  Goon's setup view, with a Test button that narrows the recogniser to just that
+  word so you can check it's actually recognisable before relying on it. Unlike
+  `stop`, which belongs to the algorithm, the safe word can never be disabled.
+  ([#9](https://github.com/autogoon/autogoon/pull/9))
+
+- feature: **Replace tabs with a home screen** — The app now opens on a home
+  screen: device connection, the algorithm chooser (say one's name, or tap it,
+  to enter) and getting-started steps, with Settings as a tab beside home
+  (appearance, build info). Inside an algorithm, Exit (the breadcrumb, the
+  spoken word, or the browser's back button) returns home; all of them are
+  locked while a session runs, so you still can't switch algorithms mid-session.
+  Reloading the page lands you back on the screen you were on.
+
+- feature: **Give Goon a setup view** — Choose your session length (10–120
+  minutes, default 30 — say `shorter` / `longer` to step it) and hit Play (or
+  say it). The build scales to fit — a 15-minute session compresses the ramp, an
+  hour-long one stretches it. Setup and play are separate levels (Home › Goon ›
+  Play): setup choices lock once you're playing, Reset restarts the session from
+  time 0, and Exit climbs back up to setup.
+
+- enhancement: **Start the clock on Cumming and Finish** — Cumming and Finish
+  now start the session clock themselves if it isn't running — on every
+  algorithm — since the thing that prompts them can happen outside the app.
+  ([#11](https://github.com/autogoon/autogoon/pull/11))
+
+- enhancement: **Hide command logs on live** — The command logs are a
+  development tool now — live builds hide them everywhere.
+  ([#11](https://github.com/autogoon/autogoon/pull/11))
+
+- enhancement: **Move voice words onto controls** — The "Listening for" bar is
+  gone from every algorithm screen — the voice words are shown on the buttons
+  and cards themselves, and the breadcrumb hints at `exit`.
+
+- enhancement: **Simplify Goon's auto-tease** — Goon's automatic teasing is now
+  just a single 10-second stroke− application at session start — the
+  every-minute stroke− pulses and the five-minutely stroke+ pulses are gone.
+
+- enhancement: **Flatten the UI** — The whole app now wears the home screen's
+  flat look — the boxed cards are gone (headings and whitespace do the
+  separating), Start and Play are one calm blue everywhere, the Stroke −/+
+  buttons wear a cyan tint instead of black, and the algorithm chooser entries
+  carry a big colour-coded icon on a soft diagonal tint of the same colour.
+  Small controls — the token and safe word inputs, Test, Connect and the header
+  chips — share a single lifted style so they stand out on the dark background.
+  ([#9](https://github.com/autogoon/autogoon/pull/9))
+
+- enhancement: **Give scheduled strokes precedence** — Manual strokes now yield
+  to the program's own: while an algorithm holds a valve open (a suction pulse,
+  a tease, an ending), the Stroke buttons and `up`/`down` words disable, and a
+  scheduled stroke arriving mid-press releases your stroke first — the release
+  always fires — then takes over. A ruin or torture ending can no longer be
+  interfered with. ([#10](https://github.com/autogoon/autogoon/pull/10))
+
+- bug: **Fix stroke pulses under dilation** — A manual stroke pulse
+  (`up`/`down`) now rides the running program as real events instead of a
+  wall-clock timer — its length stays true at any playback speed, and its
+  release can no longer be lost to a knob change mid-pulse.
+  ([#10](https://github.com/autogoon/autogoon/pull/10))
+
+- bug: **Fix Autopilot's vacuum maintenance** — It now works like the original:
+  a suction pulse fires only when the speed steps, with the Low/High interval as
+  a minimum gap between pulses — not on a fixed 2–3 second repeat, which applied
+  far more suction than the real autopilot.
+  ([#10](https://github.com/autogoon/autogoon/pull/10))
+
+- bug: **Fix coloured borders** — Coloured borders never actually rendered — a
+  base stylesheet rule outranked every Tailwind border-colour utility, so the
+  Connect button's connected green (and every other coloured border) showed as
+  grey. ([#9](https://github.com/autogoon/autogoon/pull/9))
+
+- internal: **Add the first test suites** — Jest unit tests for the device
+  client's rate-limit accounting and the Goon engine's generation contract, and
+  a Playwright end-to-end voice test that plays a synthesized "autopilot"
+  through a stubbed microphone and asserts the tab switches — run against real
+  Chromium, Firefox, and WebKit.
+  ([#8](https://github.com/autogoon/autogoon/pull/8))
 
 ## 2026-07-14
 
-- enhancement: **Keep dip timing uneven longer** — Goon's dips now keep some unevenness in their timing right to the end of the build, instead of settling into a metronome at 25 minutes. The pace slackens off gradually across the whole 30 minutes, so only the last few dips run at their full, unhurried length. ([#7](https://github.com/autogoon/autogoon/pull/7))
+- enhancement: **Keep dip timing uneven longer** — Goon's dips now keep some
+  unevenness in their timing right to the end of the build, instead of settling
+  into a metronome at 25 minutes. The pace slackens off gradually across the
+  whole 30 minutes, so only the last few dips run at their full, unhurried
+  length. ([#7](https://github.com/autogoon/autogoon/pull/7))
 
 ## 2026-07-09
 
-- feature: **Add Groove dip variability** — Every dip now falls to a randomly drawn depth instead of the same one each time. Pick Off/Low/Medium/High, or say `flatter` / `hillier`. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- feature: **Show build info in Settings** — Settings now has an Info card showing what's live — the deployed commit (linked to its page on GitHub) and when the build was made, in the user's local time. ([#5](https://github.com/autogoon/autogoon/pull/5))
-- enhancement: **Soften Groove's dip rhythm** — Groove's dips feel less mechanical: each rise and fall now takes a randomly drawn length of time rather than a fixed one, and the speed eases into the bottom of a dip instead of stepping evenly, so slow speeds change more gently. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Scale Groove intensity evenly** — Groove's Intensity now scales the pattern evenly, so turning it down no longer flattens deep dips into shallow ones. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Rename Groove's Speed to Intensity** — In Groove, the Speed card is now Intensity and steps with `more` / `less`, matching Goon and Autopilot — `faster` / `slower` now only ever means playback speed. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Wind Goon's variability down over the build** — Goon's build now winds Groove's Dip and Timing variability down from high to off across its first 25 minutes, then flattens the dip away over the last 5. It opens with deep, ragged swings that can drop you to a standstill rather than dipping to the same depth every time, and eases into the hold at the top instead of arriving there abruptly. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Scale Goon intensity evenly** — Goon's Intensity now scales the build evenly, so turning it down no longer squashes the dips into a narrow band near the top. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Draw ramps as slopes** — The timeline preview draws a ramp as a smooth slope instead of a staircase, so a rise or fall reads as one movement rather than a run of tiny steps. Genuine holds are still drawn as steps. ([#6](https://github.com/autogoon/autogoon/pull/6))
-- enhancement: **Move Goon's Intensity card up** — Goon's Intensity card now sits directly under the stroke controls rather than below the timeline, putting the control you reach for most within easier reach. ([#6](https://github.com/autogoon/autogoon/pull/6))
+- feature: **Add Groove dip variability** — Every dip now falls to a randomly
+  drawn depth instead of the same one each time. Pick Off/Low/Medium/High, or
+  say `flatter` / `hillier`. ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- feature: **Show build info in Settings** — Settings now has an Info card
+  showing what's live — the deployed commit (linked to its page on GitHub) and
+  when the build was made, in the user's local time.
+  ([#5](https://github.com/autogoon/autogoon/pull/5))
+
+- enhancement: **Soften Groove's dip rhythm** — Groove's dips feel less
+  mechanical: each rise and fall now takes a randomly drawn length of time
+  rather than a fixed one, and the speed eases into the bottom of a dip instead
+  of stepping evenly, so slow speeds change more gently.
+  ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Scale Groove intensity evenly** — Groove's Intensity now scales
+  the pattern evenly, so turning it down no longer flattens deep dips into
+  shallow ones. ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Rename Groove's Speed to Intensity** — In Groove, the Speed
+  card is now Intensity and steps with `more` / `less`, matching Goon and
+  Autopilot — `faster` / `slower` now only ever means playback speed.
+  ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Wind Goon's variability down over the build** — Goon's build
+  now winds Groove's Dip and Timing variability down from high to off across its
+  first 25 minutes, then flattens the dip away over the last 5. It opens with
+  deep, ragged swings that can drop you to a standstill rather than dipping to
+  the same depth every time, and eases into the hold at the top instead of
+  arriving there abruptly. ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Scale Goon intensity evenly** — Goon's Intensity now scales the
+  build evenly, so turning it down no longer squashes the dips into a narrow
+  band near the top. ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Draw ramps as slopes** — The timeline preview draws a ramp as a
+  smooth slope instead of a staircase, so a rise or fall reads as one movement
+  rather than a run of tiny steps. Genuine holds are still drawn as steps.
+  ([#6](https://github.com/autogoon/autogoon/pull/6))
+
+- enhancement: **Move Goon's Intensity card up** — Goon's Intensity card now
+  sits directly under the stroke controls rather than below the timeline,
+  putting the control you reach for most within easier reach.
+  ([#6](https://github.com/autogoon/autogoon/pull/6))
 
 ## 2026-07-08
 
-- feature: **Show valve pulses in the preview** — The timeline preview now shows upcoming stroke and suction pulses, not just speed. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- feature: **Make Stop hold your place** — Stop now pauses and holds your place — Start picks up where you left off. ([#1](https://github.com/autogoon/autogoon/pull/1))
-- feature: **Add Reset** — New Reset command (button or voice) to clear back to a fresh session. ([#1](https://github.com/autogoon/autogoon/pull/1))
-- feature: **Preview the program before Start** — The program previews live before you press Start, so you can adjust it first. ([#1](https://github.com/autogoon/autogoon/pull/1))
-- enhancement: **Scale previews with playback speed** — The sparkline preview and Goon's timeline now follow the playback speed — Goon's 30-minute build reads 7:30 at 4×, and the preview looks further ahead at higher speeds so it never runs out of curve. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- enhancement: **Flash buttons on voice and click** — On-screen buttons light up when you say their voice command, and now flash when you click them too. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- enhancement: **Voice-control everything on screen** — Voice now controls anything you can use on screen, not just while running. ([#1](https://github.com/autogoon/autogoon/pull/1))
-- enhancement: **Colour Finish and Cumming apart** — Finish and Cumming are now visually distinct — Finish amber (the pre-ending), Cumming red (the send-off) — instead of two identical buttons. ([#4](https://github.com/autogoon/autogoon/pull/4))
-- enhancement: **Allow stroke and endings while connected** — Manual stroke and the cumming/finish commands work any time a device is connected. ([#1](https://github.com/autogoon/autogoon/pull/1))
-- bug: **Apply Vacuum Maintenance changes at once** — In Autopilot, changing Vacuum Maintenance had no effect on what you felt; it now reshapes the upcoming suction pulses straight away. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- bug: **Disable Finish until connected** — Goon's Finish button could be triggered with no device connected; it's now disabled until you connect. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- internal: **Reshuffle the control components** — Renamed the Start/Stop/Reset control `RunButton` → `SessionControls`, and moved Finish/Cumming out of the shared `StrokeCard` into dedicated `FinishButton`/`CummingButton` components each panel renders itself, leaving `StrokeCard` as just the shared stroke ± buttons. ([#4](https://github.com/autogoon/autogoon/pull/4))
-- internal: **Document adding an algorithm** — Added an "Adding an algorithm" guide to DEVELOPERS.md (step-by-step checklist, the knob→device method table, and the `generateSpeed` pitfalls), pointed at Goon as the reference to copy, and made the algorithm tab list derive from a single `TABS` source in `page.tsx` so a new mode's voice switch word and tab lock can't be silently forgotten. ([#4](https://github.com/autogoon/autogoon/pull/4))
-- internal: **Split speed and valve generation** — Engine generation is split into a speed backbone (`generateSpeed`) and a pure valve overlay (`generateValves`), so the Player can re-lay valves over an unchanged speed script via `invalidateValves()`. ([#2](https://github.com/autogoon/autogoon/pull/2))
-- internal: **Restructure into engines and panels** — Each algorithm is now an engine plus a panel, dropping the per-algorithm hooks and the runner; mutual exclusion is a Player invariant. ([#2](https://github.com/autogoon/autogoon/pull/2))
+- feature: **Show valve pulses in the preview** — The timeline preview now shows
+  upcoming stroke and suction pulses, not just speed.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- feature: **Make Stop hold your place** — Stop now pauses and holds your place
+  — Start picks up where you left off.
+  ([#1](https://github.com/autogoon/autogoon/pull/1))
+
+- feature: **Add Reset** — New Reset command (button or voice) to clear back to
+  a fresh session. ([#1](https://github.com/autogoon/autogoon/pull/1))
+
+- feature: **Preview the program before Start** — The program previews live
+  before you press Start, so you can adjust it first.
+  ([#1](https://github.com/autogoon/autogoon/pull/1))
+
+- enhancement: **Scale previews with playback speed** — The sparkline preview
+  and Goon's timeline now follow the playback speed — Goon's 30-minute build
+  reads 7:30 at 4×, and the preview looks further ahead at higher speeds so it
+  never runs out of curve. ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- enhancement: **Flash buttons on voice and click** — On-screen buttons light up
+  when you say their voice command, and now flash when you click them too.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- enhancement: **Voice-control everything on screen** — Voice now controls
+  anything you can use on screen, not just while running.
+  ([#1](https://github.com/autogoon/autogoon/pull/1))
+
+- enhancement: **Colour Finish and Cumming apart** — Finish and Cumming are now
+  visually distinct — Finish amber (the pre-ending), Cumming red (the send-off)
+  — instead of two identical buttons.
+  ([#4](https://github.com/autogoon/autogoon/pull/4))
+
+- enhancement: **Allow stroke and endings while connected** — Manual stroke and
+  the cumming/finish commands work any time a device is connected.
+  ([#1](https://github.com/autogoon/autogoon/pull/1))
+
+- bug: **Apply Vacuum Maintenance changes at once** — In Autopilot, changing
+  Vacuum Maintenance had no effect on what you felt; it now reshapes the
+  upcoming suction pulses straight away.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- bug: **Disable Finish until connected** — Goon's Finish button could be
+  triggered with no device connected; it's now disabled until you connect.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- internal: **Reshuffle the control components** — Renamed the Start/Stop/Reset
+  control `RunButton` → `SessionControls`, and moved Finish/Cumming out of the
+  shared `StrokeCard` into dedicated `FinishButton`/`CummingButton` components
+  each panel renders itself, leaving `StrokeCard` as just the shared stroke ±
+  buttons. ([#4](https://github.com/autogoon/autogoon/pull/4))
+
+- internal: **Document adding an algorithm** — Added an "Adding an algorithm"
+  guide to DEVELOPERS.md (step-by-step checklist, the knob→device method table,
+  and the `generateSpeed` pitfalls), pointed at Goon as the reference to copy,
+  and made the algorithm tab list derive from a single `TABS` source in
+  `page.tsx` so a new mode's voice switch word and tab lock can't be silently
+  forgotten. ([#4](https://github.com/autogoon/autogoon/pull/4))
+
+- internal: **Split speed and valve generation** — Engine generation is split
+  into a speed backbone (`generateSpeed`) and a pure valve overlay
+  (`generateValves`), so the Player can re-lay valves over an unchanged speed
+  script via `invalidateValves()`.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))
+
+- internal: **Restructure into engines and panels** — Each algorithm is now an
+  engine plus a panel, dropping the per-algorithm hooks and the runner; mutual
+  exclusion is a Player invariant.
+  ([#2](https://github.com/autogoon/autogoon/pull/2))

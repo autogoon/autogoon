@@ -65,8 +65,9 @@ can span several commits, and commits land after a PR is opened). If you
 finished something a user would notice, it gets an entry before you consider the
 work done.
 
-- **Format:** one line per change, newest first, grouped under the date it
-  landed (`## YYYY-MM-DD`). Tag each line `feature`, `enhancement`, `bug`, or
+- **Format:** one bullet per change — wrapped over indented lines and separated
+  by blank lines for readability — newest first, grouped under the date it
+  landed (`## YYYY-MM-DD`). Tag each entry `feature`, `enhancement`, `bug`, or
   `internal`, and within a day order the entries in exactly that sequence —
   features, then enhancements, then bugs, then internal (bottom priority). Open
   each entry with a bold, few-word, commit-style summary:
