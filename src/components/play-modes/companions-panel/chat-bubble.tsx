@@ -21,7 +21,7 @@ export function ChatBubble({
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}>
       <div
         className={`max-w-[80%] rounded-2xl px-3 py-2 whitespace-pre-wrap ${
-          isUser ? "bg-blue-600 text-white" : "bg-foreground/10"
+          isUser ? "bg-blue-600 text-white" : "bg-foreground/10 text-foreground"
         } ${pending ? "opacity-70" : ""}`}
       >
         {/* Trim leading/trailing whitespace (M3 often opens with a blank line)
