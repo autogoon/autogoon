@@ -48,8 +48,8 @@ import {
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
 // Each entry wears its play mode's signature bright colour twice: the icon
-// (iconClass) and the row's accent — a diagonal tint of the same colour with a
-// matching border.
+// (iconClass) and the row's accent — the colour name AccentCard turns into
+// the tinted border/gradient shell.
 // On the dev server Companions is always available (the paid routes are open —
 // see access-check.ts); the access gate applies to builds/deploys.
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -64,8 +64,7 @@ const PLAY_MODES = [
       "New: choose what cumming brings — wind-down, torture or a ruin (stay in, or eject), drawn at random from the outcomes you tick.",
     icon: TrendingUp,
     iconClass: "text-fuchsia-500",
-    accent:
-      "border-fuchsia-500 bg-linear-to-br from-fuchsia-500/15 to-fuchsia-500/5 hover:from-fuchsia-500/25 hover:to-fuchsia-500/10",
+    accent: "fuchsia",
   },
   {
     id: "groove",
@@ -74,8 +73,7 @@ const PLAY_MODES = [
       "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
     icon: AudioWaveform,
     iconClass: "text-cyan-500",
-    accent:
-      "border-cyan-500 bg-linear-to-br from-cyan-500/15 to-cyan-500/5 hover:from-cyan-500/25 hover:to-cyan-500/10",
+    accent: "cyan",
   },
   {
     id: "autopilot",
@@ -83,8 +81,7 @@ const PLAY_MODES = [
     description: "A faithful recreation of the Vacuglide's own autopilot.",
     icon: Bot,
     iconClass: "text-orange-500",
-    accent:
-      "border-orange-500 bg-linear-to-br from-orange-500/15 to-orange-500/5 hover:from-orange-500/25 hover:to-orange-500/10",
+    accent: "orange",
   },
   {
     id: "companions",
@@ -93,8 +90,7 @@ const PLAY_MODES = [
       "Pick a companion and talk — she listens, replies in her own voice, and you can cut in any time.",
     icon: MessagesSquare,
     iconClass: "text-emerald-500",
-    accent:
-      "border-emerald-500 bg-linear-to-br from-emerald-500/15 to-emerald-500/5 hover:from-emerald-500/25 hover:to-emerald-500/10",
+    accent: "emerald",
   },
 ] as const;
 

@@ -7,6 +7,7 @@
 // removal is destructive-ish — neither wants a spoken trigger.
 
 import { useCallback, useRef, useState } from "react";
+import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import {
@@ -125,16 +126,9 @@ export function GoonpacksPanel() {
             return (
               /* Mirrors the Companions chooser card: name + version in the
                  top row (Remove where the card has no control), the pack's
-                 description under it, then the info line. Same accent border
-                 and gradient; incompatible rows go plain dashed. */
-              <div
-                key={row.id}
-                className={
-                  accent !== null
-                    ? `rounded-xl border border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5 px-4 py-3`
-                    : "rounded-xl border border-dashed px-4 py-3"
-                }
-              >
+                 description under it, then the info line. Incompatible rows
+                 go plain dashed. */
+              <AccentCard key={row.id} accent={accent} dashed={accent === null}>
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{heading}</span>
                   <span className="text-muted-foreground text-sm">
@@ -172,7 +166,7 @@ export function GoonpacksPanel() {
                       ))}
                     </span>
                   ))}
-              </div>
+              </AccentCard>
             );
           })
         )}
@@ -201,7 +195,7 @@ export function GoonpacksPanel() {
         </p>
       ))}
       {pendingImport !== null && (
-        <div className="mt-2 rounded-xl border px-4 py-3 text-sm">
+        <AccentCard accent={null}>
           <p className="font-semibold">
             {pendingImport.manifest.name ?? pendingImport.manifest.id}
             <span className="text-muted-foreground font-normal">
@@ -246,7 +240,7 @@ export function GoonpacksPanel() {
               Cancel
             </Button>
           </div>
-        </div>
+        </AccentCard>
       )}
       <p className="text-muted-foreground mt-2 text-xs">
         Packs live in browser storage; keep your zips.

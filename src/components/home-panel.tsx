@@ -8,6 +8,7 @@
 
 import { ChevronRight, Plug, type LucideIcon } from "lucide-react";
 import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { AccentCard } from "@/components/accent-card";
 import { Button } from "@/components/button";
 import { Card } from "@/components/card";
 import {
@@ -31,6 +32,7 @@ export function HomePanel({
     highlight?: string;
     icon: LucideIcon;
     iconClass: string;
+    // The AccentCard colour name (e.g. "fuchsia").
     accent: string;
   }>;
   onSelect: (id: string) => void;
@@ -41,27 +43,29 @@ export function HomePanel({
           title→border gap needs +4px to match the title→text gap elsewhere. */}
       <div className="flex flex-col gap-3 pt-1">
         {playModes.map((a) => (
-          <Button
+          <AccentCard
             key={a.id}
-            onClick={() => onSelect(a.id)}
+            accent={a.accent}
             badge={a.id}
-            className={`flex items-center gap-4 rounded-xl border px-4 py-3 text-left ${a.accent}`}
+            onClick={() => onSelect(a.id)}
           >
-            <a.icon
-              className={`size-8 shrink-0 self-start ${a.iconClass}`}
-              aria-hidden
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">{a.label}</span>
-              <span className="text-muted-foreground block text-sm">
-                {a.description}
+            <span className="flex items-center gap-4 text-left">
+              <a.icon
+                className={`size-8 shrink-0 self-start ${a.iconClass}`}
+                aria-hidden
+              />
+              <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span className="block font-semibold">{a.label}</span>
+                <span className="text-muted-foreground block text-sm">
+                  {a.description}
+                </span>
+                {a.highlight !== undefined && (
+                  <span className="mt-1.5 block text-sm">{a.highlight}</span>
+                )}
               </span>
-              {a.highlight !== undefined && (
-                <span className="mt-1.5 block text-sm">{a.highlight}</span>
-              )}
+              <ChevronRight className="text-muted-foreground size-4 shrink-0" />
             </span>
-            <ChevronRight className="text-muted-foreground size-4 shrink-0" />
-          </Button>
+          </AccentCard>
         ))}
       </div>
     </Card>
