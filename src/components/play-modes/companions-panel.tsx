@@ -847,10 +847,10 @@ export function CompanionsPanel({
                 entry.variants.find(
                   (v) => (v.packId ?? "default") === selectedId && !v.missing,
                 ) ?? entry.variants[0]!;
-              // The card previews exactly what the selection plays: blurb,
+              // The card previews exactly what the selection plays: description,
               // accent and the feature line all follow the select.
               const accent = selected.accent ?? c.accentColour;
-              const blurb = selected.blurb ?? c.description;
+              const description = selected.description ?? c.description;
               const features = variantFeatures(selected);
               const pick = () => {
                 void (async () => {
@@ -917,7 +917,7 @@ export function CompanionsPanel({
                         {c.name}
                       </span>
                       <span className="text-muted-foreground block text-sm">
-                        {blurb}
+                        {description}
                       </span>
                       {features.length > 0 && (
                         <span className="text-muted-foreground block text-xs">

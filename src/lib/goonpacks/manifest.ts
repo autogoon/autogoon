@@ -46,7 +46,7 @@ export type PackManifest = {
   // records stored before the field existed still parse.
   aboutThePack?: string;
   name?: string; // complete packs only — an overlay keeps her name
-  description?: string; // the companion's card blurb (overlay: shown while selected)
+  description?: string; // hers, for her card (overlay: replaces the base's while selected)
   gender?: "female" | "male" | "nonbinary"; // complete packs only, like name
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)

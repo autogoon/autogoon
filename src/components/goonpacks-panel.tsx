@@ -174,7 +174,7 @@ export function GoonpacksPanel() {
                 : ""}
             </span>
           </p>
-          {/* The sheet describes the PACK — aboutThePack, not her blurb. */}
+          {/* The sheet describes the PACK — aboutThePack, not her description. */}
           {pendingImport.manifest.aboutThePack !== undefined && (
             <p className="text-muted-foreground">
               {pendingImport.manifest.aboutThePack}

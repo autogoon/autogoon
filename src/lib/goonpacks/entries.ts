@@ -17,7 +17,7 @@ export type Variant = {
   missing: boolean;
   // What the card shows while this variant is selected (all undefined for a
   // missing variant — there's nothing readable to show):
-  blurb?: string; // description override; card falls back to the base's
+  description?: string; // override; the card falls back to the base's
   accent?: string; // accentColour override
   pictures?: number; // effective picture count for this selection
   changed?: VariantSlot[]; // slots this overlay changes/adds — bolded
@@ -79,7 +79,7 @@ export function buildEntries(
         label: publisher(p.manifest.id),
         version: p.manifest.version,
         missing: false,
-        blurb: p.manifest.description,
+        description: p.manifest.description,
         accent: p.manifest.accentColour,
         pictures: effectivePictures(p, basePictures),
         changed: changedSlots(p),

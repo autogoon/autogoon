@@ -85,7 +85,7 @@ describe("buildEntries", () => {
     expect(completeEntry.variants).toEqual([DEFAULT_VARIANT]);
   });
 
-  it("variants carry the selection's blurb, accent, pictures and changed slots", () => {
+  it("variants carry the selection's description, accent, pictures and changed slots", () => {
     const base = BUILT_IN_IDS[0]!;
     const packs = [
       {
@@ -107,7 +107,7 @@ describe("buildEntries", () => {
       label: "pub",
       version: "1.0.0",
       missing: false,
-      blurb: "her goth era",
+      description: "her goth era",
       accent: "violet",
       pictures: 5,
       changed: ["pictures", "prompt", "voice", "colour"],

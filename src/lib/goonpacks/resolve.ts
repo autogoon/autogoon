@@ -40,8 +40,8 @@ export function packToCompanionRaw(pack: PackContent): Companion {
   return {
     id: m.id,
     name: m.name ?? m.id,
-    // Card blurb: her own description, else the pack's about-text — better
-    // than an empty card line.
+    // Her card description, else the pack's about-text — better than an
+    // empty card line.
     description: m.description ?? m.aboutThePack ?? "",
     gender: m.gender ?? "female",
     accentColour: m.accentColour ?? "pink",
