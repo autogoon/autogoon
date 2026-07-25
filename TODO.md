@@ -104,19 +104,49 @@ you say you're cumming. The persona decides, so the ending stops being a setting
 and becomes something she does to you. And because she can choose, she can say
 she will without saying which.
 
+### Streaming per companion
+
+`stream: true` is hardcoded for every request, and on a spoken turn it buys
+nothing: the reply is buffered in full and handed to TTS complete (the
+`submitText` comment in `use-voice-session.ts` says so). All streaming does is
+fill the transcript word by word — nice on a typed turn, invisible on a voice
+one, because the audio can't start until the text is finished anyway.
+
+So make it a per-companion field like `model` and `passesReasoning`, and a
+manifest field packs can set.
+
+**The reason this is worth building: it's what rules MiniMax M3 out today.** The
+problem there was specifically in the streamed response — OpenRouter not cleanly
+separating the model's reasoning from its reply, so thinking leaked into what
+the companion said. A non-streamed response carries them as separate fields and
+can't blur the two, which makes "don't stream" the fix rather than a workaround,
+and hands back a model currently unusable for a reason that has nothing to do
+with the model itself.
+
+Two things to handle when it's built: `reasoning_details` and `tool_calls` are
+currently assembled from stream deltas (`mergeReasoning`, `mergeToolCalls` in
+`llm/client.ts`), so the non-streamed response shape needs its own path to the
+same place; and the transcript should show something sensible while a
+non-streaming turn generates, since there'll be no text arriving until it's
+done.
+
 ### Pin a provider, and see what upstream actually said
 
 Two things that made a five-minute throughput test into a long one.
 
 **Choosing the provider.** A companion's model is a slug and nothing more, so
 routing is whatever OpenRouter decides — `:nitro` sorts by throughput and can
-land consecutive turns on different providers. That makes provider-level
-comparison impossible to do by hand, and it defeats prompt caching, which is
-per-provider. Wants to be a setting rather than an edit: a provider (or endpoint
-tag, e.g. `xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks
-off so a pin that can't be served fails loudly instead of quietly going
-elsewhere. Worth surfacing which provider actually served a turn, too — it comes
-back on every response.
+land consecutive turns on different providers. What prompted this: whichever
+provider mimo landed on was badly slow, with no way to say "not that one". A
+guess worth testing rather than believing — that throughput routing leans on
+figures too coarse or too stale to notice a provider degrading in the moment, so
+a spike takes a while to route around. That makes provider-level comparison
+impossible to do by hand, and it defeats prompt caching, which is per-provider.
+Wants to be a setting rather than an edit: a provider (or endpoint tag, e.g.
+`xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks off so a pin
+that can't be served fails loudly instead of quietly going elsewhere. Worth
+surfacing which provider actually served a turn, too — it comes back on every
+response.
 
 **Seeing the error.** `/api/llm` turns any upstream failure into a flat 502 with
 upstream's own message discarded, so a provider rejecting a request is
