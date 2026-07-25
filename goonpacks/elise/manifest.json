@@ -11,6 +11,8 @@
     "voiceId": "uhseMNDjn3oAF24Hh83b",
     "model": "xiaomi/mimo-v2.5:nitro",
     "contextWindow": 1000000,
-    "passesReasoning": false
+    "passesReasoning": false,
+    "chattiness": 4,
+    "playfulness": 3
   }
 }

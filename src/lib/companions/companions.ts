@@ -91,8 +91,10 @@ export const COMPANIONS: Record<string, Companion> = {
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
-    chattiness: DEFAULT_CHATTINESS,
-    playfulness: DEFAULT_PLAYFULNESS,
+    // She's working, and dead air is bad service — but her deadpan needs a beat,
+    // so she's short of the top out of play and at it once things are running.
+    chattiness: 4,
+    playfulness: 5,
   },
 };
 
