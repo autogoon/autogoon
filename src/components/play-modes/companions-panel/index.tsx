@@ -604,6 +604,24 @@ export function CompanionsPanel({
     }
   }, [active, view, tab]);
 
+  // What the composer displays: the live transcript while dictating, otherwise
+  // whatever's been typed.
+  const composerValue = dictating ? status.partial : text;
+
+  // Grow the box to fit, so a long sentence — dictated or typed — isn't hidden
+  // below the fold of a fixed-height box. Collapsing to `auto` before measuring
+  // is what makes it able to shrink again: scrollHeight can only report content
+  // taller than the current height, never shorter. Layout effect so the
+  // resize lands in the same frame as the text and the box doesn't visibly
+  // jump. It stops growing at max-h and scrolls, so a long dictation can't
+  // squeeze the conversation above it off the screen.
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (el === null) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [composerValue]);
+
   const connected = vacuglide.connected;
 
   return (
@@ -889,26 +907,40 @@ export function CompanionsPanel({
                       Error: {status.replyError}
                     </p>
                   )}
-                  <textarea
-                    ref={composerRef}
-                    value={dictating ? status.partial : text}
-                    disabled={dictating}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Enter says it (speaks the reply); Shift+Enter inserts a newline.
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (text.trim() !== '' && !status.replyPlaying) {
-                          submitText(text, { speak: true });
-                          setText('');
+                  {/* The ring mirrors the one on a message she's speaking:
+                      hers shimmers while she talks, the composer while we're
+                      listening to you. It rides the wrapper because a textarea
+                      can't carry the pseudo-element that draws it, and because
+                      the ring shouldn't dim with the disabled box inside. */}
+                  <div
+                    className={`rounded-lg ${
+                      dictating
+                        ? 'border-shimmer [--shimmer-color:var(--foreground)]'
+                        : ''
+                    }`}
+                  >
+                    <textarea
+                      ref={composerRef}
+                      value={composerValue}
+                      disabled={dictating}
+                      onChange={(e) => setText(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Enter says it (speaks the reply); Shift+Enter inserts
+                        // a newline.
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (text.trim() !== '' && !status.replyPlaying) {
+                            submitText(text, { speak: true });
+                            setText('');
+                          }
                         }
+                      }}
+                      placeholder={
+                        dictating ? 'Listening…' : 'Type a message, or speak…'
                       }
-                    }}
-                    placeholder={
-                      dictating ? 'Listening…' : 'Type a message, or speak…'
-                    }
-                    className="bg-foreground/5 text-foreground min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
-                  />
+                      className="bg-foreground/5 text-foreground block max-h-40 min-h-16 w-full resize-none overflow-y-auto rounded-lg p-2 disabled:opacity-70"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {

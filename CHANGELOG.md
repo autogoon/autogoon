@@ -2,6 +2,12 @@
 
 ## 2026-07-25
 
+- bug: **Long messages aren't cut off** — The message box was a fixed height, so
+  a long message — dictated or typed — ran on below the bottom of it out of
+  sight. It now grows to fit what's in it, up to a limit past which it scrolls
+  rather than crowding out the conversation above.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
 - bug: **Your words reach the message box** — What you were saying often failed
   to appear as you said it, especially when you spoke briefly or quietly: the
   app checked whether the microphone heard voice at the moment the transcript
@@ -10,6 +16,13 @@
   audible for, or simply carrying more than one word — so it shows up as you
   talk. Interrupting her works on short interjections too, which previously
   couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **The message box shimmers while you speak** — The same shimmer
+  that marks the message she's saying aloud now rings the message box while
+  she's listening to you, so both halves of the conversation show whose turn is
+  live in the same way. It appears the moment you start talking, not when the
+  transcript catches up.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - enhancement: **Steadier message box while you talk** — The box no longer
   flickered between "Listening…" and its normal placeholder as you spoke,
