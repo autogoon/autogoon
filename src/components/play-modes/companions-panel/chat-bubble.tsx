@@ -3,18 +3,32 @@
 // One transcript row: user turns right-aligned in the accent colour, hers
 // left-aligned and muted. `pending` dims the in-progress reply until it folds
 // into the thread. `at` (absent on pending bubbles and pre-timestamp turns)
-// puts a small clock time under the bubble, on its aligned side.
+// puts a small clock time under the bubble, on its aligned side. `voice` rings
+// the bubble with a slow shimmer once her words are on their way to being
+// spoken: faint and slow while the voice loads, brighter and quicker once she's
+// actually saying them. The message itself is the indicator, so neither stage
+// gets a status row of its own.
+
+const VOICE = {
+  warming: {
+    word: 'Loading voice',
+    className: '[--shimmer-duration:4.4s] [--shimmer-strength:0.5]',
+  },
+  speaking: { word: 'Speaking', className: '' },
+};
 
 export function ChatBubble({
   role,
   text,
   at,
   pending = false,
+  voice,
 }: {
   role: 'user' | 'assistant';
   text: string;
   at?: number;
   pending?: boolean;
+  voice?: 'warming' | 'speaking';
 }) {
   const isUser = role === 'user';
   return (
@@ -22,8 +36,19 @@ export function ChatBubble({
       <div
         className={`max-w-[80%] rounded-2xl px-3 py-2 whitespace-pre-wrap ${
           isUser ? 'bg-blue-600 text-white' : 'bg-foreground/10 text-foreground'
-        } ${pending ? 'opacity-70' : ''}`}
+        } ${pending ? 'opacity-70' : ''} ${
+          voice === undefined
+            ? ''
+            : `border-shimmer [--shimmer-color:var(--foreground)] ${VOICE[voice].className}`
+        }`}
       >
+        {/* The shimmer is purely visual, so the stage still needs saying out
+            loud — this replaces the status role the stage bubbles carried. */}
+        {voice !== undefined && (
+          <span role="status" className="sr-only">
+            {VOICE[voice].word}
+          </span>
+        )}
         {/* Trim leading/trailing whitespace (M3 often opens with a blank line)
             while keeping internal paragraph breaks under whitespace-pre-wrap. */}
         {text.trim()}

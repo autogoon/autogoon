@@ -2,12 +2,29 @@
 
 ## 2026-07-25
 
+- enhancement: **The message she's speaking shimmers** — Instead of a separate
+  "Loading voice" and "Speaking" row in the conversation, her message itself now
+  carries a slow shimmer around its edge: faint and unhurried while her voice
+  loads, brighter and quicker once she's actually saying the words. The message
+  being spoken is the thing you're reading, so it's the thing that's marked.
+  Listening, Thinking and Replying keep their own row — there's no message on
+  screen yet for those. Over an open picture, the corner badge still names every
+  stage.
+
 - enhancement: **Companions reply faster** — Every companion's model now routes
   by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
   load balancing, which had been spreading requests across providers regardless
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
+
+- internal: **Comments describe the present too** — The current-state rule that
+  keeps future work out of docs now covers code comments, in both directions: a
+  comment says what the code does now, not what it replaced or used to be. The
+  past is what `CHANGELOG.md` and git history are for. Written into
+  [CLAUDE.md](./CLAUDE.md), enforced by `/doc-check` (which now treats every
+  comment a branch touched as in scope), and applied to the three comments that
+  had drifted.
 
 ## 2026-07-24
 

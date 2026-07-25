@@ -525,6 +525,23 @@ export function CompanionsPanel({
     [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
       'assistant';
 
+  // From the moment her words are headed for the speaker, her most recent turn
+  // wears the shimmer instead of a status row — faint while the voice loads,
+  // stronger once she's speaking.
+  const voice =
+    stage === 'tts' ? 'warming' : stage === 'speaking' ? 'speaking' : undefined;
+
+  // Which bubble wears it: the pending one if the reply hasn't committed yet,
+  // otherwise the last assistant turn that actually rendered a bubble — a
+  // silent picture turn has none, so the marker falls back past it.
+  const voicedFromEnd = [...status.thread]
+    .reverse()
+    .findIndex((t) => t.role === 'assistant' && !isSilentAssistantTurn(t));
+  const voicedIndex =
+    voice !== undefined && !pendingReplyVisible && voicedFromEnd !== -1
+      ? status.thread.length - 1 - voicedFromEnd
+      : -1;
+
   // Play-view sub-tabs, switched from the hamburger menu. Session (mic +
   // conversation) opens first.
   const [tab, setTab] = useState<PlayTab>('session');
@@ -826,6 +843,7 @@ export function CompanionsPanel({
                           role={turn.role}
                           text={turn.content}
                           at={turn.at}
+                          voice={i === voicedIndex ? voice : undefined}
                         />
                       );
                     }
@@ -843,17 +861,18 @@ export function CompanionsPanel({
                       role="assistant"
                       text={status.replyText}
                       pending
+                      voice={voice}
                     />
                   )}
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
                   {/* Live stage as a chat-style bubble — the "other person is
-                  typing" slot, same icon vocabulary as the lightbox badge.
-                  While the reply is streaming into the pending bubble above,
-                  that bubble is the indicator, so the stage bubble stays out
-                  of the way. Replaces the old Thinking… / Waiting for speech…
-                  spinners. */}
+                  typing" slot, same icon vocabulary as the lightbox badge, for
+                  the stages with no message on screen yet. Once one exists the
+                  message carries the state itself: the pending bubble while the
+                  reply streams into it, then its shimmer through voice-loading
+                  and speaking. */}
                   {!(stage === 'streaming' && pendingReplyVisible) && (
                     <VoiceStageBubble stage={stage} />
                   )}
@@ -884,7 +903,7 @@ export function CompanionsPanel({
                     placeholder={
                       dictating ? 'Listening…' : 'Type a message, or speak…'
                     }
-                    className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
+                    className="bg-foreground/5 text-foreground min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
                   />
                   <div className="flex gap-2">
                     <Button

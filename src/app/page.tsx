@@ -318,9 +318,8 @@ function App() {
   useEffect(() => {
     return keywordListener((word) => {
       // Central log of every recognised command word, so every play mode's voice
-      // hits show up (they used to come from the old runner). Fires alongside the
-      // active panel's own handler and the "Listening for" flash — all three ride
-      // the same detection.
+      // hits show up. Fires alongside the active panel's own handler and the
+      // "Listening for" flash — all three ride the same detection.
       logRef.current(`🎙 ${word}`, 'hit');
       if (word === safeWordRef.current) {
         // The safe word: halt exactly like Stop, no reset. Routed before (and
@@ -353,8 +352,8 @@ function App() {
     });
   }, [keywordListener, navigate]);
 
-  // Top level = home + its Changes/Settings siblings, shown as the old tab
-  // strip; play mode screens get the breadcrumb instead: Home › Goon (setup),
+  // Top level = home + its Changes/Settings siblings, shown as the tab strip;
+  // play mode screens get the breadcrumb instead: Home › Goon (setup),
   // and Home › Goon › Play once a session's been generated.
   const topLevel = isTabId(screen);
   const screenBase = screen.split('/')[0]!;

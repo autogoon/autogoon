@@ -15,10 +15,6 @@
 // model's vocabulary.
 // Detections are broadcast to every registered keywordListener; a listener acts
 // on the words it owns and ignores the rest.
-//
-// The audio/model plumbing is ported verbatim from the old useKeywordSpotter
-// hook — only the way words and handlers get in has changed (registration API
-// instead of props).
 
 import {
   createContext,

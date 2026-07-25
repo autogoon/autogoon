@@ -169,3 +169,60 @@
     background-position: 0% 0;
   }
 }
+
+/*
+ * The same sweeping band as text-shimmer, laid on a hairline ring instead of
+ * the text — it marks the message a companion is speaking right now. The ring
+ * is a pseudo-element masked to its own border box (rather than a real border
+ * or a background-clip trick), because her bubble's background is translucent
+ * and anything painted behind it would show through. Shares text-shimmer's
+ * keyframes and timing so the two read as one effect; --shimmer-color follows
+ * the same convention.
+ *
+ * Kept far dimmer than text-shimmer: this sits under a whole message, where
+ * text-shimmer's contrast would pull the eye off the words.
+ */
+@utility border-shimmer {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background-image: linear-gradient(
+      100deg,
+      color-mix(in oklab, var(--shimmer-color, white) 14%, transparent) 40%,
+      color-mix(in oklab, var(--shimmer-color, white) 60%, transparent) 50%,
+      color-mix(in oklab, var(--shimmer-color, white) 14%, transparent) 60%
+    );
+    background-size: 250% 100%;
+    /* Two dials, set where the utility is used: --shimmer-duration for the
+       sweep's pace and --shimmer-strength for how present the ring is. The
+       warming-up state (her voice loading) runs slower and fainter than the
+       speaking one, so the ring visibly picks up when she starts talking. */
+    opacity: var(--shimmer-strength, 1);
+    /* Punch the fill out of the ring: paint the border box, mask away the
+       content box, leaving just the 1px edge. Longhands on purpose — the
+       `mask` shorthand resets mask-composite, and the minifier reorders it
+       after the composite declaration, which silently fills the ring in. */
+    mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+    mask-clip: content-box, border-box;
+    mask-composite: exclude;
+    -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+    -webkit-mask-clip: content-box, border-box;
+    -webkit-mask-composite: xor;
+    animation: text-shimmer var(--shimmer-duration, 2.2s) linear infinite;
+    pointer-events: none;
+  }
+
+  /* The ring is the only thing saying which message is being spoken, so it
+     stays — it just stops moving, frozen with the band at its brightest. */
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+      background-position: 50% 0;
+    }
+  }
+}
