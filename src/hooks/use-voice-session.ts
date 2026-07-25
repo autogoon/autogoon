@@ -16,6 +16,7 @@ import type { Companion } from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
 import { stripTextualToolCalls } from '@/lib/llm/textual-tool-calls';
 import { AMBIENT_CUE } from '@/lib/companions/ambient';
+import { liveStateMessage } from '@/lib/companions/shared-prompt';
 import {
   createAmbientScheduler,
   type AmbientScheduler,
@@ -112,9 +113,9 @@ export type VoiceSession = {
   // localStorage key. Button-only (no spoken word), instant, no confirm.
   clearThread: () => void;
   // The exact LLM request a turn submitted right now would send — same thread
-  // projection and system-prompt fill as submitText, including gap markers and
-  // the live {{TOY_STATUS}}/{{NOW}} values. Debug-only (the panel's request
-  // viewer); building it sends nothing.
+  // projection as submitText, including gap markers and the trailing live-state
+  // message. Debug-only (the panel's request viewer); building it sends
+  // nothing.
   previewLlmMessages: () => LlmMessage[];
   status: VoiceStatus;
   audioRef: React.RefObject<HTMLAudioElement | null>;
@@ -184,8 +185,25 @@ const WAIT_FOR_USER_TOOL: CompanionTool = {
 const threadKeyFor = (companion: Companion): string =>
   `companions:thread:${companion.id}`;
 
-// Fill a prompt's live markers: the device state at {{TOY_STATUS}} and the
-// wall clock at {{NOW}}. A prompt lacking a marker is unaffected.
+// Everything that changes between two turns, as one system message appended
+// after the thread. The persona prompt above it and the whole conversation
+// before it are then byte-identical from turn to turn, which is what prompt
+// caching needs: providers match a prefix of tokens, so a single volatile value
+// early on makes every token after it uncacheable.
+//
+// A pack may still write {{TOY_STATUS}} or {{NOW}} into its own prompt —
+// goonpacks/prompt.ts deliberately leaves those markers for this function to
+// fill — and one that does opts itself out of a cached prefix.
+const liveState = (deviceState: string): LlmMessage => ({
+  role: 'system',
+  content: liveStateMessage(
+    describeClock(Date.now()),
+    deviceState === '' ? 'unknown' : deviceState,
+  ),
+});
+
+// Fill a prompt's live markers, for a pack that placed them itself. A prompt
+// without them — every built-in — comes back untouched.
 const buildSystemPrompt = (template: string, deviceState: string): string =>
   template
     .replace('{{TOY_STATUS}}', deviceState === '' ? 'unknown' : deviceState)
@@ -338,11 +356,15 @@ export function useVoiceSession(opts: {
   // submitText would for a request sent this instant.
   const previewLlmMessages = useCallback((): LlmMessage[] => {
     const companion = companionRef.current;
-    return toLlmMessages(
-      threadRef.current,
-      buildSystemPrompt(companion.systemPrompt, getDeviceStateRef.current()),
-      companion.passesReasoning,
-    );
+    const deviceState = getDeviceStateRef.current();
+    return [
+      ...toLlmMessages(
+        threadRef.current,
+        buildSystemPrompt(companion.systemPrompt, deviceState),
+        companion.passesReasoning,
+      ),
+      liveState(deviceState),
+    ];
   }, []);
 
   // The TTS player and LLM client, created on demand. start() makes them when the
@@ -542,20 +564,25 @@ export function useVoiceSession(opts: {
         };
 
         try {
-          // Fill the live markers — the toy status (bottom of the prompt's
-          // CONTROL section, the last thing the companion reads) and the current time.
+          // Read the device once for the whole turn, so call 1 and call 2 agree
+          // about the toy even if a knob moves between them.
+          const deviceState = getDeviceStateRef.current();
           const systemPrompt = buildSystemPrompt(
             companion.systemPrompt,
-            getDeviceStateRef.current(),
+            deviceState,
           );
           const baseMessages = toLlmMessages(
             threadRef.current,
             systemPrompt,
             companion.passesReasoning,
           );
+          // The clock and the toy, last: everything above is identical to last
+          // turn's request, which is the whole point (see liveState).
+          baseMessages.push(liveState(deviceState));
           // The cue for an ambient turn rides this one request only — appended
           // to the projection rather than written to the thread, so it prompts
-          // a turn without accumulating or showing in the transcript.
+          // a turn without accumulating or showing in the transcript. After the
+          // state, so it reads as the last thing asked of them.
           if (ambient) {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
@@ -650,6 +677,7 @@ export function useVoiceSession(opts: {
               systemPrompt,
               companion.passesReasoning,
             );
+            call2.push(liveState(deviceState));
             // The reaction is the second spoken block; clear the streamed
             // pre-tool text so it streams fresh.
             setStatus((s) => ({ ...s, replyText: '' }));

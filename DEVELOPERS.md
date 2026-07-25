@@ -237,11 +237,10 @@ the entry, so there is nothing else to wire up. The fields are commented on the
 1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting the
    system prompt. Copy `aimee-prompt.ts`'s shape: interpolate the shared
    sections from `shared-prompt.ts` (each export is commented with where it
-   slots in; `CONTROL_SECTION` must come last — it ends with the `{{NOW}}` and
-   `{{TOY_STATUS}}` markers), write the companion in the **second person**, and
-   keep only what is _theirs_ in the module: character, setup, tone, and
-   disposition — crucially, **who leads** during play, which the shared blocks
-   are neutral on.
+   slots in; `CONTROL_SECTION` goes near the end), write the companion in the
+   **second person**, and keep only what is _theirs_ in the module: character,
+   setup, tone, and disposition — crucially, **who leads** during play, which
+   the shared blocks are neutral on.
 2. **Register them** — add the `COMPANIONS` entry (id, model, context window,
    voice, prompt). Give them an `autogoon.<name>` id, matching the stock
    companions. Pick an ElevenLabs `voiceId` (not a secret) and a model that
