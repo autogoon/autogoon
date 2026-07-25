@@ -3,8 +3,8 @@ name: personal-check
 description:
   Use before pushing to the public repo, before opening a PR and again before
   merging it, or after writing docs/content — scans for personal information,
-  identifying details, or content-sourcing references that shouldn't be
-  public, and checks whether any finding is already baked into git history.
+  identifying details, or content-sourcing references that shouldn't be public,
+  and checks whether any finding is already baked into git history.
 ---
 
 # Personal check
@@ -50,11 +50,13 @@ finding is not fixed until the history that contains it is rewritten.
 - **PR titles, descriptions and comments** — public the moment they're posted,
   and not in git at all, so no `git` search will ever find them. Read the body
   you wrote (`gh pr view <n> --json title,body,comments`) with the same eye as a
-  doc. Editing is **not** removal: GitHub keeps a revision history behind the
-  body's _edited_ marker, readable by anyone who can see the PR. Deleting a
-  revision is UI-only and author-only, so an edit has to be followed by "open
-  the edited dropdown and delete the revision" — say so rather than calling it
-  fixed.
+  doc. **Where an edit takes personal information out**, editing is not removal:
+  GitHub keeps a revision history behind the body's _edited_ marker, readable by
+  anyone who can see the PR. Deleting a revision is UI-only and author-only, so
+  that edit has to be followed by "open the edited dropdown and delete the
+  revision" — say so rather than calling it fixed. An edit that only adds or
+  reworks text leaves nothing in the old revision that wasn't already public, so
+  it needs no follow-up and isn't worth mentioning.
 
 ## Scope
 
