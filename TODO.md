@@ -104,6 +104,32 @@ you say you're cumming. The persona decides, so the ending stops being a setting
 and becomes something she does to you. And because she can choose, she can say
 she will without saying which.
 
+### Pick built packs up off disk in dev
+
+Iterating on a pack means: edit, `npm run goonpack:build`, open the Goonpacks
+tab, pick the zip, confirm the replace. Every time. The build is the only step
+doing anything the app couldn't do itself.
+
+On a locally-run server, have the app ask a route on load what `.zip` files are
+sitting in `goonpacks/`, and import each one exactly as though it had been
+chosen in the picker and replaced — the same `importPack` path, the same
+validation, the same storage. Reload becomes the whole loop.
+
+Deliberately not watching for changes: load-time only, and still the built zip
+rather than the source directory, so the thing imported is the thing that would
+ship. A reload is a small enough ask, and polling can come later if it isn't.
+
+**Dev-server only, and it has to be enforced server-side.** The route reads the
+developer's own filesystem, which is exactly what a deploy must not do —
+`access-check.ts` already has the `NODE_ENV === 'development'` precedent to
+follow. Also worth deciding what happens when a disk pack and an installed one
+collide, and whether a pack imported this way should be visibly marked as having
+come from disk rather than chosen.
+
+A stopgap, not the destination — [Goonpack kit](./roadmap/GOONPACK-KIT.md) is
+where authoring properly moves into the app. This is worth doing anyway because
+it's small and pays off immediately.
+
 ### Streaming per companion
 
 `stream: true` is hardcoded for every request, and on a spoken turn it buys
