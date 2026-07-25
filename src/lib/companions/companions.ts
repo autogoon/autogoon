@@ -35,6 +35,13 @@ export type Companion = {
   model: string; // OpenRouter model slug the client requests for this companion
   contextWindow: number; // model context window, in tokens (for future pruning; not yet read)
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
+  // How readily she fills a silence, 1–5, as two separate appetites: the
+  // conversational one and the one for talking over a running program. They are
+  // deliberately independent — a laconic persona can still narrate play
+  // relentlessly — and each sets its own ambient cadence (see
+  // ambientDelayMs).
+  chattiness: number; // out of play: how much she keeps a conversation going
+  playfulness: number; // during play: how much she talks over the device
   // The pictures she can send during a call — filled by an installed goonpack
   // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
   // installed: the panel then offers no send_picture tool, and her prompt gets
@@ -51,6 +58,10 @@ export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
 // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
+// Middling on both counts: a companion who fills a silence without talking over
+// you. A pack says otherwise by setting them.
+export const DEFAULT_CHATTINESS = 3;
+export const DEFAULT_PLAYFULNESS = 3;
 
 export const COMPANIONS: Record<string, Companion> = {
   'autogoon.aimee': {
@@ -65,6 +76,8 @@ export const COMPANIONS: Record<string, Companion> = {
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
+    chattiness: DEFAULT_CHATTINESS,
+    playfulness: DEFAULT_PLAYFULNESS,
   },
   'autogoon.miley': {
     id: 'autogoon.miley',
@@ -78,6 +91,8 @@ export const COMPANIONS: Record<string, Companion> = {
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
+    chattiness: DEFAULT_CHATTINESS,
+    playfulness: DEFAULT_PLAYFULNESS,
   },
 };
 

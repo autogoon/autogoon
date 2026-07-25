@@ -4,9 +4,11 @@
 // thread ownership, and an overlay is "my version of them", not a new
 // companion.
 import {
+  DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
+  DEFAULT_PLAYFULNESS,
   type Companion,
   type CompanionPicture,
 } from '@/lib/companions/companions';
@@ -52,6 +54,8 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     model: c.model ?? DEFAULT_MODEL,
     contextWindow: c.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
     passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,
+    chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
+    playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
     pictures,
   };
 }
@@ -95,6 +99,8 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     model: c.model ?? base.model,
     contextWindow: c.contextWindow ?? base.contextWindow,
     passesReasoning: c.passesReasoning ?? base.passesReasoning,
+    chattiness: c.chattiness ?? base.chattiness,
+    playfulness: c.playfulness ?? base.playfulness,
     pictures,
     systemPrompt: fill(rawPrompt, pictures),
   };
