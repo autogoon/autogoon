@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import type { VoiceStage } from '@/lib/voice/session-policy';
+import { VoiceStageBadge } from './voice-stage';
 
 // How long the enter/exit fade-zoom runs — kept in sync with the `duration-200`
 // classes below so the unmount waits for the exit animation to finish.
@@ -16,9 +18,13 @@ const LIGHTBOX_ANIM_MS = 200;
 
 export function Lightbox({
   src,
+  stage,
   onClose,
 }: {
   src: string;
+  // What the voice session is doing right now — the top-left badge. "idle"
+  // renders no badge.
+  stage: VoiceStage;
   onClose: () => void;
 }) {
   const [closing, setClosing] = useState(false);
@@ -63,6 +69,7 @@ export function Lightbox({
         closing ? 'animate-out fade-out-0' : 'animate-in fade-in-0'
       }`}
     >
+      <VoiceStageBadge stage={stage} />
       <button
         type="button"
         onClick={requestClose}

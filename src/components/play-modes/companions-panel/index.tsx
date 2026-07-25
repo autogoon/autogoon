@@ -27,9 +27,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { ChevronDown, ChevronRight, Mic, MicOff } from 'lucide-react';
+import { ChevronLeft, Menu, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/button';
-import { TabButton } from '@/components/tab-button';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
 import type { LogEntry } from '@/components/log-card';
@@ -44,9 +43,13 @@ import { useStrokeControls } from '@/hooks/use-stroke-controls';
 import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import { useVoiceSession } from '@/hooks/use-voice-session';
 import { companionList, type Companion } from '@/lib/companions/companions';
-import { sameLocalDay } from '@/lib/companions/conversation';
+import {
+  isSilentAssistantTurn,
+  sameLocalDay,
+} from '@/lib/companions/conversation';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
+import { voiceStage } from '@/lib/voice/session-policy';
 import { PackError } from '@/lib/goonpacks/manifest';
 import { resolveDefault, resolvePictureRef } from '@/lib/goonpacks/resolve';
 import {
@@ -60,15 +63,14 @@ import {
   type PackSel,
 } from './chooser-card';
 import { DateHeader } from './date-header';
-import { DebugLLMButton } from './debug-llm-button';
 import { DebugTab } from './debug-tab';
 import { JsonOverlay } from './json-overlay';
 import { Lightbox } from './lightbox';
 import { MissingPictureBubble } from './missing-picture-bubble';
 import { PictureBubble } from './picture-bubble';
+import { PlayMenu, type PlayTab } from './play-menu';
 import { RmsMeter } from './rms-meter';
-import { Spinner } from './spinner';
-import { StatRow } from './stat-row';
+import { VoiceStageBubble } from './voice-stage';
 import { ToolChip } from './tool-chip';
 
 // Fixed default knobs — the program is random within this baseline. Companions
@@ -84,12 +86,16 @@ export function CompanionsPanel({
   active,
   view,
   onEnterPlay,
+  onExitPlay,
 }: {
   vacuglide: VacuglideDeviceController;
   player: PlayerView;
   active: boolean;
   view: 'setup' | 'play';
   onEnterPlay: () => void;
+  // Back to the picker (the slim bar's < button) — locked while the program
+  // runs, same rule as the breadcrumb the play screen no longer shows.
+  onExitPlay: () => void;
 }) {
   const device = vacuglide.player;
 
@@ -506,8 +512,23 @@ export function CompanionsPanel({
   // STT results are present. The composer shows the live partial and is locked.
   const dictating = status.vadSpeaking || status.partial !== '';
 
-  // Play-view sub-tabs. Session (mic + conversation) opens first.
-  const [tab, setTab] = useState<'session' | 'controls' | 'debug'>('session');
+  // The session's live stage, shared by the lightbox badge and the
+  // transcript's stage bubble.
+  const stage = voiceStage(status);
+
+  // In-progress reply bubble: shown only until the assistant turn commits —
+  // once the thread's last non-tool turn is the assistant turn, the committed
+  // bubble replaces it, even while a spoken reply is still playing.
+  const pendingReplyVisible =
+    status.replyPlaying &&
+    status.replyText !== '' &&
+    [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
+      'assistant';
+
+  // Play-view sub-tabs, switched from the hamburger menu. Session (mic +
+  // conversation) opens first.
+  const [tab, setTab] = useState<PlayTab>('session');
+  const [menuOpen, setMenuOpen] = useState(false);
   // The LLM request viewer: the pretty-printed JSON of the exact request a
   // turn sent right now would make, or null when closed. Snapshotted on click,
   // not live — it's a "what would go out" inspector.
@@ -533,7 +554,8 @@ export function CompanionsPanel({
     });
     return headers;
   }, [status.thread]);
-  // The pinned program preview (Sparkline + Reset) is collapsed by default.
+  // The pinned program preview (Sparkline + Reset) — toggled from the
+  // hamburger menu, off by default.
   const [previewOpen, setPreviewOpen] = useState(false);
 
   // Keep the chat transcript scrolled to the newest message/streamed reply.
@@ -570,7 +592,11 @@ export function CompanionsPanel({
 
       {/* Lightbox for a sent picture — above everything, in either view. */}
       {lightboxSrc !== null && (
-        <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+        <Lightbox
+          src={lightboxSrc}
+          stage={stage}
+          onClose={() => setLightboxSrc(null)}
+        />
       )}
 
       {/* The Debug tab's LLM request viewer. */}
@@ -618,66 +644,93 @@ export function CompanionsPanel({
           </Card>
         </>
       ) : (
-        // Viewport-height column: the preview+tabs cluster is fixed height and
-        // the active tab's content flexes — so expanding the preview shrinks the
-        // conversation rather than pushing the composer off the bottom.
-        <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-3">
-          {/* Collapsible program preview, grouped tightly with the tabs. */}
-          <div className="flex shrink-0 flex-col gap-3">
-            <Card>
-              <Button
-                flash={false}
-                onClick={() => setPreviewOpen((o) => !o)}
-                aria-expanded={previewOpen}
-                // A flat disclosure row, not a boxed control.
-                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 rounded-none border-0 bg-transparent p-0 font-medium enabled:hover:bg-transparent"
-              >
-                {previewOpen ? (
-                  <ChevronDown className="size-4" />
-                ) : (
-                  <ChevronRight className="size-4" />
-                )}
-                Program preview
-              </Button>
-              {previewOpen && (
-                <div className="mt-3">
-                  <div className="mb-2 flex justify-end">
-                    <Button onClick={reset} className="py-1 text-xs">
-                      Reset
-                    </Button>
-                  </div>
-                  <Sparkline
-                    points={player.upcoming.speed}
-                    valves={player.upcoming.valves}
-                  />
-                  <div className="text-muted-foreground flex justify-between text-xs">
-                    <span>now</span>
-                    <span>+60s</span>
-                  </div>
-                </div>
+        // Viewport-height column: the slim bar (and the preview, when toggled
+        // on) is fixed height and the active tab's content flexes — so the
+        // conversation shrinks rather than the composer being pushed off the
+        // bottom. The app chrome (header, breadcrumb) is hidden on this
+        // screen (page.tsx), so this column owns the viewport.
+        <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col gap-3">
+          {/* The slim bar — all that's left of the chrome: back to the picker
+              (locked while the program runs, the breadcrumb's old rule), the
+              mic with its loudness sliver, and the hamburger. */}
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              onClick={onExitPlay}
+              disabled={player.state !== 'armed'}
+              aria-label="Back to the picker"
+              title={
+                player.state !== 'armed'
+                  ? 'Stop the session first'
+                  : 'Back to the picker'
+              }
+              className="flex items-center justify-center p-2"
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+            <div className="flex-1" />
+            {status.micOn && (
+              <div className="w-16">
+                <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
+              </div>
+            )}
+            <Button
+              onClick={() =>
+                status.micOn ? stopListening() : startListening()
+              }
+              aria-label={status.micOn ? 'Stop listening' : 'Start listening'}
+              title={status.micOn ? 'Stop listening' : 'Start listening'}
+              className={`flex shrink-0 items-center justify-center p-2 ${
+                status.micOn
+                  ? ''
+                  : 'border-blue-600 bg-blue-600 text-white enabled:hover:bg-blue-700'
+              }`}
+            >
+              {status.micOn ? (
+                <MicOff className="size-5" />
+              ) : (
+                <Mic className="size-5" />
               )}
-            </Card>
-
-            {/* Sub-tabs — the top-level nav's underline style. No badges:
-              Companions registers no vosk words. */}
-            <nav className="flex gap-6 border-b">
-              {(
-                [
-                  { id: 'session', label: 'Session' },
-                  { id: 'controls', label: 'Controls' },
-                  { id: 'debug', label: 'Debug' },
-                ] as const
-              ).map((t) => (
-                <TabButton
-                  key={t.id}
-                  active={tab === t.id}
-                  onClick={() => setTab(t.id)}
-                >
-                  {t.label}
-                </TabButton>
-              ))}
-            </nav>
+            </Button>
+            <div className="relative">
+              <Button
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="Menu"
+                aria-expanded={menuOpen}
+                className="flex items-center justify-center p-2"
+              >
+                <Menu className="size-5" />
+              </Button>
+              {menuOpen && (
+                <PlayMenu
+                  tab={tab}
+                  onSelectTab={setTab}
+                  previewOpen={previewOpen}
+                  onTogglePreview={() => setPreviewOpen((o) => !o)}
+                  onShowLlmRequest={showLlmRequest}
+                  onClose={() => setMenuOpen(false)}
+                />
+              )}
+            </div>
           </div>
+
+          {/* Program preview, when toggled on from the menu. */}
+          {previewOpen && (
+            <Card className="shrink-0">
+              <div className="mb-2 flex justify-end">
+                <Button onClick={reset} className="py-1 text-xs">
+                  Reset
+                </Button>
+              </div>
+              <Sparkline
+                points={player.upcoming.speed}
+                valves={player.upcoming.valves}
+              />
+              <div className="text-muted-foreground flex justify-between text-xs">
+                <span>now</span>
+                <span>+60s</span>
+              </div>
+            </Card>
+          )}
 
           {tab === 'controls' && (
             <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
@@ -732,45 +785,6 @@ export function CompanionsPanel({
 
           {tab === 'session' && (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              <Card className="shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <StatRow label="State">
-                      <span
-                        className={
-                          status.vadSpeaking ? 'text-emerald-500' : undefined
-                        }
-                      >
-                        {status.vadSpeaking ? 'speaking' : 'quiet'}
-                      </span>
-                    </StatRow>
-                    <RmsMeter rms={status.rms} speaking={status.vadSpeaking} />
-                  </div>
-                  <Button
-                    onClick={() =>
-                      status.micOn ? stopListening() : startListening()
-                    }
-                    aria-label={
-                      status.micOn ? 'Stop listening' : 'Start listening'
-                    }
-                    title={status.micOn ? 'Stop listening' : 'Start listening'}
-                    className={`flex shrink-0 items-center justify-center p-3 ${
-                      status.micOn
-                        ? ''
-                        : 'border-blue-600 bg-blue-600 text-white enabled:hover:bg-blue-700'
-                    }`}
-                  >
-                    {status.micOn ? (
-                      <MicOff className="size-5" />
-                    ) : (
-                      <Mic className="size-5" />
-                    )}
-                  </Button>
-                  {/* The Debug tab's LLM request viewer, in reach mid-session. */}
-                  <DebugLLMButton onClick={showLlmRequest} />
-                </div>
-              </Card>
-
               <Card title="Conversation" fill>
                 {/* Scrolling transcript — fills the space; newest at the bottom
                     (auto-scrolled via messagesRef). */}
@@ -802,6 +816,10 @@ export function CompanionsPanel({
                           <ToolChip name={turn.name} result={turn.result} />
                         );
                       }
+                    } else if (isSilentAssistantTurn(turn)) {
+                      // She called a tool without saying anything: no bubble —
+                      // the tool chip or picture that follows is the record.
+                      row = null;
                     } else {
                       row = (
                         <ChatBubble
@@ -820,39 +838,24 @@ export function CompanionsPanel({
                       </Fragment>
                     );
                   })}
-                  {/* In-progress reply: a live, dimmed companion bubble shown only until
-                  the assistant turn commits — once the thread's last turn is the
-                  assistant turn (the tail check below), the committed bubble
-                  replaces it, even while a spoken reply is still playing. */}
-                  {status.replyPlaying &&
-                    status.replyText !== '' &&
-                    [...status.thread].reverse().find((t) => t.role !== 'tool')
-                      ?.role !== 'assistant' && (
-                      <ChatBubble
-                        role="assistant"
-                        text={status.replyText}
-                        pending
-                      />
-                    )}
-                  {/* Pre-first-token gap: the existing Thinking… spinner. */}
-                  {status.replyPlaying &&
-                    status.replyText === '' &&
-                    status.replyError === null && (
-                      <div className="flex justify-start">
-                        <p className="text-muted-foreground flex min-h-6 items-center gap-2 rounded-2xl px-3 py-2 text-sm">
-                          <Spinner />
-                          Thinking…
-                        </p>
-                      </div>
-                    )}
+                  {pendingReplyVisible && (
+                    <ChatBubble
+                      role="assistant"
+                      text={status.replyText}
+                      pending
+                    />
+                  )}
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
-                  {status.awaitingSpeech && (
-                    <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
-                      <Spinner />
-                      Waiting for speech…
-                    </p>
+                  {/* Live stage as a chat-style bubble — the "other person is
+                  typing" slot, same icon vocabulary as the lightbox badge.
+                  While the reply is streaming into the pending bubble above,
+                  that bubble is the indicator, so the stage bubble stays out
+                  of the way. Replaces the old Thinking… / Waiting for speech…
+                  spinners. */}
+                  {!(stage === 'streaming' && pendingReplyVisible) && (
+                    <VoiceStageBubble stage={stage} />
                   )}
                 </div>
 

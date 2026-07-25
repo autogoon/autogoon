@@ -106,9 +106,11 @@ lists her pictures numbered, one caption each, and she picks the one that fits
 the moment by number — she chooses on the _caption_, so the vision work happens
 offline, never during play. Sending pops the picture open in a lightbox and
 leaves it in the transcript as a thumbnail, stored on the thread turn so a sent
-picture survives a reload. A companion with no pictures never sees the tool, and
-the shared pictures prompt block is only interpolated into a persona that has
-some.
+picture survives a reload. While the lightbox is open, a badge in its top corner
+shows the conversation live: you speaking, her thinking, her reply streaming in,
+her voice loading, her speaking. A companion with no pictures never sees the
+tool, and the shared pictures prompt block is only interpolated into a persona
+that has some.
 
 Pictures are **bring-your-own** — they arrive via a [goonpack](../GOONPACKS.md),
 never bundled with the app. The built-in companions ship pictureless; give one
