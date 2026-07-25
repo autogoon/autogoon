@@ -1,7 +1,7 @@
 'use client';
 
-// A picture she sent, inline in the transcript — left-aligned like her
-// bubbles. A thumbnail; click it to open the full picture in the lightbox.
+// A picture the companion sent, inline in the transcript — left-aligned like
+// their bubbles. A thumbnail; click it to open the full picture in the lightbox.
 
 import Image from 'next/image';
 

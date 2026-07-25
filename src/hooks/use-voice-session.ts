@@ -87,7 +87,7 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
-  // True while her reply audio is actually playing: set where awaitingSpeech
+  // True while the companion's reply audio is actually playing: set where awaitingSpeech
   // clears (first audio bytes), cleared when the utterance finishes or the
   // turn is cancelled/superseded. The bit replyPlaying can't give a display —
   // that flag spans the whole turn, generation included.
@@ -144,8 +144,8 @@ const IDLE_STATUS: VoiceStatus = {
 // What a worded partial needs before it is believed: either that much voicing
 // behind it, or that many words in it (see confirmSpeech — either will do).
 // Two sets because the decisions cost different things. A phantom briefly
-// showing in the composer is invisible a moment later; cutting her off
-// mid-reply for a cough is not, so barge-in asks for more voicing.
+// showing in the composer is invisible a moment later; cutting the companion
+// off mid-reply for a cough is not, so barge-in asks for more voicing.
 //
 // The voicing figures sit above a transient — the VAD's attack already discards
 // anything under 60ms — and under a spoken word, including a clipped "stop".
@@ -543,7 +543,7 @@ export function useVoiceSession(opts: {
 
         try {
           // Fill the live markers — the toy status (bottom of the prompt's
-          // CONTROL section, the last thing she reads) and the current time.
+          // CONTROL section, the last thing the companion reads) and the current time.
           const systemPrompt = buildSystemPrompt(
             companion.systemPrompt,
             getDeviceStateRef.current(),
@@ -560,7 +560,7 @@ export function useVoiceSession(opts: {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
 
-          // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
+          // Call 1 — offer the tools. The companion may speak, call a tool, or do BOTH: a
           // pre-tool line ("mm, let me get you going") and the call in one turn.
           const r1 = await runLlm(baseMessages, true, 'call-1');
           if (r1 === null) return;
@@ -569,9 +569,10 @@ export function useVoiceSession(opts: {
           let reasoning = r1.reasoning;
 
           if (r1.toolCalls.length > 0) {
-            // Speak her pre-tool line first, if she said one, BEFORE the device
-            // acts — the line plays, THEN the toy starts/changes, THEN her
-            // reaction. A barge-in here bails before anything is run or stored.
+            // Speak the pre-tool line first, if the companion said one, BEFORE
+            // the device acts — the line plays, THEN the toy starts/changes,
+            // THEN their reaction. A barge-in here bails before anything is run
+            // or stored.
             if (speak && r1.content.trim() !== '') {
               if (!(await speakText(r1.content))) return;
             }
@@ -580,8 +581,8 @@ export function useVoiceSession(opts: {
             // (content + calls + any Call-1 reasoning) then each tool result
             // linked back by id, committed together so the stored history is
             // always a valid call/result pair. This is also what later turns
-            // replay so she sees she has actually called tools before — without
-            // it she drifts back to narrating "*starting*" instead of calling.
+            // replay so the companion sees they have actually called tools before —
+            // without it they drift back to narrating "*starting*" instead of calling.
             let next = appendAssistant(
               threadRef.current,
               r1.content,
@@ -639,11 +640,11 @@ export function useVoiceSession(opts: {
               return;
             }
 
-            // Call 2 — feed the tool results back so she reacts to them in
-            // words. Rebuilt from the just-persisted thread (which now holds the
-            // tool-call turn + results), so the request and the stored history
-            // are one and the same. No tools this call: it's her spoken
-            // reaction, not a place to chain more actions.
+            // Call 2 — feed the tool results back so the companion reacts to
+            // them in words. Rebuilt from the just-persisted thread (which now
+            // holds the tool-call turn + results), so the request and the stored
+            // history are one and the same. No tools this call: it's their
+            // spoken reaction, not a place to chain more actions.
             const call2 = toLlmMessages(
               threadRef.current,
               systemPrompt,
@@ -658,9 +659,9 @@ export function useVoiceSession(opts: {
             reasoning = r2.reasoning;
           }
 
-          // Commit the (final) spoken reply — the reaction when she acted, else
-          // her plain reply. reasoning is replayed only when the companion
-          // passes it.
+          // Commit the (final) spoken reply — the reaction when the companion
+          // acted, else their plain reply. reasoning is replayed only when the
+          // companion passes it.
           if (reply.trim() !== '') {
             persistThread(
               appendAssistant(
@@ -782,9 +783,9 @@ export function useVoiceSession(opts: {
         }
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
-        // her voice leaking past AEC) doesn't interrupt her mid-sentence. It
+        // their voice leaking past AEC) doesn't interrupt them mid-sentence. It
         // asks for more voicing than the composer does — the cost of being wrong
-        // is her being cut off mid-sentence, not a word appearing and vanishing
+        // is the companion being cut off mid-sentence, not a word appearing and vanishing
         // — but it is not sticky: each partial is judged on the evidence so far,
         // so a confirmed utterance can't leave a latch set that lets the next
         // phantom through.

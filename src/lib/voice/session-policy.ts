@@ -8,8 +8,9 @@ export function shouldOpenSocket(phase: SttPhase, onset: boolean): boolean {
 
 // A barge-in cuts the companion off only once we've actually decoded speech —
 // `speechConfirmed` — not on raw mic energy. See partialHasWord: waiting for a
-// real word means a cough, a thump, or her own audio leaking past AEC no longer
-// interrupts her; the cut lands a beat later, when you're clearly talking.
+// real word means a cough, a thump, or the companion's own audio leaking past
+// AEC no longer interrupts them; the cut lands a beat later, when you're
+// clearly talking.
 export function isBargeIn(
   replyPlaying: boolean,
   speechConfirmed: boolean,
@@ -35,7 +36,7 @@ export function partialWordCount(partial: string): number {
 //
 // What it guards against is the phantom: a token the STT hallucinates from
 // near-silence ("Yes.", "No.") when a cough or a thump opens the socket, which
-// would otherwise take over the composer or cut her off mid-reply.
+// would otherwise take over the composer or cut the companion off mid-reply.
 //
 // `voicedMs` is the longest run of voicing in this utterance, NOT whether the
 // mic is live at this instant. A partial describes audio from up to a second

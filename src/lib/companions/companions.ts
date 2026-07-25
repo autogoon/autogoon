@@ -29,7 +29,7 @@ export type Companion = {
   name: string;
   description: string; // one-line blurb shown on the picker card
   gender: 'female' | 'male' | 'nonbinary'; // display-only; not currently rendered anywhere
-  accentColour: string; // her signature colour name, e.g. "pink" or "emerald"
+  accentColour: string; // their signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
@@ -42,9 +42,9 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
-  // The pictures she can send during a call — filled by an installed goonpack
+  // The pictures they can send during a call — filled by an installed goonpack
   // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
-  // installed: the panel then offers no send_picture tool, and her prompt gets
+  // installed: the panel then offers no send_picture tool, and their prompt gets
   // no picture section.
   pictures?: CompanionPicture[];
 };

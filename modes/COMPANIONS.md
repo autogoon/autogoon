@@ -10,11 +10,11 @@ commented there, so the type isn't repeated here.
 The app talks to **OpenRouter**'s OpenAI-compatible chat-completions endpoint —
 Claude and the OpenAI APIs both restrict explicit content, so neither is viable
 here. OpenRouter fronts a wide range of hosted models, so each companion can
-pick whichever model suits her persona (and swap it later) without standing up
+pick whichever model suits their persona (and swap it later) without standing up
 any infrastructure. Explicit-content suitability is a property of the **chosen
-model**, not of OpenRouter itself — a companion's model (her `model` field in
+model**, not of OpenRouter itself — a companion's model (their `model` field in
 `companions.ts`) is picked precisely because it doesn't restrict the kind of
-roleplay her persona calls for, and it calls the device tools reliably.
+roleplay their persona calls for, and it calls the device tools reliably.
 
 Calls go through the app's same-origin **`/api/llm` proxy route**, which
 forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
@@ -23,7 +23,7 @@ straight through, and the key never reaches the client.
 
 Two field-level whys worth knowing (the rest are commented on the type):
 `voiceId` and `model` aren't secrets, so they're safe in code even in a public
-repo; and because each companion carries her own `model`, different companions
+repo; and because each companion carries their own `model`, different companions
 can run entirely different models with nothing global to configure.
 
 ## One config object per companion
@@ -48,8 +48,8 @@ spoken words).
 **Time passes on a call.** Every turn is stamped when it lands, the transcript
 shows each message's time (with a date header where a new day starts), and the
 companion is told the current date and time every turn. A longer break — an hour
-away, overnight — reaches her as a stage direction ("(6 hours pass.)"), so she
-comes back to you like someone who noticed you were gone, not mid-sentence.
+away, overnight — reaches them as a stage direction ("(6 hours pass.)"), so they
+come back to you like someone who noticed you were gone, not mid-sentence.
 Conversations saved before timestamps existed simply have none: those turns show
 no times and never trigger a marker. The mechanics (the threshold, the marker
 shape) are commented in `conversation.ts`.
@@ -75,7 +75,7 @@ does to you isn't a persona's to invent.** Left to infer the hardware from the
 tool names, a model guesses — the wrong shape, the wrong sensation, sometimes
 the wrong act — and it guesses mid-scene, where the words are the whole point.
 Written once, no pack author has to know the hardware, and no companion is wrong
-about it. What stays in the persona module is only that companion: her
+about it. What stays in the persona module is only that companion: their
 character, setup, tone, and disposition (crucially, **who leads** during play —
 the shared control block is neutral on that). Personas are written in the
 **second person** ("You're 21…") so they read as one voice with the shared
@@ -90,23 +90,23 @@ and variety knobs, (for a companion with pictures) `send_picture`, and
 **the same transport and knobs the on-screen controls use** — there is one path,
 not a parallel one. The tool definitions, argument shapes, and which knob
 applies live versus regenerates are all commented in
-`companions-panel/index.tsx`. Whether she acts on a request or declines is a
-disposition written into her `systemPrompt`, not a code gate. Companions default
-to a **gentle baseline** — low intensity, light variety, a one-shot stroke-minus
-tease at session start — and she builds up from there.
+`companions-panel/index.tsx`. Whether a companion acts on a request or declines
+is a disposition written into their `systemPrompt`, not a code gate. Companions
+default to a **gentle baseline** — low intensity, light variety, a one-shot
+stroke-minus tease at session start — and build up from there.
 
-The device's **current state is folded into her system message every turn** (see
-`getDeviceState` in the panel) — so she always knows whether the toy is
-connected and running and where the knobs sit, without a status tool, and stays
-in sync even when a level is changed via the on-screen knobs rather than her own
-tools.
+The device's **current state is folded into the companion's system message every
+turn** (see `getDeviceState` in the panel) — so they always know whether the toy
+is connected and running and where the knobs sit, without a status tool, and
+stay in sync even when a level is changed via the on-screen knobs rather than
+their own tools.
 
-**Tool calls are persisted and replayed.** Her `tool_calls` and their results
-are stored on the conversation thread and replayed to the model as a proper
-agentic sequence (assistant-with-`tool_calls` → `tool` result → spoken
-reaction), so she sees her own prior actions — without which the model drifts
+**Tool calls are persisted and replayed.** A companion's `tool_calls` and the
+results they return are stored on the thread and replayed to the model as a
+proper agentic sequence (assistant-with-`tool_calls` → `tool` result → spoken
+reaction), so they see their own prior actions — without which the model drifts
 back to narrating actions instead of taking them. After a tool runs, its result
-is fed back for a **second round-trip** so she reacts in words to what happened.
+is fed back for a **second round-trip** so they react in words to what happened.
 
 ## Filling a silence
 
@@ -132,24 +132,24 @@ buy.
 ## Pictures
 
 A companion **with pictures** gets the `send_picture` tool; its description
-lists her pictures numbered, one caption each, and she picks the one that fits
-the moment by number — she chooses on the _caption_, so the vision work happens
+lists their pictures numbered, one caption each, and they pick the one that fits
+the moment by number — they choose on the _caption_, so the vision work happens
 offline, never during play. Sending pops the picture open in a lightbox and
 leaves it in the transcript as a thumbnail, stored on the thread turn so a sent
 picture survives a reload. While the lightbox is open, a badge in its top corner
-shows the conversation live: you speaking, her thinking, her reply streaming in,
-her voice loading, her speaking. A companion with no pictures never sees the
-tool, and the shared pictures prompt block is only interpolated into a persona
-that has some.
+shows the conversation live: you speaking, the companion thinking, their reply
+streaming in, their voice loading, them speaking. A companion with no pictures
+never sees the tool, and the shared pictures prompt block is only interpolated
+into a persona that has some.
 
 Pictures are **bring-your-own** — they arrive via a [goonpack](../GOONPACKS.md),
 never bundled with the app. The built-in companions ship pictureless; give one
-pictures by importing an overlay pack for her.
+pictures by importing an overlay pack for them.
 
 ## Goonpacks
 
 The Companions screen lists the built-ins alongside any packs you've imported. A
-companion's card carries pickers for her pack version and any overlay, so you
+companion's card carries pickers for their pack version and any overlay, so you
 choose exactly what plays; pack admin — importing, removing, seeing what each
 pack brings — lives on the Goonpacks tab. See [GOONPACKS.md](../GOONPACKS.md)
 for assembling and importing a pack.

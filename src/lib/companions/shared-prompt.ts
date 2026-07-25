@@ -11,7 +11,7 @@
 // it holds whether the call is voice- or video-only, because either way the
 // only thing the model produces is what the companion says. It bans
 // stage-direction (describing yourself from the outside) but explicitly allows
-// candid spoken talk — a companion telling him out loud what she's doing is
+// candid spoken talk — a companion telling him out loud what they're doing is
 // speech, not narration, and stays in bounds. It ends with the rule and no
 // trailing newline: each persona appends its OWN WRONG/RIGHT examples in its
 // own voice, so the illustrations don't drag every companion toward one tone.
@@ -43,7 +43,7 @@ export const SHARED_STYLE_BULLETS = `- Convey everything — mood, reactions, te
 
 // A one-bullet summary of the two knobs — intensity and variety — in plain,
 // in-character language, for a persona to drop into its INTIMACY section so the
-// vocabulary is introduced before her disposition bullets lean on it. Distinct
+// vocabulary is introduced before its disposition bullets lean on it. Distinct
 // from CONTROL_SECTION below: this is the in-scene framing ("the user has a toy
 // you can control"), that is the mechanical discipline (use the tool, trust TOY
 // STATUS). Persona-neutral, starts with "- " and no trailing newline so it sits
@@ -53,11 +53,11 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
   teases** him (mixing up the pace, easing off into slow dips before climbing
   again) from off through low, medium, high.`;
 
-// The picture ability, for a companion who can send photos of herself. Shared
+// The picture ability, for a companion who can send photos of themselves. Shared
 // and persona-neutral so any companion can opt in, but only interpolated into
-// the prompt of one who actually has pictures. She sends a photo by calling the
-// send_picture tool, whose schema lists the pictures she has and what each
-// shows, so this block only has to tell her the ability exists and when to reach
+// the prompt of one who actually has pictures. They send a photo by calling the
+// send_picture tool, whose schema lists the pictures they have and what each
+// shows, so this block only has to tell them the ability exists and when to reach
 // for it. Starts with a header, ends with no trailing newline (the prompt places
 // CONTROL_SECTION after it, which must be last for the TOY STATUS marker).
 export const PICTURES_SECTION = `PICTURES:

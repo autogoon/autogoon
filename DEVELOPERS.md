@@ -234,21 +234,22 @@ the entry, so there is nothing else to wire up. The fields are commented on the
 `Companion` type in
 [`src/lib/companions/companions.ts`](./src/lib/companions/companions.ts).
 
-1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting her
+1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting the
    system prompt. Copy `aimee-prompt.ts`'s shape: interpolate the shared
    sections from `shared-prompt.ts` (each export is commented with where it
    slots in; `CONTROL_SECTION` must come last — it ends with the `{{NOW}}` and
-   `{{TOY_STATUS}}` markers), write her in the **second person**, and keep only
-   what is _her_ in the module: character, setup, tone, and disposition —
-   crucially, **who leads** during play, which the shared blocks are neutral on.
-2. **Register her** — add the `COMPANIONS` entry (id, model, context window,
-   voice, prompt). Give her an `autogoon.<name>` id, matching the stock
+   `{{TOY_STATUS}}` markers), write the companion in the **second person**, and
+   keep only what is _theirs_ in the module: character, setup, tone, and
+   disposition — crucially, **who leads** during play, which the shared blocks
+   are neutral on.
+2. **Register them** — add the `COMPANIONS` entry (id, model, context window,
+   voice, prompt). Give them an `autogoon.<name>` id, matching the stock
    companions. Pick an ElevenLabs `voiceId` (not a secret) and a model that
    suits the persona — explicit-content suitability and reliable tool-calling
-   are properties of the model, so test hers before settling. She ships
-   **pictureless**, like the other built-ins — pictures reach her via an
-   [overlay goonpack](./GOONPACKS.md), not the repo.
+   are properties of the model, so test the one you choose before settling. The
+   new companion ships **pictureless**, like the other built-ins — pictures
+   reach them via an [overlay goonpack](./GOONPACKS.md), not the repo.
 3. **Test** — the registry test already enforces id = record key for every
-   entry; add a config `describe` block for her alongside Aimee's and Miley's
+   entry; add a config `describe` block for them alongside Aimee's and Miley's
    (`src/lib/companions/companions.test.ts`).
 4. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).

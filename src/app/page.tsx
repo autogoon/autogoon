@@ -88,7 +88,7 @@ const PLAY_MODES = [
     id: 'companions',
     label: 'Companions',
     description:
-      'Pick a companion and talk — she listens, replies in her own voice, and you can cut in any time.',
+      'Pick a companion and talk — they listen, reply in their own voice, and you can cut in any time.',
     icon: MessagesSquare,
     iconClass: 'text-emerald-500',
     accent: 'emerald',

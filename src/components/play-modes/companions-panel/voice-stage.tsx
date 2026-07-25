@@ -2,8 +2,8 @@
 
 // The voice session's live stage (voiceStage), rendered two ways: a chunky
 // badge pinned to the top-left of the lightbox, and a chat-style bubble in the
-// conversation transcript — the "other person is typing" slot, her stages on
-// her side and Listening on yours, wearing ChatBubble's colours. Both share
+// conversation transcript — the "other person is typing" slot, the companion's
+// stages on their side and Listening on yours, wearing ChatBubble's colours. Both share
 // one icon + word per stage and a text shimmer (globals.css), and render
 // nothing when idle.
 
@@ -46,7 +46,7 @@ export function VoiceStageBadge({ stage }: { stage: VoiceStage }) {
 }
 
 export function VoiceStageBubble({ stage }: { stage: VoiceStage }) {
-  // Once her reply exists, it is the status: the transcript rings that bubble
+  // Once the companion's reply exists, it is the status: the transcript rings that bubble
   // instead (ChatBubble's `voice`), so a row here would say the same thing
   // twice. Everything earlier — listening, thinking, replying — has no message
   // on screen yet and still needs one. The lightbox badge keeps all stages: an
@@ -54,7 +54,7 @@ export function VoiceStageBubble({ stage }: { stage: VoiceStage }) {
   if (stage === 'idle' || stage === 'tts' || stage === 'speaking') return null;
   const { icon: Icon, word } = STAGES[stage];
   // Listening is the user's own speech streaming in, so it sits on the user's
-  // side of the chat; every other stage is hers.
+  // side of the chat; every other stage is the companion's.
   const isUser = stage === 'listening';
   return (
     <div

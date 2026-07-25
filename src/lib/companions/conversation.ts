@@ -12,7 +12,7 @@ export type ThreadTurn =
   | { role: 'user'; content: string; at?: number }
   // reasoningDetails holds OpenRouter's opaque reasoning_details, captured from
   // the stream and replayed verbatim; we never inspect its shape. toolCalls is
-  // set on the turn where she called a tool (start/stop) — its content is
+  // set on the turn where the companion called a tool (start/stop) — its content is
   // usually empty, the calls are the payload.
   | {
       role: 'assistant';
@@ -24,7 +24,7 @@ export type ThreadTurn =
   // A tool result, linked to the assistant tool-call turn before it by
   // toolCallId. name is display-only (the transcript chip); result is both the
   // chip text and what we feed back to the model. Unlike before, these ARE
-  // replayed to the LLM (see toLlmMessages) so she sees her own prior tool use.
+  // replayed to the LLM (see toLlmMessages) so the companion sees their own prior tool use.
   // imageSrc is set only for a picture-sending tool (send_picture): it's the
   // picture the transcript renders inline and the lightbox opens. It's display-
   // only — never sent to the model (only `result` is) — and persists with the
@@ -146,12 +146,12 @@ export function sameLocalDay(a: number, b: number): boolean {
 // turns carry reasoning_details ONLY when passesReasoning is true (reasoning
 // models); a non-reasoning companion never emits the field. Assistant tool-call
 // turns and the tool results that answer them are replayed as a valid agentic
-// sequence — this is what keeps her calling tools instead of narrating them:
-// she sees she has actually called them before.
+// sequence — this is what keeps the companion calling tools instead of narrating
+// them: they see they have actually called them before.
 //
 // Time awareness: when both sides of a gap are stamped and the gap clears
 // GAP_MARKER_MIN_MS, a system stage direction — "(2 hours pass.)" — is inserted
-// so she knows he went away. Only before user turns: a marker can never split
+// so the companion knows he went away. Only before user turns: a marker can never split
 // an assistant tool-call from its result, and a gap only ever means the user
 // stepped away. The stored thread is untouched; markers exist per-request.
 export function toLlmMessages(

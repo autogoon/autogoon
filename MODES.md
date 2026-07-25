@@ -10,6 +10,6 @@ The ways a session can run. Each play mode has its own doc under
 - [Autopilot](modes/AUTOPILOT.md) — a faithful recreation of Autoblow's own
   Vacuglide autopilot.
 - [Companions](modes/COMPANIONS.md) — talk to an AI companion who rides along
-  and drives the toy herself.
+  and drives the toy themselves.
 
 Play-mode candidates that don't exist yet live in the [roadmap](./ROADMAP.md).
