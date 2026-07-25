@@ -2,6 +2,15 @@
 
 ## 2026-07-25
 
+- bug: **Your words reach the message box** — What you were saying often failed
+  to appear as you said it, especially when you spoke briefly or quietly: the
+  app checked whether the microphone heard voice at the moment the transcript
+  came back, by which point you had usually stopped. A transcript is now
+  believed on the evidence of the speech that produced it — how long you were
+  audible for, or simply carrying more than one word — so it shows up as you
+  talk. Interrupting her works on short interjections too, which previously
+  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+
 - enhancement: **Steadier message box while you talk** — The box no longer
   flickered between "Listening…" and its normal placeholder as you spoke,
   swapping what it showed with it. It now settles the moment you start talking
@@ -34,6 +43,17 @@
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
+
+- internal: **The voice session shows its working** — The event log gains the
+  VAD's onset/offset edges with each run's measured length, and an unconfirmed
+  partial now reports the evidence it was judged on rather than just the
+  verdict. Kept in permanently: the edges are otherwise invisible, and they
+  don't measure what they appear to — quiet speech dips under the offset
+  threshold repeatedly, so "Thank you, honey." was credited 80ms of voicing.
+  Without that number on screen the cause is indistinguishable from a wrong
+  threshold. The line is also no longer called a phantom, which is a conclusion
+  and frequently the wrong one.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - internal: **The STT socket says why it died** — Server error messages and any
   websocket close we didn't initiate now reach the event log with their close
