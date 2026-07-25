@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
 // Mirrors the Vacuglide cloud API as a React hook: connection, raw commands,
 // live device state, and a log of every command sent to the device. Knows
 // nothing about the play modes — those consume this via getDevice.
 // https://developers.autoblow.com/reference/http-api-v1-vacuglide/
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   RATE_LIMIT,
   VacuglideDevice,
   type RateLimitStatus,
-} from "@/lib/vacuglide-device";
-import { Player } from "@/lib/player";
+} from '@/lib/vacuglide-device';
+import { Player } from '@/lib/player';
 
-const TOKEN_STORAGE_KEY = "vacuglideToken";
+const TOKEN_STORAGE_KEY = 'vacuglideToken';
 
 // The saved device token, read straight from storage — lets the app decide at
 // startup whether to route to Settings (no token) before the hook mounts.
 export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
-export type LogKind = "send" | "error" | "info" | "hit";
+export type LogKind = 'send' | 'error' | 'info' | 'hit';
 
 export interface CommandLogEntry {
   id: number;
@@ -31,24 +31,24 @@ export interface CommandLogEntry {
   kind: LogKind;
 }
 
-export type DeviceStatusKind = "idle" | "ok" | "error";
+export type DeviceStatusKind = 'idle' | 'ok' | 'error';
 
 function timestamp(): string {
   return new Date().toLocaleTimeString(undefined, { hour12: false });
 }
 
 export function useVacuglideDevice() {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
-  const [deviceStatus, setDeviceStatus] = useState("Not connected");
+  const [deviceStatus, setDeviceStatus] = useState('Not connected');
   const [deviceStatusKind, setDeviceStatusKind] =
-    useState<DeviceStatusKind>("idle");
+    useState<DeviceStatusKind>('idle');
   // Ground-truth device state, refreshed from every command's response.
   const [deviceSpeed, setDeviceSpeed] = useState(0);
   const [strokePlusValve, setStrokePlusValve] = useState(false);
   const [strokeMinusValve, setStrokeMinusValve] = useState(false);
-  const [operationalMode, setOperationalMode] = useState("");
+  const [operationalMode, setOperationalMode] = useState('');
   const [logEntries, setLogEntries] = useState<CommandLogEntry[]>([]);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus>({
     used: 0,
@@ -65,7 +65,7 @@ export function useVacuglideDevice() {
   const playerRef = useRef<Player | null>(null);
   playerRef.current ??= new Player({
     getDevice: () => deviceRef.current,
-    onError: (message) => log(`error: ${message}`, "error"),
+    onError: (message) => log(`error: ${message}`, 'error'),
   });
   const player = playerRef.current;
 
@@ -86,7 +86,7 @@ export function useVacuglideDevice() {
     return () => clearInterval(id);
   }, []);
 
-  const log = useCallback((text: string, kind: LogKind = "info") => {
+  const log = useCallback((text: string, kind: LogKind = 'info') => {
     logIdRef.current += 1;
     const entry: CommandLogEntry = {
       id: logIdRef.current,
@@ -104,14 +104,14 @@ export function useVacuglideDevice() {
       const device = deviceRef.current;
       if (device !== null && device.cluster !== null && player.isPlaying) {
         void fetch(`${device.cluster}/vacuglide/target-speed/stop`, {
-          method: "PUT",
-          headers: { "x-device-token": device.token },
+          method: 'PUT',
+          headers: { 'x-device-token': device.token },
           keepalive: true,
         }).catch(() => undefined);
       }
     };
-    window.addEventListener("pagehide", onPageHide);
-    return () => window.removeEventListener("pagehide", onPageHide);
+    window.addEventListener('pagehide', onPageHide);
+    return () => window.removeEventListener('pagehide', onPageHide);
   }, [player]);
 
   // Stable accessor so consumers (e.g. the autopilot engine) always reach the
@@ -121,14 +121,14 @@ export function useVacuglideDevice() {
   const connectWithToken = useCallback(
     async (rawToken: string): Promise<boolean> => {
       const trimmed = rawToken.trim();
-      if (trimmed === "") {
-        setDeviceStatus("Enter a device token");
-        setDeviceStatusKind("error");
+      if (trimmed === '') {
+        setDeviceStatus('Enter a device token');
+        setDeviceStatusKind('error');
         return false;
       }
       setConnecting(true);
-      setDeviceStatus("Connecting…");
-      setDeviceStatusKind("idle");
+      setDeviceStatus('Connecting…');
+      setDeviceStatusKind('idle');
       try {
         const device = new VacuglideDevice(trimmed, log);
         const info = await device.connect();
@@ -142,11 +142,11 @@ export function useVacuglideDevice() {
         localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
         setDeviceStatus(
           `Connected — fw ${info.firmwareVersion} (${info.firmwareBranch}), ` +
-            `cluster ${(device.cluster ?? "").replace("https://", "")}`,
+            `cluster ${(device.cluster ?? '').replace('https://', '')}`,
         );
-        setDeviceStatusKind("ok");
+        setDeviceStatusKind('ok');
         setConnected(true);
-        log("device connected", "send");
+        log('device connected', 'send');
         // Seed the status indicators with the device's current state.
         device.getState().catch(() => undefined);
         return true;
@@ -156,9 +156,9 @@ export function useVacuglideDevice() {
         setDeviceSpeed(0);
         setStrokePlusValve(false);
         setStrokeMinusValve(false);
-        setOperationalMode("");
+        setOperationalMode('');
         setDeviceStatus((err as Error).message);
-        setDeviceStatusKind("error");
+        setDeviceStatusKind('error');
         return false;
       } finally {
         setConnecting(false);
@@ -184,7 +184,7 @@ export function useVacuglideDevice() {
     const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
     if (stored !== null) {
       setToken(stored);
-      if (stored.trim() !== "") void connectWithToken(stored);
+      if (stored.trim() !== '') void connectWithToken(stored);
     }
   }, [connectWithToken]);
 
@@ -198,20 +198,20 @@ export function useVacuglideDevice() {
   // drive the device directly — a delayed set falls back to a timer.
   const valveSet = useCallback(
     (
-      valve: "plus" | "minus",
+      valve: 'plus' | 'minus',
       state: boolean,
       inMs: number,
     ): Promise<unknown> => {
       if (player.isPlaying) {
-        player.insertEvent({ kind: "valve", valve, open: state }, inMs);
+        player.insertEvent({ kind: 'valve', valve, open: state }, inMs);
         return Promise.resolve();
       }
       const device = deviceRef.current;
       if (device === null) {
-        return Promise.reject(new Error("No device connected"));
+        return Promise.reject(new Error('No device connected'));
       }
       const send = () =>
-        valve === "plus"
+        valve === 'plus'
           ? device.valveStrokePlusSet(state)
           : device.valveStrokeMinusSet(state);
       if (inMs === 0) return send();
@@ -224,13 +224,13 @@ export function useVacuglideDevice() {
 
   const valvePlus = useCallback(
     (state: boolean, inMs = 0): Promise<unknown> =>
-      valveSet("plus", state, inMs),
+      valveSet('plus', state, inMs),
     [valveSet],
   );
 
   const valveMinus = useCallback(
     (state: boolean, inMs = 0): Promise<unknown> =>
-      valveSet("minus", state, inMs),
+      valveSet('minus', state, inMs),
     [valveSet],
   );
 

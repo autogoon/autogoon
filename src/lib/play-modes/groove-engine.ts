@@ -7,9 +7,9 @@ import {
   type PlayModeEngine,
   type SpeedEvent,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
-export type VariabilityLevel = "off" | "low" | "medium" | "high";
+export type VariabilityLevel = 'off' | 'low' | 'medium' | 'high';
 
 // How much a leg's duration can be randomly shortened, per level.
 const TIMING_PERCENT: Record<VariabilityLevel, number> = {
@@ -120,7 +120,7 @@ function buildLeg(
 function toSpeedEvents(
   waypoints: Array<{ speed: number; at: number }>,
 ): SpeedEvent[] {
-  return waypoints.map((w) => ({ kind: "speed", at: w.at, speed: w.speed }));
+  return waypoints.map((w) => ({ kind: 'speed', at: w.at, speed: w.speed }));
 }
 
 // One dip. The floor is drawn once here, not per leg, so the down-leg and the
@@ -251,8 +251,8 @@ export class GrooveEngine implements PlayModeEngine {
   ): ValveEvent[] {
     if (this.cumming) {
       return [
-        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
-        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
+        { kind: 'valve', at: fromTime + 3000, valve: 'minus', open: true },
+        { kind: 'valve', at: fromTime + 12000, valve: 'minus', open: false },
       ];
     }
     return [];
@@ -271,15 +271,15 @@ export class GrooveEngine implements PlayModeEngine {
       speed >= CUMMING_MID_SPEED;
       speed -= 1.5
     ) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     events.push({
-      kind: "speed",
+      kind: 'speed',
       at: at + 1_800_000,
       speed: 0,
       unscaled: true,

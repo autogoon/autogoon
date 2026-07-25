@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A plain <button> with an optional voice command, plus a "flash" highlight
 // that lights the control up from two triggers, one look: pressing it (the
@@ -12,11 +12,11 @@
 // tailwind-merge, so a caller states only its differences (a louder fill, a
 // different size) and inherits the rest.
 
-import type { ComponentProps } from "react";
-import { twMerge } from "tailwind-merge";
-import { CONTROL_BUTTON } from "@/components/controls";
-import { useKeywordFlash } from "@/components/keyword-spotter";
-import { VoiceCommandChip } from "@/components/voice-command-chip";
+import type { ComponentProps } from 'react';
+import { twMerge } from 'tailwind-merge';
+import { CONTROL_BUTTON } from '@/components/controls';
+import { useKeywordFlash } from '@/components/keyword-spotter';
+import { VoiceCommandChip } from '@/components/voice-command-chip';
 
 // The flash ring: applied on press via the `active:` variant (every button), and
 // added directly while a badge's voice word is in the flashing set. The ring is a
@@ -26,9 +26,9 @@ import { VoiceCommandChip } from "@/components/voice-command-chip";
 // Exported for the odd voice control that isn't a button (Goon's after-play
 // checkboxes) so a voice hit looks the same everywhere.
 export const RING =
-  "relative z-10 ring-2 ring-foreground ring-offset-2 ring-offset-background";
+  'relative z-10 ring-2 ring-foreground ring-offset-2 ring-offset-background';
 export const ACTIVE_RING =
-  "active:relative active:z-10 active:ring-2 active:ring-foreground active:ring-offset-2 active:ring-offset-background";
+  'active:relative active:z-10 active:ring-2 active:ring-foreground active:ring-offset-2 active:ring-offset-background';
 
 export function Button({
   voiceCommand,
@@ -36,11 +36,11 @@ export function Button({
   className,
   children,
   ...props
-}: ComponentProps<"button"> & { voiceCommand?: string; flash?: boolean }) {
+}: ComponentProps<'button'> & { voiceCommand?: string; flash?: boolean }) {
   const flashing = useKeywordFlash();
   // Some controls carry their own "activated" signal (the tabs restyle the
   // selected tab), so they opt out of the press/voice flash with flash={false}.
-  const activeRing = flash ? ACTIVE_RING : "";
+  const activeRing = flash ? ACTIVE_RING : '';
 
   if (voiceCommand === undefined) {
     return (
@@ -54,7 +54,7 @@ export function Button({
   }
 
   // The voice flash merges AFTER className so a custom look never disables it.
-  const voiceFlash = flash && flashing.has(voiceCommand) ? RING : "";
+  const voiceFlash = flash && flashing.has(voiceCommand) ? RING : '';
   return (
     <button
       {...props}

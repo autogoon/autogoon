@@ -3,7 +3,7 @@ import {
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
   CONTROL_SECTION,
-} from "./shared-prompt";
+} from './shared-prompt';
 
 // Aimee's persona — the character, setup and disposition that make her sound
 // like herself, written in the second person (you/your) so it reads as one

@@ -10,16 +10,16 @@ import {
   statSync,
   writeFileSync,
   type Dirent,
-} from "node:fs";
-import { join, dirname } from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
-import { zipSync } from "fflate";
-import { PackError } from "../src/lib/goonpacks/manifest";
-import { parsePack } from "../src/lib/goonpacks/pack";
+} from 'node:fs';
+import { join, dirname } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { zipSync } from 'fflate';
+import { PackError } from '../src/lib/goonpacks/manifest';
+import { parsePack } from '../src/lib/goonpacks/pack';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const packsDir = join(root, "goonpacks");
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const packsDir = join(root, 'goonpacks');
 
 // Per-pack status lines: green for a clean build, red for errors. Plain when
 // piped.
@@ -33,7 +33,7 @@ try {
   entries = readdirSync(packsDir, { withFileTypes: true });
 } catch {
   console.error(
-    "no goonpacks/ directory — put pack sources in goonpacks/<dir>/",
+    'no goonpacks/ directory — put pack sources in goonpacks/<dir>/',
   );
   process.exit(1);
 }
@@ -45,7 +45,7 @@ for (const entry of entries) {
   // A directory without a manifest isn't a pack source — skip it quietly;
   // everything else is parsePack's to judge.
   try {
-    statSync(join(dir, "manifest.json"));
+    statSync(join(dir, 'manifest.json'));
   } catch {
     console.warn(`skipping ${entry.name}: no manifest.json`);
     continue;
@@ -54,17 +54,17 @@ for (const entry of entries) {
   const add = (rel: string) => {
     files[rel] = new Uint8Array(readFileSync(join(dir, rel)));
   };
-  add("manifest.json");
+  add('manifest.json');
   try {
-    statSync(join(dir, "system-prompt.md"));
-    add("system-prompt.md");
+    statSync(join(dir, 'system-prompt.md'));
+    add('system-prompt.md');
   } catch {
     /* overlays may have no prompt */
   }
   try {
-    for (const f of readdirSync(join(dir, "pictures")).sort()) {
-      if (f === ".DS_Store") continue;
-      add(join("pictures", f));
+    for (const f of readdirSync(join(dir, 'pictures')).sort()) {
+      if (f === '.DS_Store') continue;
+      add(join('pictures', f));
     }
   } catch {
     /* no pictures dir */
@@ -78,7 +78,7 @@ for (const entry of entries) {
         ? e.problems
         : [e instanceof Error ? e.message : String(e)];
     const n = problems.length;
-    console.error(red(`${entry.name}: ${n} error${n === 1 ? "" : "s"}`));
+    console.error(red(`${entry.name}: ${n} error${n === 1 ? '' : 's'}`));
     for (const p of problems) console.error(`  ${p}`);
     process.exitCode = 1;
     continue; // invalid — don't write a zip that can't import

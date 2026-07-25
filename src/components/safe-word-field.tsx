@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The safe word editor — input + Test button — shared by the Settings screen
 // and any play mode setup view that surfaces it (Goon). The saved word is
@@ -12,16 +12,16 @@
 // recognition setting, via the spotter's exclusive slot), so a word that
 // fails the test is genuinely unusable, not just drowned out.
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { LoaderCircle } from "lucide-react";
-import { Button } from "@/components/button";
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { LoaderCircle } from 'lucide-react';
+import { Button } from '@/components/button';
 import {
   CONTROL_BORDER,
   CONTROL_BUTTON,
   CONTROL_INPUT,
-} from "@/components/controls";
-import { useKeywordSpotter } from "@/components/keyword-spotter";
+} from '@/components/controls';
+import { useKeywordSpotter } from '@/components/keyword-spotter';
 
 export function SafeWordField({
   safeWord,
@@ -49,8 +49,8 @@ export function SafeWordField({
   const commit = () => {
     const word = sanitize(draft);
     if (word === null) {
-      setInvalid(draft.trim() !== "");
-      setDraft(draft.trim() === "" ? safeWord : draft);
+      setInvalid(draft.trim() !== '');
+      setDraft(draft.trim() === '' ? safeWord : draft);
       return;
     }
     setInvalid(false);
@@ -67,7 +67,7 @@ export function SafeWordField({
         instantly.
       </p>
       <p>
-        Some end-of-play options will deliberately ignore{" "}
+        Some end-of-play options will deliberately ignore{' '}
         <span className="text-foreground">stop</span> — the safe word always
         works, so it&rsquo;s how you halt those if you need to.
       </p>
@@ -82,7 +82,7 @@ export function SafeWordField({
           }}
           onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === 'Enter') e.currentTarget.blur();
           }}
           aria-label="Safe word"
           spellCheck={false}
@@ -152,7 +152,7 @@ function SafeWordTestModal({
   }, [keywordListener, word]);
 
   useEffect(
-    () => partialListener((text) => setHearing(text.trim() !== "")),
+    () => partialListener((text) => setHearing(text.trim() !== '')),
     [partialListener],
   );
 
@@ -172,7 +172,7 @@ function SafeWordTestModal({
         ) : (
           <>
             <p className="text-muted-foreground text-sm">
-              Say <code className="text-foreground font-semibold">{word}</code>{" "}
+              Say <code className="text-foreground font-semibold">{word}</code>{' '}
               now…
             </p>
             <div className="flex h-7 items-center justify-center">
@@ -181,7 +181,7 @@ function SafeWordTestModal({
               ) : (
                 <p
                   className={`text-lg font-bold text-emerald-500 transition-opacity duration-300 ${
-                    lit ? "opacity-100" : "opacity-20"
+                    lit ? 'opacity-100' : 'opacity-20'
                   }`}
                 >
                   ✓ Recognised

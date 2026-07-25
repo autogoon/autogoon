@@ -3,11 +3,11 @@
 // sends the companion's model itself; the route injects only the API key
 // server-side, and the proxy is unauthenticated for the local experiment.
 // openai-node needs an ABSOLUTE baseURL — see createLlmClient for how that's built.
-import OpenAI from "openai";
-import { ACCESS_HEADER, getAccessId } from "@/lib/companions/access";
+import OpenAI from 'openai';
+import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type LlmMessage = {
-  role: "system" | "user" | "assistant" | "tool";
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   reasoningDetails?: unknown[]; // assistant only; mapped to reasoning_details
   toolCalls?: ToolCall[]; // assistant only; the calls it made (for the reaction turn)
@@ -22,12 +22,12 @@ export type LlmUsage = { completionTokens: number };
 // or a map of named arguments — a string-enum (variety) or a bounded integer
 // (intensity's percent) — with a `required` list.
 export type ToolParameterSchema = {
-  type: "object";
+  type: 'object';
   properties: Record<
     string,
-    | { type: "string"; enum: string[]; description?: string }
+    | { type: 'string'; enum: string[]; description?: string }
     | {
-        type: "integer";
+        type: 'integer';
         minimum?: number;
         maximum?: number;
         description?: string;
@@ -36,7 +36,7 @@ export type ToolParameterSchema = {
   required?: string[];
 };
 export type RequestTool = {
-  type: "function";
+  type: 'function';
   function: {
     name: string;
     description: string;
@@ -79,12 +79,12 @@ type DeltaExtras = {
 };
 type AssembledCall = ToolCall & { index: number };
 type OutgoingMessage = {
-  role: LlmMessage["role"];
+  role: LlmMessage['role'];
   content: string;
   reasoning_details?: unknown[];
   tool_calls?: {
     id: string;
-    type: "function";
+    type: 'function';
     function: { name: string; arguments: string };
   }[];
   tool_call_id?: string;
@@ -94,18 +94,18 @@ type OutgoingMessage = {
 // tool_calls (the reaction turn's history), and tool-role messages carry the
 // result of one call keyed by tool_call_id.
 function toOutgoing(m: LlmMessage): OutgoingMessage {
-  if (m.role === "tool") {
-    return { role: "tool", content: m.content, tool_call_id: m.toolCallId };
+  if (m.role === 'tool') {
+    return { role: 'tool', content: m.content, tool_call_id: m.toolCallId };
   }
   const out: OutgoingMessage = { role: m.role, content: m.content };
-  if (m.role === "assistant") {
+  if (m.role === 'assistant') {
     if (m.reasoningDetails !== undefined) {
       out.reasoning_details = m.reasoningDetails;
     }
     if (m.toolCalls !== undefined && m.toolCalls.length > 0) {
       out.tool_calls = m.toolCalls.map((tc) => ({
         id: tc.id,
-        type: "function",
+        type: 'function',
         function: { name: tc.name, arguments: tc.arguments },
       }));
     }
@@ -118,14 +118,14 @@ function toOutgoing(m: LlmMessage): OutgoingMessage {
 // shape ({type, text, index}) — confirmed against live MiniMax output.
 function mergeReasoning(acc: ReasoningEntry[], deltas: ReasoningEntry[]): void {
   for (const d of deltas) {
-    const idx = typeof d.index === "number" ? d.index : acc.length;
+    const idx = typeof d.index === 'number' ? d.index : acc.length;
     const existing = acc.find((e) => e.index === idx);
     if (existing === undefined) {
       acc.push({ ...d, index: idx });
     } else {
       const text =
-        (typeof existing.text === "string" ? existing.text : "") +
-        (typeof d.text === "string" ? d.text : "");
+        (typeof existing.text === 'string' ? existing.text : '') +
+        (typeof d.text === 'string' ? d.text : '');
       Object.assign(existing, d, { index: idx, text });
     }
   }
@@ -135,15 +135,15 @@ function mergeReasoning(acc: ReasoningEntry[], deltas: ReasoningEntry[]): void {
 // are folded — id/name taken as they arrive, arguments concatenated.
 function mergeToolCalls(acc: AssembledCall[], deltas: ToolCallDelta[]): void {
   for (const d of deltas) {
-    const idx = typeof d.index === "number" ? d.index : acc.length;
+    const idx = typeof d.index === 'number' ? d.index : acc.length;
     let call = acc.find((c) => c.index === idx);
     if (call === undefined) {
-      call = { index: idx, id: "", name: "", arguments: "" };
+      call = { index: idx, id: '', name: '', arguments: '' };
       acc.push(call);
     }
-    if (typeof d.id === "string") call.id = d.id;
-    if (typeof d.function?.name === "string") call.name = d.function.name;
-    if (typeof d.function?.arguments === "string") {
+    if (typeof d.id === 'string') call.id = d.id;
+    if (typeof d.function?.name === 'string') call.name = d.function.name;
+    if (typeof d.function?.arguments === 'string') {
       call.arguments += d.function.arguments;
     }
   }
@@ -154,12 +154,12 @@ export function createLlmClient(model: string): LlmClient {
   // client actually runs — that's the page origin; the fallback just keeps it
   // constructable under the node test env, where the SDK call is mocked.
   const baseURL =
-    typeof window !== "undefined"
+    typeof window !== 'undefined'
       ? `${window.location.origin}/api/llm`
-      : "http://localhost/api/llm";
+      : 'http://localhost/api/llm';
   const client = new OpenAI({
     baseURL,
-    apiKey: "unused", // proxy is unauthenticated locally; not a real secret
+    apiKey: 'unused', // proxy is unauthenticated locally; not a real secret
     dangerouslyAllowBrowser: true, // we intentionally run in the browser, next to the device
   });
 

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
 // The session controls shown at the top of each play mode panel — Start / Stop /
 // Reset. Driven by the Player's state: while playing it's a single Stop; while
 // armed or paused it's Start + Reset side by side. Start needs the device
 // connected first.
 
-import type { PlayerState } from "@/lib/program";
-import { Button } from "@/components/button";
+import type { PlayerState } from '@/lib/program';
+import { Button } from '@/components/button';
 
 export function SessionControls({
   state,
@@ -31,7 +31,7 @@ export function SessionControls({
   stopDisabled?: boolean;
   stopDisabledTitle?: string;
 }) {
-  if (state === "playing") {
+  if (state === 'playing') {
     return (
       <Button
         onClick={onStop}
@@ -49,8 +49,8 @@ export function SessionControls({
     <Button
       onClick={onStart}
       disabled={!connected}
-      title={!connected ? "Connect the device first" : undefined}
-      className={`${showReset ? "flex-1" : "w-full"} rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50`}
+      title={!connected ? 'Connect the device first' : undefined}
+      className={`${showReset ? 'flex-1' : 'w-full'} rounded-lg bg-blue-600 py-3.5 text-lg font-bold text-white disabled:opacity-50`}
       voiceCommand="start"
     >
       Start

@@ -1,21 +1,21 @@
-import { Gauge, Mic, MicOff, Plug } from "lucide-react";
-import { Button } from "@/components/button";
-import { CONTROL_BORDER } from "@/components/controls";
-import type { KeywordSpotter } from "@/components/keyword-spotter";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { Gauge, Mic, MicOff, Plug } from 'lucide-react';
+import { Button } from '@/components/button';
+import { CONTROL_BORDER } from '@/components/controls';
+import type { KeywordSpotter } from '@/components/keyword-spotter';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 
 // The shared control look (see controls.ts), compacted for the header row
 // (py-1.5). No border colour here — each chip picks exactly one below.
 const chipClass =
-  "flex items-center gap-1.5 rounded-lg border bg-secondary/50 px-3 py-1.5 text-sm disabled:opacity-50";
+  'flex items-center gap-1.5 rounded-lg border bg-secondary/50 px-3 py-1.5 text-sm disabled:opacity-50';
 
 function ValvePill({ label, open }: { label: string; open: boolean }) {
   return (
     <span
       className={`rounded px-1.5 py-0.5 text-xs font-medium tabular-nums ${
         open
-          ? "border border-cyan-500 bg-cyan-500/15 text-cyan-500"
-          : "text-muted-foreground/50 border border-transparent"
+          ? 'border border-cyan-500 bg-cyan-500/15 text-cyan-500'
+          : 'text-muted-foreground/50 border border-transparent'
       }`}
     >
       {label}
@@ -55,7 +55,7 @@ export function HeaderBar({
           disabled={!kws.modelReady || kws.starting}
           className={`${chipClass} ${
             kws.listening
-              ? "border-emerald-500 text-emerald-500"
+              ? 'border-emerald-500 text-emerald-500'
               : CONTROL_BORDER
           }`}
         >
@@ -66,10 +66,10 @@ export function HeaderBar({
           )}
           <span className="hidden sm:inline">
             {kws.starting === true
-              ? "Starting…"
+              ? 'Starting…'
               : kws.listening === true
-                ? "Listening"
-                : "Listen"}
+                ? 'Listening'
+                : 'Listen'}
           </span>
         </Button>
 
@@ -81,19 +81,19 @@ export function HeaderBar({
             // Exactly one border colour (see controls.ts): connected wins,
             // then error, then the default control border.
             vacuglide.connected
-              ? "border-emerald-500 text-emerald-500"
-              : vacuglide.deviceStatusKind === "error"
-                ? "border-destructive text-destructive"
+              ? 'border-emerald-500 text-emerald-500'
+              : vacuglide.deviceStatusKind === 'error'
+                ? 'border-destructive text-destructive'
                 : CONTROL_BORDER
           }`}
         >
           <Plug className="size-4" />
           <span className="hidden sm:inline">
             {vacuglide.connected
-              ? "Connected"
+              ? 'Connected'
               : vacuglide.connecting
-                ? "Connecting…"
-                : "Connect"}
+                ? 'Connecting…'
+                : 'Connect'}
           </span>
         </Button>
       </div>

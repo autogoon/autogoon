@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A small inline "in progress" spinner for the pending LLM / TTS states.
 

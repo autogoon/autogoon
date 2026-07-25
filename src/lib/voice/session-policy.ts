@@ -1,9 +1,9 @@
 // Pure decisions for the STT socket lifecycle and barge-in, kept out of the
 // effectful socket/audio code so they can be unit-tested.
-export type SttPhase = "closed" | "connecting" | "open" | "closing";
+export type SttPhase = 'closed' | 'connecting' | 'open' | 'closing';
 
 export function shouldOpenSocket(phase: SttPhase, onset: boolean): boolean {
-  return onset && phase === "closed";
+  return onset && phase === 'closed';
 }
 
 export function shouldCloseSocket(
@@ -12,7 +12,7 @@ export function shouldCloseSocket(
   nowMs: number,
   timeoutMs: number,
 ): boolean {
-  return phase === "open" && nowMs - lastVoiceAtMs >= timeoutMs;
+  return phase === 'open' && nowMs - lastVoiceAtMs >= timeoutMs;
 }
 
 // A barge-in cuts the companion off only once we've actually decoded speech —

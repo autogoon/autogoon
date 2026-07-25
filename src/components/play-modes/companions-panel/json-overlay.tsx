@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 // Near-fullscreen overlay showing the Debug tab's LLM request JSON. The
 // Lightbox's shell (backdrop, ✕, Escape) without the animation machinery — a
 // debug view doesn't need the polish.
 
-import { useEffect } from "react";
-import { X } from "lucide-react";
+import { useEffect } from 'react';
+import { X } from 'lucide-react';
 
 export function JsonOverlay({
   json,
@@ -16,10 +16,10 @@ export function JsonOverlay({
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (
     <div

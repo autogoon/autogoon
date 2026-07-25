@@ -5,12 +5,12 @@ import {
   expect,
   it,
   jest,
-} from "@jest/globals";
+} from '@jest/globals';
 import {
   RATE_LIMIT,
   VacuglideDevice,
   type VacuglideState,
-} from "./vacuglide-device";
+} from './vacuglide-device';
 
 // The device's fixed-window rate-limit accounting: RATE_LIMIT requests per
 // minute, with the whole counter resetting at once when the window expires
@@ -18,20 +18,20 @@ import {
 // vacuglide-device.ts).
 
 const STATE: VacuglideState = {
-  operationalMode: "cloud",
+  operationalMode: 'cloud',
   localScript: 0,
   targetSpeed: 0,
   strokePlusValve: false,
   strokeMinusValve: false,
   syncScriptCurrentTime: 0,
   syncScriptOffsetTime: 0,
-  syncScriptToken: "",
+  syncScriptToken: '',
   syncScriptLoop: false,
 };
 
-const T0 = new Date("2026-01-01T00:00:00Z");
+const T0 = new Date('2026-01-01T00:00:00Z');
 
-describe("VacuglideDevice rate-limit accounting", () => {
+describe('VacuglideDevice rate-limit accounting', () => {
   const realFetch = globalThis.fetch;
 
   beforeEach(() => {
@@ -48,12 +48,12 @@ describe("VacuglideDevice rate-limit accounting", () => {
   });
 
   const connectedDevice = (): VacuglideDevice => {
-    const device = new VacuglideDevice("test-token");
-    device.cluster = "https://cluster.test";
+    const device = new VacuglideDevice('test-token');
+    device.cluster = 'https://cluster.test';
     return device;
   };
 
-  it("reports an untouched window before any request", () => {
+  it('reports an untouched window before any request', () => {
     expect(connectedDevice().rateLimitStatus()).toEqual({
       used: 0,
       remaining: RATE_LIMIT,
@@ -62,7 +62,7 @@ describe("VacuglideDevice rate-limit accounting", () => {
     });
   });
 
-  it("counts requests and counts down to the window reset", async () => {
+  it('counts requests and counts down to the window reset', async () => {
     const device = connectedDevice();
     await device.getState();
     await device.getState();
@@ -76,7 +76,7 @@ describe("VacuglideDevice rate-limit accounting", () => {
     });
   });
 
-  it("resets the whole window at once when it expires", async () => {
+  it('resets the whole window at once when it expires', async () => {
     const device = connectedDevice();
     await device.getState();
 
@@ -89,7 +89,7 @@ describe("VacuglideDevice rate-limit accounting", () => {
     });
   });
 
-  it("starts a fresh window with the first request after expiry", async () => {
+  it('starts a fresh window with the first request after expiry', async () => {
     const device = connectedDevice();
     await device.getState();
 

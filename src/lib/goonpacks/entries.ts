@@ -6,9 +6,9 @@
 // Versions coexist: every id+version is its own stored pack, so an entry
 // carries two option lists — base versions and overlay versions — matching
 // the card's two selects. Newest first in both, by alphanumeric version sort.
-import { companionList, type Companion } from "@/lib/companions/companions";
-import type { PackManifest } from "./manifest";
-import { packToCompanion } from "./resolve";
+import { companionList, type Companion } from '@/lib/companions/companions';
+import type { PackManifest } from './manifest';
+import { packToCompanion } from './resolve';
 
 // Zip-level facts the manifest can't tell, derived at load/import from the
 // parsed pack (pictures count, prompt presence).
@@ -21,9 +21,9 @@ export type LoadedPack = { manifest: PackManifest; summary: PackSummary };
 // id@version ("@" can't appear in an id, so the split is unambiguous).
 export const packKey = (m: { id: string; version: string }): string =>
   `${m.id}@${m.version}`;
-export const keyId = (key: string): string => key.split("@")[0]!;
+export const keyId = (key: string): string => key.split('@')[0]!;
 export const keyVersion = (key: string): string =>
-  key.slice(key.indexOf("@") + 1);
+  key.slice(key.indexOf('@') + 1);
 
 // Newest first. Versions are free text the app never interprets — beyond
 // this alphanumeric sort ("1.10" after "1.9", digits compared as numbers).
@@ -32,7 +32,7 @@ export const newestFirst = (a: string, b: string): number =>
 
 // The overridable slots a variant can change — the chooser's feature line
 // bolds exactly these.
-export type VariantSlot = "pictures" | "prompt" | "voice" | "colour" | "model";
+export type VariantSlot = 'pictures' | 'prompt' | 'voice' | 'colour' | 'model';
 
 // One selectable pack version — an option in the card's base or overlay
 // select. key null = the built-in herself (the base select's only option on
@@ -55,18 +55,18 @@ export type LibraryEntry = {
   overlays: PackOption[]; // newest first per overlay; none = no select
 };
 
-export const publisher = (id: string) => id.split(".")[0]!;
+export const publisher = (id: string) => id.split('.')[0]!;
 
 // Which slots an overlay changes, from its manifest + zip summary.
 function changedSlots(p: LoadedPack): VariantSlot[] {
   const out: VariantSlot[] = [];
   if (p.summary.pictures > 0 || p.manifest.noPictures === true) {
-    out.push("pictures");
+    out.push('pictures');
   }
-  if (p.summary.hasPrompt) out.push("prompt");
-  if (p.manifest.companion.voiceId !== undefined) out.push("voice");
-  if (p.manifest.companion.accentColour !== undefined) out.push("colour");
-  if (p.manifest.companion.model !== undefined) out.push("model");
+  if (p.summary.hasPrompt) out.push('prompt');
+  if (p.manifest.companion.voiceId !== undefined) out.push('voice');
+  if (p.manifest.companion.accentColour !== undefined) out.push('colour');
+  if (p.manifest.companion.model !== undefined) out.push('model');
   return out;
 }
 
@@ -121,7 +121,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
     bases: [
       {
         key: null,
-        label: "default",
+        label: 'default',
         pictures: c.pictures?.length ?? 0,
         changed: [],
       },

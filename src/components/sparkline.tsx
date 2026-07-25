@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A glanceable sparkline of the upcoming speed over a fixed time window: a step
 // line, save for the closely-spaced points of a sampled ramp (see SMOOTH_GAP_MS).
@@ -9,8 +9,8 @@
 // mapped to the absolute 0..max axis (green = idle, red = full), so the same
 // speed is always the same colour regardless of the pattern's range.
 
-import { useId } from "react";
-import type { CurvePoint, ValveMarker } from "@/lib/program";
+import { useId } from 'react';
+import type { CurvePoint, ValveMarker } from '@/lib/program';
 
 // viewBox units. preserveAspectRatio="none" stretches these to the container; the
 // stroke stays crisp via vector-effect and the gradient is vertical so the
@@ -25,7 +25,7 @@ const VALVE_GAP = 2;
 const VALVE_LANE_H = 3;
 const VIEW_H = SPEED_H + VALVE_GAP + VALVE_LANE_H;
 const VALVE_MIN_W = 0.6; // keep very short pulses visible after horizontal squash
-const VALVE_COLOUR = { minus: "#ef4444", plus: "#22c55e" } as const;
+const VALVE_COLOUR = { minus: '#ef4444', plus: '#22c55e' } as const;
 
 // The device holds each speed until the next event, so the honest drawing of the
 // curve is a step line. But an engine ramping between two speeds samples that ramp
@@ -55,7 +55,7 @@ export function Sparkline({
   // Pair each valve's open → close into a drawable span. A dangling open (close
   // is beyond the window) runs to the window end; a close with no open in-window
   // means the valve was already open at t=0, so the span starts there.
-  const spans: Array<{ from: number; to: number; valve: "plus" | "minus" }> =
+  const spans: Array<{ from: number; to: number; valve: 'plus' | 'minus' }> =
     [];
   const openAt: { plus: number | null; minus: number | null } = {
     plus: null,
@@ -69,14 +69,14 @@ export function Sparkline({
       openAt[v.valve] = null;
     }
   }
-  for (const valve of ["plus", "minus"] as const) {
+  for (const valve of ['plus', 'minus'] as const) {
     const from = openAt[valve];
     if (from !== null) spans.push({ from, to: domainT, valve });
   }
 
   // Step path: hold each speed until the next point's time, then jump — except
   // across a gap short enough to be a sampled ramp, which is drawn as one line.
-  let line = "";
+  let line = '';
   points.forEach((p, i) => {
     const px = x(p.t);
     const py = y(p.speed);
@@ -93,13 +93,13 @@ export function Sparkline({
   const area =
     last !== undefined && first !== undefined
       ? `${line} L ${x(last.t)} ${SPEED_H} L ${x(first.t)} ${SPEED_H} Z`
-      : "";
+      : '';
 
   return (
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="none"
-      className={`h-[67px] w-full ${className ?? ""}`}
+      className={`h-[67px] w-full ${className ?? ''}`}
       aria-hidden="true"
     >
       <defs>
@@ -118,7 +118,7 @@ export function Sparkline({
           <stop offset="100%" stopColor="#22c55e" />
         </linearGradient>
       </defs>
-      {area !== "" && (
+      {area !== '' && (
         <path
           d={area}
           fill={`url(#${gradientId})`}
@@ -132,7 +132,7 @@ export function Sparkline({
         stroke={`url(#${gradientId})`}
         strokeWidth={2}
         strokeLinejoin="round"
-        style={{ vectorEffect: "non-scaling-stroke" }}
+        style={{ vectorEffect: 'non-scaling-stroke' }}
       />
       {spans.map((s) => {
         const rx = x(s.from);

@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
 // Setup card: what `cumming` does. Tick any number of outcomes; the engine
 // picks one at random at the cumming point, so you never know which you'll
 // get. At least one must be ticked before Play (the panel gates on it). All
 // but the wind-down ignore Stop once started — the safe word is the way out.
 
-import { RING } from "@/components/button";
-import { Card } from "@/components/card";
-import { useKeywordFlash } from "@/components/keyword-spotter";
-import type { AfterPlayOption } from "@/lib/play-modes/goon-engine";
+import { RING } from '@/components/button';
+import { Card } from '@/components/card';
+import { useKeywordFlash } from '@/components/keyword-spotter';
+import type { AfterPlayOption } from '@/lib/play-modes/goon-engine';
 
 // The spoken word that toggles each outcome. Single words on purpose — the
 // recognizer fires per word, so the labels' phrases ("wind down", "stay in")
 // wouldn't match. The panel declares the Commands from this map.
 export const AFTER_PLAY_WORDS: Record<AfterPlayOption, string> = {
-  "wind-down": "gentle",
-  torture: "torture",
-  "stay-in": "stay",
-  eject: "eject",
+  'wind-down': 'gentle',
+  torture: 'torture',
+  'stay-in': 'stay',
+  eject: 'eject',
 };
 
 const OPTIONS: Array<{
@@ -27,28 +27,28 @@ const OPTIONS: Array<{
   ignoresVoice: boolean;
 }> = [
   {
-    option: "wind-down",
-    label: "Wind-down",
-    description: "A slow, comfortable glide down to a standstill.",
+    option: 'wind-down',
+    label: 'Wind-down',
+    description: 'A slow, comfortable glide down to a standstill.',
     ignoresVoice: false,
   },
   {
-    option: "torture",
-    label: "Torture",
-    description: "Straight to full speed and held there.",
+    option: 'torture',
+    label: 'Torture',
+    description: 'Straight to full speed and held there.',
     ignoresVoice: true,
   },
   {
-    option: "stay-in",
-    label: "Ruin: stay in",
-    description: "Stops dead.",
+    option: 'stay-in',
+    label: 'Ruin: stay in',
+    description: 'Stops dead.',
     ignoresVoice: true,
   },
   {
-    option: "eject",
-    label: "Ruin: eject",
+    option: 'eject',
+    label: 'Ruin: eject',
     description:
-      "Pushes you out — note it might take a few seconds, so you might want to say cumming earlier, which might change your experience with other options enabled at the same time.",
+      'Pushes you out — note it might take a few seconds, so you might want to say cumming earlier, which might change your experience with other options enabled at the same time.',
     ignoresVoice: true,
   },
 ];
@@ -65,12 +65,12 @@ export function AfterPlayCard({
   return (
     <Card title="After-play">
       <p>
-        What happens when you say{" "}
+        What happens when you say{' '}
         <span className="bg-background text-muted-foreground rounded border px-1 py-0.5 font-mono text-[10px] leading-none">
           cumming
-        </span>{" "}
+        </span>{' '}
         — picked at random from the ticked outcomes. Say an outcome&apos;s word
-        to tick or untick it. Anything that ignores{" "}
+        to tick or untick it. Anything that ignores{' '}
         <span className="text-foreground">stop</span> still answers to the safe
         word.
       </p>
@@ -79,7 +79,7 @@ export function AfterPlayCard({
           <label
             key={option}
             className={`flex cursor-pointer items-baseline gap-3 rounded ${
-              flashing.has(AFTER_PLAY_WORDS[option]) ? RING : ""
+              flashing.has(AFTER_PLAY_WORDS[option]) ? RING : ''
             }`}
           >
             <input

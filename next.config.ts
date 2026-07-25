@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { NextConfig } from "next";
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Reach the dev server from another device on your network (HMR etc.):
@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   // origin comes from the gitignored .env (see .env.example), keeping
   // machine-specific config out of the repo.
   allowedDevOrigins:
-    process.env.DEV_ALLOWED_ORIGINS?.split(",").map((s) => s.trim()) ?? [],
+    process.env.DEV_ALLOWED_ORIGINS?.split(',').map((s) => s.trim()) ?? [],
 
   // Build stamp, so the running app can show what's live (see the Info card in
   // Settings). On Vercel the VERCEL_GIT_* vars are injected automatically;
@@ -17,14 +17,14 @@ const nextConfig: NextConfig = {
   // var, so we make one here — this file is evaluated at build time, freezing
   // the value into the bundle.
   env: {
-    NEXT_PUBLIC_GIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "dev",
-    NEXT_PUBLIC_GIT_REF: process.env.VERCEL_GIT_COMMIT_REF ?? "dev",
+    NEXT_PUBLIC_GIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
+    NEXT_PUBLIC_GIT_REF: process.env.VERCEL_GIT_COMMIT_REF ?? 'dev',
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
     // The changelog rides along the same way: frozen into the bundle at build
     // time, rendered by the Changelog screen (src/lib/changelog.ts parses it).
     NEXT_PUBLIC_CHANGELOG: readFileSync(
-      join(process.cwd(), "CHANGELOG.md"),
-      "utf8",
+      join(process.cwd(), 'CHANGELOG.md'),
+      'utf8',
     ),
   },
 };

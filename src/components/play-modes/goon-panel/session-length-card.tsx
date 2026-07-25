@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
 // Setup card: how long the Goon build runs. One setup concern per card, shown
 // only until Play. The card is display + slider; its voice words (`shorter` /
 // `longer`) are declared by the panel, which owns the length state.
 
-import { Card } from "@/components/card";
-import { Slider } from "@/components/slider";
+import { Card } from '@/components/card';
+import { Slider } from '@/components/slider';
 
 export const MIN_SESSION_MINUTES = 10;
 export const MAX_SESSION_MINUTES = 120;
@@ -32,7 +32,7 @@ export function SessionLengthCard({
         onChange={onChange}
       />
       <p className="text-muted-foreground mt-2 text-sm">
-        The build scales to fit — a shorter session ramps harder. Say{" "}
+        The build scales to fit — a shorter session ramps harder. Say{' '}
         <code>shorter</code> / <code>longer</code> to step it.
       </p>
     </Card>

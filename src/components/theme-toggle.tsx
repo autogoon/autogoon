@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
-import { Button } from "@/components/button";
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { Button } from '@/components/button';
 
 const OPTIONS = [
-  { value: "light", icon: Sun },
-  { value: "dark", icon: Moon },
-  { value: "system", icon: Monitor },
+  { value: 'light', icon: Sun },
+  { value: 'dark', icon: Moon },
+  { value: 'system', icon: Monitor },
 ] as const;
 
 export function ThemeToggle() {
@@ -30,8 +30,8 @@ export function ThemeToggle() {
           onClick={() => setTheme(value)}
           className={`rounded-md p-1.5 ${
             theme === value
-              ? "bg-secondary text-secondary-foreground"
-              : "text-muted-foreground hover:bg-accent"
+              ? 'bg-secondary text-secondary-foreground'
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
           <Icon className="size-4" />

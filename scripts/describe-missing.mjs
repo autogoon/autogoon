@@ -13,10 +13,10 @@
 //
 //   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
-import process from "node:process";
-import { readdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import process from 'node:process';
+import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   describeImage,
   sidecarPath,
@@ -24,12 +24,12 @@ import {
   green,
   yellow,
   dim,
-} from "./describe-image.mjs";
+} from './describe-image.mjs';
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const goonpacksDir = join(root, "goonpacks");
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const goonpacksDir = join(root, 'goonpacks');
 
 // Every goonpack image with no (non-empty) sidecar description yet, sorted.
 function missingImages() {
@@ -37,14 +37,14 @@ function missingImages() {
   if (!existsSync(goonpacksDir)) return out;
   for (const entry of readdirSync(goonpacksDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const dir = join(goonpacksDir, entry.name, "pictures");
+    const dir = join(goonpacksDir, entry.name, 'pictures');
     if (!existsSync(dir)) continue;
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
       const txt = sidecarPath(image);
       const described =
-        existsSync(txt) && readFileSync(txt, "utf8").trim() !== "";
+        existsSync(txt) && readFileSync(txt, 'utf8').trim() !== '';
       if (!described) out.push(image);
     }
   }
@@ -53,7 +53,7 @@ function missingImages() {
 
 const images = missingImages();
 if (images.length === 0) {
-  console.log("All goonpack images already have descriptions.");
+  console.log('All goonpack images already have descriptions.');
   process.exit(0);
 }
 
@@ -69,7 +69,7 @@ let failed = 0;
 for (const image of images) {
   console.log(yellow(image));
   try {
-    let picture = "";
+    let picture = '';
     const { caption, observations } = await describeImage(image, {
       onStep: (s) => console.log(dim(s)),
       onImage: (b64) => {
@@ -77,10 +77,10 @@ for (const image of images) {
       },
     });
     writeFileSync(sidecarPath(image), `${caption}\n`);
-    if (observations !== "") console.log(dim(observations));
+    if (observations !== '') console.log(dim(observations));
     console.log(green(caption));
-    if (picture !== "") console.log(picture);
-    console.log("");
+    if (picture !== '') console.log(picture);
+    console.log('');
     described += 1;
   } catch (e) {
     console.error(`✗ ${e instanceof Error ? e.message : String(e)}\n`);

@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
 // The play view's Debug tab: STT state, latency metrics, the LLM request
 // viewer's trigger, and the event/command logs. Only rendered while the tab
 // is open, so the churning `status` prop costs nothing the rest of the time.
 
-import { Card } from "@/components/card";
-import { LogCard, type LogEntry } from "@/components/log-card";
-import { RateLimitMeter } from "@/components/rate-limit-meter";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import type { VoiceStatus } from "@/hooks/use-voice-session";
-import { DebugLLMButton } from "./debug-llm-button";
-import { EventLog } from "./event-log";
-import { StatRow } from "./stat-row";
+import { Card } from '@/components/card';
+import { LogCard, type LogEntry } from '@/components/log-card';
+import { RateLimitMeter } from '@/components/rate-limit-meter';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
+import type { VoiceStatus } from '@/hooks/use-voice-session';
+import { DebugLLMButton } from './debug-llm-button';
+import { EventLog } from './event-log';
+import { StatRow } from './stat-row';
 
 export function DebugTab({
   status,
@@ -34,7 +34,7 @@ export function DebugTab({
         <div className="mt-2">
           <p className="min-h-6">
             <span className="text-muted-foreground">finished </span>
-            {status.committed !== "" ? (
+            {status.committed !== '' ? (
               status.committed
             ) : (
               <span className="text-muted-foreground">—</span>
@@ -42,7 +42,7 @@ export function DebugTab({
           </p>
           <p className="min-h-6">
             <span className="text-muted-foreground">partial </span>
-            {status.partial !== "" ? (
+            {status.partial !== '' ? (
               <span className="text-muted-foreground">{status.partial}</span>
             ) : (
               <span className="text-muted-foreground">—</span>
@@ -62,7 +62,7 @@ export function DebugTab({
             </StatRow>
             <StatRow label="Throughput">
               {status.metrics.llm.tps === null
-                ? "—"
+                ? '—'
                 : `${status.metrics.llm.tps.toFixed(1)} tok/s`}
             </StatRow>
             <StatRow label="Total">
@@ -77,7 +77,7 @@ export function DebugTab({
           <>
             <StatRow label="First audio">
               {status.metrics.tts.ttfbMs === null
-                ? "—"
+                ? '—'
                 : `${Math.round(status.metrics.tts.ttfbMs)} ms`}
             </StatRow>
             <StatRow label="Total">

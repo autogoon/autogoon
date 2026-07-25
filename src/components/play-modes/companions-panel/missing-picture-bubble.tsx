@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A picture from a pack that isn't loaded right now — never substitute.
 

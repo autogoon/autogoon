@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 // A picture she sent, inline in the transcript — left-aligned like her
 // bubbles. A thumbnail; click it to open the full picture in the lightbox.
 
-import Image from "next/image";
+import Image from 'next/image';
 
 export function PictureBubble({
   src,

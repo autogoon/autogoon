@@ -5,9 +5,9 @@
 // dev server — where the paid routes are open — this validates real ids only,
 // so the Settings access box remains a genuine test of the gate. Dev's
 // always-visible home card comes from page.tsx, not from here.
-import { checkAccessId } from "@/lib/companions/access-check";
+import { checkAccessId } from '@/lib/companions/access-check';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(request: Request): Promise<Response> {
   const ok = checkAccessId(request);

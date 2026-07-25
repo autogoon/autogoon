@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Companions voice-session orchestrator: ties the mic, STT socket, LLM client
 // and TTS player into the barge-in loop, with one AbortController per companion
@@ -11,24 +11,24 @@
 // no unit test (the pure lifecycle/barge-in decisions live in session-policy.ts
 // and are unit-tested there); the wiring is exercised by driving the panel.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Companion } from "@/lib/companions/companions";
-import { toRequestTools, type CompanionTool } from "@/lib/companions/tools";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Companion } from '@/lib/companions/companions';
+import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
 import {
   createLlmClient,
   type LlmClient,
   type LlmMessage,
   type ToolCall,
-} from "@/lib/llm/client";
-import { startMic, type MicHandle } from "@/lib/voice/mic";
-import { createStt, type Stt } from "@/lib/voice/stt";
-import { createTtsPlayer, type TtsPlayer } from "@/lib/voice/tts";
+} from '@/lib/llm/client';
+import { startMic, type MicHandle } from '@/lib/voice/mic';
+import { createStt, type Stt } from '@/lib/voice/stt';
+import { createTtsPlayer, type TtsPlayer } from '@/lib/voice/tts';
 import {
   isBargeIn,
   partialHasWord,
   shouldOpenSocket,
   type SttPhase,
-} from "@/lib/voice/session-policy";
+} from '@/lib/voice/session-policy';
 import {
   appendAssistant,
   appendTool,
@@ -39,7 +39,7 @@ import {
   toLlmMessages,
   type Thread,
   type ThreadTurn,
-} from "@/lib/companions/conversation";
+} from '@/lib/companions/conversation';
 
 export type TurnMetrics = {
   llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
@@ -95,14 +95,14 @@ export type VoiceSession = {
 
 const IDLE_STATUS: VoiceStatus = {
   micOn: false,
-  phase: "closed",
+  phase: 'closed',
   vadSpeaking: false,
   rms: 0,
   preRollFrames: 0,
-  partial: "",
-  committed: "",
+  partial: '',
+  committed: '',
   replyPlaying: false,
-  replyText: "",
+  replyText: '',
   replyError: null,
   metrics: { llm: null, tts: null },
   awaitingSpeech: false,
@@ -121,8 +121,8 @@ const threadKeyFor = (companion: Companion): string =>
 // wall clock at {{NOW}}. A prompt lacking a marker is unaffected.
 const buildSystemPrompt = (template: string, deviceState: string): string =>
   template
-    .replace("{{TOY_STATUS}}", deviceState === "" ? "unknown" : deviceState)
-    .replace("{{NOW}}", describeClock(Date.now()));
+    .replace('{{TOY_STATUS}}', deviceState === '' ? 'unknown' : deviceState)
+    .replace('{{NOW}}', describeClock(Date.now()));
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
@@ -158,9 +158,9 @@ export function useVoiceSession(opts: {
   const toolsRef = useRef<CompanionTool[]>(opts?.tools ?? []);
   toolsRef.current = opts?.tools ?? [];
   const getDeviceStateRef = useRef<() => string>(
-    opts?.getDeviceState ?? (() => ""),
+    opts?.getDeviceState ?? (() => ''),
   );
-  getDeviceStateRef.current = opts?.getDeviceState ?? (() => "");
+  getDeviceStateRef.current = opts?.getDeviceState ?? (() => '');
   const onToolRunRef = useRef<
     ((name: string, result: string) => void) | undefined
   >(opts?.onToolRun);
@@ -284,7 +284,7 @@ export function useVoiceSession(opts: {
   const submitText = useCallback(
     (text: string, opts?: { speak?: boolean }): void => {
       const prompt = text.trim();
-      if (prompt === "") return;
+      if (prompt === '') return;
       const clients = ensureClients();
       if (clients === null) return;
       const { tts, llm } = clients;
@@ -302,7 +302,7 @@ export function useVoiceSession(opts: {
       turnRef.current = controller;
       setStatus((s) => ({
         ...s,
-        replyText: "",
+        replyText: '',
         replyError: null,
         metrics: { llm: null, tts: null },
         awaitingSpeech: false,
@@ -322,14 +322,14 @@ export function useVoiceSession(opts: {
           reasoning: unknown[] | undefined;
           toolCalls: ToolCall[];
         } | null> => {
-          let content = "";
+          let content = '';
           let reasoning: unknown[] | undefined;
           let toolCalls: ToolCall[] = [];
           let completionTokens: number | null = null;
           const start = performance.now();
           let ttftMs: number | null = null;
           let deltas = 0;
-          onLogRef.current?.(`LLM ${label}: request sent`, "send");
+          onLogRef.current?.(`LLM ${label}: request sent`, 'send');
           for await (const delta of llm.stream(messages, {
             signal: controller.signal,
             tools: withTools ? toRequestTools(toolsRef.current) : undefined,
@@ -346,13 +346,13 @@ export function useVoiceSession(opts: {
             if (controller.signal.aborted || turnRef.current !== controller) {
               onLogRef.current?.(
                 `LLM ${label}: aborted after ${deltas} delta(s)`,
-                "info",
+                'info',
               );
               return null;
             }
             if (ttftMs === null) {
               ttftMs = performance.now() - start;
-              onLogRef.current?.(`LLM ${label}: first token`, "recv");
+              onLogRef.current?.(`LLM ${label}: first token`, 'recv');
             }
             deltas += 1;
             content += delta;
@@ -362,13 +362,13 @@ export function useVoiceSession(opts: {
           if (controller.signal.aborted || turnRef.current !== controller) {
             onLogRef.current?.(
               `LLM ${label}: aborted at stream end (${deltas} delta(s))`,
-              "info",
+              'info',
             );
             return null;
           }
           onLogRef.current?.(
             `LLM ${label}: complete — ${deltas} delta(s), ${content.length} char(s), ${toolCalls.length} tool call(s)`,
-            "recv",
+            'recv',
           );
           if (ttftMs !== null) {
             const ttft = ttftMs;
@@ -429,7 +429,7 @@ export function useVoiceSession(opts: {
 
           // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
           // pre-tool line ("mm, let me get you going") and the call in one turn.
-          const r1 = await runLlm(baseMessages, true, "call-1");
+          const r1 = await runLlm(baseMessages, true, 'call-1');
           if (r1 === null) return;
 
           let reply = r1.content;
@@ -439,7 +439,7 @@ export function useVoiceSession(opts: {
             // Speak her pre-tool line first, if she said one, BEFORE the device
             // acts — the line plays, THEN the toy starts/changes, THEN her
             // reaction. A barge-in here bails before anything is run or stored.
-            if (speak && r1.content.trim() !== "") {
+            if (speak && r1.content.trim() !== '') {
               if (!(await speakText(r1.content))) return;
             }
 
@@ -466,7 +466,7 @@ export function useVoiceSession(opts: {
                 const parsed: unknown = call.arguments
                   ? JSON.parse(call.arguments)
                   : {};
-                if (parsed !== null && typeof parsed === "object") {
+                if (parsed !== null && typeof parsed === 'object') {
                   args = parsed as Record<string, unknown>;
                 }
               } catch {
@@ -475,10 +475,10 @@ export function useVoiceSession(opts: {
               // run() returns either the result string or a { result, imageSrc }
               // object (send_picture): normalise to both. imageSrc rides onto
               // the tool turn for rendering; only `result` is fed to the model.
-              const raw = tool === undefined ? "unknown tool" : tool.run(args);
-              const result = typeof raw === "string" ? raw : raw.result;
+              const raw = tool === undefined ? 'unknown tool' : tool.run(args);
+              const result = typeof raw === 'string' ? raw : raw.result;
               const imageSrc =
-                typeof raw === "string" ? undefined : raw.imageSrc;
+                typeof raw === 'string' ? undefined : raw.imageSrc;
               onToolRunRef.current?.(call.name, result);
               next = appendTool(
                 next,
@@ -506,8 +506,8 @@ export function useVoiceSession(opts: {
             );
             // The reaction is the second spoken block; clear the streamed
             // pre-tool text so it streams fresh.
-            setStatus((s) => ({ ...s, replyText: "" }));
-            const r2 = await runLlm(call2, false, "call-2");
+            setStatus((s) => ({ ...s, replyText: '' }));
+            const r2 = await runLlm(call2, false, 'call-2');
             if (r2 === null) return;
             reply = r2.content;
             reasoning = r2.reasoning;
@@ -516,7 +516,7 @@ export function useVoiceSession(opts: {
           // Commit the (final) spoken reply — the reaction when she acted, else
           // her plain reply. reasoning is replayed only when the companion
           // passes it.
-          if (reply.trim() !== "") {
+          if (reply.trim() !== '') {
             persistThread(
               appendAssistant(
                 threadRef.current,
@@ -530,7 +530,7 @@ export function useVoiceSession(opts: {
           if (
             controller.signal.aborted ||
             turnRef.current !== controller ||
-            reply.trim() === "" ||
+            reply.trim() === '' ||
             !speak
           ) {
             return;
@@ -541,7 +541,7 @@ export function useVoiceSession(opts: {
           if (!controller.signal.aborted && turnRef.current === controller) {
             setStatus((s) => ({
               ...s,
-              replyError: e instanceof Error ? e.message : "LLM request failed",
+              replyError: e instanceof Error ? e.message : 'LLM request failed',
             }));
           }
         } finally {
@@ -586,7 +586,7 @@ export function useVoiceSession(opts: {
         // spoke. Requiring vadSpeaking too means only real speech interrupts her.
         const speechConfirmed = partialHasWord(text) && vadSpeakingRef.current;
         if (isBargeIn(replyPlayingRef.current, speechConfirmed)) {
-          onLogRef.current?.(`barge-in: cut reply on "${text}"`, "info");
+          onLogRef.current?.(`barge-in: cut reply on "${text}"`, 'info');
           cancelReply();
         }
       },
@@ -594,7 +594,7 @@ export function useVoiceSession(opts: {
         // A committed transcript is a spoken turn: hands-free, so run it as a
         // "say it" (LLM → speak) without waiting on a button. Clear the interim
         // partial — the STT never emits an empty one — so "dictating" releases.
-        setStatus((s) => ({ ...s, committed: text, partial: "" }));
+        setStatus((s) => ({ ...s, committed: text, partial: '' }));
         submitText(text, { speak: true });
       },
       onPhase: (phase) => setStatus((s) => ({ ...s, phase })),

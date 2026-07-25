@@ -16,9 +16,9 @@ import {
   type PlayModeEngine,
   type SpeedEvent,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
-export type VariabilityLevel = "off" | "low" | "medium" | "high";
+export type VariabilityLevel = 'off' | 'low' | 'medium' | 'high';
 
 // How much a leg's duration can be randomly shortened, per level.
 const TIMING_PERCENT: Record<VariabilityLevel, number> = {
@@ -111,7 +111,7 @@ function buildLeg(
 function toSpeedEvents(
   waypoints: Array<{ speed: number; at: number }>,
 ): SpeedEvent[] {
-  return waypoints.map((w) => ({ kind: "speed", at: w.at, speed: w.speed }));
+  return waypoints.map((w) => ({ kind: 'speed', at: w.at, speed: w.speed }));
 }
 
 // One dip. The floor is drawn once here, not per leg, so the down-leg and the
@@ -242,8 +242,8 @@ export class CompanionEngine implements PlayModeEngine {
   ): ValveEvent[] {
     if (this.cumming) {
       return [
-        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
-        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
+        { kind: 'valve', at: fromTime + 3000, valve: 'minus', open: true },
+        { kind: 'valve', at: fromTime + 12000, valve: 'minus', open: false },
       ];
     }
     // The one-shot stroke-minus tease. The open fires once at session start; the
@@ -255,12 +255,12 @@ export class CompanionEngine implements PlayModeEngine {
     if (fromTime < STROKE_TEASE_MS && untilTime > 0) {
       const valves: ValveEvent[] = [];
       if (fromTime <= 0) {
-        valves.push({ kind: "valve", at: 0, valve: "minus", open: true });
+        valves.push({ kind: 'valve', at: 0, valve: 'minus', open: true });
       }
       valves.push({
-        kind: "valve",
+        kind: 'valve',
         at: STROKE_TEASE_MS,
-        valve: "minus",
+        valve: 'minus',
         open: false,
       });
       return valves;
@@ -281,15 +281,15 @@ export class CompanionEngine implements PlayModeEngine {
       speed >= CUMMING_MID_SPEED;
       speed -= 1.5
     ) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     events.push({
-      kind: "speed",
+      kind: 'speed',
       at: at + 1_800_000,
       speed: 0,
       unscaled: true,

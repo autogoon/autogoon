@@ -7,7 +7,7 @@
 // otherwise we buffer the whole (short, fixed) reply into a Blob URL, which
 // still stops instantly on pause(). Integration code — no unit test (needs
 // real audio playback); verified in the Task 13 acceptance run.
-import { ACCESS_HEADER, getAccessId } from "@/lib/companions/access";
+import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type TtsPlayer = {
   // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
@@ -24,8 +24,8 @@ export type TtsPlayer = {
 
 function canStreamMp3(): boolean {
   return (
-    typeof MediaSource !== "undefined" &&
-    MediaSource.isTypeSupported("audio/mpeg")
+    typeof MediaSource !== 'undefined' &&
+    MediaSource.isTypeSupported('audio/mpeg')
   );
 }
 
@@ -35,21 +35,21 @@ function canStreamMp3(): boolean {
 function appendChunk(sb: SourceBuffer, chunk: Uint8Array): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const onUpdateEnd = (): void => {
-      sb.removeEventListener("error", onError);
+      sb.removeEventListener('error', onError);
       resolve();
     };
     const onError = (): void => {
-      sb.removeEventListener("updateend", onUpdateEnd);
-      reject(new Error("SourceBuffer append failed"));
+      sb.removeEventListener('updateend', onUpdateEnd);
+      reject(new Error('SourceBuffer append failed'));
     };
-    sb.addEventListener("updateend", onUpdateEnd, { once: true });
-    sb.addEventListener("error", onError, { once: true });
+    sb.addEventListener('updateend', onUpdateEnd, { once: true });
+    sb.addEventListener('error', onError, { once: true });
     try {
       sb.appendBuffer(chunk as BufferSource);
     } catch (err) {
-      sb.removeEventListener("updateend", onUpdateEnd);
-      sb.removeEventListener("error", onError);
-      reject(err instanceof Error ? err : new Error("appendBuffer threw"));
+      sb.removeEventListener('updateend', onUpdateEnd);
+      sb.removeEventListener('error', onError);
+      reject(err instanceof Error ? err : new Error('appendBuffer threw'));
     }
   });
 }
@@ -68,7 +68,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
     // active play() (idempotent). Ordered after cleanup() so the load()-
     // induced events land with our listeners already detached.
     audioEl.pause();
-    audioEl.removeAttribute("src");
+    audioEl.removeAttribute('src');
     audioEl.load();
   }
 
@@ -94,9 +94,9 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
       cleanup = (): void => {
         if (done) return;
         done = true;
-        audioEl.removeEventListener("ended", onEnded);
-        audioEl.removeEventListener("error", onError);
-        signal.removeEventListener("abort", onAbort);
+        audioEl.removeEventListener('ended', onEnded);
+        audioEl.removeEventListener('error', onError);
+        signal.removeEventListener('abort', onAbort);
         reader?.cancel().catch(() => {});
         reader = null;
         if (objectUrl) {
@@ -106,16 +106,16 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
         resolve();
       };
 
-      audioEl.addEventListener("ended", onEnded);
-      audioEl.addEventListener("error", onError);
-      signal.addEventListener("abort", onAbort);
+      audioEl.addEventListener('ended', onEnded);
+      audioEl.addEventListener('error', onError);
+      signal.addEventListener('abort', onAbort);
 
       void (async (): Promise<void> => {
         try {
-          const res = await fetch("/api/tts", {
-            method: "POST",
+          const res = await fetch('/api/tts', {
+            method: 'POST',
             headers: {
-              "content-type": "application/json",
+              'content-type': 'application/json',
               [ACCESS_HEADER]: getAccessId(),
             },
             body: JSON.stringify({ text, voiceId }),
@@ -134,13 +134,13 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
             objectUrl = URL.createObjectURL(mediaSource);
             audioEl.src = objectUrl;
             await new Promise<void>((open) => {
-              mediaSource.addEventListener("sourceopen", () => open(), {
+              mediaSource.addEventListener('sourceopen', () => open(), {
                 once: true,
               });
             });
-            if (done || mediaSource.readyState !== "open") return;
+            if (done || mediaSource.readyState !== 'open') return;
 
-            const sb = mediaSource.addSourceBuffer("audio/mpeg");
+            const sb = mediaSource.addSourceBuffer('audio/mpeg');
             reader = res.body.getReader();
             void audioEl.play().catch(() => {});
 
@@ -151,7 +151,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
               await appendChunk(sb, value);
               if (done) return;
             }
-            if (!done && mediaSource.readyState === "open") {
+            if (!done && mediaSource.readyState === 'open') {
               mediaSource.endOfStream();
             }
           } else {

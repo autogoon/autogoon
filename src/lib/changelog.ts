@@ -4,12 +4,12 @@
 // freely, with blank lines between entries welcome), and only `code` spans
 // and [text](url) links inline. Pure — no React, no environment.
 
-export type ChangeTag = "feature" | "enhancement" | "bug" | "internal";
+export type ChangeTag = 'feature' | 'enhancement' | 'bug' | 'internal';
 
 export type InlineSegment =
-  | { kind: "text"; text: string }
-  | { kind: "code"; text: string }
-  | { kind: "link"; text: string; href: string };
+  | { kind: 'text'; text: string }
+  | { kind: 'code'; text: string }
+  | { kind: 'link'; text: string; href: string };
 
 export interface ChangelogEntry {
   // null when the line carries no recognised `tag:` prefix.
@@ -30,10 +30,10 @@ export interface ChangelogDay {
 }
 
 const TAGS: readonly ChangeTag[] = [
-  "feature",
-  "enhancement",
-  "bug",
-  "internal",
+  'feature',
+  'enhancement',
+  'bug',
+  'internal',
 ];
 
 // One alternation per inline form; everything between matches is plain text.
@@ -42,17 +42,17 @@ const INLINE = /(`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
 function parseInline(text: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
   for (const part of text.split(INLINE)) {
-    if (part === "") continue;
-    if (part.startsWith("`") && part.endsWith("`")) {
-      segments.push({ kind: "code", text: part.slice(1, -1) });
+    if (part === '') continue;
+    if (part.startsWith('`') && part.endsWith('`')) {
+      segments.push({ kind: 'code', text: part.slice(1, -1) });
       continue;
     }
     const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
     if (link !== null) {
-      segments.push({ kind: "link", text: link[1]!, href: link[2]! });
+      segments.push({ kind: 'link', text: link[1]!, href: link[2]! });
       continue;
     }
-    segments.push({ kind: "text", text: part });
+    segments.push({ kind: 'text', text: part });
   }
   return segments;
 }
@@ -64,17 +64,17 @@ function splitParagraphs(segments: InlineSegment[]): InlineSegment[][] {
   const push = (segment: InlineSegment) =>
     paragraphs[paragraphs.length - 1]!.push(segment);
   for (const segment of segments) {
-    if (segment.kind !== "text") {
+    if (segment.kind !== 'text') {
       push(segment);
       continue;
     }
     // Split after a sentence ender followed by a capital — marker + lookahead
     // rather than a lookbehind, which is a parse-time SyntaxError on older
     // mobile Safari and would take the whole bundle down with it.
-    const marked = segment.text.replace(/([.!?])\s+(?=[A-Z])/g, "$1\u0000");
-    marked.split("\u0000").forEach((part, i) => {
+    const marked = segment.text.replace(/([.!?])\s+(?=[A-Z])/g, '$1\u0000');
+    marked.split('\u0000').forEach((part, i) => {
       if (i > 0) paragraphs.push([]);
-      if (part !== "") push({ kind: "text", text: part });
+      if (part !== '') push({ kind: 'text', text: part });
     });
   }
   return paragraphs.filter((p) => p.length > 0);
@@ -109,7 +109,7 @@ export function parseChangelog(markdown: string): ChangelogDay[] {
     if (open !== null && day !== undefined) day.entries.push(parseEntry(open));
     open = null;
   };
-  for (const raw of markdown.split("\n")) {
+  for (const raw of markdown.split('\n')) {
     const line = raw.trimEnd();
     const heading = /^## (.+)$/.exec(line);
     if (heading !== null) {

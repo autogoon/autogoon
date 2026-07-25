@@ -4,7 +4,7 @@
 // src/lib (no React) and reaches the device through a getDevice accessor, like
 // the engines it replaces.
 
-import type { VacuglideDevice } from "@/lib/vacuglide-device";
+import type { VacuglideDevice } from '@/lib/vacuglide-device';
 import {
   JUMP_MS,
   LOOKAHEAD_MS,
@@ -19,7 +19,7 @@ import {
   type SpeedEvent,
   type UpcomingWindow,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
 export type { UpcomingWindow };
 
@@ -29,9 +29,9 @@ export interface PlayerOptions {
 }
 
 export class Player {
-  state: PlayerState = "armed";
+  state: PlayerState = 'armed';
   get isPlaying(): boolean {
-    return this.state === "playing";
+    return this.state === 'playing';
   }
   // The program's raw (pre-scale) speed at the clock — the point a knob-change
   // resume eases from. A cached value, not derived on demand, for one reason: a
@@ -99,7 +99,7 @@ export class Player {
 
   private device(): VacuglideDevice {
     const d = this.getDevice();
-    if (d === null) throw new Error("No device connected");
+    if (d === null) throw new Error('No device connected');
     return d;
   }
 
@@ -117,9 +117,9 @@ export class Player {
   protected currentSpeedEvent(): SpeedEvent | null {
     for (let i = this.cursor - 1; i >= 0; i--) {
       const ev = this.events[i]!;
-      if (ev.kind === "speed") return ev;
+      if (ev.kind === 'speed') return ev;
     }
-    for (const ev of this.events) if (ev.kind === "speed") return ev;
+    for (const ev of this.events) if (ev.kind === 'speed') return ev;
     return null;
   }
 
@@ -143,7 +143,7 @@ export class Player {
   arm(source: PlayModeEngine | null): void {
     this.setSource(source);
     this.ensureLookahead();
-    this.state = "armed";
+    this.state = 'armed';
     this.notify();
   }
 
@@ -154,8 +154,8 @@ export class Player {
   }
 
   play(): void {
-    if (this.state === "playing" || this.source === null) return;
-    this.state = "playing";
+    if (this.state === 'playing' || this.source === null) return;
+    this.state = 'playing';
     this.scheduleNextTick();
     this.notify();
   }
@@ -168,7 +168,7 @@ export class Player {
   }
 
   private scheduleNextTick(): void {
-    if (this.state !== "playing") return;
+    if (this.state !== 'playing') return;
     this.timer = setTimeout(() => {
       void (async () => {
         try {
@@ -222,13 +222,13 @@ export class Player {
   private lastSpeedAt(): number | null {
     for (let i = this.events.length - 1; i >= 0; i--) {
       const ev = this.events[i]!;
-      if (ev.kind === "speed") return ev.at;
+      if (ev.kind === 'speed') return ev.at;
     }
     return null;
   }
 
   private async tick(): Promise<void> {
-    if (this.state !== "playing" || this.source === null) return;
+    if (this.state !== 'playing' || this.source === null) return;
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
@@ -239,7 +239,7 @@ export class Player {
       this.events[this.cursor]!.at <= this.clock
     ) {
       const ev = this.events[this.cursor]!;
-      if (ev.kind === "valve") this.fireValve(ev);
+      if (ev.kind === 'valve') this.fireValve(ev);
       this.cursor++;
     }
 
@@ -289,7 +289,7 @@ export class Player {
   // Force-release every running manual stroke: fire its close now and cancel
   // its scheduled release.
   private releaseManualStrokes(): void {
-    for (const valve of ["plus", "minus"] as const) {
+    for (const valve of ['plus', 'minus'] as const) {
       if (!this.manualOpen[valve]) continue;
       this.manualOpen[valve] = false;
       this.setValve(valve, false);
@@ -299,28 +299,28 @@ export class Player {
 
   // Remove this valve's not-yet-fired manual events from the program. Strictly
   // after the cursor: the event at the cursor is the one being fired.
-  private cancelPendingManual(valve: "plus" | "minus"): void {
+  private cancelPendingManual(valve: 'plus' | 'minus'): void {
     for (let i = this.events.length - 1; i > this.cursor; i--) {
       const ev = this.events[i]!;
-      if (ev.kind === "valve" && ev.manual === true && ev.valve === valve) {
+      if (ev.kind === 'valve' && ev.manual === true && ev.valve === valve) {
         this.events.splice(i, 1);
       }
     }
   }
 
-  private setValve(valve: "plus" | "minus", open: boolean): void {
+  private setValve(valve: 'plus' | 'minus', open: boolean): void {
     const dev = this.getDevice();
     if (dev === null) return;
     const result =
-      valve === "plus"
+      valve === 'plus'
         ? dev.valveStrokePlusSet(open)
         : dev.valveStrokeMinusSet(open);
     void result.catch(() => undefined);
   }
 
   async pause(): Promise<void> {
-    if (this.state !== "playing") return;
-    this.state = "paused";
+    if (this.state !== 'playing') return;
+    this.state = 'paused';
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -394,7 +394,7 @@ export class Player {
   invalidateFuture(): void {
     if (this.source === null) return;
     this.events = this.events.filter(
-      (e, i) => i < this.cursor || (e.kind === "valve" && e.manual === true),
+      (e, i) => i < this.cursor || (e.kind === 'valve' && e.manual === true),
     );
     this.ensureLookahead();
     this.notify();
@@ -412,10 +412,10 @@ export class Player {
     // running manual stroke's release must fire); drop only the future
     // generated valve events.
     const kept = this.events.filter(
-      (e) => e.kind === "speed" || e.at <= this.clock || e.manual === true,
+      (e) => e.kind === 'speed' || e.at <= this.clock || e.manual === true,
     );
     const futureSpeed = kept.filter(
-      (e): e is SpeedEvent => e.kind === "speed" && e.at > this.clock,
+      (e): e is SpeedEvent => e.kind === 'speed' && e.at > this.clock,
     );
     // Overlay only as far as the speed is built; ensureLookahead extends the rest.
     const speedEnd =
@@ -444,7 +444,7 @@ export class Player {
   // No-op while not playing (nothing is ticking) — the caller should drive the
   // device directly in that case.
   insertEvent(
-    event: Omit<SpeedEvent, "at"> | Omit<ValveEvent, "at">,
+    event: Omit<SpeedEvent, 'at'> | Omit<ValveEvent, 'at'>,
     inMs = 0,
   ): void {
     if (!this.isPlaying) return;
@@ -452,7 +452,7 @@ export class Player {
     const ev = { ...event, at } as ProgramEvent;
     // Inserted valve events are manual by definition — the tag is what lets
     // scheduled (engine-generated) strokes take precedence over them.
-    if (ev.kind === "valve") ev.manual = true;
+    if (ev.kind === 'valve') ev.manual = true;
     let i = this.cursor;
     while (i < this.events.length && this.events[i]!.at < at) i++;
     this.events.splice(i, 0, ev);
@@ -482,11 +482,11 @@ export class Player {
     const current = this.currentSpeedEvent();
     let inEffect = current === null ? 0 : outputAt(current);
     const speed: Array<{ t: number; speed: number }> = [];
-    const valves: UpcomingWindow["valves"] = [];
+    const valves: UpcomingWindow['valves'] = [];
     for (let i = this.cursor; i < this.events.length; i++) {
       const ev = this.events[i]!;
       if (ev.at > end) break;
-      if (ev.kind === "valve") {
+      if (ev.kind === 'valve') {
         valves.push({
           t: Math.max(0, ev.at - now),
           valve: ev.valve,

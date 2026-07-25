@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The bridge between a panel's commands and the shared keyword spotter. A
 // command is declared ONCE (word + enabled + run); the panel renders a button
@@ -8,8 +8,8 @@
 // Only the active panel registers, so exactly one play mode's words are ever in
 // the grammar at a time.
 
-import { useEffect, useRef } from "react";
-import { useKeywordSpotter } from "@/components/keyword-spotter";
+import { useEffect, useRef } from 'react';
+import { useKeywordSpotter } from '@/components/keyword-spotter';
 
 export interface Command {
   word: string;
@@ -32,10 +32,10 @@ export function useVoiceCommands(active: boolean, commands: Command[]): void {
   const wordsKey = commands
     .filter((c) => c.enabled)
     .map((c) => c.word)
-    .join("\n");
+    .join('\n');
   useEffect(() => {
     if (!active) return;
-    setPlayModeKeywords(wordsKey === "" ? [] : wordsKey.split("\n"));
+    setPlayModeKeywords(wordsKey === '' ? [] : wordsKey.split('\n'));
     return () => setPlayModeKeywords([]);
   }, [active, wordsKey, setPlayModeKeywords]);
 

@@ -1,11 +1,11 @@
-import js from "@eslint/js";
-import { globalIgnores } from "eslint/config";
-import eslintConfigPrettier from "eslint-config-prettier";
-import tseslint from "typescript-eslint";
-import pluginReactHooks from "eslint-plugin-react-hooks";
-import pluginReact from "eslint-plugin-react";
-import globals from "globals";
-import pluginNext from "@next/eslint-plugin-next";
+import js from '@eslint/js';
+import { globalIgnores } from 'eslint/config';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import tseslint from 'typescript-eslint';
+import pluginReactHooks from 'eslint-plugin-react-hooks';
+import pluginReact from 'eslint-plugin-react';
+import globals from 'globals';
+import pluginNext from '@next/eslint-plugin-next';
 
 /** @type {import("eslint").Linter.Config[]} */
 const baseConfig = [
@@ -14,9 +14,9 @@ const baseConfig = [
   ...tseslint.configs.recommended,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
   },
@@ -25,17 +25,17 @@ const baseConfig = [
       parserOptions: {
         projectService: {
           allowDefaultProject: [
-            "*.mjs",
-            "*.js",
-            "public/*.js",
-            "scripts/*.mjs",
+            '*.mjs',
+            '*.js',
+            'public/*.js',
+            'scripts/*.mjs',
           ],
         },
       },
     },
     rules: {
-      "@typescript-eslint/strict-boolean-expressions": [
-        "error",
+      '@typescript-eslint/strict-boolean-expressions': [
+        'error',
         {
           allowString: true,
           allowNumber: true,
@@ -50,16 +50,16 @@ const baseConfig = [
   },
   {
     // Audio worklet: runs in AudioWorkletGlobalScope, not the browser window.
-    files: ["public/*.js"],
+    files: ['public/*.js'],
     languageOptions: {
       globals: {
-        AudioWorkletProcessor: "readonly",
-        registerProcessor: "readonly",
+        AudioWorkletProcessor: 'readonly',
+        registerProcessor: 'readonly',
       },
     },
   },
   {
-    ignores: ["dist/**"],
+    ignores: ['dist/**'],
   },
 ];
 
@@ -71,13 +71,13 @@ export default [
   ...tseslint.configs.recommended,
   globalIgnores([
     // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
     // Playwright artifacts:
-    "test-results/**",
-    "playwright-report/**",
+    'test-results/**',
+    'playwright-report/**',
   ]),
   {
     ...pluginReact.configs.flat.recommended,
@@ -90,23 +90,23 @@ export default [
   },
   {
     plugins: {
-      "@next/next": pluginNext,
+      '@next/next': pluginNext,
     },
     rules: {
       ...pluginNext.configs.recommended.rules,
-      ...pluginNext.configs["core-web-vitals"].rules,
-      "@next/next/no-html-link-for-pages": "off",
+      ...pluginNext.configs['core-web-vitals'].rules,
+      '@next/next/no-html-link-for-pages': 'off',
     },
   },
   {
     plugins: {
-      "react-hooks": pluginReactHooks,
+      'react-hooks': pluginReactHooks,
     },
-    settings: { react: { version: "detect" } },
+    settings: { react: { version: 'detect' } },
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
-      "react/react-in-jsx-scope": "off",
+      'react/react-in-jsx-scope': 'off',
     },
   },
 ];

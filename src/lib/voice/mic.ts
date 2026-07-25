@@ -7,9 +7,9 @@ import {
   downsampleTo16k,
   floatTo16BitPcm,
   pcm16ToBase64,
-} from "./audio-encoding";
-import { PreRollBuffer } from "./pre-roll";
-import { initVadState, vadStep, type VadConfig } from "./vad";
+} from './audio-encoding';
+import { PreRollBuffer } from './pre-roll';
+import { initVadState, vadStep, type VadConfig } from './vad';
 
 export type MicEvents = {
   onFrame: (base64Pcm: string) => void; // 16k pcm frame, base64
@@ -56,9 +56,9 @@ export async function startMic(events: MicEvents): Promise<MicHandle> {
     // it so audio actually flows.
     void audioContext.resume();
 
-    await audioContext.audioWorklet.addModule("/companion-audio-worklet.js");
+    await audioContext.audioWorklet.addModule('/companion-audio-worklet.js');
     const source = audioContext.createMediaStreamSource(stream);
-    const capture = new AudioWorkletNode(audioContext, "companion-capture");
+    const capture = new AudioWorkletNode(audioContext, 'companion-capture');
 
     const preRoll = new PreRollBuffer(PRE_ROLL_FRAMES);
     let vad = initVadState();

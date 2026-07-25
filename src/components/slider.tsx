@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // A minimal range slider — fully controlled, calls onChange with the numeric
 // value (already snapped to `step` by the browser).

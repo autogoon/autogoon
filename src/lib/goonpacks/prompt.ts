@@ -8,7 +8,7 @@ import {
   OUTPUT_FORMAT_SECTION,
   PICTURES_SECTION,
   SHARED_STYLE_BULLETS,
-} from "@/lib/companions/shared-prompt";
+} from '@/lib/companions/shared-prompt';
 
 // Placeholder name = shared-prompt export name, on purpose — but a new
 // shared-prompt export still needs adding to SECTIONS below explicitly; this
@@ -22,7 +22,7 @@ const SECTIONS: Record<string, string> = {
 };
 
 // Filled per-turn by the session (buildSystemPrompt), not at load.
-const LIVE_MARKERS = new Set(["TOY_STATUS", "NOW"]);
+const LIVE_MARKERS = new Set(['TOY_STATUS', 'NOW']);
 
 export function fillSharedSections(
   prompt: string,
@@ -30,7 +30,7 @@ export function fillSharedSections(
 ): string {
   return prompt.replace(/\{\{([A-Z0-9_]+)\}\}/g, (token, name: string) => {
     if (LIVE_MARKERS.has(name)) return token;
-    if (name === "PICTURES_SECTION" && !opts.includePictures) return "";
-    return SECTIONS[name] ?? ""; // unknown tokens are dropped, per spec
+    if (name === 'PICTURES_SECTION' && !opts.includePictures) return '';
+    return SECTIONS[name] ?? ''; // unknown tokens are dropped, per spec
   });
 }

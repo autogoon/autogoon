@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 // A single segmented control: a row of mutually-exclusive options. Generic over
 // the option value; the selected one gets `activeClass`.
 
-import { Button } from "@/components/button";
+import { Button } from '@/components/button';
 
 export function Segmented<T extends string>({
   options,
@@ -27,10 +27,10 @@ export function Segmented<T extends string>({
           onClick={() => onChange(opt.value)}
           voiceCommand={opt.voiceCommand}
           className={`border-border flex-1 rounded-none border-0 bg-transparent py-3 enabled:hover:bg-transparent ${
-            i > 0 ? "border-l" : ""
-          } ${i === 0 ? "rounded-l-lg" : ""} ${
-            i === options.length - 1 ? "rounded-r-lg" : ""
-          } ${value === opt.value ? activeClass : "text-muted-foreground"}`}
+            i > 0 ? 'border-l' : ''
+          } ${i === 0 ? 'rounded-l-lg' : ''} ${
+            i === options.length - 1 ? 'rounded-r-lg' : ''
+          } ${value === opt.value ? activeClass : 'text-muted-foreground'}`}
         >
           {opt.label}
         </Button>
