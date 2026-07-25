@@ -15,6 +15,16 @@
   commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
+- enhancement: **Companions know when the call has turned** — Every persona
+  described the moment it stops being a chat and becomes something else in terms
+  only they could judge — "once things heat up", "once there's a spark", "once
+  he's got you going". Nothing said what that meant, so when a companion dropped
+  the small talk and got explicit was a coin toss, and one could do it while you
+  were still talking about your day. Each now names something that actually
+  happens in the conversation instead: you say what you want, you flirt back, or
+  they've started telling you what they're doing. The build-up lasts as long as
+  it should. ([#23](https://github.com/autogoon/autogoon/pull/23))
+
 - enhancement: **Companions know they're on a voice call** — A companion is
   heard, not seen, but Aimee's was written as a video call — she'd talk about
   watching you and offer to show you what she was doing, none of which is
