@@ -23,11 +23,11 @@
   `goonpack:describe-missing` now narrate each step, print those observations,
   and (in iTerm2) show the picture itself under its caption at the size the
   model saw it — so you can watch a run go past and judge each caption against
-  what it describes. The caption itself
-  now has to carry the setting, the garments, her hair and what's actually on
-  show — down to what's only faintly visible, stated as precisely as the model
-  saw it — and leaves mood out. The `DESCRIBE_MODEL` environment variable is now
-  just `MODEL`. ([#19](https://github.com/autogoon/autogoon/pull/19))
+  what it describes. The caption itself now has to carry the setting, the
+  garments, her hair and what's actually on show — down to what's only faintly
+  visible, stated as precisely as the model saw it — and leaves mood out. The
+  `DESCRIBE_MODEL` environment variable is now just `MODEL`.
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
 
 - enhancement: **Elise moves out of the app** — The built-in companions are now
   Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
@@ -57,7 +57,13 @@
   into a screen in the app, along with the constraint that shapes it: it would
   be the app's first filesystem route, so it can only exist in a dev build.
   [roadmap/GOONPACK-KIT.md](./roadmap/GOONPACK-KIT.md)
-  ([#19](https://github.com/autogoon/autogoon/pull/19))
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
+
+- internal: **Single quotes, and scripts get formatted** — Prettier now writes
+  single quotes, and the `format` script covers `scripts/` as well, which had
+  been the one source directory it never touched — so the two describe scripts
+  no longer disagree about quoting. One repo-wide reformat, no behaviour change.
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
 
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via
