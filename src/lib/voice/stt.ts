@@ -100,11 +100,11 @@ export function createStt(events: SttEvents): Stt {
 
   // A VAD onset: start streaming this utterance. Opens the socket if it's cold,
   // and on a warm one flushes the pre-roll straight down it so the opening word
-  // survives — the pre-roll used to matter only at connect time, but with the
-  // socket held open between turns every utterance now starts mid-connection.
-  // getPreRoll is a callback because flushing drains the mic's ring: it must
-  // only be called when this really is a fresh utterance, never on an onset
-  // that lands while an earlier one is still streaming.
+  // survives — the socket is held open between turns, so most utterances begin
+  // mid-connection rather than at connect. getPreRoll is a callback because
+  // flushing drains the mic's ring: it must only be called when this really is
+  // a fresh utterance, never on an onset that lands while an earlier one is
+  // still streaming.
   function beginUtterance(getPreRoll: () => Int16Array[]): void {
     if (streaming) return;
     streaming = true;

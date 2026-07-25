@@ -214,8 +214,11 @@ and **we never close the STT socket on idle**:
   transcript_ — not on the VAD's offset. `commit_strategy=vad` means ElevenLabs'
   own VAD decides the utterance ended, and it needs to hear the trailing silence
   to do it; cut the audio at our offset and the commit never arrives, so the
-  turn never runs. That commit is also what submits the turn, so by the time it
-  lands we already know you've finished.
+  turn never runs. That commit is the app's authoritative end-of-speech, and
+  three things hang off it: the audio gate closes, the turn is submitted, and
+  the composer drops out of dictation. Nothing infers the end from local mic
+  energy, which dips between words and says nothing about whether you've
+  finished.
 - Between utterances the socket stays up and silent. ElevenLabs bill audio
   processed, not connection uptime, so an idle socket is free — and a warm one
   means an interruption isn't waiting on a token fetch and handshake.

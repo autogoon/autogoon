@@ -94,7 +94,7 @@ export function CompanionsPanel({
   view: 'setup' | 'play';
   onEnterPlay: () => void;
   // Back to the picker (the slim bar's < button) — locked while the program
-  // runs, same rule as the breadcrumb the play screen no longer shows.
+  // runs, the same nav lock that holds `exit` on every other screen.
   onExitPlay: () => void;
 }) {
   const device = vacuglide.player;

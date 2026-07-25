@@ -685,7 +685,7 @@ export function useVoiceSession(opts: {
         }
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
-        // her voice leaking past AEC) no longer interrupts her mid-sentence. It
+        // her voice leaking past AEC) doesn't interrupt her mid-sentence. It
         // asks for more voicing than the composer does — the cost of being wrong
         // is her being cut off mid-sentence, not a word appearing and vanishing
         // — but it is not sticky: each partial is judged on the evidence so far,
@@ -763,11 +763,11 @@ export function useVoiceSession(opts: {
         // credited a fraction of its length. Without these, a transcript that
         // failed to confirm gives no clue whether the mic heard the speaker.
         onLogRef.current?.('voice on', 'info');
-        // Onset no longer cuts the reply — that waits for a decoded word in
-        // onPartial. It starts this utterance streaming, opening the socket
-        // first if it's cold, and flushes the pre-roll so the opening word
-        // isn't clipped (this is also what starts the audio flowing so a
-        // partial can arrive to barge in on).
+        // Onset starts this utterance streaming, opening the socket first if
+        // it's cold, and flushes the pre-roll so the opening word isn't clipped
+        // — which is also what starts the audio flowing, so a partial can
+        // arrive to barge in on. Cutting the reply isn't its job: that waits
+        // for a decoded word in onPartial.
         stt.beginUtterance(() => micHandleRef.current?.preRoll.flush() ?? []);
         if (silentUtteranceRef.current !== null) {
           clearTimeout(silentUtteranceRef.current);

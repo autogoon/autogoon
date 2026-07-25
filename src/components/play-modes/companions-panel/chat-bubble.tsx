@@ -42,8 +42,8 @@ export function ChatBubble({
             : `border-shimmer [--shimmer-color:var(--foreground)] ${VOICE[voice].className}`
         }`}
       >
-        {/* The shimmer is purely visual, so the stage still needs saying out
-            loud — this replaces the status role the stage bubbles carried. */}
+        {/* The shimmer is purely visual, so the stage needs saying out loud
+            too: this is the only announcement a screen reader gets of it. */}
         {voice !== undefined && (
           <span role="status" className="sr-only">
             {VOICE[voice].word}
