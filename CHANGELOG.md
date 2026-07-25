@@ -15,6 +15,16 @@
   commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
+- enhancement: **Companions know they're on a voice call** — A companion is
+  heard, not seen, but Aimee's was written as a video call — she'd talk about
+  watching you and offer to show you what she was doing, none of which is
+  happening. Elise had them typing messages at each other rather than talking.
+  Both now know the call is voice and pictures: anything they want you
+  picturing, they have to say out loud, and they won't describe your end back at
+  you as though it's on a screen. Aimee's accent is also Northern throughout —
+  she's from outside Manchester, but half her persona had her Welsh.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
+
 - enhancement: **A companion knows what the toy does to you** — Companions were
   driving the device without ever being told what it is, so anything one said
   about how it felt was invented — the wrong shape, the wrong sensation,
