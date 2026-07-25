@@ -33,8 +33,8 @@ Other scripts:
   issues the dev server tolerates).
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src`, `tests`, and the repo's config and
-  markdown (root, `docs/`, `roadmap/`, `modes/`).
+- `npm run format` — Prettier over `src`, `tests`, `scripts`, and the repo's
+  config and markdown (root, `docs/`, `roadmap/`, `modes/`).
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
 
