@@ -56,12 +56,13 @@ the gate is that stopping the program no longer stops her; walking away leaves
 her poking until she gives up, which is what [Activity cutoff](#activity-cutoff)
 backstops.
 
-**Cadence** comes from `chattiness`, an optional per-companion manifest field
-(1–5), in **seconds**. The shape to design for is the one that motivates the
-feature: you're mid-play, lying back, letting her drive — she should fill that
-readily. The other traits arrive with
-[Personas shape their programs](#personas-shape-their-programs), the work that
-actually consumes them.
+**Cadence** comes from two optional per-companion manifest fields (1–5), in
+**seconds**: `chattiness` out of play and `playfulness` while a program runs.
+Two rather than one because the appetites are independent — a laconic persona
+can still narrate play relentlessly — and one knob would force them to move
+together. This is the only thing the program's state decides; it never gates
+whether she speaks. The shape to design for is what motivates the feature:
+you're mid-play, lying back, letting her drive.
 
 ### Activity cutoff
 
@@ -104,14 +105,20 @@ the system prompts. _(The on-hardware feel tuning remains.)_
 
 ### Personas shape their programs
 
-Give each companion her four `traits` (`dominance` / `intensity` / `chattiness`
-/ `variety`, 1–5) and map the code-facing ones onto **Groove's knobs** —
-`intensity` to the speed-percent magnitude, `variety` to the
-timing/dip-variability level; `dominance` gates how often _she_ changes it
-unprompted (`chattiness` is consumed by [Ambient chat](#ambient-chat)). A
-companion's program stops being random and becomes **hers** — the persona →
-program mechanism working end-to-end. This is the missing piece for the
-companions' _programs_ (not just their chat) to diverge.
+Map a companion's traits onto **Groove's knobs** — `intensity` to the
+speed-percent magnitude, `variety` to the timing/dip-variability level — so her
+program stops being random and becomes **hers**. This is the missing piece for
+the companions' _programs_ (not just their chat) to diverge.
+
+**First settle which of these are code at all.** `chattiness` and `playfulness`
+shipped with [Ambient chat](#ambient-chat) because they drive a timer. The rest
+may not need any: `dominance` is really how readily she overrides what you asked
+for, and that is a disposition the system prompt can carry on its own —
+plausibly `variety` too. A trait only earns a manifest field and a mapping if
+code reads it; one that only colours how she behaves belongs in her prompt,
+where an author can already write it. Work out which is which before adding
+fields, because a manifest field is a compatibility surface and packs in the
+wild make it expensive to take back.
 
 ### Trait-driven companion contrast
 
