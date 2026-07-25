@@ -125,8 +125,14 @@ invariants, the why, and the cross-file shape. Concretely:
 
 ## Git workflow
 
-- Work on a branch off `main`; never commit to `main` directly. One branch/PR
-  per piece of work.
+- **Branch and PR what earns a changelog entry.** Anything a user or another
+  developer would want recorded — behaviour, features, fixes, refactors — goes
+  on a branch off `main`, one branch/PR per piece of work. Work that earns no
+  entry doesn't earn the ceremony either: docs, comments, working-practice notes
+  and the like are committed straight to `main` once the gates pass. The two
+  rules answer the same question, so they shouldn't disagree.
+- **Process and working-practice rules aren't changelog entries.** How the work
+  gets done isn't a change to the app; only code, docs and behaviour are.
 - The flow is **branch → do the work → gates → commit → push → open a PR →
   merge**: push with `git push -u origin <branch>`, then open a PR against
   `main` with `gh pr create`.
@@ -137,6 +143,16 @@ invariants, the why, and the cross-file shape. Concretely:
 - **Before merging**, run `/doc-check` and `/personal-check` again — the branch
   has usually gained commits since the PR opened. Treat `gh pr merge` as blocked
   until both have run against the final diff.
+- **Check `main` hasn't moved** before pushing and again before merging:
+  `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
+  it isn't, merge `origin/main` into the branch and **verify nothing was lost**
+  — don't trust a clean auto-merge. Git resolved a repo-wide reformat against a
+  PR that landed mid-branch without reporting a single conflict on one file, and
+  silently dropped a CSS utility the other PR had added; the feature using it
+  would have shipped broken. Where a branch's own changes to a path are
+  mechanical (formatting, renames), the reliable resolution is to take that path
+  wholesale from `origin/main` and re-apply the mechanical change, then diff
+  against `origin/main` to confirm only the intended difference remains.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions: only do each when asked.
