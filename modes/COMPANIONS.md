@@ -78,8 +78,8 @@ blocks.
 
 A companion **drives the device through LLM tools** — start/stop, the intensity
 and variety knobs, (for a companion with pictures) `send_picture`, and
-`wait_for_user`, which is how she ends a run of unprompted turns (see
-[Filling a silence](#filling-a-silence)). When she calls one, the panel runs
+`wait_for_user`, which is how a run of unprompted turns is ended (see
+[Filling a silence](#filling-a-silence)). When one is called, the panel runs
 **the same transport and knobs the on-screen controls use** — there is one path,
 not a parallel one. The tool definitions, argument shapes, and which knob
 applies live versus regenerates are all commented in
@@ -103,24 +103,24 @@ is fed back for a **second round-trip** so she reacts in words to what happened.
 
 ## Filling a silence
 
-A companion doesn't wait to be spoken to. At the end of each of her turns she
-lines up another, so a lull gets filled rather than sitting there — she picks
-the thread back up, teases you about the quiet, or says something about what the
+A companion doesn't wait to be spoken to. At the end of each of their turns they
+line up another, so a lull gets filled rather than sitting there — picking the
+thread back up, teasing you about the quiet, or saying something about what the
 toy is doing to you. This is what makes it possible to lie back mid-session and
-let her drive. Start speaking and the pending turn is dropped: a real reply is
+let them drive. Start speaking and the pending turn is dropped: a real reply is
 coming, so there's no silence left to fill.
 
-**She decides when to stop, not a clock.** When she's said her piece — or asked
-whether you're still there and would rather you answered — she calls
-`wait_for_user` and goes quiet until you speak. That's what keeps it from
-becoming a monologue into an empty room, and why she doesn't need a timeout
-switching her off.
+**The companion decides when to stop, not a clock.** Having said their piece —
+or asked whether you're still there and would rather you answered — they call
+`wait_for_user` and go quiet until you speak. That's what keeps it from becoming
+a monologue into an empty room, and why no timeout is needed to switch them off.
 
-**How readily she fills a silence is hers**, as two separate settings a goonpack
-gives her: one for while the toy is idle, one for while it's running. They're
-separate because the appetites are: a woman of few words can still keep up a
-running commentary once things are underway. The picker cards show both, and
-[GOONPACKS.md](../GOONPACKS.md) explains what the numbers buy.
+**How readily a companion fills a silence is their own**, as two separate
+settings a goonpack gives them: one for while the toy is idle, one for while
+it's running. They're separate because the appetites are: someone of few words
+can still keep up a running commentary once things are underway. The picker
+cards show both, and [GOONPACKS.md](../GOONPACKS.md) explains what the numbers
+buy.
 
 ## Pictures
 

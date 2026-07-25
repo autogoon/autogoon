@@ -2,40 +2,41 @@
 
 ## 2026-07-25
 
-- feature: **She keeps the conversation going** — A companion no longer waits
-  silently for you to speak first. After each thing she says she lines up
-  another, so a lull gets filled — she picks the thread back up, teases you
-  about the quiet, or says something about what the toy is doing to you. It's
-  built for lying back mid-session and letting her drive. She decides when to
-  stop rather than running down a clock: when she's said her piece, or asked
-  whether you're still there and would rather you answered, she goes quiet until
-  you speak. How readily she fills a silence is hers — two settings a goonpack
-  can give her, one for while the toy is idle and one for while it's running,
-  because a woman of few words can still keep up a running commentary once
-  things are underway.
+- feature: **A companion keeps the conversation going** — Companions no longer
+  wait silently for you to speak first. After each thing one says, they line up
+  another turn, so a lull gets filled — picking the thread back up, teasing you
+  about the quiet, or saying something about what the toy is doing to you. It's
+  built for lying back mid-session and letting them drive. They decide when to
+  stop rather than running down a clock: having said their piece, or having
+  asked whether you're still there and would rather you answered, they go quiet
+  until you speak. How readily a companion fills a silence is their own — two
+  settings a goonpack can give them, one for while the toy is idle and one for
+  while it's running, because someone of few words can still keep up a running
+  commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
-- enhancement: **See how talkative she is before you pick her** — Each
-  companion's card on the picker now shows her two chattiness settings as a row
-  of pips in her own colour, so you can tell at a glance which of them will keep
-  a conversation going and which will let it breathe.
+- enhancement: **See how talkative a companion is before you pick** — Each
+  card on the picker now shows both silence-filling settings as a row of pips in
+  that companion's own colour, so you can tell at a glance which will keep a
+  conversation going and which will let it breathe.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
-- bug: **She won't start the toy on you** — Starting it now needs your say-so:
-  you've asked for it, or agreed to it. She could previously decide to start it
-  herself — one did, to get attention — which is no good when you might not be
-  wearing it, ready, or alone. Your agreement carries across the conversation,
-  and her making you wait for it doesn't count as her withdrawing it: teasing
-  you and starting when she decides you've earned it is still hers to do. Once
-  it's running she has the same free rein over it as before, and she can always
-  stop it. ([#23](https://github.com/autogoon/autogoon/pull/23))
+- bug: **A companion won't start the toy on you** — Starting it now needs your
+  say-so: you've asked for it, or agreed to it. A companion could previously
+  decide to start it unprompted — one did, to get attention — which is no good
+  when you might not be wearing it, ready, or alone. Your agreement carries
+  across the conversation, and being made to wait for it doesn't count as it
+  being withdrawn: teasing you and starting once they decide you've earned it is
+  still theirs to do. Once it's running they have the same free rein over it as
+  before, and they can always stop it.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
 
 - bug: **No more stray markup in the conversation** — Occasionally a companion's
-  message would arrive as a block of code-like markup instead of her doing the
-  thing she'd just described — and on a spoken turn she'd read it aloud. That's
-  the model writing an instruction out rather than performing it; the app now
-  recognises those, carries out what she meant, and keeps the markup out of the
-  conversation and out of her voice.
+  message would arrive as a block of code-like markup instead of them doing the
+  thing they'd just described — and on a spoken turn it would be read aloud.
+  That's the model writing an instruction out rather than performing it; the app
+  now recognises those, carries out what was meant, and keeps the markup out of
+  the conversation and out of their voice.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
 - bug: **Long messages aren't cut off** — The message box was a fixed height, so

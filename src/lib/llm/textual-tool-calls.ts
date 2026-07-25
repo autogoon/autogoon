@@ -11,8 +11,8 @@
 //   </tool_call>
 //
 // Left alone the tool never runs, the block is committed to the transcript as
-// something she said, and a spoken turn has TTS read the markup aloud in her
-// voice. So it's parsed back into a real call and cut out of the text.
+// something the companion said, and a spoken turn has TTS read the markup aloud
+// in their voice. So it's parsed back into a real call and cut out of the text.
 //
 // This is deliberately narrow: one dialect, matched on a distinctive opening
 // tag. It is a repair for a provider that didn't hold up its end, not a second

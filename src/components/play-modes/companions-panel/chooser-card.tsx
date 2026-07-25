@@ -47,10 +47,10 @@ function variantFeatures(v: {
 }
 
 // One trait as five pips, filled to its value. Pips rather than a number
-// because the point is comparing her against the others at a glance — you read
-// "more talkative than Miley" off the shape without doing arithmetic — and
-// because 1–5 is a scale of appetite, not a measurement anyone needs exactly.
-// They wear her accent, so a card stays one colour.
+// because the point is comparing one companion against the others at a glance —
+// you read "more talkative than Miley" off the shape without doing arithmetic —
+// and because 1–5 is a scale of appetite, not a measurement anyone needs
+// exactly. Pips wear the companion's accent, so a card stays one colour.
 function TraitPips({
   label,
   value,
@@ -196,8 +196,8 @@ export function ChooserCard({
           ))}
         </span>
       )}
-      {/* Her disposition, kept off the feature line above: that line says what
-          the selected packs bring, this says what she's like. */}
+      {/* Disposition, kept off the feature line above: that line says what the
+          selected packs bring, this says what the companion is like. */}
       <span className="mt-1.5 flex gap-4 text-sm">
         <TraitPips label="chatty" value={c.chattiness} accent={accent} />
         <TraitPips label="playful" value={c.playfulness} accent={accent} />

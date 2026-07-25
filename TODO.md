@@ -81,6 +81,37 @@ when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
 the system prompts. _(The on-hardware feel tuning remains.)_
 
+### Tell the companions what the toy actually is
+
+The system prompt drives the device by tool without ever describing what's on
+the other end. A persona is left inferring the hardware from the knob names, so
+what it says about the toy is invented — the wrong shape, the wrong sensation,
+sometimes the wrong act entirely, which lands badly in the middle of a scene
+where the words are the whole point.
+
+Give the shared prompt a short factual block: what a Vacuglide is, that it's a
+sleeve that strokes and applies suction rather than anything inserted, what the
+speed and valve controls do to the feel, and what the wearer actually
+experiences when a knob moves. Written once in `shared-prompt.ts`, so no pack
+author has to know it. The nuance is length and register — enough for the talk
+to be accurate, not so much that a persona narrates a spec sheet.
+
+### Reconsider the second person the prompts assume
+
+The shared prompt and the ambient cue both address the user as "he" throughout,
+and the toy-start rule doubled the density of it. The premise is reasonable —
+it's a male masturbator, so nearly every user is male — but it's an assumption
+baked into copy rather than a setting, and the companions themselves aren't
+gendered anywhere else in the app.
+
+Worth deciding deliberately rather than by default. The options are roughly:
+leave it (and say so somewhere, so it reads as a choice); neutralise the prompt
+copy; or make it a setting, which is the most work and the only one that costs a
+compatibility surface — pack prompts are author-written and would have to follow
+whatever convention is picked. Note that neutral pronouns in prompt copy also
+cost some clarity: "he" and "she" in the same block disambiguate who is being
+talked about in a way "they" twice over does not.
+
 ### Personas shape their programs
 
 Map a companion's traits onto **Groove's knobs** — `intensity` to the
@@ -90,12 +121,13 @@ the companions' _programs_ (not just their chat) to diverge.
 
 **First settle which of these are code at all.** `chattiness` and `playfulness`
 shipped with ambient chat because they drive a timer. The rest may not need any:
-`dominance` is really how readily she overrides what you asked for, and that is
-a disposition the system prompt can carry on its own — plausibly `variety` too.
-A trait only earns a manifest field and a mapping if code reads it; one that
-only colours how she behaves belongs in her prompt, where an author can already
-write it. Work out which is which before adding fields, because a manifest field
-is a compatibility surface and packs in the wild make it expensive to take back.
+`dominance` is really how readily a companion overrides what you asked for, and
+that is a disposition the system prompt can carry on its own — plausibly
+`variety` too. A trait only earns a manifest field and a mapping if code reads
+it; one that only colours how a companion behaves belongs in the prompt, where
+an author can already write it. Work out which is which before adding fields,
+because a manifest field is a compatibility surface and packs in the wild make
+it expensive to take back.
 
 ### Trait-driven companion contrast
 

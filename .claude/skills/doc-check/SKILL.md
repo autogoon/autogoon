@@ -93,6 +93,17 @@ exactly.
     framing, not to app documentation. And a capability is described as the
     feature's, not as belonging to whichever companion currently has it
     ("Companions can send pictures", not "Aimee can").
+12. **Companion gender** — a companion can be any gender: one is whatever their
+    pack's author wrote. So anything describing _companions in general_ — docs,
+    changelog entries, code comments, type and field comments — says "they", or
+    is written to need no pronoun at all ("the companion", "a card shows…").
+    The built-ins happening to be women is a fact about them, not about the
+    feature. The exception is copy about **one named persona**, where her own
+    pronouns are correct and neutralising would be wrong: Miley's
+    `chattiness` comment, Elise's prompt, a changelog line naming her. The test
+    is what the sentence is about — the app, or a character in it. (The second
+    person the prompts address the _user_ in is a separate question, parked in
+    [TODO.md](../../../TODO.md).)
 
 ## Output and fixes
 

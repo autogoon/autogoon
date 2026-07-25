@@ -1,24 +1,24 @@
-// Pure timing for ambient chat — how long until she next fills a silence —
-// kept out of the voice session so it can be unit-tested. The session owns the
-// timer and the decision to arm one; this owns only the number.
+// Pure timing for ambient chat — how long until the companion next fills a
+// silence — kept out of the voice session so it can be unit-tested. The session
+// owns the timer and the decision to arm one; this owns only the number.
 
 import type { Companion } from './companions';
 
 // What an ambient turn is given instead of something you said. Injected into
-// that one request and never stored, the way a gap marker is — so it prompts
-// her without accumulating in the thread or appearing in the transcript.
+// that one request and never stored, the way a gap marker is — so it prompts a
+// turn without accumulating in the thread or appearing in the transcript.
 //
-// It carries no instruction about what to say: she has the conversation and the
-// device's state in front of her, and deciding what a silence needs is the
-// persona's job. All it supplies is the one thing she can't see for herself —
-// that a beat has passed and nobody filled it.
+// It carries no instruction about what to say: the conversation and the
+// device's state are already in front of the model, and deciding what a silence
+// needs is the persona's job. All it supplies is the one thing the persona
+// can't see for itself — that a beat has passed and nobody filled it.
 export const AMBIENT_CUE = '(A quiet beat passes. He has not said anything.)';
 
 // Two curves rather than one scaled, because the situations don't share a sense
-// of "a while": out of play she's filling a conversational pause, in play she's
-// talking over a running device, where the same gap feels far longer. Which
-// applies is the only thing the program's state decides — it never gates
-// whether she speaks at all.
+// of "a while": out of play it's a conversational pause being filled, in play
+// it's talking over a running device, where the same gap feels far longer.
+// Which applies is the only thing the program's state decides — it never gates
+// whether the companion speaks at all.
 const outOfPlayMs = (trait: number): number => 60_000 - 10_000 * trait;
 const inPlayMs = (trait: number): number => 30_000 - 5_000 * trait;
 
@@ -29,14 +29,14 @@ const inPlayMs = (trait: number): number => 30_000 - 5_000 * trait;
 const JITTER_MIN = -0.5;
 const JITTER_MAX = 0.2;
 
-// The delay before her next ambient turn. `rand` is a 0–1 sample (the caller
+// The delay before the next ambient turn. `rand` is a 0–1 sample (the caller
 // passes Math.random) — an argument rather than a call inside, so the mapping
 // stays pure and the jitter is testable at its edges instead of by chance.
 //
-// Note this is measured from when she stops speaking, so the gap between the
+// Note this is measured from when the speaking stops, so the gap between the
 // starts of two turns is this plus a whole turn cycle: time to first token, the
-// TTS request, and however long she talks. The felt cadence is always slower
-// than the number here.
+// TTS request, and however long the reply runs. The felt cadence is always
+// slower than the number here.
 export function ambientDelayMs(
   companion: Companion,
   playing: boolean,

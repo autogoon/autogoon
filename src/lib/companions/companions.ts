@@ -35,13 +35,13 @@ export type Companion = {
   model: string; // OpenRouter model slug the client requests for this companion
   contextWindow: number; // model context window, in tokens (for future pruning; not yet read)
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
-  // How readily she fills a silence, 1–5, as two separate appetites: the
-  // conversational one and the one for talking over a running program. They are
-  // deliberately independent — a laconic persona can still narrate play
+  // How readily this companion fills a silence, 1–5, as two separate appetites:
+  // the conversational one and the one for talking over a running program. They
+  // are deliberately independent — a laconic persona can still narrate play
   // relentlessly — and each sets its own ambient cadence (see
   // ambientDelayMs).
-  chattiness: number; // out of play: how much she keeps a conversation going
-  playfulness: number; // during play: how much she talks over the device
+  chattiness: number; // out of play: how much they keep a conversation going
+  playfulness: number; // during play: how much they talk over the device
   // The pictures she can send during a call — filled by an installed goonpack
   // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
   // installed: the panel then offers no send_picture tool, and her prompt gets

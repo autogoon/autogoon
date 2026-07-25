@@ -4,8 +4,9 @@ import {
   stripTextualToolCalls,
 } from './textual-tool-calls';
 
-// Verbatim from a live turn: she narrated, then wrote the call out instead of
-// making it. The picture never arrived and the markup was committed as speech.
+// Verbatim from a live turn: the model narrated, then wrote the call out
+// instead of making it. The picture never arrived and the markup was committed
+// as speech.
 const OBSERVED = `Don't move. Not yet.
 
 <tool_call>
@@ -70,7 +71,7 @@ describe('parseTextualToolCalls', () => {
 });
 
 describe('stripTextualToolCalls', () => {
-  it('leaves only what she actually said', () => {
+  it('leaves only what was actually said', () => {
     expect(stripTextualToolCalls(OBSERVED)).toBe("Don't move. Not yet.");
   });
 
@@ -87,7 +88,7 @@ describe('stripTextualToolCalls', () => {
   });
 
   // A turn that was nothing but the block leaves nothing to say — the caller
-  // treats an empty reply as "she acted without speaking", which is right.
+  // treats an empty reply as "acted without speaking", which is right.
   it('empties a turn that was only a call', () => {
     expect(
       stripTextualToolCalls(

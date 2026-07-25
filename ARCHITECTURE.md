@@ -234,8 +234,8 @@ Server error messages and any close we didn't initiate are surfaced to the
 panel's event log rather than swallowed — that quiet 1000 is how the idle rule
 was found in the first place, and it is the only account we get.
 
-**Ambient chat is a self-sustaining loop, not a clock.** Each of her turns arms
-the next as it ends, so nothing polls for a silence to fill; the scheduler
+**Ambient chat is a self-sustaining loop, not a clock.** Each companion turn
+arms the next as it ends, so nothing polls for a silence to fill; the scheduler
 (`src/lib/companions/ambient-scheduler.ts`) holds only that timer and a latch,
 kept out of the voice session because that hook already carries some twenty refs
 read by callbacks created once and outliving every render. Three rules hold it
@@ -246,19 +246,19 @@ together:
   a **latch** rather than skipping one arming: a tool call is followed by a
   reaction generation, and the arm at the end of _that_ would otherwise undo
   what the tool asked for. Only a real user turn releases it.
-- **She decides when to stop, so nothing else needs to.** A timeout would be
-  guessing at what she already knows — whether there is anything left to say.
-  The cost is that a walked-away session keeps her talking until she gives up,
-  which is [Activity cutoff](./TODO.md)'s to solve, not hers.
+- **The companion decides when to stop, so nothing else needs to.** A timeout
+  would be guessing at what the persona already knows — whether there is
+  anything left to say. The cost is that a walked-away session keeps the talking
+  going until it gives up, which is [Activity cutoff](./TODO.md)'s to solve.
 - **The scheduler is wall-clock and belongs to the session, never the program.**
   Program events are dropped on every regeneration and scale with playback rate,
-  and neither should touch her cadence. The Player's state is read for one
-  purpose only — picking which of her two appetites applies — and never gates
-  whether she speaks at all.
+  and neither should touch the cadence. The Player's state is read for one
+  purpose only — picking which of the two appetites applies — and never gates
+  whether the companion speaks at all.
 
 An ambient turn runs the ordinary turn path with no user turn appended; its cue
 rides that one request as a transient system line, like a gap marker, so it
-prompts her without accumulating in the thread.
+prompts the companion without accumulating in the thread.
 
 ## Goonpacks
 

@@ -68,10 +68,10 @@ export type VoiceStatus = {
   // the audio ElevenLabs bill for — the number to check a session against the
   // usage dashboard, and the one that should stay flat between turns.
   sentFrames: number;
-  // Ambient chat's whole state: when her next unprompted turn is due (null when
-  // none is pending) and whether she has bowed out until you speak. Surfaced so
-  // the debug tab can show what she's about to do — otherwise a poke that never
-  // comes and a poke that was never armed look identical.
+  // Ambient chat's whole state: when the next unprompted turn is due (null when
+  // none is pending) and whether the companion has bowed out until you speak.
+  // Surfaced so the debug tab can show what's coming — otherwise a poke that
+  // never comes and a poke that was never armed look identical.
   ambientDueAt: number | null;
   ambientHolding: boolean;
   partial: string;
@@ -164,11 +164,11 @@ const BARGE_IN_MIN = { voicedMs: 250, words: 2 };
 // that the lock lifts and re-takes when the transcript lands.
 const UTTERANCE_SILENT_TIMEOUT_MS = 2000;
 
-// Her way of ending the ambient loop: she calls this when she has said what she
-// wanted, or when she has asked whether you're still there and would rather wait
-// than keep talking to an empty room. A tool rather than a marker in her reply
+// How a companion ends the ambient loop: called on having said what they
+// wanted, or having asked whether you're still there and would rather wait than
+// keep talking to an empty room. A tool rather than a marker in the reply
 // because a tool call can never be spoken aloud — a marker that escaped the
-// stripping would be read out in her voice mid-scene.
+// stripping would be read out in the companion's voice mid-scene.
 //
 // It sets a latch rather than skipping one scheduling. A tool call is followed
 // by a reaction generation, and the arm at the end of that reaction would
@@ -200,7 +200,7 @@ export function useVoiceSession(opts: {
   getDeviceState?: () => string;
   // Whether a program is running right now. Ambient chat reads it to pick which
   // appetite applies — talking over a running device is a different situation
-  // from filling a conversational pause. It never gates whether she speaks.
+  // from filling a conversational pause. It never gates whether they speak.
   isPlaying?: () => boolean;
   onToolRun?: (name: string, result: string) => void;
   // Debug hook: emit a line into the panel's event log. Wired to the same
@@ -386,8 +386,8 @@ export function useVoiceSession(opts: {
   const submitText = useCallback(
     (text: string, opts?: { speak?: boolean; ambient?: boolean }): void => {
       const prompt = text.trim();
-      // An ambient turn carries no text by design — she's answering a silence,
-      // not a message — so only a typed or spoken turn has to be non-empty.
+      // An ambient turn carries no text by design — it answers a silence, not a
+      // message — so only a typed or spoken turn has to be non-empty.
       const ambient = opts?.ambient ?? false;
       if (prompt === '' && !ambient) return;
       const clients = ensureClients();
@@ -400,10 +400,10 @@ export function useVoiceSession(opts: {
 
       // Commit the user turn the moment it's submitted (ref + state + persist).
       // An ambient turn appends nothing: there is no user turn behind it, and
-      // inventing one would have her answering a message you never sent.
+      // inventing one would mean answering a message you never sent.
       if (!ambient) {
         persistThread(appendUser(threadRef.current, prompt, Date.now()));
-        // You spoke, so she's live again however she left things, and there is
+        // You spoke, so the loop is live again however it was left, and there is
         // no silence left for a pending poke to fill.
         ambientRef.current?.release();
       }
@@ -500,7 +500,8 @@ export function useVoiceSession(opts: {
           // recovered and dispatched (see textual-tool-calls.ts), so what's left
           // here is markup. Stripped at the single point every caller takes its
           // text from, so neither the transcript nor TTS can ever see it — a
-          // spoken turn would otherwise read the tags aloud in her voice.
+          // spoken turn would otherwise read the tags aloud in the companion's
+          // voice.
           return {
             content: stripTextualToolCalls(content),
             reasoning,
@@ -554,7 +555,7 @@ export function useVoiceSession(opts: {
           );
           // The cue for an ambient turn rides this one request only — appended
           // to the projection rather than written to the thread, so it prompts
-          // her without accumulating or showing in the transcript.
+          // a turn without accumulating or showing in the transcript.
           if (ambient) {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
@@ -694,11 +695,11 @@ export function useVoiceSession(opts: {
           if (turnRef.current === controller) {
             turnRef.current = null;
             setReplyPlaying(false);
-            // She's finished, so line up the next silence-filler. Guarded by the
-            // same check as everything else here: a superseded turn — barged in
-            // on, or replaced by a newer one — must not arm, or a cut-off reply
-            // would leave a poke behind it. The scheduler ignores this if she
-            // has asked to be left alone.
+            // The turn is finished, so line up the next silence-filler. Guarded
+            // by the same check as everything else here: a superseded turn —
+            // barged in on, or replaced by a newer one — must not arm, or a
+            // cut-off reply would leave a poke behind it. The scheduler ignores
+            // this if the companion has asked to be left alone.
             ambientRef.current?.arm(companion, isPlayingRef.current());
             // Catch-all: if TTS resolved without first audio (error/abort) the
             // "waiting for speech" flag would otherwise stick — likewise
@@ -758,7 +759,7 @@ export function useVoiceSession(opts: {
         if (speechConfirmedRef.current) {
           // You're talking, so a real turn is on its way and there is no silence
           // to fill. Cancelled on the confirmed partial rather than the raw one:
-          // a phantom shouldn't be able to call her off.
+          // a phantom shouldn't be able to call the companion off.
           ambientRef.current?.cancel();
           setStatus((s) => ({ ...s, partial: text }));
         } else {

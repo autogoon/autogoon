@@ -1,5 +1,5 @@
-// The ambient-chat scheduler: the timer that decides when she next fills a
-// silence, and the latch that lets her call an end to it. Kept out of the voice
+// The ambient-chat scheduler: the timer that decides when the companion next
+// fills a silence, and the latch for calling an end to it. Kept out of the voice
 // session deliberately — that hook already carries some twenty refs read by
 // callbacks created once and outliving every render, and this would have added
 // two more. The session holds one of these instead and drives it by events.
@@ -11,26 +11,27 @@ import { ambientDelayMs } from './ambient';
 import type { Companion } from './companions';
 
 export type AmbientScheduler = {
-  // A turn of hers just finished: line up the next one, unless she's bowed out.
-  // Called at the end of every assistant turn, including her own ambient ones —
+  // A companion turn just finished: line up the next one, unless they've bowed
+  // out. Called at the end of every assistant turn, including the ambient ones —
   // that's what makes the loop self-sustaining.
   arm: (companion: Companion, playing: boolean) => void;
   // Something real is on its way, so there's no silence left to fill.
   cancel: () => void;
-  // She's said her piece and wants the next move to be yours. Survives however
-  // many generations a turn produces: a tool call is followed by a reaction, and
-  // the arm at the end of that reaction must not undo what the tool asked for.
+  // The companion has said their piece and wants the next move to be yours.
+  // Survives however many generations a turn produces: a tool call is followed
+  // by a reaction, and the arm at the end of that reaction must not undo what
+  // the tool asked for.
   hold: () => void;
-  // You spoke, so she's live again.
+  // You spoke, so the loop is live again.
   release: () => void;
   // The session is over.
   stop: () => void;
   // When the armed poke will fire, or null if none is. Together with holding()
   // this is the whole of the scheduler's state, surfaced so a session can show
-  // what it's about to do rather than leaving it to be inferred from her
+  // what it's about to do rather than leaving it to be inferred from a companion
   // suddenly speaking.
   dueAt: () => number | null;
-  // Whether she has bowed out and is waiting for you.
+  // Whether the companion has bowed out and is waiting for you.
   holding: () => boolean;
 };
 

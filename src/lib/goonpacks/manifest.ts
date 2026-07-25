@@ -68,8 +68,8 @@ export type CompanionConfig = {
   model?: string; // OpenRouter slug; app default when omitted
   contextWindow?: number;
   passesReasoning?: boolean;
-  chattiness?: number; // 1–5: how readily she fills a silence out of play
-  playfulness?: number; // 1–5: how readily she talks over a running program
+  chattiness?: number; // 1–5: how readily a silence is filled out of play
+  playfulness?: number; // 1–5: how readily they talk over a running program
 };
 
 // The keys of CompanionConfig — the only fields the companion section allows.
