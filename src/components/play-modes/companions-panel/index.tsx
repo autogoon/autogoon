@@ -80,6 +80,15 @@ import { ToolChip } from './tool-chip';
 const DEFAULT_INTENSITY = 20;
 const DEFAULT_VARIETY: VariabilityLevel = 'low';
 
+// How long the composer stays in dictation after the mic goes quiet. The VAD
+// confirms an offset after 100 ms under threshold (see mic.ts) — shorter than
+// an ordinary gap between words — while the first STT partial, the thing that
+// then holds dictation open by itself, is around a second behind it. Following
+// the VAD's falling edge directly, the composer would swap its value,
+// placeholder and disabled state on every pause until that partial arrived.
+// This has to outlast both a gap between words and the wait for the partial.
+const DICTATION_HOLD_MS = 800;
+
 export function CompanionsPanel({
   vacuglide,
   player,
@@ -510,7 +519,19 @@ export function CompanionsPanel({
 
   // True while the user is dictating: the VAD hears voice, or interim (partial)
   // STT results are present. The composer shows the live partial and is locked.
-  const dictating = status.vadSpeaking || status.partial !== '';
+  // Rises immediately, falls DICTATION_HOLD_MS late, so the mic's own chatter
+  // between words doesn't reach the composer. The dependency is a boolean, not
+  // `status`, so this settles on edges rather than on every rms frame.
+  const dictationLive = status.vadSpeaking || status.partial !== '';
+  const [dictating, setDictating] = useState(false);
+  useEffect(() => {
+    if (dictationLive) {
+      setDictating(true);
+      return;
+    }
+    const timer = setTimeout(() => setDictating(false), DICTATION_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [dictationLive]);
 
   // The session's live stage, shared by the lightbox badge and the
   // transcript's stage bubble.
