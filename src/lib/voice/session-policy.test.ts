@@ -3,9 +3,14 @@ import {
   shouldOpenSocket,
   isBargeIn,
   partialHasWord,
+  partialWordCount,
   confirmSpeech,
   voiceStage,
 } from './session-policy';
+
+// Thresholds standing in for the app's, so the cases read as behaviour rather
+// than arithmetic.
+const MIN = { voicedMs: 150, words: 2 };
 
 // A convenient idle baseline for voiceStage tests.
 const IDLE = {
@@ -30,21 +35,40 @@ describe('session-policy', () => {
     expect(isBargeIn(true, false)).toBe(false);
   });
 
-  it('does not confirm speech on a phantom partial with the VAD silent', () => {
-    expect(confirmSpeech(false, 'No.', false)).toBe(false);
-    expect(confirmSpeech(false, 'Yes', false)).toBe(false);
+  // The phantom: one hallucinated token, no voicing worth the name behind it.
+  // It has to fail both tests, which is what makes it distinguishable at all.
+  it('does not confirm a lone token backed only by a transient', () => {
+    expect(confirmSpeech(false, 'No.', 60, MIN)).toBe(false);
+    expect(confirmSpeech(false, 'Yes', 149, MIN)).toBe(false);
   });
 
-  it('confirms speech on a worded partial with live mic energy', () => {
-    expect(confirmSpeech(false, 'hey there', true)).toBe(true);
+  it('confirms a worded partial backed by sustained voicing', () => {
+    expect(confirmSpeech(false, 'stop', 150, MIN)).toBe(true);
+    expect(confirmSpeech(false, 'stop', 900, MIN)).toBe(true);
   });
 
-  it('stays confirmed for trailing partials after the VAD drops', () => {
-    expect(confirmSpeech(true, 'hey there and', false)).toBe(true);
+  // Quiet speech: the VAD tracks loudness, so a softly-spoken sentence dips
+  // under the offset threshold and is credited a fraction of its real length —
+  // 80ms for "Thank you, honey." on the hardware. The words carry it instead.
+  it('confirms a multi-word partial the VAD barely registered', () => {
+    expect(confirmSpeech(false, 'Thank you,', 80, MIN)).toBe(true);
+    expect(confirmSpeech(false, "It's okay.", 0, MIN)).toBe(true);
   });
 
-  it('does not confirm on mic energy without a decoded word', () => {
-    expect(confirmSpeech(false, '...', true)).toBe(false);
+  it('stays confirmed for trailing partials once the utterance qualified', () => {
+    expect(confirmSpeech(true, 'and', 0, MIN)).toBe(true);
+  });
+
+  it('does not confirm without a decoded word, however long the voicing', () => {
+    expect(confirmSpeech(false, '...', 900, MIN)).toBe(false);
+  });
+
+  it('counts only tokens carrying a letter or digit as words', () => {
+    expect(partialWordCount('Thank you,')).toBe(2);
+    expect(partialWordCount('Yes.')).toBe(1);
+    expect(partialWordCount('  hey   there  ')).toBe(2);
+    expect(partialWordCount('... ,')).toBe(0);
+    expect(partialWordCount('')).toBe(0);
   });
 
   it('counts a partial as a word only once it holds a real word', () => {
