@@ -1,18 +1,34 @@
 // Realtime STT WebSocket lifecycle client for Companions: mint a single-use
 // token, open the ElevenLabs realtime socket, flush the pre-roll once the
-// session starts, stream audio frames, and surface partial/committed
-// transcripts. With commit_strategy=vad the server VAD emits committed
-// transcripts, so we never send commits ourselves. Integration code — no unit
+// session starts, stream audio frames while an utterance is in flight, and
+// surface partial/committed transcripts. With commit_strategy=vad the server
+// VAD emits committed transcripts, so we never send commits ourselves — and
+// nothing here closes an idle socket, which is ElevenLabs' to end (see
+// ARCHITECTURE.md, Companions' voice subsystem). Integration code — no unit
 // test (the pure lifecycle decisions live in session-policy.ts and are tested
-// there); verified in the Task 13 acceptance run.
+// there).
 import { pcm16ToBase64 } from './audio-encoding';
-import { type SttPhase, shouldCloseSocket } from './session-policy';
+import { type SttPhase, shouldOpenSocket } from './session-policy';
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type SttEvents = {
   onPartial: (text: string) => void;
   onCommitted: (text: string) => void;
   onPhase: (phase: SttPhase) => void;
+  // An error message from the server, verbatim. Nothing acts on these — they
+  // exist so a socket that drops or throttles says why in the event log
+  // instead of just going quiet.
+  onServerError: (raw: string) => void;
+  // How the socket ended. `local` separates our own close() from one the far
+  // end started, which is the difference between a session we ended and one
+  // that was taken from us; the close frame's code and reason are the only
+  // account we get of the latter.
+  onClosed: (info: {
+    local: boolean;
+    code: number;
+    reason: string;
+    wasClean: boolean;
+  }) => void;
 };
 
 type IncomingMessage = { message_type?: string; text?: string };
@@ -22,18 +38,30 @@ type IncomingMessage = { message_type?: string; text?: string };
 const MAX_PENDING_FRAMES = 500;
 
 export type Stt = {
-  open: (preRoll: Int16Array[]) => Promise<void>;
+  beginUtterance: (getPreRoll: () => Int16Array[]) => void;
   sendFrame: (base64Pcm: string) => void;
-  noteVoice: (nowMs: number) => void;
-  maybeClose: (nowMs: number, timeoutMs: number) => void;
+  // Ends the session's socket. Idle sockets need no help: ElevenLabs close
+  // them from their end with a clean 1000, so the only close we make is this
+  // deliberate one, when the voice session itself stops.
   close: () => void;
   phase: () => SttPhase;
+  framesSent: () => number;
 };
 
 export function createStt(events: SttEvents): Stt {
   let ws: WebSocket | null = null;
   let phase: SttPhase = 'closed';
-  let lastVoiceAtMs = 0;
+  // Audio only flows while an utterance is in flight, so an open socket between
+  // turns costs nothing (ElevenLabs bills audio processed, not connection
+  // uptime). The gate opens at the VAD's onset and closes on the server's
+  // committed transcript — deliberately NOT on the VAD's offset, because
+  // commit_strategy=vad means the server has to hear the trailing silence to
+  // decide the utterance ended. Cut the audio at our own offset and the commit
+  // never arrives, so the turn never runs.
+  let streaming = false;
+  // Frames actually put on the wire, so a session can report how much audio it
+  // streamed and that can be checked against the bill.
+  let sent = 0;
   // Frames captured after open() is called but before the socket is live
   // (session_started) — the token fetch + WebSocket handshake, often 1–2s.
   // Without this they'd be dropped, losing the opening seconds of speech; they
@@ -54,9 +82,13 @@ export function createStt(events: SttEvents): Stt {
         commit: false,
       }),
     );
+    sent += 1;
   }
 
   function sendFrame(base64Pcm: string): void {
+    // Between utterances the socket stays up but silent — this is the whole
+    // saving, so the gate is checked before anything else.
+    if (!streaming) return;
     if (phase === 'open' && ws?.readyState === WebSocket.OPEN) {
       rawSend(base64Pcm);
     } else if (phase === 'connecting' && pending.length < MAX_PENDING_FRAMES) {
@@ -64,6 +96,26 @@ export function createStt(events: SttEvents): Stt {
       pending.push(base64Pcm);
     }
     // closed/closing: no active listening turn — drop.
+  }
+
+  // A VAD onset: start streaming this utterance. Opens the socket if it's cold,
+  // and on a warm one flushes the pre-roll straight down it so the opening word
+  // survives — the socket is held open between turns, so most utterances begin
+  // mid-connection rather than at connect. getPreRoll is a callback because
+  // flushing drains the mic's ring: it must only be called when this really is
+  // a fresh utterance, never on an onset that lands while an earlier one is
+  // still streaming.
+  function beginUtterance(getPreRoll: () => Int16Array[]): void {
+    if (streaming) return;
+    streaming = true;
+    if (shouldOpenSocket(phase, true)) {
+      void open(getPreRoll()).catch(() => {});
+      return;
+    }
+    // Connecting: frames are already buffering into `pending`, and the pre-roll
+    // went with the open() that started it — nothing to add.
+    if (phase !== 'open') return;
+    for (const frame of getPreRoll()) rawSend(pcm16ToBase64(frame));
   }
 
   async function open(preRoll: Int16Array[]): Promise<void> {
@@ -116,28 +168,48 @@ export function createStt(events: SttEvents): Stt {
           break;
         }
         case 'committed_transcript': {
+          // The server has decided the utterance ended, so it needs no more
+          // audio until the next onset — stop streaming, keep the socket.
+          streaming = false;
           if (typeof msg.text === 'string') events.onCommitted(msg.text);
           break;
         }
-        default:
+        default: {
+          // Every error the server can raise — insufficient audio activity,
+          // quota, throttling, rate limits, session time limit — arrives as its
+          // own message_type, and several of them precede a close. Match on the
+          // name rather than listing them, so a type added upstream still shows
+          // up. The payload goes through raw: we don't model these, and a
+          // truncated one is worse than useless when a session drops.
+          if (msg.message_type?.includes('error') === true) {
+            events.onServerError(event.data as string);
+          }
           break;
+        }
       }
     });
 
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event) => {
+      // Read before setPhase: close() moves us to "closing" first, so that
+      // phase is what distinguishes our own hang-up from the server's.
+      const local = phase === 'closing';
       if (ws === socket) ws = null;
       pending = [];
+      // No socket, no utterance — the next onset opens both.
+      streaming = false;
       setPhase('closed');
+      events.onClosed({
+        local,
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
     });
 
     socket.addEventListener('error', () => {
       // Errors are followed by a close event, which drives the phase back to
       // closed; nothing extra to do here.
     });
-  }
-
-  function noteVoice(nowMs: number): void {
-    lastVoiceAtMs = nowMs;
   }
 
   function close(): void {
@@ -152,16 +224,11 @@ export function createStt(events: SttEvents): Stt {
     // The socket's close handler will settle the phase at "closed".
   }
 
-  function maybeClose(nowMs: number, timeoutMs: number): void {
-    if (shouldCloseSocket(phase, lastVoiceAtMs, nowMs, timeoutMs)) close();
-  }
-
   return {
-    open,
+    beginUtterance,
     sendFrame,
-    noteVoice,
-    maybeClose,
     close,
     phase: () => phase,
+    framesSent: () => sent,
   };
 }

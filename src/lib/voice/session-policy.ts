@@ -6,15 +6,6 @@ export function shouldOpenSocket(phase: SttPhase, onset: boolean): boolean {
   return onset && phase === 'closed';
 }
 
-export function shouldCloseSocket(
-  phase: SttPhase,
-  lastVoiceAtMs: number,
-  nowMs: number,
-  timeoutMs: number,
-): boolean {
-  return phase === 'open' && nowMs - lastVoiceAtMs >= timeoutMs;
-}
-
 // A barge-in cuts the companion off only once we've actually decoded speech —
 // `speechConfirmed` — not on raw mic energy. See partialHasWord: waiting for a
 // real word means a cough, a thump, or her own audio leaking past AEC no longer
@@ -32,18 +23,41 @@ export function partialHasWord(partial: string): boolean {
   return /[\p{L}\p{N}]/u.test(partial);
 }
 
-// Whether the current utterance has confirmed real speech: a worded partial
-// arriving while the VAD hears voice. Sticky (`alreadyConfirmed` carries
-// forward) so trailing partials that land after the VAD drops mid-sentence
-// still count — but an STT phantom ("Yes"/"No" hallucinated on near-silence
-// when the socket opens) never confirms, because the mic is quiet when it
-// arrives. Callers reset the sticky flag at each utterance boundary.
+// Words in a partial — whitespace-separated runs holding a letter or digit, so
+// stray punctuation ("...", ",") counts for nothing.
+export function partialWordCount(partial: string): number {
+  return partial.split(/\s+/).filter((t) => /[\p{L}\p{N}]/u.test(t)).length;
+}
+
+// Whether the current utterance has confirmed real speech, and so whether its
+// partials can drive the composer and barge-in. Sticky (`alreadyConfirmed`
+// carries forward), and callers reset it at each utterance boundary.
+//
+// What it guards against is the phantom: a token the STT hallucinates from
+// near-silence ("Yes.", "No.") when a cough or a thump opens the socket, which
+// would otherwise take over the composer or cut her off mid-reply.
+//
+// `voicedMs` is the longest run of voicing in this utterance, NOT whether the
+// mic is live at this instant. A partial describes audio from up to a second
+// ago, so a short utterance is finished — and the VAD long since released —
+// before its own transcript returns. Judging it on the VAD's present state
+// rejects real speech for being brief, and blocks barge-in on exactly the
+// short interjections ("stop", "wait") most likely to be used to interrupt.
 export function confirmSpeech(
   alreadyConfirmed: boolean,
   partial: string,
-  vadSpeaking: boolean,
+  voicedMs: number,
+  min: { voicedMs: number; words: number },
 ): boolean {
-  return alreadyConfirmed || (partialHasWord(partial) && vadSpeaking);
+  if (alreadyConfirmed) return true;
+  if (!partialHasWord(partial)) return false;
+  // Either signal suffices, because each covers where the other fails. Voicing
+  // misses quiet speech: the VAD tracks loudness, and a softly-spoken sentence
+  // dips under the offset threshold repeatedly, so a real sentence can be
+  // credited a fraction of its true length. Word count misses a deliberate
+  // one-word utterance ("stop"). What neither mistakes is the phantom itself —
+  // a single token hallucinated from a cough — which is short in both.
+  return voicedMs >= min.voicedMs || partialWordCount(partial) >= min.words;
 }
 
 // What the voice session is doing right now, as one stage for status displays

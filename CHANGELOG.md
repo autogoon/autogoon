@@ -2,12 +2,91 @@
 
 ## 2026-07-25
 
+- bug: **Long messages aren't cut off** — The message box was a fixed height, so
+  a long message — dictated or typed — ran on below the bottom of it out of
+  sight. It now grows to fit what's in it, up to a limit past which it scrolls
+  rather than crowding out the conversation above.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- bug: **Your words reach the message box** — What you were saying often failed
+  to appear as you said it, especially when you spoke briefly or quietly: the
+  app checked whether the microphone heard voice at the moment the transcript
+  came back, by which point you had usually stopped. A transcript is now
+  believed on the evidence of the speech that produced it — how long you were
+  audible for, or simply carrying more than one word — so it shows up as you
+  talk. Interrupting her works on short interjections too, which previously
+  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **The message box shimmers while you speak** — The same shimmer
+  that marks the message she's saying aloud now rings the message box while
+  she's listening to you, so both halves of the conversation show whose turn is
+  live in the same way. It appears the moment you start talking, not when the
+  transcript catches up.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **Steadier message box while you talk** — The box no longer
+  flickered between "Listening…" and its normal placeholder as you spoke,
+  swapping what it showed with it. It now settles the moment you start talking
+  and stays put through the gaps between words, until the transcript catches up
+  or you've actually stopped.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **Quicker to interrupt her** — The app no longer drops the speech
+  connection a few seconds after you stop talking, so interrupting her shortly
+  after she starts replying doesn't wait for a new connection to be set up
+  first. Your microphone audio is only sent while you're actually saying
+  something, so holding the line open costs nothing. The transcription service
+  still closes an unused connection after a while of its own accord, so a very
+  late interruption reconnects as before.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **The message she's speaking shimmers** — Instead of a separate
+  "Loading voice" and "Speaking" row in the conversation, her message itself now
+  carries a slow shimmer around its edge: faint and unhurried while her voice
+  loads, brighter and quicker once she's actually saying the words. The message
+  being spoken is the thing you're reading, so it's the thing that's marked.
+  Listening, Thinking and Replying keep their own row — there's no message on
+  screen yet for those. Over an open picture, the corner badge still names every
+  stage.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
 - enhancement: **Companions reply faster** — Every companion's model now routes
   by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
   load balancing, which had been spreading requests across providers regardless
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
+
+- internal: **The voice session shows its working** — The event log gains the
+  VAD's onset/offset edges with each run's measured length, and an unconfirmed
+  partial now reports the evidence it was judged on rather than just the
+  verdict. Kept in permanently: the edges are otherwise invisible, and they
+  don't measure what they appear to — quiet speech dips under the offset
+  threshold repeatedly, so "Thank you, honey." was credited 80ms of voicing.
+  Without that number on screen the cause is indistinguishable from a wrong
+  threshold. The line is also no longer called a phantom, which is a conclusion
+  and frequently the wrong one.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- internal: **The STT socket says why it died** — Server error messages and any
+  websocket close we didn't initiate now reach the event log with their close
+  code, instead of being dropped by the message switch's `default`. That's how
+  ElevenLabs' undocumented idle rule was found: a clean 1000 about fourteen
+  seconds after the last audio. Our own idle-close machinery is gone with it —
+  timeout, poll interval, `noteVoice`, `maybeClose` and `shouldCloseSocket` —
+  since there's no point racing a server that already does the job. The
+  invariant this all rests on is written up in
+  [ARCHITECTURE.md](./ARCHITECTURE.md).
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- internal: **Comments describe the present too** — The current-state rule that
+  keeps future work out of docs now covers code comments, in both directions: a
+  comment says what the code does now, not what it replaced or used to be. The
+  past is what `CHANGELOG.md` and git history are for. Written into
+  [CLAUDE.md](./CLAUDE.md), enforced by `/doc-check` (which now treats every
+  comment a branch touched as in scope), and applied to the three comments that
+  had drifted.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 ## 2026-07-24
 

@@ -20,9 +20,12 @@ owns the what — docs own the why, the invariants, and the cross-file shape).
   mentions any of them: the docs are `*.md` at the root, `modes/*.md`,
   `roadmap/*.md`, and `.env.example` (its comments are the documented env
   contract).
-- **Code comments are docs too, opportunistically.** While verifying a claim,
-  a code comment that contradicts the code around it — or references something
-  that no longer exists — is a finding, even though code files aren't swept.
+- **Code comments are docs too.** A code comment that contradicts the code
+  around it — or references something that no longer exists — is a finding.
+  **Every comment the diff touched is in scope**, whatever file it sits in: if
+  the branch wrote or edited it, read it as a doc. Comments are where drift
+  hides, because nothing else checks them. Beyond the diff, code files still
+  aren't swept — flag those opportunistically, while verifying something else.
 - **`/doc-check all`: full sweep.** Every doc against the whole codebase. Fan
   out one read-only subagent per doc cluster (ARCHITECTURE + CLAUDE.md; README +
   MODES + DEVELOPERS; modes/; TODO + roadmap/; the dated specs under `docs/`)
@@ -67,13 +70,22 @@ exactly.
    `TODO.md` or the roadmap, or delete it. A plain pointer _to_ those files is
    fine; describing the future in place is not. (Program-time "future events"
    and experiential "you never know what's coming" are not future work.)
-9. **Audience** — user-facing docs speak to someone _using_ the app, so repo
+9. **Past leakage** — the mirror image, and just as much a finding: a
+   current-state doc or code comment describing what something _replaced_ or
+   _used to be_ ("replaces the old spinners", "this used to live in…",
+   "renamed from…", "no longer uses…"). The change belongs in `CHANGELOG.md`
+   and git history, which already record it; the reader in front of the code
+   needs what it does now. Delete the clause — the sentence around it almost
+   always stands on its own. The exception is provenance explaining a live
+   constraint ("ported verbatim from X, so it keeps X's quirks"): that
+   describes the present and stays.
+10. **Audience** — user-facing docs speak to someone _using_ the app, so repo
    mechanics are findings there: what's committed or gitignored, generated
    modules and build plumbing, "see the header comments in scripts/…". That
    material belongs in DEVELOPERS.md, ARCHITECTURE.md, or the code itself. npm
    commands a user actually runs to operate a feature (the describe scripts,
    restarting dev) are fine — they're user instructions, not developer ones.
-10. **Vocabulary & register** — docs use the app's terms: **play mode** (never
+11. **Vocabulary & register** — docs use the app's terms: **play mode** (never
     "algorithm" as the category — it survives only where it genuinely means
     one, like "the Vacuglide algorithm"), **program** (the timed plan),
     **play/session** (what the user is doing). A persona's _fiction_ stays in

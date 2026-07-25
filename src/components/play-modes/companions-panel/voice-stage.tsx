@@ -46,7 +46,12 @@ export function VoiceStageBadge({ stage }: { stage: VoiceStage }) {
 }
 
 export function VoiceStageBubble({ stage }: { stage: VoiceStage }) {
-  if (stage === 'idle') return null;
+  // Once her reply exists, it is the status: the transcript rings that bubble
+  // instead (ChatBubble's `voice`), so a row here would say the same thing
+  // twice. Everything earlier — listening, thinking, replying — has no message
+  // on screen yet and still needs one. The lightbox badge keeps all stages: an
+  // open picture covers the transcript.
+  if (stage === 'idle' || stage === 'tts' || stage === 'speaking') return null;
   const { icon: Icon, word } = STAGES[stage];
   // Listening is the user's own speech streaming in, so it sits on the user's
   // side of the chat; every other stage is hers.

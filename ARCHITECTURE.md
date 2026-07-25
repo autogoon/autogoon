@@ -206,6 +206,34 @@ orchestrated by `src/hooks/use-voice-session.ts` over `src/lib/voice/`,
 builds/deploys, open on the dev server. The design and rationale live in
 [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
+One invariant is worth stating here, because it spans the mic, the socket and
+the billing model. **Audio is streamed only while an utterance is in flight**,
+and **we never close the STT socket on idle**:
+
+- The gate opens at the VAD's onset and closes on the server's _committed
+  transcript_ — not on the VAD's offset. `commit_strategy=vad` means ElevenLabs'
+  own VAD decides the utterance ended, and it needs to hear the trailing silence
+  to do it; cut the audio at our offset and the commit never arrives, so the
+  turn never runs. That commit is the app's authoritative end-of-speech, and
+  three things hang off it: the audio gate closes, the turn is submitted, and
+  the composer drops out of dictation. Nothing infers the end from local mic
+  energy, which dips between words and says nothing about whether you've
+  finished.
+- Between utterances the socket stays up and silent. ElevenLabs bill audio
+  processed, not connection uptime, so an idle socket is free — and a warm one
+  means an interruption isn't waiting on a token fetch and handshake.
+- Because the socket outlives a turn, the mic's pre-roll has to be flushed on a
+  **warm resume** as well as at connect, or every utterance after the first
+  loses its opening word.
+- **Idle sockets are ElevenLabs' to close, and they do** — cleanly, with a 1000,
+  after their own undocumented quiet period. There is deliberately no timeout of
+  ours racing it; the next onset opens a fresh socket. The only close we make is
+  the session teardown in `stop()`.
+
+Server error messages and any close we didn't initiate are surfaced to the
+panel's event log rather than swallowed — that quiet 1000 is how the idle rule
+was found in the first place, and it is the only account we get.
+
 ## Goonpacks
 
 Companions arrive as [goonpacks](./GOONPACKS.md) — one companion per zip. The

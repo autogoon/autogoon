@@ -94,7 +94,7 @@ export function CompanionsPanel({
   view: 'setup' | 'play';
   onEnterPlay: () => void;
   // Back to the picker (the slim bar's < button) — locked while the program
-  // runs, same rule as the breadcrumb the play screen no longer shows.
+  // runs, the same nav lock that holds `exit` on every other screen.
   onExitPlay: () => void;
 }) {
   const device = vacuglide.player;
@@ -508,9 +508,13 @@ export function CompanionsPanel({
     }
   }, [status.committed]);
 
-  // True while the user is dictating: the VAD hears voice, or interim (partial)
-  // STT results are present. The composer shows the live partial and is locked.
-  const dictating = status.vadSpeaking || status.partial !== '';
+  // True while the user is dictating: the composer shows the live partial and
+  // is locked. It runs from the VAD onset that opens an utterance to the point
+  // the server commits it — a decision about speech, not about mic energy, so
+  // it doesn't blink between words the way the raw VAD does and needs no
+  // debouncing. `partial` is redundant with it, and kept as belt and braces:
+  // text on screen should never sit in an unlocked box.
+  const dictating = status.utteranceOpen || status.partial !== '';
 
   // The session's live stage, shared by the lightbox badge and the
   // transcript's stage bubble.
@@ -524,6 +528,23 @@ export function CompanionsPanel({
     status.replyText !== '' &&
     [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
       'assistant';
+
+  // From the moment her words are headed for the speaker, her most recent turn
+  // wears the shimmer instead of a status row — faint while the voice loads,
+  // stronger once she's speaking.
+  const voice =
+    stage === 'tts' ? 'warming' : stage === 'speaking' ? 'speaking' : undefined;
+
+  // Which bubble wears it: the pending one if the reply hasn't committed yet,
+  // otherwise the last assistant turn that actually rendered a bubble — a
+  // silent picture turn has none, so the marker falls back past it.
+  const voicedFromEnd = [...status.thread]
+    .reverse()
+    .findIndex((t) => t.role === 'assistant' && !isSilentAssistantTurn(t));
+  const voicedIndex =
+    voice !== undefined && !pendingReplyVisible && voicedFromEnd !== -1
+      ? status.thread.length - 1 - voicedFromEnd
+      : -1;
 
   // Play-view sub-tabs, switched from the hamburger menu. Session (mic +
   // conversation) opens first.
@@ -582,6 +603,24 @@ export function CompanionsPanel({
       composerRef.current?.focus();
     }
   }, [active, view, tab]);
+
+  // What the composer displays: the live transcript while dictating, otherwise
+  // whatever's been typed.
+  const composerValue = dictating ? status.partial : text;
+
+  // Grow the box to fit, so a long sentence — dictated or typed — isn't hidden
+  // below the fold of a fixed-height box. Collapsing to `auto` before measuring
+  // is what makes it able to shrink again: scrollHeight can only report content
+  // taller than the current height, never shorter. Layout effect so the
+  // resize lands in the same frame as the text and the box doesn't visibly
+  // jump. It stops growing at max-h and scrolls, so a long dictation can't
+  // squeeze the conversation above it off the screen.
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (el === null) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [composerValue]);
 
   const connected = vacuglide.connected;
 
@@ -826,6 +865,7 @@ export function CompanionsPanel({
                           role={turn.role}
                           text={turn.content}
                           at={turn.at}
+                          voice={i === voicedIndex ? voice : undefined}
                         />
                       );
                     }
@@ -843,17 +883,18 @@ export function CompanionsPanel({
                       role="assistant"
                       text={status.replyText}
                       pending
+                      voice={voice}
                     />
                   )}
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
                   {/* Live stage as a chat-style bubble — the "other person is
-                  typing" slot, same icon vocabulary as the lightbox badge.
-                  While the reply is streaming into the pending bubble above,
-                  that bubble is the indicator, so the stage bubble stays out
-                  of the way. Replaces the old Thinking… / Waiting for speech…
-                  spinners. */}
+                  typing" slot, same icon vocabulary as the lightbox badge, for
+                  the stages with no message on screen yet. Once one exists the
+                  message carries the state itself: the pending bubble while the
+                  reply streams into it, then its shimmer through voice-loading
+                  and speaking. */}
                   {!(stage === 'streaming' && pendingReplyVisible) && (
                     <VoiceStageBubble stage={stage} />
                   )}
@@ -866,26 +907,40 @@ export function CompanionsPanel({
                       Error: {status.replyError}
                     </p>
                   )}
-                  <textarea
-                    ref={composerRef}
-                    value={dictating ? status.partial : text}
-                    disabled={dictating}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                      // Enter says it (speaks the reply); Shift+Enter inserts a newline.
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (text.trim() !== '' && !status.replyPlaying) {
-                          submitText(text, { speak: true });
-                          setText('');
+                  {/* The ring mirrors the one on a message she's speaking:
+                      hers shimmers while she talks, the composer while we're
+                      listening to you. It rides the wrapper because a textarea
+                      can't carry the pseudo-element that draws it, and because
+                      the ring shouldn't dim with the disabled box inside. */}
+                  <div
+                    className={`rounded-lg ${
+                      dictating
+                        ? 'border-shimmer [--shimmer-color:var(--foreground)]'
+                        : ''
+                    }`}
+                  >
+                    <textarea
+                      ref={composerRef}
+                      value={composerValue}
+                      disabled={dictating}
+                      onChange={(e) => setText(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Enter says it (speaks the reply); Shift+Enter inserts
+                        // a newline.
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          if (text.trim() !== '' && !status.replyPlaying) {
+                            submitText(text, { speak: true });
+                            setText('');
+                          }
                         }
+                      }}
+                      placeholder={
+                        dictating ? 'Listening…' : 'Type a message, or speak…'
                       }
-                    }}
-                    placeholder={
-                      dictating ? 'Listening…' : 'Type a message, or speak…'
-                    }
-                    className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
-                  />
+                      className="bg-foreground/5 text-foreground block max-h-40 min-h-16 w-full resize-none overflow-y-auto rounded-lg p-2 disabled:opacity-70"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       onClick={() => {

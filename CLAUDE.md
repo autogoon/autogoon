@@ -101,6 +101,14 @@ invariants, the why, and the cross-file shape. Concretely:
   [TODO.md](./TODO.md) (defined work), [ROADMAP.md](./ROADMAP.md) (direction),
   or a dated spec under `docs/` — nowhere else; a pointer to those files is
   fine, describing the future in place is not.
+- **This applies to code comments too, in both directions.** A comment says what
+  the code does now — not what it replaced ("replaces the old spinners", "this
+  used to…", "renamed from…"), and not what might come ("we'll add…", "for a
+  future mode"). The past belongs in [CHANGELOG.md](./CHANGELOG.md) and git
+  history; the future belongs in the files above. Both go stale, and neither
+  helps someone reading the code in front of them. The exception is provenance
+  that explains a live constraint — why code is shaped oddly _today_ — which is
+  about the present and stays.
 - README, MODES.md and `modes/*.md` are **user-facing**: no repo mechanics
   (committed/gitignored, generated modules, script internals) — that belongs in
   DEVELOPERS.md, ARCHITECTURE.md, or the code. npm commands a user runs to

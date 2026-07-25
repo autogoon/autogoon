@@ -42,12 +42,15 @@ still there?"; unanswered, the self-poke cadence stops (no LLM/TTS spend on an
 empty room) until he speaks again — which the gap markers then frame as him
 coming back.
 
-### Safeword + barge-in tuning
+### Safeword as a hard stop
 
-Vosk KWS reserved for the safeword → hard stop that also tears down the voice
-session (LLM + TTS); the nav/global-word lockdown a running session needs;
-reconciling the two concurrent mic captures (vosk vs. ElevenLabs STT); plus
-further barge-in tuning.
+Vosk KWS reserved for the safeword → a hard stop that tears down the voice
+session (LLM + TTS), not just the device. Today the safeword only pauses the
+Player, so she keeps talking through it; and it is only in the grammar while a
+program runs, so with the device stopped there is no spoken way to stop her at
+all. Also the nav/global-word lockdown a running session needs, and reconciling
+the two concurrent mic captures (vosk vs. ElevenLabs STT) so the word that stops
+her isn't also transcribed as a turn.
 
 ### Context compaction / rolling window
 
