@@ -13,6 +13,22 @@ Concrete, intended work. Speculative direction and design thinking lives in
   screen), and how it composes with the bring-your-own-keys feature below (with
   BYO keys it's the _user's_ balance — arguably more useful, same lookups).
 
+- **Finish intensity.** One global percentage in Settings: the intensity you'd
+  want to finish at. **Finish** goes to it; **companion-set intensity** is
+  multiplied by it (they set 100, it lands on 50, and they never see the setting
+  or the scaled number); and **the wind-down** starts at it and ramps down.
+  Torture and the two ruins don't take it — they're absolute on purpose — and
+  Autopilot doesn't change, being a faithful recreation of the Vacuglide
+  algorithm. A companion picking a number has no idea what it does to you, and
+  the only fix today is saying so in words, every session and every new
+  companion.
+
+- **Put the wind-down on a curve.** It glides down in two straight-line phases.
+  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it
+  approaches a standstill instead of stepping evenly the whole way — a 5-unit
+  change at speed 10 is felt far more than the same change at speed 90. Goon,
+  Groove and Companions each carry their own copy of the constants.
+
 ## Companions
 
 Remaining companion features — largely independent, picked off in any order,
@@ -80,6 +96,13 @@ assistant turn only on generation-complete, which can leave a dangling user turn
 when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
 the system prompts. _(The on-hardware feel tuning remains.)_
+
+### The companion picks the after-play
+
+The companion gets a tool for each after-play and picks which one to use when
+you say you're cumming. The persona decides, so the ending stops being a setting
+and becomes something she does to you. And because she can choose, she can say
+she will without saying which.
 
 ### Reconsider the second person the prompts assume
 

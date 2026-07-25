@@ -13,6 +13,9 @@ index.
 - [Play-mode options](roadmap/PLAY-MODE-OPTIONS.md) — options every play mode
   should eventually share, grouped by when they happen: mid-play (edge),
   end-play (the run to finish) and after-play (from the moment you cum).
+- [Cumming patterns](roadmap/CUMMING-PATTERNS.md) — make what happens when you
+  cum a defined, shareable thing rather than bespoke code, so any play mode can
+  use one and a companion can pick.
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — auto-tag a large personal
   image library (attributes, people, "heat") so a companion can pick pictures by
   mood; the long-range v2 behind [goonpacks](GOONPACKS.md), the shipped
