@@ -397,6 +397,7 @@ export function CompanionsPanel({
     companion,
     tools,
     getDeviceState,
+    isPlaying: () => player.state === 'playing',
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });

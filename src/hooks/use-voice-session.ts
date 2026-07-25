@@ -14,6 +14,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
+import { AMBIENT_CUE } from '@/lib/companions/ambient';
+import {
+  createAmbientScheduler,
+  type AmbientScheduler,
+} from '@/lib/companions/ambient-scheduler';
 import {
   createLlmClient,
   type LlmClient,
@@ -62,6 +67,12 @@ export type VoiceStatus = {
   // the audio ElevenLabs bill for — the number to check a session against the
   // usage dashboard, and the one that should stay flat between turns.
   sentFrames: number;
+  // Ambient chat's whole state: when her next unprompted turn is due (null when
+  // none is pending) and whether she has bowed out until you speak. Surfaced so
+  // the debug tab can show what she's about to do — otherwise a poke that never
+  // comes and a poke that was never armed look identical.
+  ambientDueAt: number | null;
+  ambientHolding: boolean;
   partial: string;
   committed: string;
   replyPlaying: boolean;
@@ -116,6 +127,8 @@ const IDLE_STATUS: VoiceStatus = {
   rms: 0,
   preRollFrames: 0,
   sentFrames: 0,
+  ambientDueAt: null,
+  ambientHolding: false,
   partial: '',
   committed: '',
   replyPlaying: false,
@@ -150,6 +163,22 @@ const BARGE_IN_MIN = { voicedMs: 250, words: 2 };
 // that the lock lifts and re-takes when the transcript lands.
 const UTTERANCE_SILENT_TIMEOUT_MS = 2000;
 
+// Her way of ending the ambient loop: she calls this when she has said what she
+// wanted, or when she has asked whether you're still there and would rather wait
+// than keep talking to an empty room. A tool rather than a marker in her reply
+// because a tool call can never be spoken aloud — a marker that escaped the
+// stripping would be read out in her voice mid-scene.
+//
+// It sets a latch rather than skipping one scheduling. A tool call is followed
+// by a reaction generation, and the arm at the end of that reaction would
+// otherwise undo what the tool just asked for.
+const WAIT_FOR_USER_TOOL: CompanionTool = {
+  name: 'wait_for_user',
+  description:
+    "Stop talking and wait for him to speak. Call this when you have nothing more to add for now, or when you've asked whether he's still there and want to leave the next move to him. You'll stay quiet until he says something.",
+  run: () => 'waiting for him',
+};
+
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
   `companions:thread:${companion.id}`;
@@ -168,6 +197,10 @@ export function useVoiceSession(opts: {
   companion: Companion;
   tools?: CompanionTool[];
   getDeviceState?: () => string;
+  // Whether a program is running right now. Ambient chat reads it to pick which
+  // appetite applies — talking over a running device is a different situation
+  // from filling a conversational pause. It never gates whether she speaks.
+  isPlaying?: () => boolean;
   onToolRun?: (name: string, result: string) => void;
   // Debug hook: emit a line into the panel's event log. Wired to the same
   // append() as tool dispatch, for tracing the LLM/barge-in round-trip.
@@ -198,6 +231,8 @@ export function useVoiceSession(opts: {
     opts?.getDeviceState ?? (() => ''),
   );
   getDeviceStateRef.current = opts?.getDeviceState ?? (() => '');
+  const isPlayingRef = useRef<() => boolean>(opts?.isPlaying ?? (() => false));
+  isPlayingRef.current = opts?.isPlaying ?? (() => false);
   const onToolRunRef = useRef<
     ((name: string, result: string) => void) | undefined
   >(opts?.onToolRun);
@@ -252,6 +287,9 @@ export function useVoiceSession(opts: {
   }, []);
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
+  // Ambient chat's timer and latch, in one object rather than two more refs
+  // here (see ambient-scheduler.ts). Created with the session in start().
+  const ambientRef = useRef<AmbientScheduler | null>(null);
   const threadRef = useRef<Thread>([]);
 
   const setReplyPlaying = useCallback((playing: boolean): void => {
@@ -345,9 +383,12 @@ export function useVoiceSession(opts: {
   // cancelling the LLM stream and TTS together. An LLM error surfaces in
   // status.replyError and the session stays usable.
   const submitText = useCallback(
-    (text: string, opts?: { speak?: boolean }): void => {
+    (text: string, opts?: { speak?: boolean; ambient?: boolean }): void => {
       const prompt = text.trim();
-      if (prompt === '') return;
+      // An ambient turn carries no text by design — she's answering a silence,
+      // not a message — so only a typed or spoken turn has to be non-empty.
+      const ambient = opts?.ambient ?? false;
+      if (prompt === '' && !ambient) return;
       const clients = ensureClients();
       if (clients === null) return;
       const { tts, llm } = clients;
@@ -357,7 +398,15 @@ export function useVoiceSession(opts: {
       const companion = companionRef.current;
 
       // Commit the user turn the moment it's submitted (ref + state + persist).
-      persistThread(appendUser(threadRef.current, prompt, Date.now()));
+      // An ambient turn appends nothing: there is no user turn behind it, and
+      // inventing one would have her answering a message you never sent.
+      if (!ambient) {
+        persistThread(appendUser(threadRef.current, prompt, Date.now()));
+        // You spoke, so she's live again however she left things, and there is
+        // no silence left for a pending poke to fill.
+        ambientRef.current?.release();
+      }
+      ambientRef.current?.cancel();
 
       // Supersede any in-flight turn (its LLM stream + TTS) before starting.
       turnRef.current?.abort();
@@ -396,7 +445,9 @@ export function useVoiceSession(opts: {
           onLogRef.current?.(`LLM ${label}: request sent`, 'send');
           for await (const delta of llm.stream(messages, {
             signal: controller.signal,
-            tools: withTools ? toRequestTools(toolsRef.current) : undefined,
+            tools: withTools
+              ? toRequestTools([...toolsRef.current, WAIT_FOR_USER_TOOL])
+              : undefined,
             onUsage: (u) => {
               completionTokens = u.completionTokens;
             },
@@ -491,6 +542,12 @@ export function useVoiceSession(opts: {
             systemPrompt,
             companion.passesReasoning,
           );
+          // The cue for an ambient turn rides this one request only — appended
+          // to the projection rather than written to the thread, so it prompts
+          // her without accumulating or showing in the transcript.
+          if (ambient) {
+            baseMessages.push({ role: 'system', content: AMBIENT_CUE });
+          }
 
           // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
           // pre-tool line ("mm, let me get you going") and the call in one turn.
@@ -522,7 +579,19 @@ export function useVoiceSession(opts: {
               Date.now(),
             );
             for (const call of r1.toolCalls) {
-              const tool = toolsRef.current.find((t) => t.name === call.name);
+              // wait_for_user is the session's own, not the panel's: it acts on
+              // the scheduler rather than the device, so it's dispatched here
+              // instead of being looked up among the declared tools.
+              const tool =
+                call.name === WAIT_FOR_USER_TOOL.name
+                  ? {
+                      ...WAIT_FOR_USER_TOOL,
+                      run: () => {
+                        ambientRef.current?.hold();
+                        return 'waiting for him';
+                      },
+                    }
+                  : toolsRef.current.find((t) => t.name === call.name);
               // Parse the tool-call arguments (`{}` for zero-arg tools like
               // start/stop; e.g. `{ level: "warmup" }` for intensity/edge). A
               // malformed blob runs the tool with no args — the tool validates.
@@ -615,6 +684,12 @@ export function useVoiceSession(opts: {
           if (turnRef.current === controller) {
             turnRef.current = null;
             setReplyPlaying(false);
+            // She's finished, so line up the next silence-filler. Guarded by the
+            // same check as everything else here: a superseded turn — barged in
+            // on, or replaced by a newer one — must not arm, or a cut-off reply
+            // would leave a poke behind it. The scheduler ignores this if she
+            // has asked to be left alone.
+            ambientRef.current?.arm(companion, isPlayingRef.current());
             // Catch-all: if TTS resolved without first audio (error/abort) the
             // "waiting for speech" flag would otherwise stick — likewise
             // "speaking" if the audio was cut rather than finishing.
@@ -644,6 +719,13 @@ export function useVoiceSession(opts: {
     }
     ensureClients();
 
+    ambientRef.current = createAmbientScheduler(() => {
+      // A poke is an ordinary spoken turn with nothing behind it — same path,
+      // same barge-in, same tools. It arms its own successor when it finishes,
+      // which is what keeps the loop going without a clock polling for it.
+      submitText('', { speak: true, ambient: true });
+    });
+
     const stt = createStt({
       onPartial: (text) => {
         // Words are being decoded, so a commit is coming — the watchdog's job
@@ -664,6 +746,10 @@ export function useVoiceSession(opts: {
           PARTIAL_MIN,
         );
         if (speechConfirmedRef.current) {
+          // You're talking, so a real turn is on its way and there is no silence
+          // to fill. Cancelled on the confirmed partial rather than the raw one:
+          // a phantom shouldn't be able to call her off.
+          ambientRef.current?.cancel();
           setStatus((s) => ({ ...s, partial: text }));
         } else {
           // Carries the evidence the decision was made on, not just the verdict:
@@ -752,6 +838,8 @@ export function useVoiceSession(opts: {
           rms,
           preRollFrames: micHandleRef.current?.preRoll.length ?? 0,
           sentFrames: stt.framesSent(),
+          ambientDueAt: ambientRef.current?.dueAt() ?? null,
+          ambientHolding: ambientRef.current?.holding() ?? false,
         }));
       },
       onOnset: () => {
@@ -825,6 +913,8 @@ export function useVoiceSession(opts: {
     sttRef.current = null;
     micHandleRef.current?.stop();
     micHandleRef.current = null;
+    ambientRef.current?.stop();
+    ambientRef.current = null;
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
     voicedRunRef.current = { startedAt: 0, longestMs: 0 };

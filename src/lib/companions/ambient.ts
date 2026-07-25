@@ -4,6 +4,16 @@
 
 import type { Companion } from './companions';
 
+// What an ambient turn is given instead of something you said. Injected into
+// that one request and never stored, the way a gap marker is — so it prompts
+// her without accumulating in the thread or appearing in the transcript.
+//
+// It carries no instruction about what to say: she has the conversation and the
+// device's state in front of her, and deciding what a silence needs is the
+// persona's job. All it supplies is the one thing she can't see for herself —
+// that a beat has passed and nobody filled it.
+export const AMBIENT_CUE = '(A quiet beat passes. He has not said anything.)';
+
 // Two curves rather than one scaled, because the situations don't share a sense
 // of "a while": out of play she's filling a conversational pause, in play she's
 // talking over a running device, where the same gap feels far longer. Which

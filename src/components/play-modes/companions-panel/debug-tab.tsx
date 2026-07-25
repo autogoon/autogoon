@@ -37,6 +37,21 @@ export function DebugTab({
           <span>
             sent {((status.sentFrames * FRAME_MS) / 1000).toFixed(1)}s
           </span>
+          {/* Ambient chat: what she's about to do unprompted. Counts down off
+              status, which the mic's rms already churns, so it ticks while
+              listening and sits still when the mic is off. Without it a poke
+              that never came and one that was never armed look the same. */}
+          <span>
+            ambient{' '}
+            {status.ambientHolding
+              ? 'waiting for you'
+              : status.ambientDueAt === null
+                ? 'idle'
+                : `in ${Math.max(
+                    0,
+                    (status.ambientDueAt - Date.now()) / 1000,
+                  ).toFixed(1)}s`}
+          </span>
         </div>
         <div className="mt-2">
           <p className="min-h-6">
