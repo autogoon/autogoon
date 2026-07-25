@@ -50,6 +50,12 @@ export type VoiceStatus = {
   micOn: boolean;
   phase: SttPhase;
   vadSpeaking: boolean;
+  // True from the VAD onset that opens an utterance until the server commits
+  // it. The end of speech is ElevenLabs' decision, not ours
+  // (commit_strategy=vad), so this is that decision rather than an inference
+  // from local mic energy — which dips between words and says nothing about
+  // whether you've finished. The composer's dictation lock rides it.
+  utteranceOpen: boolean;
   rms: number;
   preRollFrames: number;
   // Frames actually streamed to the STT this session. At FRAME_MS each, this is
@@ -106,6 +112,7 @@ const IDLE_STATUS: VoiceStatus = {
   micOn: false,
   phase: 'closed',
   vadSpeaking: false,
+  utteranceOpen: false,
   rms: 0,
   preRollFrames: 0,
   sentFrames: 0,
@@ -133,6 +140,15 @@ const IDLE_STATUS: VoiceStatus = {
 // back on.
 const PARTIAL_MIN = { voicedMs: 150, words: 2 };
 const BARGE_IN_MIN = { voicedMs: 250, words: 2 };
+
+// An utterance normally ends when the server commits it. This is the failsafe
+// for one that never will: a thump crosses the VAD threshold, opens an
+// utterance, and no speech follows, so no transcript ever comes back. Without
+// it the composer would stay locked until ElevenLabs' own idle close, some
+// fourteen seconds later. Generous on purpose — a cold socket has taken two
+// seconds to return its first partial, and the cost of firing early is only
+// that the lock lifts and re-takes when the transcript lands.
+const UTTERANCE_SILENT_TIMEOUT_MS = 2000;
 
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
@@ -216,6 +232,17 @@ export function useVoiceSession(opts: {
   // (0 when quiet); `longestMs` is the longest completed run. Both reset at the
   // utterance boundary, alongside speechConfirmedRef.
   const voicedRunRef = useRef({ startedAt: 0, longestMs: 0 });
+  // Watchdog for an utterance that opens on a noise and never produces a
+  // transcript; cancelled by the first partial, since anything decoding words
+  // will reach a commit.
+  const silentUtteranceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endUtterance = useCallback((): void => {
+    if (silentUtteranceRef.current !== null) {
+      clearTimeout(silentUtteranceRef.current);
+      silentUtteranceRef.current = null;
+    }
+    setStatus((s) => (s.utteranceOpen ? { ...s, utteranceOpen: false } : s));
+  }, []);
   // The longest run of voicing so far, live one included — the completed runs
   // alone would ignore the person who is still talking.
   const voicedMs = useCallback((): number => {
@@ -619,11 +646,16 @@ export function useVoiceSession(opts: {
 
     const stt = createStt({
       onPartial: (text) => {
-        // Surface the partial (which also locks the composer into dictation)
-        // only once this utterance has confirmed real speech — sticky, so
-        // trailing partials after the VAD drops mid-sentence still show. An
-        // STT phantom arrives on near-silence, never confirms, and is logged
-        // instead of taking over the composer.
+        // Words are being decoded, so a commit is coming — the watchdog's job
+        // is done and the utterance now ends where it should, at that commit.
+        if (silentUtteranceRef.current !== null) {
+          clearTimeout(silentUtteranceRef.current);
+          silentUtteranceRef.current = null;
+        }
+        // Surface the partial only once this utterance has confirmed real
+        // speech — sticky, so trailing partials after the VAD drops
+        // mid-sentence still show. One that never confirms is logged with its
+        // evidence instead of taking over the composer.
         const voiced = voicedMs();
         speechConfirmedRef.current = confirmSpeech(
           speechConfirmedRef.current,
@@ -676,6 +708,7 @@ export function useVoiceSession(opts: {
         // partial — the STT never emits an empty one — so "dictating" releases.
         speechConfirmedRef.current = false;
         voicedRunRef.current = { startedAt: 0, longestMs: 0 };
+        endUtterance();
         setStatus((s) => ({ ...s, committed: text, partial: '' }));
         submitText(text, { speak: true });
       },
@@ -687,6 +720,8 @@ export function useVoiceSession(opts: {
         if (phase === 'closed') {
           speechConfirmedRef.current = false;
           voicedRunRef.current = { startedAt: 0, longestMs: 0 };
+          // No socket, no utterance — and nothing left that could commit one.
+          endUtterance();
           setStatus((s) => ({ ...s, phase, partial: '' }));
         } else {
           setStatus((s) => ({ ...s, phase }));
@@ -734,7 +769,14 @@ export function useVoiceSession(opts: {
         // isn't clipped (this is also what starts the audio flowing so a
         // partial can arrive to barge in on).
         stt.beginUtterance(() => micHandleRef.current?.preRoll.flush() ?? []);
-        setStatus((s) => ({ ...s, vadSpeaking: true }));
+        if (silentUtteranceRef.current !== null) {
+          clearTimeout(silentUtteranceRef.current);
+        }
+        silentUtteranceRef.current = setTimeout(
+          endUtterance,
+          UTTERANCE_SILENT_TIMEOUT_MS,
+        );
+        setStatus((s) => ({ ...s, vadSpeaking: true, utteranceOpen: true }));
       },
       onOffset: () => {
         vadSpeakingRef.current = false;
@@ -770,7 +812,7 @@ export function useVoiceSession(opts: {
         // stop()+start() hasn't already handed the session to a newer stt.
         if (sttRef.current === stt) startingRef.current = false;
       });
-  }, [ensureClients, submitText, cancelReply, voicedMs]);
+  }, [ensureClients, submitText, cancelReply, voicedMs, endUtterance]);
 
   const stop = useCallback((): void => {
     // Abort the in-flight turn (also stops the TTS via its signal).
@@ -786,6 +828,10 @@ export function useVoiceSession(opts: {
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
     voicedRunRef.current = { startedAt: 0, longestMs: 0 };
+    if (silentUtteranceRef.current !== null) {
+      clearTimeout(silentUtteranceRef.current);
+      silentUtteranceRef.current = null;
+    }
     speechConfirmedRef.current = false;
     startingRef.current = false;
     // The conversation persists across Stop-listening — only Clear (or a fresh
