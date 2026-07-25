@@ -64,6 +64,23 @@ together. This is the only thing the program's state decides; it never gates
 whether she speaks. The shape to design for is what motivates the feature:
 you're mid-play, lying back, letting her drive.
 
+### Split the voice session and the companions panel
+
+`use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
+`companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
+to hold in the head. The coupling is load-bearing rather than careless — the mic
+and STT callbacks are created once and outlive many renders, so everything they
+read has to be a ref — which is why "just split it" isn't the fix.
+
+Three seams are visible in the hook. **Thread persistence** (`persistThread`,
+`clearThread`, the load effect) touches two refs and nothing else: a clean lift
+with no design needed. **The turn runner** — `submitText` and its helpers: LLM
+streaming, metrics, tool dispatch, the reaction, the TTS handoff — is the bulk
+and needs most of the refs, so extracting it means inventing an explicit
+session-context to carry them, which is the real work and the reason this hasn't
+happened. **What remains** is the mic/STT/VAD wiring and start/stop, which is
+what a hook of that name should mostly be.
+
 ### Activity cutoff
 
 A spend backstop, separate from [Ambient chat](#ambient-chat)'s own
