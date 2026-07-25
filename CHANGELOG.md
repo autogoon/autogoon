@@ -2,6 +2,20 @@
 
 ## 2026-07-25
 
+- enhancement: **Steadier message box while you talk** — The box no longer
+  flickered between "Listening…" and its normal placeholder as you spoke,
+  swapping what it showed with it. It now settles the moment you start talking
+  and stays put through the gaps between words, until the transcript catches up
+  or you've actually stopped.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- enhancement: **Quicker to interrupt her** — The speech connection is now held
+  open between turns instead of being dropped after a few seconds, so cutting
+  her off mid-sentence no longer waits for a new connection to be set up first.
+  Your microphone audio is only sent while you're actually saying something, so
+  holding the line open costs nothing.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
 - enhancement: **The message she's speaking shimmers** — Instead of a separate
   "Loading voice" and "Speaking" row in the conversation, her message itself now
   carries a slow shimmer around its edge: faint and unhurried while her voice
