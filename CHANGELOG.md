@@ -125,6 +125,16 @@
   talk. Interrupting her works on short interjections too, which previously
   couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
 
+- internal: **The request is shaped so it can be cached** — The clock and the
+  toy's status now ride their own system message at the end of each LLM
+  request, instead of sitting at the foot of the persona prompt. Prompt caching
+  matches a run of tokens from the start of a request, so two values changing
+  every turn a few hundred tokens in meant nothing behind them could be reused —
+  including the entire conversation, which is the part that grows all session.
+  Everything a companion is sent up to those last two lines is now identical
+  from one turn to the next. A registry test pins it, since re-introducing a
+  per-turn value into the prompt would cost the whole prefix silently.
+
 - internal: **The voice session shows its working** — The event log gains the
   VAD's onset/offset edges with each run's measured length, and an unconfirmed
   partial now reports the evidence it was judged on rather than just the

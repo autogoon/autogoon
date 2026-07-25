@@ -95,11 +95,15 @@ is a disposition written into their `systemPrompt`, not a code gate. Companions
 default to a **gentle baseline** — low intensity, light variety, a one-shot
 stroke-minus tease at session start — and build up from there.
 
-The device's **current state is folded into the companion's system message every
-turn** (see `getDeviceState` in the panel) — so they always know whether the toy
-is connected and running and where the knobs sit, without a status tool, and
-stay in sync even when a level is changed via the on-screen knobs rather than
-their own tools.
+The device's **current state reaches the companion every turn** (see
+`getDeviceState` in the panel) — so they always know whether the toy is
+connected and running and where the knobs sit, without a status tool, and stay
+in sync even when a level is changed via the on-screen knobs rather than their
+own tools. It arrives as its own system message at the **end** of the request,
+along with the clock, rather than inside the persona prompt: those two values
+are the only thing that differs between one turn's request and the next, so
+putting them last leaves everything before them — persona and whole conversation
+— identical, which is the shape prompt caching can reuse.
 
 **Tool calls are persisted and replayed.** A companion's `tool_calls` and the
 results they return are stored on the thread and replayed to the model as a

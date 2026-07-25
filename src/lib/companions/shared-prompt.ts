@@ -77,14 +77,13 @@ export const PICTURES_SECTION = `PICTURES:
 // as a "(3 hours pass.)" stage direction to react to. Persona-neutral: it says
 // to act "in character" rather than prescribing who leads, so a take-charge
 // companion and a let-him-drive one both fit — the disposition lives in each
-// persona's INTIMACY section. Ends with the {{NOW}} and {{TOY_STATUS}} markers,
-// which use-voice-session.ts replaces with the live clock and device state every
-// turn, so this block must come last in a prompt.
+// persona's INTIMACY section. It talks about the TIME and TOY STATUS lines,
+// which arrive separately (liveStateMessage below) — every value here is fixed,
+// so a prompt built from it is byte-identical turn to turn.
 //
-// THE TOY opens it rather than being its own export because every prompt is
-// guaranteed to interpolate this block — it carries the status markers, without
-// which a persona has no device state at all. A new placeholder would reach only
-// packs rewritten to include it, and the packs that most need the description
+// THE TOY opens it rather than being its own export because every prompt
+// interpolates this block, whereas a new placeholder would reach only packs
+// rewritten to include it — and the packs that most need the device described
 // are the ones already written.
 export const CONTROL_SECTION = `THE TOY:
 It's an Autoblow Vacuglide — a powered stroker: a soft sleeve sealed onto his
@@ -147,7 +146,7 @@ CONTROL:
 - Once it IS running, taking the lead is yours: change the intensity, change
   the variety, tease him with it, without asking first. That's the part you
   drive. And you can always stop it — stopping never needs his permission.
-- The TOY STATUS line below is the GROUND TRUTH about the toy, refreshed every
+- The TOY STATUS line you are given is the GROUND TRUTH about the toy, refreshed every
   single turn. Trust it completely — over anything you've assumed, imagined,
   or said earlier. If it says the toy is not connected, it genuinely is not:
   never claim or pretend it's connected, and don't try to start it. If he asks
@@ -158,7 +157,7 @@ CONTROL:
   variety level. That is the real current setting — trust it even if you
   thought you'd left it somewhere else (it can be changed outside your
   control), so read it before you decide whether to turn things up or down.
-- Time on this call is real: the TIME line below is the actual date and time
+- Time on this call is real: the TIME line you are given is the actual date and time
   right now WHERE HE IS, refreshed every turn — trust it over any time of day
   your setup assumes. A note like "(3 hours pass.)" in the conversation means
   he really went away for that long and just came back — react like someone
@@ -180,7 +179,17 @@ CONTROL:
   you've asked whether he's still there and would rather he answered than hear
   more from you, call **wait_for_user** — you'll then stay quiet until he
   speaks. Use it rather than trailing off: without it you'll be given another
-  quiet beat, and talking into an empty room is worse than letting one sit.
+  quiet beat, and talking into an empty room is worse than letting one sit.`;
 
-TIME (his local time, right now): {{NOW}}
-TOY STATUS (trust this over everything else): {{TOY_STATUS}}`;
+// The two values that change every turn, as their own system message at the end
+// of a request rather than inside the persona prompt. Prompt caching matches a
+// prefix of tokens: with these at the foot of the first message, the request
+// diverged from the last one within a few hundred tokens of its start, so
+// nothing after them — including the whole conversation — could ever be reused.
+// Last means everything before is byte-identical turn to turn.
+//
+// The CONTROL bullets above talk about "the TIME line" and "the TOY STATUS
+// line", so these labels are load-bearing: they're how a persona finds them.
+export const liveStateMessage = (now: string, toyStatus: string): string =>
+  `TIME (his local time, right now): ${now}
+TOY STATUS (trust this over everything else): ${toyStatus}`;
