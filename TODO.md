@@ -24,46 +24,6 @@ rationale live in the design doc:
 What's already built is described in
 [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
-### Ambient chat
-
-Built on the shipped thread and companion-driven control. Narration and ambient
-filler collapse into one source: at the end of each of her turns she schedules
-the next one, so a silence is filled by her rather than by a clock watching for
-it.
-
-**The loop.** She replies; as that reply finishes, a poke is scheduled for _x_ ±
-_y_ seconds' time. A confirmed partial cancels it — a real turn is already on
-its way, so there is nothing to fill. A poke that does fire runs a turn on no
-payload: the persona decides what to say from the thread and the device's
-current + upcoming state (`player.upcoming`), is free to end the turn in a tool
-call, and schedules its own successor. Preemptible under barge-in like any other
-reply.
-
-**She decides when to stop, not a timer.** The system prompt tells her she may
-ask whether you're still there once you've been quiet a while, and that a reply
-carrying `WAIT_FOR_USER` schedules no successor — the same marker for when she
-judges the conversation finished. The marker is stripped before TTS. Only your
-next turn restarts the loop, which the gap markers then frame as you coming
-back. This is what makes the cadence self-limiting: she knows whether there is
-anything left to say, and a clock doesn't.
-
-**Nothing else gates it.** Not the mic, not a running program: she decides
-whether there is more to say, so a second gate would only mute her where she'd
-be welcome. The scheduler is wall-clock and belongs to the voice session — never
-to the program, whose events are dropped on every regeneration and scale with
-playback rate, neither of which should touch her cadence. The cost of dropping
-the gate is that stopping the program no longer stops her; walking away leaves
-her poking until she gives up, which is what [Activity cutoff](#activity-cutoff)
-backstops.
-
-**Cadence** comes from two optional per-companion manifest fields (1–5), in
-**seconds**: `chattiness` out of play and `playfulness` while a program runs.
-Two rather than one because the appetites are independent — a laconic persona
-can still narrate play relentlessly — and one knob would force them to move
-together. This is the only thing the program's state decides; it never gates
-whether she speaks. The shape to design for is what motivates the feature:
-you're mid-play, lying back, letting her drive.
-
 ### Split the voice session and the companions panel
 
 `use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
@@ -83,11 +43,12 @@ what a hook of that name should mostly be.
 
 ### Activity cutoff
 
-A spend backstop, separate from [Ambient chat](#ambient-chat)'s own
-`WAIT_FOR_USER` stop: after long enough with no sign of anyone — no user turn,
-no control touched — stop the program. Stopping the program already stops
-ambient chat, so the one cutoff covers a session left running in an empty room,
-which is where LLM and TTS spend would otherwise run indefinitely.
+A spend backstop, separate from ambient chat's own `wait_for_user` stop (shipped
+— see [modes/COMPANIONS.md](./modes/COMPANIONS.md)): after long enough with no
+sign of anyone — no user turn, no control touched — stop the program. Stopping
+the program already stops ambient chat, so the one cutoff covers a session left
+running in an empty room, which is where LLM and TTS spend would otherwise run
+indefinitely.
 
 The hard part is the number, not the mechanism. Long silences during play are
 normal — the device is working and there is nothing to say — so a cutoff tuned
@@ -128,14 +89,13 @@ program stops being random and becomes **hers**. This is the missing piece for
 the companions' _programs_ (not just their chat) to diverge.
 
 **First settle which of these are code at all.** `chattiness` and `playfulness`
-shipped with [Ambient chat](#ambient-chat) because they drive a timer. The rest
-may not need any: `dominance` is really how readily she overrides what you asked
-for, and that is a disposition the system prompt can carry on its own —
-plausibly `variety` too. A trait only earns a manifest field and a mapping if
-code reads it; one that only colours how she behaves belongs in her prompt,
-where an author can already write it. Work out which is which before adding
-fields, because a manifest field is a compatibility surface and packs in the
-wild make it expensive to take back.
+shipped with ambient chat because they drive a timer. The rest may not need any:
+`dominance` is really how readily she overrides what you asked for, and that is
+a disposition the system prompt can carry on its own — plausibly `variety` too.
+A trait only earns a manifest field and a mapping if code reads it; one that
+only colours how she behaves belongs in her prompt, where an author can already
+write it. Work out which is which before adding fields, because a manifest field
+is a compatibility surface and packs in the wild make it expensive to take back.
 
 ### Trait-driven companion contrast
 

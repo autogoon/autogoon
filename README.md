@@ -31,9 +31,10 @@ to install; just open it, enter your device token, and go.
 
 There's a fourth mode: **[Companions](./modes/COMPANIONS.md)** — talk to an AI
 companion who chats back in her own voice, remembers the conversation, and
-drives the toy herself. Given pictures (bring your own), she'll send you one
-that fits the moment, picked by its caption — no image ever goes to a vision
-model mid-play.
+drives the toy herself. She doesn't wait to be spoken to either: go quiet and
+she'll keep things going, so you can lie back mid-session and let her run it.
+Given pictures (bring your own), she'll send you one that fits the moment,
+picked by its caption — no image ever goes to a vision model mid-play.
 
 **Companions isn't usable on the public app.** Her chat, voice and hearing are
 paid cloud services, so on a deploy the mode sits behind an access key and stays
