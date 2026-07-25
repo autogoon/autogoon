@@ -10,6 +10,7 @@
   Listening, Thinking and Replying keep their own row — there's no message on
   screen yet for those. Over an open picture, the corner badge still names every
   stage.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - enhancement: **Companions reply faster** — Every companion's model now routes
   by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
@@ -25,6 +26,7 @@
   [CLAUDE.md](./CLAUDE.md), enforced by `/doc-check` (which now treats every
   comment a branch touched as in scope), and applied to the three comments that
   had drifted.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 ## 2026-07-24
 
