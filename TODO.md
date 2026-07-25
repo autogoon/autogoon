@@ -47,15 +47,19 @@ next turn restarts the loop, which the gap markers then frame as you coming
 back. This is what makes the cadence self-limiting: she knows whether there is
 anything left to say, and a clock doesn't.
 
-**Only while a program runs.** A running program is the signal you're there —
-you start it deliberately and stop it when you're done — so nothing is scheduled
-unless the Player is `playing`, and stopping the program stops her. The
-scheduler is wall-clock and belongs to the voice session, **not** to the program
-itself: program events are dropped on every regeneration and scale with playback
-rate, and neither should touch her cadence.
+**Nothing else gates it.** Not the mic, not a running program: she decides
+whether there is more to say, so a second gate would only mute her where she'd
+be welcome. The scheduler is wall-clock and belongs to the voice session — never
+to the program, whose events are dropped on every regeneration and scale with
+playback rate, neither of which should touch her cadence. The cost of dropping
+the gate is that stopping the program no longer stops her; walking away leaves
+her poking until she gives up, which is what [Activity cutoff](#activity-cutoff)
+backstops.
 
 **Cadence** comes from `chattiness`, an optional per-companion manifest field
-(1–5). The other traits arrive with
+(1–5), in **seconds**. The shape to design for is the one that motivates the
+feature: you're mid-play, lying back, letting her drive — she should fill that
+readily. The other traits arrive with
 [Personas shape their programs](#personas-shape-their-programs), the work that
 actually consumes them.
 
