@@ -44,7 +44,10 @@ export type Companion = {
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
-export const DEFAULT_MODEL = 'minimax/minimax-m3';
+// `:nitro` sorts OpenRouter's providers by throughput instead of its default
+// price-weighted load balancing — a companion's reply is spoken, so time to
+// first token is what the conversation feels like.
+export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
 // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;

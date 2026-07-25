@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-25
+
+- enhancement: **Companions reply faster** — Every companion's model now routes
+  by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
+  load balancing, which had been spreading requests across providers regardless
+  of speed. Her reply is spoken, so the wait before she starts talking is what
+  the conversation actually feels like.
+  ([#21](https://github.com/autogoon/autogoon/pull/21))
+
 ## 2026-07-24
 
 - feature: **Goonpacks** — Import a companion as a portable zip: a complete new

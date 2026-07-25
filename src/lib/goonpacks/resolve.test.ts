@@ -1,6 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 import { PICTURES_SECTION } from '@/lib/companions/shared-prompt';
-import type { Companion, CompanionPicture } from '@/lib/companions/companions';
+import {
+  DEFAULT_CONTEXT_WINDOW,
+  DEFAULT_MODEL,
+  DEFAULT_PASSES_REASONING,
+  type Companion,
+  type CompanionPicture,
+} from '@/lib/companions/companions';
 import {
   applyOverlay,
   packToCompanion,
@@ -120,9 +126,9 @@ describe('packToCompanion', () => {
       pictures: [],
     });
     expect(c.id).toBe('some.one');
-    expect(c.model).toBe('minimax/minimax-m3');
-    expect(c.contextWindow).toBe(1_000_000);
-    expect(c.passesReasoning).toBe(true);
+    expect(c.model).toBe(DEFAULT_MODEL);
+    expect(c.contextWindow).toBe(DEFAULT_CONTEXT_WINDOW);
+    expect(c.passesReasoning).toBe(DEFAULT_PASSES_REASONING);
     expect(c.gender).toBe('female');
     expect(c.accentColour).toBe('pink');
   });
