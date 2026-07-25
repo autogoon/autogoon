@@ -1,16 +1,16 @@
-"use client";
+'use client';
 
 // React state for the Companion access gate. Validates the saved access ID
 // against /api/companions/access and exposes whether Companions is unlocked.
 // The paid routes enforce the same check server-side, so this is UX only: it
 // decides whether the home page reveals Companions, never whether the API is
 // reachable.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
   ACCESS_HEADER,
   getAccessId,
   setAccessId,
-} from "@/lib/companions/access";
+} from '@/lib/companions/access';
 
 export type CompanionsAccess = {
   // Has the initial check resolved? Guards against flashing Companions before we
@@ -28,8 +28,8 @@ export type CompanionsAccess = {
 
 async function validate(id: string): Promise<boolean> {
   try {
-    const res = await fetch("/api/companions/access", {
-      method: "POST",
+    const res = await fetch('/api/companions/access', {
+      method: 'POST',
       headers: { [ACCESS_HEADER]: id },
     });
     const body = (await res.json()) as { ok?: boolean };
@@ -41,7 +41,7 @@ async function validate(id: string): Promise<boolean> {
 }
 
 export function useCompanionsAccess(): CompanionsAccess {
-  const [state, setState] = useState<Omit<CompanionsAccess, "unlock">>({
+  const [state, setState] = useState<Omit<CompanionsAccess, 'unlock'>>({
     checked: false,
     granted: false,
   });

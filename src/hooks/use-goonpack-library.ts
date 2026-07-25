@@ -1,4 +1,4 @@
-"use client";
+'use client';
 // The pack library. IndexedDB stores only zips; every load re-runs the full
 // import pipeline over them (parse → validate → derive), so validity is one
 // live verdict: a pack either passes today's rules and is offered, or it
@@ -6,8 +6,8 @@
 // offered nowhere. No stored derived state, no legacy special cases; an
 // incompatible pack can heal on a later load (e.g. its base gets imported).
 // All pack knowledge for the panels flows through here.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { COMPANIONS, type Companion } from "@/lib/companions/companions";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { COMPANIONS, type Companion } from '@/lib/companions/companions';
 import {
   buildEntries,
   keyId,
@@ -18,27 +18,27 @@ import {
   type LoadedPack,
   type PackOption,
   type PackSummary,
-} from "@/lib/goonpacks/entries";
-import { PackError, type PackManifest } from "@/lib/goonpacks/manifest";
+} from '@/lib/goonpacks/entries';
+import { PackError, type PackManifest } from '@/lib/goonpacks/manifest';
 import {
   parsePack,
   peekPack,
   type PackPeek,
   type ParsedPack,
-} from "@/lib/goonpacks/pack";
+} from '@/lib/goonpacks/pack';
 import {
   applyOverlay,
   packToCompanion,
   packToCompanionRaw,
   resolveDefault,
   type PackContent,
-} from "@/lib/goonpacks/resolve";
+} from '@/lib/goonpacks/resolve';
 import {
   deletePack,
   getPackBytes,
   listPackRecords,
   putPack,
-} from "@/lib/goonpacks/store";
+} from '@/lib/goonpacks/store';
 
 export type { LibraryEntry, PackOption };
 export type PendingImport = {
@@ -72,15 +72,15 @@ const summarize = (parsed: ParsedPack): PackSummary => ({
 // immediate feedback.
 function baseError(
   manifest: PackManifest,
-  isInstalled: (id: string) => "companion" | "overlay" | undefined,
+  isInstalled: (id: string) => 'companion' | 'overlay' | undefined,
 ): string | null {
   if (manifest.base === undefined) return null;
   const base = isInstalled(manifest.base);
   if (base === undefined) {
     return `This overlay changes ${manifest.base}, which isn't installed — import that pack first.`;
   }
-  if (base === "overlay") {
-    return "The base must be a complete companion, not another overlay.";
+  if (base === 'overlay') {
+    return 'The base must be a complete companion, not another overlay.';
   }
   return null;
 }
@@ -95,7 +95,7 @@ async function loadContent(
   const zip = await getPackBytes(key);
   if (zip === null)
     throw new PackError(
-      "The pack is gone from browser storage — re-import its zip.",
+      'The pack is gone from browser storage — re-import its zip.',
     );
   const parsed = parsePack(new Uint8Array(zip));
   return {
@@ -120,7 +120,7 @@ async function loadContent(
 export function useGoonpackLibrary() {
   // "loading" while the zips reindex (parse + validate, every load) — the
   // panels show a loading line rather than a half-empty library.
-  const [status, setStatus] = useState<"loading" | "ready">("loading");
+  const [status, setStatus] = useState<'loading' | 'ready'>('loading');
   const [entries, setEntries] = useState<LibraryEntry[]>(() =>
     buildEntries([]),
   );
@@ -181,14 +181,14 @@ export function useGoonpackLibrary() {
     const kinds = new Map<string, Set<string>>();
     for (const p of valid) {
       const set = kinds.get(p.manifest.id) ?? new Set<string>();
-      set.add(p.manifest.base === undefined ? "complete" : "overlay");
+      set.add(p.manifest.base === undefined ? 'complete' : 'overlay');
       kinds.set(p.manifest.id, set);
     }
-    const isInstalled = (id: string): "companion" | "overlay" | undefined =>
-      COMPANIONS[id] !== undefined || kinds.get(id)?.has("complete") === true
-        ? "companion"
+    const isInstalled = (id: string): 'companion' | 'overlay' | undefined =>
+      COMPANIONS[id] !== undefined || kinds.get(id)?.has('complete') === true
+        ? 'companion'
         : kinds.has(id)
-          ? "overlay"
+          ? 'overlay'
           : undefined;
     const survivors: (LoadedPack & { key: string })[] = [];
     for (const p of valid) {
@@ -196,7 +196,7 @@ export function useGoonpackLibrary() {
       let reason: string | null = null;
       if (kinds.get(id)!.size > 1) {
         reason =
-          "Installed versions of this id disagree about being an overlay or a complete companion.";
+          'Installed versions of this id disagree about being an overlay or a complete companion.';
       } else if (
         p.manifest.base === undefined &&
         COMPANIONS[id] !== undefined
@@ -231,7 +231,7 @@ export function useGoonpackLibrary() {
           newestFirst(keyVersion(b.id), keyVersion(a.id)),
       ),
     );
-    setStatus("ready");
+    setStatus('ready');
   }, []);
 
   useEffect(() => {
@@ -250,10 +250,10 @@ export function useGoonpackLibrary() {
         );
       }
       const err = baseError(m, (id) => {
-        if (COMPANIONS[id] !== undefined) return "companion";
+        if (COMPANIONS[id] !== undefined) return 'companion';
         for (const v of validRef.current.values()) {
           if (v.id === id) {
-            return v.base === undefined ? "companion" : "overlay";
+            return v.base === undefined ? 'companion' : 'overlay';
           }
         }
         return undefined;

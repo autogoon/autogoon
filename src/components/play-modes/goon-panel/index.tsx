@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Goon play mode panel. Owns the Goon engine, arms/plays the shared Player with
 // it, and declares its commands once (button == voice). Presentation + wiring;
@@ -14,49 +14,49 @@
 //     Setup choices are deliberately locked here; Reset re-arms from time 0 and
 //     stays put, while exit (page-owned) walks back up to setup.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/button";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
-import { CummingButton } from "@/components/cumming-button";
-import { FinishButton } from "@/components/finish-button";
-import { LogCard } from "@/components/log-card";
-import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { SafeWordField } from "@/components/safe-word-field";
-import { SessionControls } from "@/components/session-controls";
-import { Slider } from "@/components/slider";
-import { Sparkline } from "@/components/sparkline";
-import { StrokeCard } from "@/components/stroke-card";
-import type { PlayerView } from "@/hooks/use-player";
-import { useStrokeControls } from "@/hooks/use-stroke-controls";
-import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
+import { CummingButton } from '@/components/cumming-button';
+import { FinishButton } from '@/components/finish-button';
+import { LogCard } from '@/components/log-card';
+import { RateLimitMeter } from '@/components/rate-limit-meter';
+import { SafeWordField } from '@/components/safe-word-field';
+import { SessionControls } from '@/components/session-controls';
+import { Slider } from '@/components/slider';
+import { Sparkline } from '@/components/sparkline';
+import { StrokeCard } from '@/components/stroke-card';
+import type { PlayerView } from '@/hooks/use-player';
+import { useStrokeControls } from '@/hooks/use-stroke-controls';
+import { useVoiceCommands, type Command } from '@/hooks/use-voice-commands';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import {
   GoonEngine,
   DEFAULT_PROGRAM_MS,
   AFTER_PLAY_OPTIONS,
   type AfterPlayOption,
-} from "@/lib/play-modes/goon-engine";
-import { JUMP_MS } from "@/lib/program";
-import { formatMs } from "@/lib/format";
-import { AFTER_PLAY_WORDS, AfterPlayCard } from "./after-play-card";
+} from '@/lib/play-modes/goon-engine';
+import { JUMP_MS } from '@/lib/program';
+import { formatMs } from '@/lib/format';
+import { AFTER_PLAY_WORDS, AfterPlayCard } from './after-play-card';
 import {
   MAX_SESSION_MINUTES,
   MIN_SESSION_MINUTES,
   SESSION_STEP_MINUTES,
   SessionLengthCard,
-} from "./session-length-card";
+} from './session-length-card';
 
 const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
 const DEFAULT_SESSION_MINUTES = DEFAULT_PROGRAM_MS / 60_000;
 // Wind-down alone by default — the behaviour Goon has always had; the darker
 // outcomes are opt-in.
-const DEFAULT_AFTER_PLAY: AfterPlayOption[] = ["wind-down"];
+const DEFAULT_AFTER_PLAY: AfterPlayOption[] = ['wind-down'];
 // The ticked set persists across visits. Keyed per play mode ("goon") on
 // purpose: a future softer or harsher play mode with after-play will want its
 // own set, not a shared one.
-const AFTER_PLAY_STORAGE_KEY = "goonAfterPlay";
+const AFTER_PLAY_STORAGE_KEY = 'goonAfterPlay';
 
 export function GoonPanel({
   vacuglide,
@@ -71,7 +71,7 @@ export function GoonPanel({
   vacuglide: VacuglideDeviceController;
   player: PlayerView;
   active: boolean;
-  view: "setup" | "play";
+  view: 'setup' | 'play';
   onEnterPlay: () => void;
   // The app-wide safe word (owned by the page, also editable in Settings),
   // surfaced in Goon's setup so you see — and can change — it before playing.
@@ -103,8 +103,8 @@ export function GoonPanel({
   // the Player (isCurrent alone isn't enough — the engine stays armed when you
   // exit back to setup).
   const isCurrent = player.source === engine;
-  const inPlay = view === "play";
-  const state = isCurrent ? player.state : "armed";
+  const inPlay = view === 'play';
+  const state = isCurrent ? player.state : 'armed';
   const sessionMs = sessionMinutes * 60_000;
 
   // The setup -> play boundary: commit the setup choices to the engine, arm
@@ -205,7 +205,7 @@ export function GoonPanel({
       // outside the app — so they start the clock themselves.
       device.play();
     } catch (err) {
-      vacuglide.log(`error: ${(err as Error).message}`, "error");
+      vacuglide.log(`error: ${(err as Error).message}`, 'error');
     }
   }, [device, engine, vacuglide]);
 
@@ -225,19 +225,19 @@ export function GoonPanel({
   // Once an after-play other than the wind-down has been drawn, it can't be
   // avoided: Stop and every transport control that could dodge or dilute the
   // outcome are withdrawn. The page-owned safe word bypasses all of this.
-  const unstoppable = afterPlay !== null && afterPlay !== "wind-down";
+  const unstoppable = afterPlay !== null && afterPlay !== 'wind-down';
   // And while such an outcome is actually playing, the panel ignores you
   // entirely — every remaining command (word and button alike) is withdrawn
   // too, so only the safe word gets a hearing. Once the safe word has halted
   // it (state leaves "playing"), Reset and Start come back.
-  const lockedOut = unstoppable && state === "playing";
+  const lockedOut = unstoppable && state === 'playing';
   // Cumming is one-shot per session — no re-rolling the draw.
   const canEnd = live && connected && afterPlay === null;
   const canPlay = connected && afterPlayOptions.length > 0;
   const playTitle = !connected
-    ? "Connect the device first"
+    ? 'Connect the device first'
     : afterPlayOptions.length === 0
-      ? "Tick at least one after-play outcome first"
+      ? 'Tick at least one after-play outcome first'
       : undefined;
 
   const rawPositionMs = isCurrent ? player.positionMs : 0;
@@ -258,12 +258,12 @@ export function GoonPanel({
   // listening for exactly the visible view's controls.
   const commands: Command[] = [
     {
-      word: "shorter",
+      word: 'shorter',
       enabled: !inPlay,
       run: () => stepSessionMinutes(-SESSION_STEP_MINUTES),
     },
     {
-      word: "longer",
+      word: 'longer',
       enabled: !inPlay,
       run: () => stepSessionMinutes(SESSION_STEP_MINUTES),
     },
@@ -274,59 +274,59 @@ export function GoonPanel({
       enabled: !inPlay,
       run: () => toggleAfterPlay(option, !afterPlayOptions.includes(option)),
     })),
-    { word: "play", enabled: !inPlay && canPlay, run: enterPlay },
+    { word: 'play', enabled: !inPlay && canPlay, run: enterPlay },
     ...stroke.keywords.map((k) => ({
       ...k,
       enabled: k.enabled && inPlay && !lockedOut,
     })),
     {
-      word: "start",
-      enabled: live && connected && state !== "playing",
+      word: 'start',
+      enabled: live && connected && state !== 'playing',
       run: start,
     },
     {
-      word: "stop",
-      enabled: inPlay && state === "playing" && !unstoppable,
+      word: 'stop',
+      enabled: inPlay && state === 'playing' && !unstoppable,
       run: stop,
     },
-    { word: "reset", enabled: live && state !== "playing", run: reset },
+    { word: 'reset', enabled: live && state !== 'playing', run: reset },
     {
-      word: "more",
+      word: 'more',
       enabled: live && !lockedOut,
       run: () => stepIntensity(INTENSITY_STEP),
     },
     {
-      word: "less",
+      word: 'less',
       enabled: live && !lockedOut,
       run: () => stepIntensity(-INTENSITY_STEP),
     },
     {
-      word: "forward",
+      word: 'forward',
       enabled: live && canForward && !unstoppable,
       run: forward,
     },
-    { word: "back", enabled: live && !unstoppable, run: back },
+    { word: 'back', enabled: live && !unstoppable, run: back },
     {
-      word: "finish",
+      word: 'finish',
       enabled: canEnd,
       run: finish,
     },
     {
-      word: "faster",
+      word: 'faster',
       enabled: live && !unstoppable,
       run: () => device.faster(),
     },
     {
-      word: "slower",
+      word: 'slower',
       enabled: live && !unstoppable,
       run: () => device.slower(),
     },
-    { word: "cumming", enabled: canEnd, run: cumming },
+    { word: 'cumming', enabled: canEnd, run: cumming },
   ];
   useVoiceCommands(active, commands);
 
   const logError = useCallback(
-    (message: string) => vacuglide.log(`error: ${message}`, "error"),
+    (message: string) => vacuglide.log(`error: ${message}`, 'error'),
     [vacuglide],
   );
 
@@ -374,7 +374,7 @@ export function GoonPanel({
   const displayPositionMs = positionMs / timeScale;
   const displayTotalMs = sessionMs / timeScale;
   const jumpClass =
-    "flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-50";
+    'flex-1 rounded-lg bg-secondary py-3 text-sm font-medium disabled:opacity-50';
 
   return (
     <Panel>

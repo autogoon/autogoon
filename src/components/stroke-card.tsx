@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves directly (voice "up"/"down" does the same, see useStrokeControls, and
@@ -6,8 +6,8 @@
 // the stroke buttons operate on the device layer regardless of which play mode is
 // running. Finish/cumming are play-mode-specific, so each panel renders its own.
 
-import { Card } from "@/components/card";
-import { HoldButton } from "@/components/hold-button";
+import { Card } from '@/components/card';
+import { HoldButton } from '@/components/hold-button';
 
 export function StrokeCard({
   strokeDisabled,
@@ -19,7 +19,7 @@ export function StrokeCard({
 }: {
   // Manual stroke is valid whenever a device is connected.
   strokeDisabled: boolean;
-  strokePulsing: "plus" | "minus" | null;
+  strokePulsing: 'plus' | 'minus' | null;
   onValvePlus: (state: boolean) => Promise<unknown>;
   onValveMinus: (state: boolean) => Promise<unknown>;
   onError: (message: string) => void;
@@ -32,19 +32,19 @@ export function StrokeCard({
       <div className="flex gap-3">
         <HoldButton
           label="Stroke −"
-          voiceCommand={voice ? "down" : undefined}
+          voiceCommand={voice ? 'down' : undefined}
           disabled={strokeDisabled}
           onValve={onValveMinus}
           onError={onError}
-          forcedActive={strokePulsing === "minus"}
+          forcedActive={strokePulsing === 'minus'}
         />
         <HoldButton
           label="Stroke +"
-          voiceCommand={voice ? "up" : undefined}
+          voiceCommand={voice ? 'up' : undefined}
           disabled={strokeDisabled}
           onValve={onValvePlus}
           onError={onError}
-          forcedActive={strokePulsing === "plus"}
+          forcedActive={strokePulsing === 'plus'}
         />
       </div>
     </Card>

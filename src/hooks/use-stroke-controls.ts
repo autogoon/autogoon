@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
 // for a beat then closes it, mimicking a manual tap. Lives here (rather than
@@ -7,10 +7,10 @@
 // directly through the VacuglideDeviceController, independent of whichever
 // play mode is currently running.
 
-import { useCallback, useMemo, useState } from "react";
-import type { Command } from "@/hooks/use-voice-commands";
-import type { PlayerView } from "@/hooks/use-player";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { useCallback, useMemo, useState } from 'react';
+import type { Command } from '@/hooks/use-voice-commands';
+import type { PlayerView } from '@/hooks/use-player';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 
 const STROKE_PULSE_MINUS_MS = 4000;
 const STROKE_PULSE_PLUS_MS = 400;
@@ -23,7 +23,7 @@ export function useStrokeControls(
 
   // Which valve a voice pulse is currently holding open, so the matching
   // manual-override button can highlight while it happens.
-  const [strokePulsing, setStrokePulsing] = useState<"plus" | "minus" | null>(
+  const [strokePulsing, setStrokePulsing] = useState<'plus' | 'minus' | null>(
     null,
   );
 
@@ -32,10 +32,10 @@ export function useStrokeControls(
   // program events, undilated by the playback rate; see valvePlus/valveMinus).
   // The highlight clear is purely cosmetic, so a plain timer is fine for it.
   const strokePulse = useCallback(
-    (dir: "plus" | "minus") => {
-      const valve = dir === "plus" ? valvePlus : valveMinus;
-      const ms = dir === "minus" ? STROKE_PULSE_MINUS_MS : STROKE_PULSE_PLUS_MS;
-      const onError = (err: Error) => log(`error: ${err.message}`, "error");
+    (dir: 'plus' | 'minus') => {
+      const valve = dir === 'plus' ? valvePlus : valveMinus;
+      const ms = dir === 'minus' ? STROKE_PULSE_MINUS_MS : STROKE_PULSE_PLUS_MS;
+      const onError = (err: Error) => log(`error: ${err.message}`, 'error');
       setStrokePulsing(dir);
       valve(true).catch(onError);
       valve(false, ms).catch(onError);
@@ -56,8 +56,8 @@ export function useStrokeControls(
 
   const keywords = useMemo<Command[]>(
     () => [
-      { word: "up", enabled: canStroke, run: () => strokePulse("plus") },
-      { word: "down", enabled: canStroke, run: () => strokePulse("minus") },
+      { word: 'up', enabled: canStroke, run: () => strokePulse('plus') },
+      { word: 'down', enabled: canStroke, run: () => strokePulse('minus') },
     ],
     [strokePulse, canStroke],
   );

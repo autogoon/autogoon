@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // One companion's card on the setup chooser — clickable, edge to edge, in the
 // selected variant's colour. The pack pickers (base version and overlay) ride
@@ -6,17 +6,17 @@
 // plays: description, accent and the feature line all follow the selects
 // (overlay wins, then base version, then the companion's own).
 
-import { Fragment } from "react";
-import { ChevronDown } from "lucide-react";
-import { Card } from "@/components/card";
+import { Fragment } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { Card } from '@/components/card';
 import {
   effectivePictures,
   type LibraryEntry,
   type VariantSlot,
-} from "@/lib/goonpacks/entries";
+} from '@/lib/goonpacks/entries';
 
 // The remembered per-companion variant selection lives under this key.
-export const SELECTED_VARIANT_PREFIX = "goonpacks:last-variant:";
+export const SELECTED_VARIANT_PREFIX = 'goonpacks:last-variant:';
 
 // A card's remembered picks — base version and overlay, stored together.
 export type PackSel = { base: string | null; overlay: string | null };
@@ -33,14 +33,14 @@ function variantFeatures(v: {
   const pictures = v.pictures;
   if (pictures > 0) {
     out.push({
-      text: `${pictures} picture${pictures === 1 ? "" : "s"}`,
-      bold: changed.includes("pictures"),
+      text: `${pictures} picture${pictures === 1 ? '' : 's'}`,
+      bold: changed.includes('pictures'),
     });
-  } else if (changed.includes("pictures")) {
-    out.push({ text: "no pictures", bold: true }); // noPictures strips them
+  } else if (changed.includes('pictures')) {
+    out.push({ text: 'no pictures', bold: true }); // noPictures strips them
   }
   for (const slot of changed) {
-    if (slot === "pictures") continue;
+    if (slot === 'pictures') continue;
     out.push({ text: slot, bold: true });
   }
   return out;
@@ -93,21 +93,21 @@ export function ChooserCard({
               <span className="relative">
                 <select
                   aria-label={`${c.name} version`}
-                  value={baseOpt.key ?? "default"}
+                  value={baseOpt.key ?? 'default'}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) =>
                     onSelectPacks(c.id, {
                       base:
-                        e.target.value === "default" ? null : e.target.value,
+                        e.target.value === 'default' ? null : e.target.value,
                       overlay: overlayOpt?.key ?? null,
                     })
                   }
                   className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
                 >
                   {entry.bases.map((b) => (
-                    <option key={b.key ?? "default"} value={b.key ?? "default"}>
+                    <option key={b.key ?? 'default'} value={b.key ?? 'default'}>
                       {b.label}
-                      {b.version !== undefined ? ` ${b.version}` : ""}
+                      {b.version !== undefined ? ` ${b.version}` : ''}
                     </option>
                   ))}
                 </select>
@@ -124,22 +124,22 @@ export function ChooserCard({
               <span className="relative">
                 <select
                   aria-label={`${c.name} overlay`}
-                  value={overlayOpt?.key ?? "default"}
+                  value={overlayOpt?.key ?? 'default'}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) =>
                     onSelectPacks(c.id, {
                       base: baseOpt.key,
                       overlay:
-                        e.target.value === "default" ? null : e.target.value,
+                        e.target.value === 'default' ? null : e.target.value,
                     })
                   }
                   className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
                 >
                   <option value="default">default</option>
                   {entry.overlays.map((o) => (
-                    <option key={o.key} value={o.key ?? "default"}>
+                    <option key={o.key} value={o.key ?? 'default'}>
                       {o.label}
-                      {o.version !== undefined ? ` ${o.version}` : ""}
+                      {o.version !== undefined ? ` ${o.version}` : ''}
                     </option>
                   ))}
                 </select>
@@ -155,7 +155,7 @@ export function ChooserCard({
         <span className="mt-1 block text-sm">
           {features.map((f, i) => (
             <Fragment key={f.text}>
-              {i > 0 ? " · " : ""}
+              {i > 0 ? ' · ' : ''}
               {f.bold ? (
                 <span className="text-foreground font-medium">{f.text}</span>
               ) : (

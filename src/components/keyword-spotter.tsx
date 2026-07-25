@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The shared keyword spotter, as a provider around the single vosk recognizer.
 // There is exactly ONE recognizer (one mic stream, one model, one grammar), so
@@ -29,10 +29,10 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import type { KaldiRecognizer, Model } from "vosk-browser";
+} from 'react';
+import type { KaldiRecognizer, Model } from 'vosk-browser';
 
-const MODEL_URL = "/vosk-model-small-en-us-0.15.tar.gz";
+const MODEL_URL = '/vosk-model-small-en-us-0.15.tar.gz';
 
 // vosk-browser's event payloads, structurally typed here to avoid reaching
 // into the package's internal type paths.
@@ -170,7 +170,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       const detected = text
         .trim()
         .split(/\s+/)
-        .filter((w) => w !== "" && w !== "[unk]");
+        .filter((w) => w !== '' && w !== '[unk]');
       for (const word of detected) fire(word);
     },
     [fire],
@@ -185,7 +185,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       try {
-        const { createModel } = await import("vosk-browser");
+        const { createModel } = await import('vosk-browser');
         const model = await createModel(MODEL_URL);
         if (cancelled) {
           model.terminate();
@@ -195,7 +195,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
         setModelReady(true);
       } catch (err) {
         if (!cancelled) {
-          console.error("Failed to load KWS model:", err);
+          console.error('Failed to load KWS model:', err);
         }
       }
     })();
@@ -214,17 +214,17 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     if (model === null || audioContext === null) return;
     const aliasMap = buildAliasMap();
     aliasMapRef.current = aliasMap;
-    const grammar = [...new Set([...Object.keys(aliasMap), "[unk]"])];
+    const grammar = [...new Set([...Object.keys(aliasMap), '[unk]'])];
 
     recognizerRef.current?.remove();
     const recognizer = new model.KaldiRecognizer(
       audioContext.sampleRate,
       JSON.stringify(grammar),
     );
-    recognizer.on("result", (m) => {
+    recognizer.on('result', (m) => {
       handleFinalRef.current((m as unknown as ResultMessage).result.text);
     });
-    recognizer.on("partialresult", (m) => {
+    recognizer.on('partialresult', (m) => {
       const text = (m as unknown as PartialMessage).result.partial;
       for (const fn of partialListenersRef.current) fn(text);
     });
@@ -250,9 +250,9 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       void audioContext.resume();
       createRecognizer();
 
-      await audioContext.audioWorklet.addModule("/kws-audio-worklet.js");
+      await audioContext.audioWorklet.addModule('/kws-audio-worklet.js');
       const source = audioContext.createMediaStreamSource(stream);
-      const capture = new AudioWorkletNode(audioContext, "kws-capture");
+      const capture = new AudioWorkletNode(audioContext, 'kws-capture');
       capture.port.onmessage = (e: MessageEvent<Float32Array>) => {
         if (recognizerRef.current !== null && listeningRef.current) {
           recognizerRef.current.acceptWaveformFloat(
@@ -287,7 +287,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
       stop();
     } else {
       start().catch((err: Error) => {
-        console.error("Microphone error:", err);
+        console.error('Microphone error:', err);
       });
     }
   }, [listening, start, stop]);
@@ -299,7 +299,7 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     if (!modelReady || autoStartedRef.current) return;
     autoStartedRef.current = true;
     start().catch((err: Error) => {
-      console.error("Microphone error:", err);
+      console.error('Microphone error:', err);
     });
   }, [modelReady, start]);
 
@@ -338,7 +338,7 @@ export function useKeywordSpotter(): KeywordSpotter {
   const ctx = useContext(Context);
   if (ctx === null) {
     throw new Error(
-      "useKeywordSpotter must be used within KeywordSpotterProvider",
+      'useKeywordSpotter must be used within KeywordSpotterProvider',
     );
   }
   return ctx;

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The voice session's live stage (voiceStage), rendered two ways: a chunky
 // badge pinned to the top-left of the lightbox, and a chat-style bubble in the
@@ -13,23 +13,23 @@ import {
   MessageSquareText,
   Mic,
   Volume2,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { VoiceStage } from "@/lib/voice/session-policy";
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import type { VoiceStage } from '@/lib/voice/session-policy';
 
 const STAGES: Record<
-  Exclude<VoiceStage, "idle">,
+  Exclude<VoiceStage, 'idle'>,
   { icon: LucideIcon; word: string }
 > = {
-  listening: { icon: Mic, word: "Listening" },
-  thinking: { icon: Brain, word: "Thinking" },
-  streaming: { icon: MessageSquareText, word: "Replying" },
-  tts: { icon: AudioLines, word: "Loading voice" },
-  speaking: { icon: Volume2, word: "Speaking" },
+  listening: { icon: Mic, word: 'Listening' },
+  thinking: { icon: Brain, word: 'Thinking' },
+  streaming: { icon: MessageSquareText, word: 'Replying' },
+  tts: { icon: AudioLines, word: 'Loading voice' },
+  speaking: { icon: Volume2, word: 'Speaking' },
 };
 
 export function VoiceStageBadge({ stage }: { stage: VoiceStage }) {
-  if (stage === "idle") return null;
+  if (stage === 'idle') return null;
   const { icon: Icon, word } = STAGES[stage];
   return (
     // stopPropagation: a status readout, not a close target (the backdrop
@@ -46,25 +46,25 @@ export function VoiceStageBadge({ stage }: { stage: VoiceStage }) {
 }
 
 export function VoiceStageBubble({ stage }: { stage: VoiceStage }) {
-  if (stage === "idle") return null;
+  if (stage === 'idle') return null;
   const { icon: Icon, word } = STAGES[stage];
   // Listening is the user's own speech streaming in, so it sits on the user's
   // side of the chat; every other stage is hers.
-  const isUser = stage === "listening";
+  const isUser = stage === 'listening';
   return (
     <div
       role="status"
-      className={`flex flex-col ${isUser ? "items-end" : "items-start"}`}
+      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
     >
       <div
         className={`flex max-w-[80%] items-center gap-2 rounded-2xl px-3 py-2 ${
-          isUser ? "bg-blue-600 text-white" : "bg-foreground/10 text-foreground"
+          isUser ? 'bg-blue-600 text-white' : 'bg-foreground/10 text-foreground'
         }`}
       >
         <Icon className="size-5 animate-pulse" />
         <span
           className={`text-shimmer ${
-            isUser ? "" : "[--shimmer-color:var(--foreground)]"
+            isUser ? '' : '[--shimmer-color:var(--foreground)]'
           }`}
         >
           {word}

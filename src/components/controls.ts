@@ -10,10 +10,10 @@
 // order, not by intent. Large action buttons (Start/Stop/Play, cumming/finish,
 // the stroke pair) keep their own loud styling and don't use these.
 
-export const CONTROL_BORDER = "border-foreground/30";
+export const CONTROL_BORDER = 'border-foreground/30';
 
 export const CONTROL_BUTTON_BASE =
-  "rounded-lg border bg-secondary/70 px-3 py-2 text-sm enabled:hover:bg-secondary disabled:opacity-50";
+  'rounded-lg border bg-secondary/70 px-3 py-2 text-sm enabled:hover:bg-secondary disabled:opacity-50';
 
 export const CONTROL_BUTTON = `${CONTROL_BUTTON_BASE} ${CONTROL_BORDER}`;
 

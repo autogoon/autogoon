@@ -17,6 +17,9 @@ index.
   image library (attributes, people, "heat") so a companion can pick pictures by
   mood; the long-range v2 behind [goonpacks](GOONPACKS.md), the shipped
   persona-pack format.
+- [Goonpack kit](roadmap/GOONPACK-KIT.md) — move pack authoring into the app:
+  leaf through a pack's pictures fixing captions, edit its manifest and persona,
+  and build it, instead of scripts and a text editor.
 - [Freestyle](roadmap/FREESTYLE.md) — a mode with no program at all: the raw
   device controls (speed, stroke, valves), you drive.
 - [Rounds](roadmap/ROUNDS.md) — play-mode candidate: the only one to continue

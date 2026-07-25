@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { expect, test } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // The cross-browser proof that the whole voice pipeline works: a synthesized
 // utterance goes through the app's real AudioWorklet and vosk recognizer in
@@ -20,16 +20,16 @@ declare global {
 
 const FIXTURE = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "fixtures",
-  "autopilot.wav",
+  '..',
+  'fixtures',
+  'autopilot.wav',
 );
 
 test("saying a play mode's name opens its screen", async ({ page }) => {
   // Serve the fixture bytes on a URL only the stub fetches — nothing
   // test-related ships in public/.
-  await page.route("**/__fixtures/autopilot.wav", (route) =>
-    route.fulfill({ path: FIXTURE, contentType: "audio/wav" }),
+  await page.route('**/__fixtures/autopilot.wav', (route) =>
+    route.fulfill({ path: FIXTURE, contentType: 'audio/wav' }),
   );
 
   await page.addInitScript(() => {
@@ -37,7 +37,7 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
     // navigator.mediaDevices.getUserMedia does not stick in WebKit.
     MediaDevices.prototype.getUserMedia = async () => {
       const ctx = new AudioContext();
-      const res = await fetch("/__fixtures/autopilot.wav");
+      const res = await fetch('/__fixtures/autopilot.wav');
       const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
       const dest = ctx.createMediaStreamDestination();
       // Keep the track producing (silent) frames at all times: Firefox only
@@ -63,21 +63,21 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
     };
   });
 
-  await page.goto("/");
+  await page.goto('/');
 
   // The app opens on home — the device group and the play mode chooser.
-  await expect(page.getByText("Choose a play mode")).toBeVisible();
+  await expect(page.getByText('Choose a play mode')).toBeVisible();
 
   // Click (anywhere harmless) BEFORE the audio pipeline comes up: sticky user
   // activation lets Firefox/WebKit run the AudioContexts the app and the stub
   // create during auto-start. In real usage the mic permission prompt's Allow
   // click provides this; the stub bypasses the prompt, so the test provides it.
-  await page.getByRole("banner").getByText("Autogoon").click();
+  await page.getByRole('banner').getByText('Autogoon').click();
 
   // "Listening" appears only once the pipeline is fully up: model loaded,
   // recognizer created, worklet connected. Audio played after this cannot
   // outrun recognizer creation (the vosk worker handles messages in order).
-  await expect(page.getByRole("button", { name: "Listening" })).toBeVisible({
+  await expect(page.getByRole('button', { name: 'Listening' })).toBeVisible({
     timeout: 90_000,
   });
 
@@ -88,6 +88,6 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
   // changelog also says "Vacuum Maintenance", so a text locator is ambiguous —
   // roles only match the accessibility tree, i.e. the visible screen.
   await expect(
-    page.getByRole("heading", { name: "Vacuum Maintenance" }),
+    page.getByRole('heading', { name: 'Vacuum Maintenance' }),
   ).toBeVisible({ timeout: 30_000 });
 });

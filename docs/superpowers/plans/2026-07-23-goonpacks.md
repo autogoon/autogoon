@@ -87,7 +87,7 @@ export type PackManifest = {
   base?: string;
   name?: string;
   description?: string;
-  gender?: "female" | "male" | "nonbinary";
+  gender?: 'female' | 'male' | 'nonbinary';
   accentColour?: string;
   voiceId?: string;
   model?: string;
@@ -103,52 +103,52 @@ export function parseManifest(raw: unknown): PackManifest; // throws PackError
 - [ ] **Step 2: Write failing tests** — `src/lib/goonpacks/manifest.test.ts`:
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import { PackError, parseManifest } from "./manifest";
+import { describe, expect, it } from '@jest/globals';
+import { PackError, parseManifest } from './manifest';
 
-const good = { format: 1, id: "g00ner.aimee", version: "1.0.0" };
+const good = { format: 1, id: 'g00ner.aimee', version: '1.0.0' };
 
-describe("parseManifest", () => {
-  it("accepts a minimal overlay manifest", () => {
-    expect(parseManifest({ ...good, base: "autogoon.aimee" }).base).toBe(
-      "autogoon.aimee",
+describe('parseManifest', () => {
+  it('accepts a minimal overlay manifest', () => {
+    expect(parseManifest({ ...good, base: 'autogoon.aimee' }).base).toBe(
+      'autogoon.aimee',
     );
   });
-  it("rejects a newer format", () => {
+  it('rejects a newer format', () => {
     expect(() => parseManifest({ ...good, format: 2 })).toThrow(PackError);
   });
-  it("rejects missing/invalid format", () => {
+  it('rejects missing/invalid format', () => {
     expect(() => parseManifest({ ...good, format: undefined })).toThrow(
       PackError,
     );
   });
-  it("rejects bad ids", () => {
-    for (const id of ["aimee", "A.b", "a..b", "a.b.c", "a_b.c", ""]) {
+  it('rejects bad ids', () => {
+    for (const id of ['aimee', 'A.b', 'a..b', 'a.b.c', 'a_b.c', '']) {
       expect(() => parseManifest({ ...good, id })).toThrow(PackError);
     }
   });
-  it("requires version as a non-empty string", () => {
-    expect(() => parseManifest({ ...good, version: "" })).toThrow(PackError);
+  it('requires version as a non-empty string', () => {
+    expect(() => parseManifest({ ...good, version: '' })).toThrow(PackError);
     expect(() => parseManifest({ ...good, version: 1 })).toThrow(PackError);
   });
-  it("rejects a bad base id", () => {
-    expect(() => parseManifest({ ...good, base: "nope" })).toThrow(PackError);
+  it('rejects a bad base id', () => {
+    expect(() => parseManifest({ ...good, base: 'nope' })).toThrow(PackError);
   });
-  it("rejects an unknown accentColour", () => {
-    expect(() => parseManifest({ ...good, accentColour: "mauve" })).toThrow(
+  it('rejects an unknown accentColour', () => {
+    expect(() => parseManifest({ ...good, accentColour: 'mauve' })).toThrow(
       PackError,
     );
-    expect(parseManifest({ ...good, accentColour: "teal" }).accentColour).toBe(
-      "teal",
+    expect(parseManifest({ ...good, accentColour: 'teal' }).accentColour).toBe(
+      'teal',
     );
   });
-  it("rejects a bad gender", () => {
-    expect(() => parseManifest({ ...good, gender: "robot" })).toThrow(
+  it('rejects a bad gender', () => {
+    expect(() => parseManifest({ ...good, gender: 'robot' })).toThrow(
       PackError,
     );
   });
-  it("rejects non-object input", () => {
-    expect(() => parseManifest("nope")).toThrow(PackError);
+  it('rejects non-object input', () => {
+    expect(() => parseManifest('nope')).toThrow(PackError);
   });
 });
 ```
@@ -172,26 +172,26 @@ export const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 // The accent hues safelisted in globals.css — a pack colour outside this set
 // would silently render unstyled, so reject it at import instead.
 const ACCENT_COLOURS = new Set([
-  "red",
-  "orange",
-  "amber",
-  "yellow",
-  "lime",
-  "green",
-  "emerald",
-  "teal",
-  "cyan",
-  "sky",
-  "blue",
-  "indigo",
-  "violet",
-  "purple",
-  "fuchsia",
-  "pink",
-  "rose",
+  'red',
+  'orange',
+  'amber',
+  'yellow',
+  'lime',
+  'green',
+  'emerald',
+  'teal',
+  'cyan',
+  'sky',
+  'blue',
+  'indigo',
+  'violet',
+  'purple',
+  'fuchsia',
+  'pink',
+  'rose',
 ]);
 
-const GENDERS = new Set(["female", "male", "nonbinary"]);
+const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
 export const PACK_FORMAT = 1;
@@ -203,7 +203,7 @@ export type PackManifest = {
   base?: string; // overlay only: id of the companion it modifies
   name?: string;
   description?: string;
-  gender?: "female" | "male" | "nonbinary";
+  gender?: 'female' | 'male' | 'nonbinary';
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)
   model?: string; // OpenRouter slug; app default when omitted
@@ -213,7 +213,7 @@ export type PackManifest = {
 
 function optionalString(v: unknown, field: string): string | undefined {
   if (v === undefined) return undefined;
-  if (typeof v !== "string") throw new PackError(`${field} must be text`);
+  if (typeof v !== 'string') throw new PackError(`${field} must be text`);
   return v;
 }
 
@@ -221,53 +221,53 @@ function optionalString(v: unknown, field: string): string | undefined {
 // of the zip (a complete pack needing system-prompt.md, name, voiceId) live in
 // parsePack — this checks only the manifest's own fields.
 export function parseManifest(raw: unknown): PackManifest {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-    throw new PackError("manifest.json is not an object");
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new PackError('manifest.json is not an object');
   }
   const m = raw as Record<string, unknown>;
-  if (typeof m.format !== "number") throw new PackError("missing format");
+  if (typeof m.format !== 'number') throw new PackError('missing format');
   if (m.format > PACK_FORMAT) {
-    throw new PackError("This pack needs a newer version of the app.");
+    throw new PackError('This pack needs a newer version of the app.');
   }
-  if (m.format !== PACK_FORMAT) throw new PackError("unknown format");
-  if (typeof m.id !== "string" || !PACK_ID_RE.test(m.id)) {
-    throw new PackError("id must be publisher.name (lowercase slugs)");
+  if (m.format !== PACK_FORMAT) throw new PackError('unknown format');
+  if (typeof m.id !== 'string' || !PACK_ID_RE.test(m.id)) {
+    throw new PackError('id must be publisher.name (lowercase slugs)');
   }
-  if (typeof m.version !== "string" || m.version === "") {
-    throw new PackError("missing version");
+  if (typeof m.version !== 'string' || m.version === '') {
+    throw new PackError('missing version');
   }
   if (m.base !== undefined) {
-    if (typeof m.base !== "string" || !PACK_ID_RE.test(m.base)) {
-      throw new PackError("base must be a companion id (publisher.name)");
+    if (typeof m.base !== 'string' || !PACK_ID_RE.test(m.base)) {
+      throw new PackError('base must be a companion id (publisher.name)');
     }
   }
   if (m.gender !== undefined && !GENDERS.has(m.gender as string)) {
-    throw new PackError("unknown gender");
+    throw new PackError('unknown gender');
   }
-  const accentColour = optionalString(m.accentColour, "accentColour");
+  const accentColour = optionalString(m.accentColour, 'accentColour');
   if (accentColour !== undefined && !ACCENT_COLOURS.has(accentColour)) {
     throw new PackError(`unknown accentColour: ${accentColour}`);
   }
-  if (m.contextWindow !== undefined && typeof m.contextWindow !== "number") {
-    throw new PackError("contextWindow must be a number");
+  if (m.contextWindow !== undefined && typeof m.contextWindow !== 'number') {
+    throw new PackError('contextWindow must be a number');
   }
   if (
     m.passesReasoning !== undefined &&
-    typeof m.passesReasoning !== "boolean"
+    typeof m.passesReasoning !== 'boolean'
   ) {
-    throw new PackError("passesReasoning must be true or false");
+    throw new PackError('passesReasoning must be true or false');
   }
   return {
     format: m.format,
     id: m.id,
     version: m.version,
     base: m.base as string | undefined,
-    name: optionalString(m.name, "name"),
-    description: optionalString(m.description, "description"),
-    gender: m.gender as PackManifest["gender"],
+    name: optionalString(m.name, 'name'),
+    description: optionalString(m.description, 'description'),
+    gender: m.gender as PackManifest['gender'],
     accentColour,
-    voiceId: optionalString(m.voiceId, "voiceId"),
-    model: optionalString(m.model, "model"),
+    voiceId: optionalString(m.voiceId, 'voiceId'),
+    model: optionalString(m.model, 'model'),
     contextWindow: m.contextWindow as number | undefined,
     passesReasoning: m.passesReasoning as boolean | undefined,
   };
@@ -298,32 +298,32 @@ export function parseManifest(raw: unknown): PackManifest {
 - [ ] **Step 1: Write failing tests** — `src/lib/goonpacks/prompt.test.ts`:
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from '@jest/globals';
 import {
   CONTROL_SECTION,
   OUTPUT_FORMAT_SECTION,
   PICTURES_SECTION,
-} from "@/lib/companions/shared-prompt";
-import { fillSharedSections } from "./prompt";
+} from '@/lib/companions/shared-prompt';
+import { fillSharedSections } from './prompt';
 
-describe("fillSharedSections", () => {
-  it("substitutes shared sections by export name", () => {
-    const out = fillSharedSections("a\n{{OUTPUT_FORMAT_SECTION}}\nb", {
+describe('fillSharedSections', () => {
+  it('substitutes shared sections by export name', () => {
+    const out = fillSharedSections('a\n{{OUTPUT_FORMAT_SECTION}}\nb', {
       includePictures: false,
     });
     expect(out).toBe(`a\n${OUTPUT_FORMAT_SECTION}\nb`);
   });
-  it("drops unknown tokens", () => {
+  it('drops unknown tokens', () => {
     expect(
-      fillSharedSections("a{{NOT_A_SECTION}}b", { includePictures: false }),
-    ).toBe("ab");
+      fillSharedSections('a{{NOT_A_SECTION}}b', { includePictures: false }),
+    ).toBe('ab');
   });
-  it("leaves live markers untouched", () => {
-    const text = "x {{TOY_STATUS}} y {{NOW}} z";
+  it('leaves live markers untouched', () => {
+    const text = 'x {{TOY_STATUS}} y {{NOW}} z';
     expect(fillSharedSections(text, { includePictures: false })).toBe(text);
   });
-  it("fills PICTURES_SECTION only when pictures exist", () => {
-    const text = "{{PICTURES_SECTION}}{{CONTROL_SECTION}}";
+  it('fills PICTURES_SECTION only when pictures exist', () => {
+    const text = '{{PICTURES_SECTION}}{{CONTROL_SECTION}}';
     expect(fillSharedSections(text, { includePictures: true })).toBe(
       `${PICTURES_SECTION}${CONTROL_SECTION}`,
     );
@@ -348,7 +348,7 @@ import {
   OUTPUT_FORMAT_SECTION,
   PICTURES_SECTION,
   SHARED_STYLE_BULLETS,
-} from "@/lib/companions/shared-prompt";
+} from '@/lib/companions/shared-prompt';
 
 // Placeholder name = shared-prompt export name, on purpose: adding an export
 // there makes it addressable from a pack with no extra wiring.
@@ -361,7 +361,7 @@ const SECTIONS: Record<string, string> = {
 };
 
 // Filled per-turn by the session (buildSystemPrompt), not at load.
-const LIVE_MARKERS = new Set(["TOY_STATUS", "NOW"]);
+const LIVE_MARKERS = new Set(['TOY_STATUS', 'NOW']);
 
 export function fillSharedSections(
   prompt: string,
@@ -369,8 +369,8 @@ export function fillSharedSections(
 ): string {
   return prompt.replace(/\{\{([A-Z0-9_]+)\}\}/g, (token, name: string) => {
     if (LIVE_MARKERS.has(name)) return token;
-    if (name === "PICTURES_SECTION" && !opts.includePictures) return "";
-    return SECTIONS[name] ?? ""; // unknown tokens are dropped, per spec
+    if (name === 'PICTURES_SECTION' && !opts.includePictures) return '';
+    return SECTIONS[name] ?? ''; // unknown tokens are dropped, per spec
   });
 }
 ```
@@ -413,78 +413,78 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack; // throws PackError
       zips in-test with fflate):
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import { strToU8, zipSync } from "fflate";
-import { PackError } from "./manifest";
-import { parsePack } from "./pack";
+import { describe, expect, it } from '@jest/globals';
+import { strToU8, zipSync } from 'fflate';
+import { PackError } from './manifest';
+import { parsePack } from './pack';
 
 const manifest = (extra: object = {}) =>
   strToU8(
-    JSON.stringify({ format: 1, id: "test.pack", version: "1.0.0", ...extra }),
+    JSON.stringify({ format: 1, id: 'test.pack', version: '1.0.0', ...extra }),
   );
 const complete = (extra: object = {}) =>
-  manifest({ name: "Testy", voiceId: "v123", ...extra });
+  manifest({ name: 'Testy', voiceId: 'v123', ...extra });
 
-describe("parsePack", () => {
-  it("parses a complete pack with pictures and sidecars", () => {
+describe('parsePack', () => {
+  it('parses a complete pack with pictures and sidecars', () => {
     const zip = zipSync({
-      "manifest.json": complete(),
-      "system-prompt.md": strToU8("You are Testy."),
-      "pictures/a.jpg": new Uint8Array([1, 2, 3]),
-      "pictures/a.txt": strToU8("desc a"),
-      "pictures/b.png": new Uint8Array([4]),
+      'manifest.json': complete(),
+      'system-prompt.md': strToU8('You are Testy.'),
+      'pictures/a.jpg': new Uint8Array([1, 2, 3]),
+      'pictures/a.txt': strToU8('desc a'),
+      'pictures/b.png': new Uint8Array([4]),
     });
     const pack = parsePack(zip);
-    expect(pack.manifest.id).toBe("test.pack");
-    expect(pack.systemPrompt).toBe("You are Testy.");
+    expect(pack.manifest.id).toBe('test.pack');
+    expect(pack.systemPrompt).toBe('You are Testy.');
     expect(pack.pictures).toHaveLength(2);
     expect(pack.pictures[0]).toMatchObject({
-      name: "a",
-      description: "desc a",
-      mimeType: "image/jpeg",
+      name: 'a',
+      description: 'desc a',
+      mimeType: 'image/jpeg',
     });
-    expect(pack.pictures[1]).toMatchObject({ name: "b", description: "" });
+    expect(pack.pictures[1]).toMatchObject({ name: 'b', description: '' });
   });
-  it("accepts an overlay with nothing but a manifest", () => {
+  it('accepts an overlay with nothing but a manifest', () => {
     const zip = zipSync({
-      "manifest.json": manifest({ base: "autogoon.aimee" }),
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
     });
     expect(parsePack(zip).pictures).toEqual([]);
   });
-  it("rejects a complete pack missing prompt/name/voiceId", () => {
-    expect(() => parsePack(zipSync({ "manifest.json": complete() }))).toThrow(
+  it('rejects a complete pack missing prompt/name/voiceId', () => {
+    expect(() => parsePack(zipSync({ 'manifest.json': complete() }))).toThrow(
       /system-prompt/,
     );
     expect(() =>
       parsePack(
         zipSync({
-          "manifest.json": manifest({ voiceId: "v" }),
-          "system-prompt.md": strToU8("x"),
+          'manifest.json': manifest({ voiceId: 'v' }),
+          'system-prompt.md': strToU8('x'),
         }),
       ),
     ).toThrow(PackError);
   });
-  it("rejects a zip without a root manifest, hinting at folder-zips", () => {
-    const zip = zipSync({ "pack/manifest.json": complete() });
+  it('rejects a zip without a root manifest, hinting at folder-zips', () => {
+    const zip = zipSync({ 'pack/manifest.json': complete() });
     expect(() => parsePack(zip)).toThrow(/root/);
   });
-  it("rejects unsupported files under pictures/", () => {
+  it('rejects unsupported files under pictures/', () => {
     const zip = zipSync({
-      "manifest.json": manifest({ base: "autogoon.aimee" }),
-      "pictures/a.gif": new Uint8Array([1]),
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'pictures/a.gif': new Uint8Array([1]),
     });
     expect(() => parsePack(zip)).toThrow(PackError);
   });
-  it("ignores macOS zip junk", () => {
+  it('ignores macOS zip junk', () => {
     const zip = zipSync({
-      "manifest.json": manifest({ base: "autogoon.aimee" }),
-      "__MACOSX/._manifest.json": new Uint8Array([0]),
-      ".DS_Store": new Uint8Array([0]),
-      "pictures/.DS_Store": new Uint8Array([0]),
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      '__MACOSX/._manifest.json': new Uint8Array([0]),
+      '.DS_Store': new Uint8Array([0]),
+      'pictures/.DS_Store': new Uint8Array([0]),
     });
     expect(parsePack(zip).pictures).toEqual([]);
   });
-  it("rejects an unreadable zip", () => {
+  it('rejects an unreadable zip', () => {
     expect(() => parsePack(new Uint8Array([9, 9, 9]))).toThrow(PackError);
   });
 });
@@ -497,14 +497,14 @@ describe("parsePack", () => {
 // Zip → ParsedPack. Pure and synchronous (packs are a few MB); used by the
 // browser importer, the Jest tests, and nothing else — the authoring build
 // script has its own Node-side zip writer.
-import { strFromU8, unzipSync } from "fflate";
-import { PackError, parseManifest, type PackManifest } from "./manifest";
+import { strFromU8, unzipSync } from 'fflate';
+import { PackError, parseManifest, type PackManifest } from './manifest';
 
 const IMAGE_TYPES: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
 };
 
 export type ParsedPicture = {
@@ -523,9 +523,9 @@ export type ParsedPack = {
 // Zip housekeeping entries that hand-made (Finder) zips accumulate.
 function isJunk(path: string): boolean {
   return (
-    path.startsWith("__MACOSX/") ||
-    path.endsWith("/") ||
-    path.split("/").pop() === ".DS_Store"
+    path.startsWith('__MACOSX/') ||
+    path.endsWith('/') ||
+    path.split('/').pop() === '.DS_Store'
   );
 }
 
@@ -534,11 +534,11 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
   try {
     entries = unzipSync(zipBytes);
   } catch {
-    throw new PackError("not a readable zip");
+    throw new PackError('not a readable zip');
   }
   const files = Object.entries(entries).filter(([path]) => !isJunk(path));
 
-  const manifestEntry = files.find(([path]) => path === "manifest.json");
+  const manifestEntry = files.find(([path]) => path === 'manifest.json');
   if (!manifestEntry) {
     throw new PackError(
       "no manifest.json at the zip root — zip the pack folder's contents, not the folder",
@@ -549,27 +549,27 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
     manifest = parseManifest(JSON.parse(strFromU8(manifestEntry[1])));
   } catch (e) {
     if (e instanceof PackError) throw e;
-    throw new PackError("manifest.json is not valid JSON");
+    throw new PackError('manifest.json is not valid JSON');
   }
 
-  const promptEntry = files.find(([path]) => path === "system-prompt.md");
+  const promptEntry = files.find(([path]) => path === 'system-prompt.md');
   const systemPrompt = promptEntry ? strFromU8(promptEntry[1]) : undefined;
 
   const pictures: ParsedPicture[] = [];
   const sidecars = new Map<string, string>();
   for (const [path, bytes] of files) {
-    if (!path.startsWith("pictures/")) continue;
-    const file = path.slice("pictures/".length);
-    if (file.includes("/")) throw new PackError(`nested folder: ${path}`);
-    const dot = file.lastIndexOf(".");
+    if (!path.startsWith('pictures/')) continue;
+    const file = path.slice('pictures/'.length);
+    if (file.includes('/')) throw new PackError(`nested folder: ${path}`);
+    const dot = file.lastIndexOf('.');
     const stem = dot === -1 ? file : file.slice(0, dot);
-    const ext = dot === -1 ? "" : file.slice(dot + 1).toLowerCase();
-    if (ext === "txt") {
+    const ext = dot === -1 ? '' : file.slice(dot + 1).toLowerCase();
+    if (ext === 'txt') {
       sidecars.set(stem, strFromU8(bytes).trim());
     } else if (IMAGE_TYPES[ext]) {
       pictures.push({
         name: stem,
-        description: "",
+        description: '',
         bytes,
         mimeType: IMAGE_TYPES[ext],
       });
@@ -577,16 +577,16 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       throw new PackError(`unsupported file in pictures/: ${file}`);
     }
   }
-  for (const p of pictures) p.description = sidecars.get(p.name) ?? "";
+  for (const p of pictures) p.description = sidecars.get(p.name) ?? '';
   pictures.sort((a, b) => a.name.localeCompare(b.name));
 
   if (manifest.base === undefined) {
     if (systemPrompt === undefined) {
-      throw new PackError("a complete pack needs system-prompt.md");
+      throw new PackError('a complete pack needs system-prompt.md');
     }
-    if (!manifest.name) throw new PackError("a complete pack needs a name");
+    if (!manifest.name) throw new PackError('a complete pack needs a name');
     if (!manifest.voiceId) {
-      throw new PackError("a complete pack needs a voiceId");
+      throw new PackError('a complete pack needs a voiceId');
     }
   }
   return { manifest, systemPrompt, pictures };
@@ -641,39 +641,39 @@ out by `listStoredManifests` before reconcile, so they count as missing.
       parts only):
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import { readIndex, reconcile, toIndexEntry, writeIndex } from "./store";
+import { describe, expect, it } from '@jest/globals';
+import { readIndex, reconcile, toIndexEntry, writeIndex } from './store';
 
 const entry = (id: string, extra: object = {}) => ({
   id,
-  version: "1.0.0",
+  version: '1.0.0',
   ...extra,
 });
 
-describe("reconcile", () => {
-  it("flags index entries with no stored record as missing", () => {
+describe('reconcile', () => {
+  it('flags index entries with no stored record as missing', () => {
     const { healed, missing } = reconcile(
-      [entry("a.b"), entry("c.d")],
-      [entry("a.b")],
+      [entry('a.b'), entry('c.d')],
+      [entry('a.b')],
     );
-    expect(missing).toEqual([entry("c.d")]);
+    expect(missing).toEqual([entry('c.d')]);
     expect(healed).toHaveLength(2);
   });
-  it("heals records the index forgot", () => {
-    const { healed, missing } = reconcile([], [entry("a.b")]);
+  it('heals records the index forgot', () => {
+    const { healed, missing } = reconcile([], [entry('a.b')]);
     expect(missing).toEqual([]);
-    expect(healed).toEqual([entry("a.b")]);
+    expect(healed).toEqual([entry('a.b')]);
   });
   it("prefers the stored record's data over a stale index entry", () => {
     const { healed } = reconcile(
-      [entry("a.b", { version: "0.9" })],
-      [entry("a.b")],
+      [entry('a.b', { version: '0.9' })],
+      [entry('a.b')],
     );
-    expect(healed).toEqual([entry("a.b")]);
+    expect(healed).toEqual([entry('a.b')]);
   });
 });
 
-describe("index round-trip", () => {
+describe('index round-trip', () => {
   // Minimal Storage stand-in — only what read/writeIndex touch.
   const fake = () => {
     const m = new Map<string, string>();
@@ -682,26 +682,26 @@ describe("index round-trip", () => {
       setItem: (k: string, v: string) => void m.set(k, v),
     } as Storage;
   };
-  it("round-trips entries", () => {
+  it('round-trips entries', () => {
     const s = fake();
-    writeIndex(s, [entry("a.b")]);
-    expect(readIndex(s)).toEqual([entry("a.b")]);
+    writeIndex(s, [entry('a.b')]);
+    expect(readIndex(s)).toEqual([entry('a.b')]);
   });
-  it("treats garbage as empty", () => {
+  it('treats garbage as empty', () => {
     const s = fake();
-    s.setItem("goonpacks:index", "{nope");
+    s.setItem('goonpacks:index', '{nope');
     expect(readIndex(s)).toEqual([]);
   });
-  it("derives an entry from a manifest", () => {
+  it('derives an entry from a manifest', () => {
     expect(
       toIndexEntry({
         format: 1,
-        id: "a.b",
-        version: "2",
-        name: "B",
-        base: "c.d",
+        id: 'a.b',
+        version: '2',
+        name: 'B',
+        base: 'c.d',
       }),
-    ).toEqual({ id: "a.b", version: "2", name: "B", base: "c.d" });
+    ).toEqual({ id: 'a.b', version: '2', name: 'B', base: 'c.d' });
   });
 });
 ```
@@ -714,8 +714,8 @@ describe("index round-trip", () => {
 // the user's zip files are the store of record. localStorage carries a small
 // derived index so startup can tell "evicted" from "never imported" — spec:
 // "Eviction can be partial — never assume all-or-nothing."
-import type { PackManifest } from "./manifest";
-import { parseManifest } from "./manifest";
+import type { PackManifest } from './manifest';
+import { parseManifest } from './manifest';
 
 export type IndexEntry = {
   id: string;
@@ -724,7 +724,7 @@ export type IndexEntry = {
   base?: string;
 };
 
-const INDEX_KEY = "goonpacks:index";
+const INDEX_KEY = 'goonpacks:index';
 
 export function toIndexEntry(m: PackManifest): IndexEntry {
   const e: IndexEntry = { id: m.id, version: m.version };
@@ -735,11 +735,11 @@ export function toIndexEntry(m: PackManifest): IndexEntry {
 
 export function readIndex(storage: Storage): IndexEntry[] {
   try {
-    const parsed: unknown = JSON.parse(storage.getItem(INDEX_KEY) ?? "[]");
+    const parsed: unknown = JSON.parse(storage.getItem(INDEX_KEY) ?? '[]');
     if (!Array.isArray(parsed)) return [];
     return parsed.filter(
       (e): e is IndexEntry =>
-        typeof e === "object" && e !== null && typeof e.id === "string",
+        typeof e === 'object' && e !== null && typeof e.id === 'string',
     );
   } catch {
     return [];
@@ -775,15 +775,15 @@ export function reconcile(
 
 // --- IndexedDB (browser only, kept too thin to unit-test) ---
 
-const DB_NAME = "autogoon-goonpacks";
-const STORE = "packs";
+const DB_NAME = 'autogoon-goonpacks';
+const STORE = 'packs';
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("indexeddb open failed"));
+    req.onerror = () => reject(req.error ?? new Error('indexeddb open failed'));
   });
 }
 
@@ -797,7 +797,7 @@ function tx<T>(
         const t = db.transaction(STORE, mode);
         const req = run(t.objectStore(STORE));
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error ?? new Error("indexeddb failed"));
+        req.onerror = () => reject(req.error ?? new Error('indexeddb failed'));
         t.oncomplete = () => db.close();
       }),
   );
@@ -810,7 +810,7 @@ type StoredRecord = { manifest: unknown; zip: Blob };
 export async function listStoredManifests(): Promise<PackManifest[]> {
   let records: unknown[];
   try {
-    records = await tx("readonly", (s) => s.getAll());
+    records = await tx('readonly', (s) => s.getAll());
   } catch {
     return [];
   }
@@ -829,16 +829,16 @@ export async function putPack(
   manifest: PackManifest,
   zip: Blob,
 ): Promise<void> {
-  await tx("readwrite", (s) => s.put({ manifest, zip }, manifest.id));
+  await tx('readwrite', (s) => s.put({ manifest, zip }, manifest.id));
 }
 
 export async function deletePack(id: string): Promise<void> {
-  await tx("readwrite", (s) => s.delete(id));
+  await tx('readwrite', (s) => s.delete(id));
 }
 
 export async function getPackZip(id: string): Promise<Blob | null> {
   try {
-    const r = (await tx("readonly", (s) => s.get(id))) as
+    const r = (await tx('readonly', (s) => s.get(id))) as
       StoredRecord | undefined;
     return r?.zip ?? null;
   } catch {
@@ -878,8 +878,8 @@ export async function getPackZip(id: string): Promise<Blob | null> {
       `src/lib/goonpacks/migrate.test.ts`:
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import { migrateThreadKeys } from "./migrate";
+import { describe, expect, it } from '@jest/globals';
+import { migrateThreadKeys } from './migrate';
 
 function fakeStorage(seed: Record<string, string>) {
   const m = new Map(Object.entries(seed));
@@ -893,25 +893,25 @@ function fakeStorage(seed: Record<string, string>) {
   };
 }
 
-describe("migrateThreadKeys", () => {
-  it("renames legacy thread keys to autogoon ids", () => {
+describe('migrateThreadKeys', () => {
+  it('renames legacy thread keys to autogoon ids', () => {
     const { storage, map } = fakeStorage({
-      "companions:thread:elise": "[thread]",
+      'companions:thread:elise': '[thread]',
     });
     migrateThreadKeys(storage);
-    expect(map.get("companions:thread:autogoon.elise")).toBe("[thread]");
-    expect(map.has("companions:thread:elise")).toBe(false);
+    expect(map.get('companions:thread:autogoon.elise')).toBe('[thread]');
+    expect(map.has('companions:thread:elise')).toBe(false);
   });
-  it("never overwrites an existing new-key thread", () => {
+  it('never overwrites an existing new-key thread', () => {
     const { storage, map } = fakeStorage({
-      "companions:thread:miley": "old",
-      "companions:thread:autogoon.miley": "new",
+      'companions:thread:miley': 'old',
+      'companions:thread:autogoon.miley': 'new',
     });
     migrateThreadKeys(storage);
-    expect(map.get("companions:thread:autogoon.miley")).toBe("new");
+    expect(map.get('companions:thread:autogoon.miley')).toBe('new');
   });
-  it("is a no-op with nothing to migrate", () => {
-    const { storage, map } = fakeStorage({ other: "x" });
+  it('is a no-op with nothing to migrate', () => {
+    const { storage, map } = fakeStorage({ other: 'x' });
     migrateThreadKeys(storage);
     expect(map.size).toBe(1);
   });
@@ -924,7 +924,7 @@ describe("migrateThreadKeys", () => {
 // One-time localStorage migration: stock companions moved from bare ids to
 // autogoon.* when goonpacks landed; carry their saved threads across.
 // Idempotent — safe to run on every startup.
-const LEGACY_IDS = ["elise", "aimee", "miley"];
+const LEGACY_IDS = ['elise', 'aimee', 'miley'];
 
 export function migrateThreadKeys(storage: Storage): void {
   for (const legacy of LEGACY_IDS) {
@@ -949,7 +949,7 @@ export function migrateThreadKeys(storage: Storage): void {
 ```ts
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
-export const DEFAULT_MODEL = "minimax/minimax-m3";
+export const DEFAULT_MODEL = 'minimax/minimax-m3';
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
 ```
@@ -1010,86 +1010,86 @@ All three run `fillSharedSections` on the final prompt with
 - [ ] **Step 1: Write failing tests** — `src/lib/goonpacks/resolve.test.ts`:
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import { PICTURES_SECTION } from "@/lib/companions/shared-prompt";
-import type { Companion } from "@/lib/companions/companions";
-import { applyOverlay, packToCompanion, resolveDefault } from "./resolve";
+import { describe, expect, it } from '@jest/globals';
+import { PICTURES_SECTION } from '@/lib/companions/shared-prompt';
+import type { Companion } from '@/lib/companions/companions';
+import { applyOverlay, packToCompanion, resolveDefault } from './resolve';
 
 const base: Companion = {
-  id: "autogoon.aimee",
-  name: "Aimee",
-  description: "sweet",
-  gender: "female",
-  accent_colour: "emerald",
-  voiceId: "v-base",
-  systemPrompt: "hi\n{{PICTURES_SECTION}}",
-  model: "m",
+  id: 'autogoon.aimee',
+  name: 'Aimee',
+  description: 'sweet',
+  gender: 'female',
+  accent_colour: 'emerald',
+  voiceId: 'v-base',
+  systemPrompt: 'hi\n{{PICTURES_SECTION}}',
+  model: 'm',
   contextWindow: 10,
   passesReasoning: true,
 };
 const overlay = (
   extra: object = {},
-  pictures = [] as Companion["pictures"],
+  pictures = [] as Companion['pictures'],
 ) => ({
   manifest: {
     format: 1,
-    id: "g00ner.aimee",
-    version: "1.0.0",
-    base: "autogoon.aimee",
+    id: 'g00ner.aimee',
+    version: '1.0.0',
+    base: 'autogoon.aimee',
     ...extra,
   },
   pictures: pictures ?? [],
 });
 
-describe("applyOverlay", () => {
-  it("keeps the base id and fields the overlay omits", () => {
+describe('applyOverlay', () => {
+  it('keeps the base id and fields the overlay omits', () => {
     const out = applyOverlay(base, overlay());
-    expect(out.id).toBe("autogoon.aimee");
-    expect(out.voiceId).toBe("v-base");
+    expect(out.id).toBe('autogoon.aimee');
+    expect(out.voiceId).toBe('v-base');
   });
-  it("replaces fields the overlay provides", () => {
+  it('replaces fields the overlay provides', () => {
     const out = applyOverlay(base, {
-      ...overlay({ voiceId: "v-new", name: "Amy" }),
-      systemPrompt: "yo {{NOT_A_SECTION}}",
+      ...overlay({ voiceId: 'v-new', name: 'Amy' }),
+      systemPrompt: 'yo {{NOT_A_SECTION}}',
     });
-    expect(out.voiceId).toBe("v-new");
-    expect(out.name).toBe("Amy");
-    expect(out.systemPrompt).toBe("yo ");
+    expect(out.voiceId).toBe('v-new');
+    expect(out.name).toBe('Amy');
+    expect(out.systemPrompt).toBe('yo ');
   });
-  it("fills PICTURES_SECTION when the overlay brings pictures", () => {
-    const pics = [{ src: "blob:x", description: "d" }];
+  it('fills PICTURES_SECTION when the overlay brings pictures', () => {
+    const pics = [{ src: 'blob:x', description: 'd' }];
     expect(applyOverlay(base, overlay({}, pics)).systemPrompt).toBe(
       `hi\n${PICTURES_SECTION}`,
     );
-    expect(applyOverlay(base, overlay()).systemPrompt).toBe("hi\n");
+    expect(applyOverlay(base, overlay()).systemPrompt).toBe('hi\n');
   });
 });
 
-describe("packToCompanion", () => {
-  it("builds a companion with app defaults for omitted fields", () => {
+describe('packToCompanion', () => {
+  it('builds a companion with app defaults for omitted fields', () => {
     const c = packToCompanion({
       manifest: {
         format: 1,
-        id: "some.one",
-        version: "1",
-        name: "One",
-        voiceId: "v1",
+        id: 'some.one',
+        version: '1',
+        name: 'One',
+        voiceId: 'v1',
       },
-      systemPrompt: "p",
+      systemPrompt: 'p',
       pictures: [],
     });
-    expect(c.id).toBe("some.one");
-    expect(c.model).toBe("minimax/minimax-m3");
+    expect(c.id).toBe('some.one');
+    expect(c.model).toBe('minimax/minimax-m3');
     expect(c.contextWindow).toBe(1_000_000);
     expect(c.passesReasoning).toBe(true);
-    expect(c.gender).toBe("female");
-    expect(c.accent_colour).toBe("pink");
+    expect(c.gender).toBe('female');
+    expect(c.accent_colour).toBe('pink');
   });
 });
 
-describe("resolveDefault", () => {
+describe('resolveDefault', () => {
   it("fills the built-in's tokens (pictureless → section dropped)", () => {
-    expect(resolveDefault(base).systemPrompt).toBe("hi\n");
+    expect(resolveDefault(base).systemPrompt).toBe('hi\n');
   });
 });
 ```
@@ -1107,9 +1107,9 @@ import {
   DEFAULT_PASSES_REASONING,
   type Companion,
   type CompanionPicture,
-} from "@/lib/companions/companions";
-import type { PackManifest } from "./manifest";
-import { fillSharedSections } from "./prompt";
+} from '@/lib/companions/companions';
+import type { PackManifest } from './manifest';
+import { fillSharedSections } from './prompt';
 
 export type PackContent = {
   manifest: PackManifest;
@@ -1134,11 +1134,11 @@ export function packToCompanion(pack: PackContent): Companion {
   return {
     id: m.id,
     name: m.name ?? m.id,
-    description: m.description ?? "",
-    gender: m.gender ?? "female",
-    accent_colour: m.accentColour ?? "pink",
-    voiceId: m.voiceId ?? "",
-    systemPrompt: fill(pack.systemPrompt ?? "", pictures),
+    description: m.description ?? '',
+    gender: m.gender ?? 'female',
+    accent_colour: m.accentColour ?? 'pink',
+    voiceId: m.voiceId ?? '',
+    systemPrompt: fill(pack.systemPrompt ?? '', pictures),
     model: m.model ?? DEFAULT_MODEL,
     contextWindow: m.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
     passesReasoning: m.passesReasoning ?? DEFAULT_PASSES_REASONING,
@@ -1225,24 +1225,24 @@ export type PendingImport = {
 - [ ] **Step 1: Implement** `src/hooks/use-goonpack-library.ts`:
 
 ```ts
-"use client";
+'use client';
 // The chooser's library: built-ins + imported packs, reconciled against
 // partial eviction on every load. All pack knowledge for the panel flows
 // through here; the panel never touches the store directly.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   COMPANIONS,
   companionList,
   type Companion,
-} from "@/lib/companions/companions";
-import { PackError, type PackManifest } from "@/lib/goonpacks/manifest";
-import { parsePack } from "@/lib/goonpacks/pack";
+} from '@/lib/companions/companions';
+import { PackError, type PackManifest } from '@/lib/goonpacks/manifest';
+import { parsePack } from '@/lib/goonpacks/pack';
 import {
   applyOverlay,
   packToCompanion,
   resolveDefault,
   type PackContent,
-} from "@/lib/goonpacks/resolve";
+} from '@/lib/goonpacks/resolve';
 import {
   deletePack,
   getPackZip,
@@ -1253,8 +1253,8 @@ import {
   toIndexEntry,
   writeIndex,
   type IndexEntry,
-} from "@/lib/goonpacks/store";
-import { migrateThreadKeys } from "@/lib/goonpacks/migrate";
+} from '@/lib/goonpacks/store';
+import { migrateThreadKeys } from '@/lib/goonpacks/migrate';
 
 export type Variant = {
   packId: string | null;
@@ -1274,9 +1274,9 @@ export type PendingImport = {
   commit(): Promise<void>;
 };
 
-const LAST_PLAYED_PREFIX = "goonpacks:last-variant:"; // cosmetic marker
+const LAST_PLAYED_PREFIX = 'goonpacks:last-variant:'; // cosmetic marker
 
-const publisher = (id: string) => id.split(".")[0]!;
+const publisher = (id: string) => id.split('.')[0]!;
 
 // Library state assembled from whatever survived storage: manifests for live
 // records, index entries standing in for evicted ones.
@@ -1285,7 +1285,7 @@ function buildEntries(
   missing: IndexEntry[],
 ): LibraryEntry[] {
   const overlayFor = (companionId: string): Variant[] => [
-    { packId: null, label: "default", missing: false },
+    { packId: null, label: 'default', missing: false },
     ...manifests
       .filter((m) => m.base === companionId)
       .map((m) => ({
@@ -1337,7 +1337,7 @@ function buildEntries(
 // path); pictures become object URLs, revoked by the caller when replaced.
 async function loadContent(packId: string): Promise<PackContent> {
   const zip = await getPackZip(packId);
-  if (zip === null) throw new PackError("pack missing — re-import its zip");
+  if (zip === null) throw new PackError('pack missing — re-import its zip');
   const parsed = parsePack(new Uint8Array(await zip.arrayBuffer()));
   return {
     manifest: parsed.manifest,
@@ -1372,7 +1372,7 @@ export function resolvePictureRef(
   ref: string,
   pictures: CompanionPicture[] | undefined,
 ): string | null {
-  if (!ref.startsWith("goonpack:")) return ref; // legacy path-style imageSrc
+  if (!ref.startsWith('goonpack:')) return ref; // legacy path-style imageSrc
   return pictures?.find((p) => p.ref === ref)?.src ?? null;
 }
 
@@ -1466,7 +1466,7 @@ export function useGoonpackLibrary() {
       urlsRef.current = (companion.pictures ?? []).map((p) => p.src);
       localStorage.setItem(
         LAST_PLAYED_PREFIX + entry.companion.id,
-        packId ?? "default",
+        packId ?? 'default',
       );
       return companion;
     },
@@ -1540,7 +1540,7 @@ file uses them.
           enterPlay();
         } catch (e) {
           setImportError(
-            e instanceof PackError ? e.message : "pack failed to load",
+            e instanceof PackError ? e.message : 'pack failed to load',
           );
         }
       })();
@@ -1582,15 +1582,15 @@ file uses them.
                 </span>
               ) : (
                 <Button
-                  key={v.packId ?? "default"}
+                  key={v.packId ?? 'default'}
                   onClick={() => pick(v.packId)}
                   className="text-muted-foreground hover:text-foreground rounded border px-2 py-0.5 text-xs"
                 >
                   {v.label}
-                  {v.version !== undefined ? ` ${v.version}` : ""}
-                  {library.lastPlayed(c.id) === (v.packId ?? "default")
-                    ? " •"
-                    : ""}
+                  {v.version !== undefined ? ` ${v.version}` : ''}
+                  {library.lastPlayed(c.id) === (v.packId ?? 'default')
+                    ? ' •'
+                    : ''}
                 </Button>
               ),
             )}
@@ -1601,7 +1601,7 @@ file uses them.
             onClick={() => void library.removePack(c.id)}
             className="text-muted-foreground hover:text-foreground self-start px-2 text-xs"
           >
-            Remove{overlays.length > 0 ? " (and her overlays)" : ""}
+            Remove{overlays.length > 0 ? ' (and her overlays)' : ''}
           </Button>
         )}
       </div>
@@ -1624,7 +1624,7 @@ const onPickFile = useCallback(
       .importPack(file)
       .then(setPendingImport)
       .catch((e: unknown) =>
-        setImportError(e instanceof PackError ? e.message : "import failed"),
+        setImportError(e instanceof PackError ? e.message : 'import failed'),
       );
   },
   [library],
@@ -1781,22 +1781,22 @@ its three resolve.test.ts cases).
 ```js
 // Zips each goonpacks/<dir>/ into goonpacks/<id>.zip — the id read from the
 // pack's manifest, so directory names stay free. Run: npm run goonpack:build
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { zipSync } from "fflate";
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { zipSync } from 'fflate';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const packsDir = join(root, "goonpacks");
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const packsDir = join(root, 'goonpacks');
 
 let built = 0;
 for (const entry of readdirSync(packsDir, { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const dir = join(packsDir, entry.name);
-  const manifestPath = join(dir, "manifest.json");
+  const manifestPath = join(dir, 'manifest.json');
   let manifest;
   try {
-    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   } catch {
     console.warn(`skipping ${entry.name}: no readable manifest.json`);
     continue;
@@ -1805,17 +1805,17 @@ for (const entry of readdirSync(packsDir, { withFileTypes: true })) {
   const add = (rel) => {
     files[rel] = new Uint8Array(readFileSync(join(dir, rel)));
   };
-  add("manifest.json");
+  add('manifest.json');
   try {
-    statSync(join(dir, "system-prompt.md"));
-    add("system-prompt.md");
+    statSync(join(dir, 'system-prompt.md'));
+    add('system-prompt.md');
   } catch {
     /* overlays may have no prompt */
   }
   try {
-    for (const f of readdirSync(join(dir, "pictures")).sort()) {
-      if (f === ".DS_Store") continue;
-      add(join("pictures", f));
+    for (const f of readdirSync(join(dir, 'pictures')).sort()) {
+      if (f === '.DS_Store') continue;
+      add(join('pictures', f));
     }
   } catch {
     /* no pictures dir */
@@ -1849,54 +1849,54 @@ console.log(`${built} pack(s) built`);
       binary; dev server keeps the access gate open):
 
 ```ts
-import { expect, test } from "@playwright/test";
-import { strToU8, zipSync } from "fflate";
+import { expect, test } from '@playwright/test';
+import { strToU8, zipSync } from 'fflate';
 
 // 1x1 transparent PNG.
 const TINY_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
 );
 
 const completePack = zipSync({
-  "manifest.json": strToU8(
+  'manifest.json': strToU8(
     JSON.stringify({
       format: 1,
-      id: "e2e.testy",
-      version: "1.0.0",
-      name: "Testy",
-      description: "e2e import fixture",
-      voiceId: "v-e2e",
-      accentColour: "teal",
+      id: 'e2e.testy',
+      version: '1.0.0',
+      name: 'Testy',
+      description: 'e2e import fixture',
+      voiceId: 'v-e2e',
+      accentColour: 'teal',
     }),
   ),
-  "system-prompt.md": strToU8("You are Testy.\n{{OUTPUT_FORMAT_SECTION}}"),
-  "pictures/one.png": new Uint8Array(TINY_PNG),
-  "pictures/one.txt": strToU8("a test picture"),
+  'system-prompt.md': strToU8('You are Testy.\n{{OUTPUT_FORMAT_SECTION}}'),
+  'pictures/one.png': new Uint8Array(TINY_PNG),
+  'pictures/one.txt': strToU8('a test picture'),
 });
 
-test("import, persist, and remove a goonpack", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Companions" }).click();
+test('import, persist, and remove a goonpack', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Companions' }).click();
 
   // Import → confirm sheet shows the manifest info → commit.
-  await page.getByTestId("goonpack-file-input").setInputFiles({
-    name: "e2e.testy.zip",
-    mimeType: "application/zip",
+  await page.getByTestId('goonpack-file-input').setInputFiles({
+    name: 'e2e.testy.zip',
+    mimeType: 'application/zip',
     buffer: Buffer.from(completePack),
   });
-  await expect(page.getByText("e2e.testy · v1.0.0")).toBeVisible();
-  await page.getByRole("button", { name: "Import", exact: true }).click();
-  await expect(page.getByText("Testy")).toBeVisible();
+  await expect(page.getByText('e2e.testy · v1.0.0')).toBeVisible();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText('Testy')).toBeVisible();
 
   // Survives a reload (IndexedDB).
   await page.reload();
-  await page.getByRole("button", { name: "Companions" }).click();
-  await expect(page.getByText("Testy")).toBeVisible();
+  await page.getByRole('button', { name: 'Companions' }).click();
+  await expect(page.getByText('Testy')).toBeVisible();
 
   // Remove — card gone; threads untouched by design (not asserted here).
-  await page.getByRole("button", { name: "Remove" }).click();
-  await expect(page.getByText("Testy")).toHaveCount(0);
+  await page.getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByText('Testy')).toHaveCount(0);
 });
 ```
 

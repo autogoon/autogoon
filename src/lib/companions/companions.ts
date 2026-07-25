@@ -1,5 +1,5 @@
-import { AIMEE_SYSTEM_PROMPT } from "./aimee-prompt";
-import { MILEY_SYSTEM_PROMPT } from "./miley-prompt";
+import { AIMEE_SYSTEM_PROMPT } from './aimee-prompt';
+import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 
 // The built-in companions. One persona = one entry: its voice, model and
 // system prompt travel together here as pure data, so a new built-in is a new
@@ -28,7 +28,7 @@ export type Companion = {
   id: CompanionId; // stable key — picker selection, thread namespace
   name: string;
   description: string; // one-line blurb shown on the picker card
-  gender: "female" | "male" | "nonbinary"; // display-only; not currently rendered anywhere
+  gender: 'female' | 'male' | 'nonbinary'; // display-only; not currently rendered anywhere
   accentColour: string; // her signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
@@ -44,33 +44,33 @@ export type Companion = {
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
-export const DEFAULT_MODEL = "minimax/minimax-m3";
+export const DEFAULT_MODEL = 'minimax/minimax-m3';
 // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
 
 export const COMPANIONS: Record<string, Companion> = {
-  "autogoon.aimee": {
-    id: "autogoon.aimee",
-    name: "Aimee",
+  'autogoon.aimee': {
+    id: 'autogoon.aimee',
+    name: 'Aimee',
     description:
-      "A sweet, eager-to-please girlfriend who lets you lead - and tease.",
-    gender: "female",
-    accentColour: "emerald",
-    voiceId: "WLWvwOJfGYaBppWieVa7",
+      'A sweet, eager-to-please girlfriend who lets you lead - and tease.',
+    gender: 'female',
+    accentColour: 'emerald',
+    voiceId: 'WLWvwOJfGYaBppWieVa7',
     systemPrompt: AIMEE_SYSTEM_PROMPT,
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,
     passesReasoning: DEFAULT_PASSES_REASONING,
   },
-  "autogoon.miley": {
-    id: "autogoon.miley",
-    name: "Miley",
+  'autogoon.miley': {
+    id: 'autogoon.miley',
+    name: 'Miley',
     description:
-      "A dry, dressed-up Portland pro - up for anything, no strings.",
-    gender: "female",
-    accentColour: "violet",
-    voiceId: "TsdN21EAs7m8pjYUDEQ1",
+      'A dry, dressed-up Portland pro - up for anything, no strings.',
+    gender: 'female',
+    accentColour: 'violet',
+    voiceId: 'TsdN21EAs7m8pjYUDEQ1',
     systemPrompt: MILEY_SYSTEM_PROMPT,
     model: DEFAULT_MODEL,
     contextWindow: DEFAULT_CONTEXT_WINDOW,

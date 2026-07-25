@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Wires the app together and lays out the header, navigation and screens. The
 // heavy lifting lives elsewhere: each play mode is one self-contained module
@@ -18,31 +18,31 @@
 // there — sideways moves between tabs are exactly what the visible tabs
 // offer.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from "lucide-react";
-import { Button } from "@/components/button";
-import { TabButton } from "@/components/tab-button";
-import { AutopilotPanel } from "@/components/play-modes/autopilot-panel";
-import { CompanionsPanel } from "@/components/play-modes/companions-panel";
-import { GroovePanel } from "@/components/play-modes/groove-panel";
-import { GoonPanel } from "@/components/play-modes/goon-panel";
-import { HeaderBar } from "@/components/header-bar";
-import { GoonpacksPanel } from "@/components/goonpacks-panel";
-import { HomePanel } from "@/components/home-panel";
-import { ChangelogPanel } from "@/components/changelog-panel";
-import { SettingsPanel } from "@/components/settings-panel";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AudioWaveform, Bot, MessagesSquare, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/button';
+import { TabButton } from '@/components/tab-button';
+import { AutopilotPanel } from '@/components/play-modes/autopilot-panel';
+import { CompanionsPanel } from '@/components/play-modes/companions-panel';
+import { GroovePanel } from '@/components/play-modes/groove-panel';
+import { GoonPanel } from '@/components/play-modes/goon-panel';
+import { HeaderBar } from '@/components/header-bar';
+import { GoonpacksPanel } from '@/components/goonpacks-panel';
+import { HomePanel } from '@/components/home-panel';
+import { ChangelogPanel } from '@/components/changelog-panel';
+import { SettingsPanel } from '@/components/settings-panel';
 import {
   KeywordSpotterProvider,
   useKeywordSpotter,
-} from "@/components/keyword-spotter";
-import { useCompanionsAccess } from "@/hooks/use-companions-access";
-import { usePlayer } from "@/hooks/use-player";
-import { useVacuglideDevice } from "@/hooks/use-vacuglide-device";
+} from '@/components/keyword-spotter';
+import { useCompanionsAccess } from '@/hooks/use-companions-access';
+import { usePlayer } from '@/hooks/use-player';
+import { useVacuglideDevice } from '@/hooks/use-vacuglide-device';
 import {
   DEFAULT_SAFE_WORD,
   SAFE_WORD_STORAGE_KEY,
   sanitizeSafeWord,
-} from "@/lib/safe-word";
+} from '@/lib/safe-word';
 
 // The play mode registry: each entry is a home-page listing (label +
 // description + icon), a screen, and a voice word (the id, live on home) all
@@ -53,57 +53,57 @@ import {
 // tinted border/gradient shell.
 // On the dev server Companions is always available (the paid routes are open —
 // see access-check.ts); the access gate applies to builds/deploys.
-const IS_DEV = process.env.NODE_ENV === "development";
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 const PLAY_MODES = [
   {
-    id: "goon",
-    label: "Goon",
+    id: 'goon',
+    label: 'Goon',
     description:
-      "An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.",
+      'An automatic slow build over a session length you choose — deep, ragged dips that gradually settle into a steady hold at the top.',
     highlight:
-      "New: choose what cumming brings — wind-down, torture or a ruin (stay in, or eject), drawn at random from the outcomes you tick.",
+      'New: choose what cumming brings — wind-down, torture or a ruin (stay in, or eject), drawn at random from the outcomes you tick.',
     icon: TrendingUp,
-    iconClass: "text-fuchsia-500",
-    accent: "fuchsia",
+    iconClass: 'text-fuchsia-500',
+    accent: 'fuchsia',
   },
   {
-    id: "groove",
-    label: "Groove",
+    id: 'groove',
+    label: 'Groove',
     description:
-      "A manual stroke pattern you shape live — intensity plus dip and timing variability.",
+      'A manual stroke pattern you shape live — intensity plus dip and timing variability.',
     icon: AudioWaveform,
-    iconClass: "text-cyan-500",
-    accent: "cyan",
+    iconClass: 'text-cyan-500',
+    accent: 'cyan',
   },
   {
-    id: "autopilot",
-    label: "Autopilot",
+    id: 'autopilot',
+    label: 'Autopilot',
     description: "A faithful recreation of the Vacuglide's own autopilot.",
     icon: Bot,
-    iconClass: "text-orange-500",
-    accent: "orange",
+    iconClass: 'text-orange-500',
+    accent: 'orange',
   },
   {
-    id: "companions",
-    label: "Companions",
+    id: 'companions',
+    label: 'Companions',
     description:
-      "Pick a companion and talk — she listens, replies in her own voice, and you can cut in any time.",
+      'Pick a companion and talk — she listens, replies in her own voice, and you can cut in any time.',
     icon: MessagesSquare,
-    iconClass: "text-emerald-500",
-    accent: "emerald",
+    iconClass: 'text-emerald-500',
+    accent: 'emerald',
   },
 ] as const;
 
-type PlayModeId = (typeof PLAY_MODES)[number]["id"];
+type PlayModeId = (typeof PLAY_MODES)[number]['id'];
 // A play mode's setup is its own level (`#goon`), with the live session one
 // below (`#goon/play`) — for play modes that have a setup view (only Goon so
 // far; Groove and Autopilot never navigate to a `/play`).
 type Screen =
-  | "home"
-  | "goonpacks"
-  | "settings"
-  | "changes"
+  | 'home'
+  | 'goonpacks'
+  | 'settings'
+  | 'changes'
   | PlayModeId
   | `${PlayModeId}/play`;
 
@@ -111,9 +111,9 @@ type Screen =
 // double as their voice words, live on whichever tab you're on — except
 // Goonpacks, whose spoken word is `packs` ("goonpacks" isn't in vosk's
 // lexicon, so the compound would never be spotted).
-type TabId = "home" | "goonpacks" | "settings" | "changes";
+type TabId = 'home' | 'goonpacks' | 'settings' | 'changes';
 const isTabId = (id: string): id is TabId =>
-  id === "home" || id === "goonpacks" || id === "settings" || id === "changes";
+  id === 'home' || id === 'goonpacks' || id === 'settings' || id === 'changes';
 
 const isPlayModeId = (id: string): id is PlayModeId =>
   PLAY_MODES.some((a) => a.id === id);
@@ -121,32 +121,32 @@ const isPlayModeId = (id: string): id is PlayModeId =>
 // The screen the URL names: `#goon`, `#goon/play`, `#settings`…; no (known)
 // hash = home.
 const hashScreen = (): Screen => {
-  const [base, sub] = window.location.hash.slice(1).split("/");
+  const [base, sub] = window.location.hash.slice(1).split('/');
   if (base !== undefined && isPlayModeId(base)) {
-    return sub === "play" ? `${base}/play` : base;
+    return sub === 'play' ? `${base}/play` : base;
   }
-  return base === "goonpacks" || base === "settings" || base === "changes"
+  return base === 'goonpacks' || base === 'settings' || base === 'changes'
     ? base
-    : "home";
+    : 'home';
 };
 
 // One level up: play -> its play mode's setup, everything else -> home.
 const parentOf = (s: Screen): Screen =>
-  s.includes("/") ? (s.split("/")[0] as Screen) : "home";
+  s.includes('/') ? (s.split('/')[0] as Screen) : 'home';
 
 // Words the safe word may not take: everything the grammar already routes
 // elsewhere — the global words plus the shared transport words the panels
 // declare. One utterance must never mean two things.
 const SAFE_WORD_RESERVED = [
-  "connect",
-  "exit",
-  "home",
-  "settings",
-  "start",
-  "stop",
-  "reset",
-  "changes",
-  "packs", // the Goonpacks tab's spoken word
+  'connect',
+  'exit',
+  'home',
+  'settings',
+  'start',
+  'stop',
+  'reset',
+  'changes',
+  'packs', // the Goonpacks tab's spoken word
   ...PLAY_MODES.map((a) => a.id),
 ];
 // The validator the editing surfaces use, with the reserved list baked in.
@@ -169,7 +169,7 @@ function App() {
   // Only the spotter's stable functions may be used in effect deps — the context
   // object's identity churns with grammar/flash state (see useVoiceCommands).
   const { setGlobalWords, keywordListener } = spotter;
-  const [screen, setScreen] = useState<Screen>("home");
+  const [screen, setScreen] = useState<Screen>('home');
 
   // Companions is hidden from the chooser, the home grammar and navigation until
   // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
@@ -181,7 +181,7 @@ function App() {
     () =>
       access.granted || IS_DEV
         ? PLAY_MODES
-        : PLAY_MODES.filter((a) => a.id !== "companions"),
+        : PLAY_MODES.filter((a) => a.id !== 'companions'),
     [access.granted],
   );
   // The Goonpacks tab manages companion packs, so it shows (and its word is
@@ -192,7 +192,7 @@ function App() {
   // start one from its play mode's screen and you can't leave while it runs
   // (exit is locked below), so the running play mode is always exactly the
   // screen you're on — no separate tracking needed.
-  const running = player.state !== "armed";
+  const running = player.state !== 'armed';
 
   // The safe word — the always-on hard stop (see src/lib/safe-word.ts). It
   // lives here, not in the panels, so no play mode can ever gate it: panels
@@ -218,24 +218,24 @@ function App() {
   // exit anywhere below the top level while nothing runs; the safe word
   // whenever something is playing — exactly where `stop` is live.
   const connected = vacuglide.connected;
-  const playing = player.state === "playing";
+  const playing = player.state === 'playing';
   useEffect(() => {
     const words: string[] = [];
-    if (!connected) words.push("connect");
+    if (!connected) words.push('connect');
     if (playing) words.push(safeWord);
     if (isTabId(screen)) {
-      if (screen === "home") words.push(...availablePlayModes.map((a) => a.id));
+      if (screen === 'home') words.push(...availablePlayModes.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
       // of the grammar; so is the tab that would go nowhere). Goonpacks
       // speaks as `packs`, and only while its tab shows.
       words.push(
-        ...(["home", "changes", "settings"] as const).filter(
+        ...(['home', 'changes', 'settings'] as const).filter(
           (t) => t !== screen,
         ),
       );
-      if (goonpacksShown && screen !== "goonpacks") words.push("packs");
+      if (goonpacksShown && screen !== 'goonpacks') words.push('packs');
     } else if (!running) {
-      words.push("exit");
+      words.push('exit');
     }
     setGlobalWords(words);
   }, [
@@ -263,8 +263,8 @@ function App() {
     setScreen(next);
     window.history.pushState(
       null,
-      "",
-      next === "home" ? window.location.pathname : `#${next}`,
+      '',
+      next === 'home' ? window.location.pathname : `#${next}`,
     );
   }, []);
   useEffect(() => {
@@ -272,20 +272,20 @@ function App() {
     // A `/play` deep-link is normalized to its setup level — the session it
     // named didn't survive the reload, so re-entering play means re-arming.
     const initial = hashScreen();
-    const landing = parentOf(initial) === "home" ? initial : parentOf(initial);
+    const landing = parentOf(initial) === 'home' ? initial : parentOf(initial);
     if (landing !== initial) {
-      window.history.replaceState(null, "", `#${landing}`);
+      window.history.replaceState(null, '', `#${landing}`);
     }
     setScreen(landing);
     const onPop = () => {
       if (runningRef.current) {
-        window.history.pushState(null, "", `#${screenRef.current}`);
+        window.history.pushState(null, '', `#${screenRef.current}`);
         return;
       }
       setScreen(hashScreen());
     };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   // A deep-link or reload onto Companions while it's locked (or never unlocked)
@@ -297,9 +297,9 @@ function App() {
       access.checked &&
       !access.granted &&
       !IS_DEV &&
-      (screen.split("/")[0] === "companions" || screen === "goonpacks")
+      (screen.split('/')[0] === 'companions' || screen === 'goonpacks')
     ) {
-      navigate("home");
+      navigate('home');
     }
   }, [access.checked, access.granted, screen, navigate]);
 
@@ -321,7 +321,7 @@ function App() {
       // hits show up (they used to come from the old runner). Fires alongside the
       // active panel's own handler and the "Listening for" flash — all three ride
       // the same detection.
-      logRef.current(`🎙 ${word}`, "hit");
+      logRef.current(`🎙 ${word}`, 'hit');
       if (word === safeWordRef.current) {
         // The safe word: halt exactly like Stop, no reset. Routed before (and
         // independently of) everything else; pause() no-ops unless playing, so
@@ -329,22 +329,22 @@ function App() {
         void playerRef.current.pause();
         return;
       }
-      if (word === "connect") {
+      if (word === 'connect') {
         void connectRef.current();
         return;
       }
-      if (word === "exit" && !runningRef.current) {
+      if (word === 'exit' && !runningRef.current) {
         navigate(parentOf(screenRef.current));
         return;
       }
-      if (isPlayModeId(word) && screenRef.current === "home") {
+      if (isPlayModeId(word) && screenRef.current === 'home') {
         navigate(word);
         return;
       }
       // A tab's word, heard on a sibling tab, is a sideways move. Goonpacks
       // answers to `packs` (see TabId's comment).
-      if (word === "packs" && isTabId(screenRef.current)) {
-        navigate("goonpacks");
+      if (word === 'packs' && isTabId(screenRef.current)) {
+        navigate('goonpacks');
         return;
       }
       if (isTabId(word) && isTabId(screenRef.current)) {
@@ -357,14 +357,14 @@ function App() {
   // strip; play mode screens get the breadcrumb instead: Home › Goon (setup),
   // and Home › Goon › Play once a session's been generated.
   const topLevel = isTabId(screen);
-  const screenBase = screen.split("/")[0]!;
+  const screenBase = screen.split('/')[0]!;
   const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
-  const atPlayLevel = screen.endsWith("/play");
+  const atPlayLevel = screen.endsWith('/play');
   // Companions' play screen strips the app chrome — header and breadcrumb —
   // down to the panel's own slim bar, so the chat gets the screen.
-  const chromeless = screen === "companions/play";
+  const chromeless = screen === 'companions/play';
   const crumbLink =
-    "rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50";
+    'rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50';
 
   return (
     <>
@@ -376,19 +376,19 @@ function App() {
               [
                 // `align: "right"` marks where the right-hand cluster starts
                 // (ml-auto); the tabs after it just follow.
-                { id: "home", label: "Home", align: "left" },
-                { id: "goonpacks", label: "Goonpacks", align: "left" },
-                { id: "changes", label: "Changes", align: "right" },
-                { id: "settings", label: "Settings", align: "left" },
+                { id: 'home', label: 'Home', align: 'left' },
+                { id: 'goonpacks', label: 'Goonpacks', align: 'left' },
+                { id: 'changes', label: 'Changes', align: 'right' },
+                { id: 'settings', label: 'Settings', align: 'left' },
               ] as const
             )
-              .filter((t) => t.id !== "goonpacks" || goonpacksShown)
+              .filter((t) => t.id !== 'goonpacks' || goonpacksShown)
               .map((t) => (
                 <TabButton
                   key={t.id}
                   active={screen === t.id}
                   onClick={() => navigate(t.id)}
-                  className={t.align === "right" ? "ml-auto" : undefined}
+                  className={t.align === 'right' ? 'ml-auto' : undefined}
                 >
                   {t.label}
                 </TabButton>
@@ -400,9 +400,9 @@ function App() {
           // old tab lock's rule — stop before you leave).
           <nav className="flex items-center gap-2 border-b py-3 text-sm">
             <Button
-              onClick={() => navigate("home")}
+              onClick={() => navigate('home')}
               disabled={running}
-              title={running ? "Stop the session first" : undefined}
+              title={running ? 'Stop the session first' : undefined}
               className={crumbLink}
             >
               Home
@@ -413,7 +413,7 @@ function App() {
                 <Button
                   onClick={() => navigate(currentPlayMode.id)}
                   disabled={running}
-                  title={running ? "Stop the session first" : undefined}
+                  title={running ? 'Stop the session first' : undefined}
                   className={crumbLink}
                 >
                   {currentPlayMode.label}
@@ -432,58 +432,58 @@ function App() {
           </nav>
         )}
         <main className="py-6">
-          <div className={screen === "goonpacks" ? undefined : "hidden"}>
+          <div className={screen === 'goonpacks' ? undefined : 'hidden'}>
             <GoonpacksPanel />
           </div>
-          <div className={screen === "home" ? undefined : "hidden"}>
+          <div className={screen === 'home' ? undefined : 'hidden'}>
             <HomePanel
               vacuglide={vacuglide}
               playModes={availablePlayModes}
               onSelect={(id) => {
-                if (isPlayModeId(id) || id === "settings") navigate(id);
+                if (isPlayModeId(id) || id === 'settings') navigate(id);
               }}
             />
           </div>
-          <div className={screenBase === "goon" ? undefined : "hidden"}>
+          <div className={screenBase === 'goon' ? undefined : 'hidden'}>
             <GoonPanel
               vacuglide={vacuglide}
               player={player}
-              active={screenBase === "goon"}
-              view={atPlayLevel ? "play" : "setup"}
-              onEnterPlay={() => navigate("goon/play")}
+              active={screenBase === 'goon'}
+              view={atPlayLevel ? 'play' : 'setup'}
+              onEnterPlay={() => navigate('goon/play')}
               safeWord={safeWord}
               sanitizeSafeWord={sanitizeCandidate}
               onSaveSafeWord={saveSafeWord}
             />
           </div>
-          <div className={screen === "groove" ? undefined : "hidden"}>
+          <div className={screen === 'groove' ? undefined : 'hidden'}>
             <GroovePanel
               vacuglide={vacuglide}
               player={player}
-              active={screen === "groove"}
+              active={screen === 'groove'}
             />
           </div>
-          <div className={screen === "autopilot" ? undefined : "hidden"}>
+          <div className={screen === 'autopilot' ? undefined : 'hidden'}>
             <AutopilotPanel
               vacuglide={vacuglide}
               player={player}
-              active={screen === "autopilot"}
+              active={screen === 'autopilot'}
             />
           </div>
-          <div className={screenBase === "companions" ? undefined : "hidden"}>
+          <div className={screenBase === 'companions' ? undefined : 'hidden'}>
             <CompanionsPanel
               vacuglide={vacuglide}
               player={player}
-              active={screenBase === "companions"}
-              view={atPlayLevel ? "play" : "setup"}
-              onEnterPlay={() => navigate("companions/play")}
-              onExitPlay={() => navigate("companions")}
+              active={screenBase === 'companions'}
+              view={atPlayLevel ? 'play' : 'setup'}
+              onEnterPlay={() => navigate('companions/play')}
+              onExitPlay={() => navigate('companions')}
             />
           </div>
-          <div className={screen === "changes" ? undefined : "hidden"}>
+          <div className={screen === 'changes' ? undefined : 'hidden'}>
             <ChangelogPanel />
           </div>
-          <div className={screen === "settings" ? undefined : "hidden"}>
+          <div className={screen === 'settings' ? undefined : 'hidden'}>
             <SettingsPanel
               safeWord={safeWord}
               sanitizeSafeWord={sanitizeCandidate}

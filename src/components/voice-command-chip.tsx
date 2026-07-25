@@ -3,7 +3,7 @@
 // positioning of its own — the parent anchors it (Button pins it to its own
 // corner; Card lays it at the right end of its floating action cluster).
 
-import { twMerge } from "tailwind-merge";
+import { twMerge } from 'tailwind-merge';
 
 export function VoiceCommandChip({
   word,
@@ -15,7 +15,7 @@ export function VoiceCommandChip({
   return (
     <span
       className={twMerge(
-        "text-background pointer-events-none rounded-full bg-amber-400 px-2 py-1 text-sm leading-none font-bold",
+        'text-background pointer-events-none rounded-full bg-amber-400 px-2 py-1 text-sm leading-none font-bold',
         className,
       )}
     >

@@ -2,7 +2,7 @@
 // is declared by the panel (which owns the device) and dispatched by the voice
 // session; this module is just the pure type + the mapping to the LLM request
 // shape, so it can be unit-tested without React or the device.
-import type { RequestTool, ToolParameterSchema } from "@/lib/llm/client";
+import type { RequestTool, ToolParameterSchema } from '@/lib/llm/client';
 
 // What a tool's `run` may return. A plain string is the common case (the result
 // text logged + fed back to the model). The object form lets a tool also attach
@@ -31,11 +31,11 @@ export type CompanionTool = {
 // (zero-argument, as start/stop are).
 export function toRequestTools(tools: CompanionTool[]): RequestTool[] {
   return tools.map((t) => ({
-    type: "function",
+    type: 'function',
     function: {
       name: t.name,
       description: t.description,
-      parameters: t.parameters ?? { type: "object", properties: {} },
+      parameters: t.parameters ?? { type: 'object', properties: {} },
     },
   }));
 }

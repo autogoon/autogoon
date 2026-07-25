@@ -8,20 +8,20 @@
 // Gated by the Companion access ID (checkAccess — open on the dev server,
 // fail-closed everywhere else), so a shared demo can't have this paid key
 // hammered by anyone with the URL.
-import { checkAccess } from "@/lib/companions/access-check";
+import { checkAccess } from '@/lib/companions/access-check';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(request: Request): Promise<Response> {
   if (!checkAccess(request)) {
-    return Response.json({ error: "access denied" }, { status: 401 });
+    return Response.json({ error: 'access denied' }, { status: 401 });
   }
 
   const url = process.env.LLM_URL;
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!url || !apiKey) {
     return Response.json(
-      { error: "LLM_URL and OPENROUTER_API_KEY not set" },
+      { error: 'LLM_URL and OPENROUTER_API_KEY not set' },
       { status: 503 },
     );
   }
@@ -31,29 +31,29 @@ export async function POST(request: Request): Promise<Response> {
   let upstream: Response;
   try {
     upstream = await fetch(`${url}/chat/completions`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "content-type": "application/json",
+        'content-type': 'application/json',
         authorization: `Bearer ${apiKey}`,
         // OpenRouter attribution (optional; shows up on their dashboard).
-        "HTTP-Referer": "http://localhost:8931",
-        "X-Title": "Vacuglide Companions",
+        'HTTP-Referer': 'http://localhost:8931',
+        'X-Title': 'Vacuglide Companions',
       },
       body: JSON.stringify(body),
       signal: request.signal,
     });
   } catch {
     return Response.json(
-      { error: "LLM upstream unreachable" },
+      { error: 'LLM upstream unreachable' },
       { status: 502 },
     );
   }
 
   if (!upstream.ok || upstream.body === null) {
-    return Response.json({ error: "LLM upstream error" }, { status: 502 });
+    return Response.json({ error: 'LLM upstream error' }, { status: 502 });
   }
 
   return new Response(upstream.body, {
-    headers: { "content-type": "text/event-stream" },
+    headers: { 'content-type': 'text/event-stream' },
   });
 }

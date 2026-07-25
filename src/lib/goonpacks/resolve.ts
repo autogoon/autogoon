@@ -9,9 +9,9 @@ import {
   DEFAULT_PASSES_REASONING,
   type Companion,
   type CompanionPicture,
-} from "@/lib/companions/companions";
-import type { PackManifest } from "./manifest";
-import { fillSharedSections } from "./prompt";
+} from '@/lib/companions/companions';
+import type { PackManifest } from './manifest';
+import { fillSharedSections } from './prompt';
 
 export type PackContent = {
   manifest: PackManifest;
@@ -44,11 +44,11 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     name: c.name ?? m.id,
     // Her card description, else the pack's about-text — better than an
     // empty card line.
-    description: c.description ?? m.aboutThePack ?? "",
-    gender: c.gender ?? "female",
-    accentColour: c.accentColour ?? "pink",
-    voiceId: c.voiceId ?? "",
-    systemPrompt: pack.systemPrompt ?? "",
+    description: c.description ?? m.aboutThePack ?? '',
+    gender: c.gender ?? 'female',
+    accentColour: c.accentColour ?? 'pink',
+    voiceId: c.voiceId ?? '',
+    systemPrompt: pack.systemPrompt ?? '',
     model: c.model ?? DEFAULT_MODEL,
     contextWindow: c.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
     passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,

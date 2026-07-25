@@ -1,33 +1,33 @@
-"use client";
+'use client';
 
 // Groove play mode panel. Owns the Groove engine, arms/plays the shared Player,
 // declares its commands once (button == voice). Event generation lives in
 // @/lib/play-modes/groove-engine.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
-import { CummingButton } from "@/components/cumming-button";
-import { LogCard } from "@/components/log-card";
-import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { SessionControls } from "@/components/session-controls";
-import { Segmented } from "@/components/segmented";
-import { Slider } from "@/components/slider";
-import { Sparkline } from "@/components/sparkline";
-import { StrokeCard } from "@/components/stroke-card";
-import type { PlayerView } from "@/hooks/use-player";
-import { useStrokeControls } from "@/hooks/use-stroke-controls";
-import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
+import { CummingButton } from '@/components/cumming-button';
+import { LogCard } from '@/components/log-card';
+import { RateLimitMeter } from '@/components/rate-limit-meter';
+import { SessionControls } from '@/components/session-controls';
+import { Segmented } from '@/components/segmented';
+import { Slider } from '@/components/slider';
+import { Sparkline } from '@/components/sparkline';
+import { StrokeCard } from '@/components/stroke-card';
+import type { PlayerView } from '@/hooks/use-player';
+import { useStrokeControls } from '@/hooks/use-stroke-controls';
+import { useVoiceCommands, type Command } from '@/hooks/use-voice-commands';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import {
   GrooveEngine,
   type VariabilityLevel,
-} from "@/lib/play-modes/groove-engine";
+} from '@/lib/play-modes/groove-engine';
 
 const DEFAULT_SPEED = 10;
-const DEFAULT_VARIABILITY: VariabilityLevel = "medium";
-const DEFAULT_DIP: VariabilityLevel = "medium";
-const DIP_LEVELS: VariabilityLevel[] = ["off", "low", "medium", "high"];
+const DEFAULT_VARIABILITY: VariabilityLevel = 'medium';
+const DEFAULT_DIP: VariabilityLevel = 'medium';
+const DIP_LEVELS: VariabilityLevel[] = ['off', 'low', 'medium', 'high'];
 const INTENSITY_STEP = 5;
 
 export function GroovePanel({
@@ -56,10 +56,10 @@ export function GroovePanel({
   const engine = engineRef.current;
 
   const isCurrent = player.source === engine;
-  const state = isCurrent ? player.state : "armed";
+  const state = isCurrent ? player.state : 'armed';
 
   useEffect(() => {
-    if (active && player.state === "armed" && player.source !== engine) {
+    if (active && player.state === 'armed' && player.source !== engine) {
       device.arm(engine);
     }
   }, [active, player.state, player.source, device, engine]);
@@ -140,7 +140,7 @@ export function GroovePanel({
       // the app — so it starts the clock itself (play() no-ops if running).
       device.play();
     } catch (err) {
-      vacuglide.log(`error: ${(err as Error).message}`, "error");
+      vacuglide.log(`error: ${(err as Error).message}`, 'error');
     }
   }, [device, engine, vacuglide]);
 
@@ -149,43 +149,43 @@ export function GroovePanel({
 
   const commands: Command[] = [
     ...stroke.keywords,
-    { word: "start", enabled: connected && state !== "playing", run: start },
-    { word: "stop", enabled: state === "playing", run: stop },
-    { word: "reset", enabled: state !== "playing", run: reset },
+    { word: 'start', enabled: connected && state !== 'playing', run: start },
+    { word: 'stop', enabled: state === 'playing', run: stop },
+    { word: 'reset', enabled: state !== 'playing', run: reset },
     {
-      word: "more",
+      word: 'more',
       enabled: isCurrent,
       run: () => stepSpeedPercent(INTENSITY_STEP),
     },
     {
-      word: "less",
+      word: 'less',
       enabled: isCurrent,
       run: () => stepSpeedPercent(-INTENSITY_STEP),
     },
     {
-      word: "hillier",
+      word: 'hillier',
       enabled: isCurrent,
       run: () => stepDipVariability(1),
     },
     {
-      word: "flatter",
+      word: 'flatter',
       enabled: isCurrent,
       run: () => stepDipVariability(-1),
     },
-    { word: "off", enabled: isCurrent, run: () => changeVariability("off") },
-    { word: "low", enabled: isCurrent, run: () => changeVariability("low") },
+    { word: 'off', enabled: isCurrent, run: () => changeVariability('off') },
+    { word: 'low', enabled: isCurrent, run: () => changeVariability('low') },
     {
-      word: "medium",
+      word: 'medium',
       enabled: isCurrent,
-      run: () => changeVariability("medium"),
+      run: () => changeVariability('medium'),
     },
-    { word: "high", enabled: isCurrent, run: () => changeVariability("high") },
-    { word: "cumming", enabled: canEnd, run: cumming },
+    { word: 'high', enabled: isCurrent, run: () => changeVariability('high') },
+    { word: 'cumming', enabled: canEnd, run: cumming },
   ];
   useVoiceCommands(active, commands);
 
   const logError = useCallback(
-    (message: string) => vacuglide.log(`error: ${message}`, "error"),
+    (message: string) => vacuglide.log(`error: ${message}`, 'error'),
     [vacuglide],
   );
 
@@ -240,10 +240,10 @@ export function GroovePanel({
       <Card title="Dip variability">
         <Segmented
           options={[
-            { value: "off", label: "Off" },
-            { value: "low", label: "Low" },
-            { value: "medium", label: "Medium" },
-            { value: "high", label: "High" },
+            { value: 'off', label: 'Off' },
+            { value: 'low', label: 'Low' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'high', label: 'High' },
           ]}
           value={dipVariability}
           onChange={changeDipVariability}
@@ -257,10 +257,10 @@ export function GroovePanel({
       <Card title="Timing variability">
         <Segmented
           options={[
-            { value: "off", label: "Off", voiceCommand: "off" },
-            { value: "low", label: "Low", voiceCommand: "low" },
-            { value: "medium", label: "Medium", voiceCommand: "medium" },
-            { value: "high", label: "High", voiceCommand: "high" },
+            { value: 'off', label: 'Off', voiceCommand: 'off' },
+            { value: 'low', label: 'Low', voiceCommand: 'low' },
+            { value: 'medium', label: 'Medium', voiceCommand: 'medium' },
+            { value: 'high', label: 'High', voiceCommand: 'high' },
           ]}
           value={variability}
           onChange={changeVariability}

@@ -14,6 +14,21 @@
   truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
+- enhancement: **Better picture captions** — The captioning scripts now have the
+  vision model observe a picture out loud — what her weight is on, where the
+  knees and heels are, how each garment sits — before condensing that into the
+  one-line caption, with explicit tests for the poses models confuse (sitting
+  versus kneeling versus squatting), and a check that stops a close-fitting
+  opaque garment being read as see-through. Both `npm run goonpack:describe` and
+  `goonpack:describe-missing` now narrate each step, print those observations,
+  and (in iTerm2) show the picture itself under its caption at the size the
+  model saw it — so you can watch a run go past and judge each caption against
+  what it describes. The caption itself now has to carry the setting, the
+  garments, her hair and what's actually on show — down to what's only faintly
+  visible, stated as precisely as the model saw it — and leaves mood out. The
+  `DESCRIBE_MODEL` environment variable is now just `MODEL`.
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
+
 - enhancement: **Elise moves out of the app** — The built-in companions are now
   Aimee and Miley. Elise's persona was extracted into a complete goonpack (kept
   outside the repo, like all packs), so she's imported and played like any other
@@ -65,6 +80,19 @@
   dropping everything after the first line of a wrapped entry; entries now
   render in full, and the raw file can put blank lines between entries.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
+
+- internal: **Roadmap: a goonpack kit** — Written up the case for moving pack
+  authoring — captioning, manifest, persona, build — out of the npm scripts and
+  into a screen in the app, along with the constraint that shapes it: it would
+  be the app's first filesystem route, so it can only exist in a dev build.
+  [roadmap/GOONPACK-KIT.md](./roadmap/GOONPACK-KIT.md)
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
+
+- internal: **Single quotes, and scripts get formatted** — Prettier now writes
+  single quotes, and the `format` script covers `scripts/` as well, which had
+  been the one source directory it never touched — so the two describe scripts
+  no longer disagree about quoting. One repo-wide reformat, no behaviour change.
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
 
 - internal: **Retire the build-time picture pipeline** — `gen:pictures`, the
   generated module and its pre-hooks are gone; pictures reach companions via

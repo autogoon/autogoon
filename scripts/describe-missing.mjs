@@ -8,21 +8,28 @@
 // that already have a description are left untouched, so it's safe to re-run
 // after dropping in more. Reads OPENROUTER_API_KEY / LLM_URL from the
 // environment (the npm script loads .env via --env-file-if-exists), and
-// honours DESCRIBE_MODEL the same as `npm run goonpack:describe`, so you can
-// pick the model for a bulk run:
+// honours MODEL the same as `npm run goonpack:describe`, so you can pick the
+// model for a bulk run:
 //
-//   DESCRIBE_MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
+//   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
-import process from "node:process";
-import { readdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describeImage, sidecarPath } from "./describe-image.mjs";
+import process from 'node:process';
+import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  describeImage,
+  sidecarPath,
+  inlineImage,
+  green,
+  yellow,
+  dim,
+} from './describe-image.mjs';
 
 const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const goonpacksDir = join(root, "goonpacks");
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const goonpacksDir = join(root, 'goonpacks');
 
 // Every goonpack image with no (non-empty) sidecar description yet, sorted.
 function missingImages() {
@@ -30,14 +37,14 @@ function missingImages() {
   if (!existsSync(goonpacksDir)) return out;
   for (const entry of readdirSync(goonpacksDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const dir = join(goonpacksDir, entry.name, "pictures");
+    const dir = join(goonpacksDir, entry.name, 'pictures');
     if (!existsSync(dir)) continue;
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
       const txt = sidecarPath(image);
       const described =
-        existsSync(txt) && readFileSync(txt, "utf8").trim() !== "";
+        existsSync(txt) && readFileSync(txt, 'utf8').trim() !== '';
       if (!described) out.push(image);
     }
   }
@@ -46,25 +53,37 @@ function missingImages() {
 
 const images = missingImages();
 if (images.length === 0) {
-  console.log("All goonpack images already have descriptions.");
+  console.log('All goonpack images already have descriptions.');
   process.exit(0);
 }
 
 console.log(`Describing ${images.length} image(s) without a description…\n`);
 
 // Sequential — kinder to rate limits, and the output stays readable in order.
+// Each picture narrates itself exactly as the single-image script does: the file
+// in yellow, each step as it starts, what the model observed, the caption in
+// green, then the picture itself to check it against — so a long bulk run can be
+// watched going past.
 let described = 0;
 let failed = 0;
 for (const image of images) {
+  console.log(yellow(image));
   try {
-    const caption = await describeImage(image);
+    let picture = '';
+    const { caption, observations } = await describeImage(image, {
+      onStep: (s) => console.log(dim(s)),
+      onImage: (b64) => {
+        picture = inlineImage(b64);
+      },
+    });
     writeFileSync(sidecarPath(image), `${caption}\n`);
-    console.log(`✓ ${image}\n  ${caption}\n`);
+    if (observations !== '') console.log(dim(observations));
+    console.log(green(caption));
+    if (picture !== '') console.log(picture);
+    console.log('');
     described += 1;
   } catch (e) {
-    console.error(
-      `✗ ${image}\n  ${e instanceof Error ? e.message : String(e)}\n`,
-    );
+    console.error(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
     failed += 1;
   }
 }

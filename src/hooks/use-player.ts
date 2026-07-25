@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The one place the shared Player is mirrored into React state. The Player is
 // plain JS (it drives the device on its own); this hook is the single bridge
@@ -8,14 +8,14 @@
 // ONCE, so this mirror exists in exactly one place instead of being re-derived
 // inside every play mode hook.
 
-import { useEffect, useState } from "react";
-import type { Player } from "@/lib/player";
+import { useEffect, useState } from 'react';
+import type { Player } from '@/lib/player';
 import {
   UPCOMING_WINDOW_MS,
   type PlayModeEngine,
   type PlayerState,
   type UpcomingWindow,
-} from "@/lib/program";
+} from '@/lib/program';
 
 export interface PlayerView {
   // The engine the Player is currently pointed at (null when idle). A play mode

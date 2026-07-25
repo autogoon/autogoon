@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // One tab in an underline tab strip — the top-level nav and Companions'
 // sub-tabs share this exact look: no fill or box, a 2px underline that
@@ -6,8 +6,8 @@
 // the two strips can't drift (and so the underline resets against Button's
 // default control shell live in one place).
 
-import type { ReactNode } from "react";
-import { Button } from "@/components/button";
+import type { ReactNode } from 'react';
+import { Button } from '@/components/button';
 
 export function TabButton({
   active,
@@ -28,9 +28,9 @@ export function TabButton({
       onClick={onClick}
       className={`-mb-px rounded-none border-0 border-b-2 bg-transparent px-0 py-3 text-sm font-medium enabled:hover:bg-transparent ${
         active
-          ? "border-foreground text-foreground"
-          : "text-muted-foreground hover:text-foreground border-transparent"
-      } ${className ?? ""}`}
+          ? 'border-foreground text-foreground'
+          : 'text-muted-foreground hover:text-foreground border-transparent'
+      } ${className ?? ''}`}
     >
       {children}
     </Button>

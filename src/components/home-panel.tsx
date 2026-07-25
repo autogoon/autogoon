@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The home screen — the top of the navigation hierarchy: the device
 // token/connection group first (it's the gate to everything else), then the
@@ -6,16 +6,16 @@
 // wearing its play mode's accent colour), and the getting-started small print.
 // Settings sits beside home as a top-level tab (see page.tsx).
 
-import { Plug, type LucideIcon } from "lucide-react";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import { Button } from "@/components/button";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
+import { Plug, type LucideIcon } from 'lucide-react';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
+import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
 import {
   CONTROL_BORDER,
   CONTROL_BUTTON_BASE,
   CONTROL_INPUT,
-} from "@/components/controls";
+} from '@/components/controls';
 
 export function HomePanel({
   vacuglide,
@@ -87,27 +87,27 @@ export function HomePanel({
             // Exactly one border colour (see controls.ts): connected wins,
             // then error, then the default control border.
             vacuglide.connected
-              ? "border-emerald-500 text-emerald-500"
-              : vacuglide.deviceStatusKind === "error"
-                ? "border-destructive text-destructive"
+              ? 'border-emerald-500 text-emerald-500'
+              : vacuglide.deviceStatusKind === 'error'
+                ? 'border-destructive text-destructive'
                 : CONTROL_BORDER
           }`}
         >
           <Plug className="size-4" />
           {vacuglide.connected
-            ? "Connected"
+            ? 'Connected'
             : vacuglide.connecting
-              ? "Connecting…"
-              : "Connect"}
+              ? 'Connecting…'
+              : 'Connect'}
         </Button>
       </div>
       <p
         className={`text-sm ${
-          vacuglide.deviceStatusKind === "ok"
-            ? "text-emerald-500"
-            : vacuglide.deviceStatusKind === "error"
-              ? "text-destructive"
-              : "text-muted-foreground"
+          vacuglide.deviceStatusKind === 'ok'
+            ? 'text-emerald-500'
+            : vacuglide.deviceStatusKind === 'error'
+              ? 'text-destructive'
+              : 'text-muted-foreground'
         }`}
       >
         {vacuglide.deviceStatus}
@@ -138,12 +138,12 @@ export function HomePanel({
           You can use voice controls for most things — each page explains the
           words it recognises.
         </p>
-        {process.env.NODE_ENV === "development" ? (
+        {process.env.NODE_ENV === 'development' ? (
           <p>
             <span className="text-foreground font-medium">
               Companion pictures
-            </span>{" "}
-            are bring-your-own — the{" "}
+            </span>{' '}
+            are bring-your-own — the{' '}
             <a
               href="https://github.com/autogoon/autogoon/blob/main/modes/COMPANIONS.md"
               target="_blank"
@@ -151,12 +151,12 @@ export function HomePanel({
               className="hover:text-foreground underline underline-offset-4"
             >
               Companions doc
-            </a>{" "}
+            </a>{' '}
             covers adding them.
           </p>
         ) : (
           <p>
-            <span className="text-foreground font-medium">Companions</span>{" "}
+            <span className="text-foreground font-medium">Companions</span>{' '}
             needs an access ID — enter it under Settings to reveal it.
           </p>
         )}

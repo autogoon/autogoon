@@ -6,16 +6,24 @@
 //
 //   npm run goonpack:describe goonpacks/aimee/pictures/whatever.jpg
 //
-// Uses Qwen3-VL on OpenRouter by default; override with DESCRIBE_MODEL. Reads
+// (npm runs the script from the repo root, so the path is relative to there,
+// not to your shell's directory.)
+//
+// Uses Qwen3-VL on OpenRouter by default; override with MODEL. Reads
 // OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script loads
 // .env via --env-file-if-exists, so the same key the app uses just works. The
 // image is downscaled (long edge 1024px, JPEG q80) with macOS `sips` before
 // sending, so this script is macOS-only.
 //
-// describeImage() and sidecarPath() are exported so describe-missing.mjs can
-// reuse them; the CLI below runs only when this file is the entry point.
+// The model is asked to observe the picture out loud before condensing to the
+// caption line (see PROMPT); only the caption reaches the sidecar, but both
+// scripts print the observations so you can see what it based the caption on.
 //
-// Strong vision models on OpenRouter (set DESCRIBE_MODEL to one of these) —
+// describeImage(), sidecarPath() and the colour helpers are exported so
+// describe-missing.mjs can reuse them; the CLI below runs only when this file is
+// the entry point.
+//
+// Strong vision models on OpenRouter (set MODEL to one of these) —
 // verify the exact slug + pricing at https://openrouter.ai/models (filter
 // Input modality → Image); the catalogue shifts over time:
 //
@@ -35,21 +43,21 @@
 //     Qwen3-VL 30B A3B         qwen/qwen3-vl-30b-a3b-instruct
 //     Qwen3-VL 8B              qwen/qwen3-vl-8b-instruct
 
-import process from "node:process";
-import { readFileSync, writeFileSync, rmSync } from "node:fs";
-import { basename, extname, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
-import { tmpdir } from "node:os";
-import { randomUUID } from "node:crypto";
+import process from 'node:process';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { basename, extname, dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 const MIME = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".avif": "image/avif",
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.avif': 'image/avif',
 };
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
@@ -65,21 +73,21 @@ function resizedJpeg(imagePath) {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
     execFileSync(
-      "sips",
+      'sips',
       [
-        "-Z",
+        '-Z',
         String(MAX_EDGE),
-        "-s",
-        "format",
-        "jpeg",
-        "-s",
-        "formatOptions",
+        '-s',
+        'format',
+        'jpeg',
+        '-s',
+        'formatOptions',
         String(JPEG_QUALITY),
         imagePath,
-        "--out",
+        '--out',
         tmp,
       ],
-      { stdio: "ignore" },
+      { stdio: 'ignore' },
     );
     return readFileSync(tmp);
   } catch (e) {
@@ -95,22 +103,101 @@ function resizedJpeg(imagePath) {
 
 // The house caption style — matches the existing sidecar descriptions so a
 // freshly-described image reads like the rest of the set.
-const PROMPT = `Write a single-line caption for this photo — it is pose/mood metadata
-for a companion app that lets the user pick a picture that fits the moment.
+//
+// Two-step on purpose: the model observes out loud first, then condenses. Asking
+// for the caption alone forbids the reasoning that rescues an ambiguous pose —
+// so the observations are scratch space, parsed off and thrown away (only the
+// CAPTION line reaches the sidecar). The confusable poses get explicit
+// discriminators rather than "take care", because that is the part a model gets
+// wrong by guessing from overall impression instead of looking at the legs.
+const PROMPT = `This photo is pose/mood metadata for a companion app: she reads the
+caption to pick a picture that fits the moment, so it has to be accurate about pose
+and state of undress, not just evocative.
 
-Rules:
-- One sentence, roughly 15–30 words, present tense, NO leading pronoun
-- Start with the pose/action, and include the location and lighting.
-- Cover: outfit / state of undress, specific colours of the clothing.
-- Cover: specific pose and position, whether she is sitting facing away or towards the
-  camera, what her hair is doing, gaze/expression, and the overall mood.
-- Take extra care to describe the pose, especially if she's sitting/kneeling/lying down,
-  and what her hands are doing.
-- Take care of what uncovered body parts are visible, and how the clothing is arranged.
-- Note if you can see for example, her back, thighs, nipples, pokies, pubic hair, or
-  genitals, and if so, how much is visible.
+Work in two steps.
 
-Output ONLY the caption line — no quotes, no preamble, no extra text.`;
+STEP 1 — OBSERVATIONS. Answer each of these on its own line, briefly. Look before
+you decide. If something is genuinely ambiguous, say so instead of guessing.
+- Support: what is her weight resting on — feet, buttocks, shins/knees, hip, back,
+  front, hands?
+- Legs: where are the knees, and where are the heels and shins?
+- Sitting vs kneeling vs squatting — decide from the support, and say which and why:
+  sitting = buttocks on the surface; kneeling = shins/knees on the surface, buttocks
+  off it or resting on the heels; squatting = weight on the feet, buttocks unsupported.
+- If lying: on her front, back or side? Which end of her is nearest the camera?
+- Facing: towards camera / away / profile / three-quarters. Is her torso square to
+  the camera or turned, and which way is her head turned?
+- Hands: where is each one and what is it doing or touching?
+- Clothing: each garment, its specific colour, and how it is arranged — pushed up,
+  pulled aside, half off, straps down, unfastened.  Mention topless if there is no
+  bra or top, and naked if she is wearing nothing at all.  Mention whether the
+  clothing is tight or not.
+- Exposed: which parts are bare and how much is actually visible — back, stomach, thighs, buttocks.  Grade each
+  one "fully", "partly", "faintly" (made out through fabric or
+  in shadow) or "not at all". Never write "not clearly" or similar — if you can make
+  it out at all that is "faintly", not "not at all".
+- Genitals: if you can clearly see them.
+- Breasts: bare and uncovered, or covered by a garment? If bare, say so plainly —
+  and say whether both or only one.
+- Fabric over her breasts: sheer (skin tone shows through it, as with lace or thin
+  wet fabric) or opaque (no skin tone through it, however tightly it fits)? Answer
+  this before the next one.
+- Nipples: a fitted opaque garment showing the shape of the breast is NOT nipples —
+  the outline of a breast is not a nipple, and nor are lace pattern, seams, folds,
+  shadow, or the cut of a cup. Say which is true: nipples bare and visible; their
+  colour showing through sheer fabric; their shape standing out distinctly against
+  otherwise even fabric; unsure; or not visible.
+- Setting, and the quality and direction of the light.
+- Hair: its colour, and what it is doing — loose or tied, where it falls, whether
+  she is holding, lifting or pushing it.
+- Gaze direction, expression, overall mood.
+
+STEP 2 — CAPTION. Condense the observations into ONE sentence of roughly 35–45 words,
+present tense, no leading pronoun, covering all of these in this order — none of them
+is optional:
+- the pose,
+- the setting and the light,
+- the clothing: the garments, their colours, and how they are arranged,
+- what is bare or showing, and how much: say topless if she has no top or bra, and
+  naked if she is wearing nothing at all; say her breasts are bare when they are;
+  and include the nipples and the genitals whenever the observations above put them
+  as visible at all, however partly, in the terms used there,
+- her hair: its colour and what it is doing,
+- which way she is looking.
+Carry the grades from your observations exactly: never merge two parts you graded
+differently, and never soften a grade. Say only what IS visible: never state that
+something is covered, hidden or not visible — leaving it out says that. Leave mood and
+expression out altogether. State only what you concluded above — drop anything you
+flagged as uncertain rather than hedging.
+
+Reply in exactly this format, with nothing after the caption line:
+
+OBSERVATIONS:
+<your lines>
+
+CAPTION: <the single caption sentence>`;
+
+// Output colours, shared with describe-missing.mjs: yellow names the picture,
+// dim carries the working-out (the steps and the model's observations), green is
+// the caption that ends up in the sidecar. Colour only on a TTY, so piped output
+// stays clean.
+export const yellow = (s) => (process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s);
+export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
+export const dim = (s) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
+
+// How many terminal rows an inlined picture takes.
+const INLINE_HEIGHT = 30;
+
+// iTerm2's inline-image escape: prints the picture itself into the terminal, so
+// a caption can be judged against what it describes without opening the file.
+// Returns "" anywhere else — every other terminal would print the raw escape
+// sequence as garbage — so callers skip an empty string.
+export function inlineImage(base64) {
+  if (!process.stdout.isTTY || process.env.TERM_PROGRAM !== 'iTerm.app') {
+    return '';
+  }
+  return `\x1b]1337;File=inline=1;height=${INLINE_HEIGHT};preserveAspectRatio=1:${base64}\x07`;
+}
 
 // The sidecar description path for an image: <basename>.txt beside it.
 export function sidecarPath(imagePath) {
@@ -120,45 +207,60 @@ export function sidecarPath(imagePath) {
   );
 }
 
-// Describe one image with the vision model and return the one-line caption.
-// Throws on any failure (unsupported type, missing key, API error, empty reply)
-// so callers can decide how to report it.
-export async function describeImage(imagePath) {
+// Describe one image with the vision model. Returns `{ caption, observations }`:
+// the one-line caption for the sidecar, and the model's scratch observations
+// (`""` if it skipped them) for a human to eyeball — only the caption is ever
+// written to disk. Throws on any failure (unsupported type, missing key, API
+// error, empty or unusable reply) so callers can decide how to report it.
+//
+// The stages are slow enough to be worth narrating, so callers pass `onStep` (a
+// short label as each begins) and `onImage` (the downscaled JPEG as base64, the
+// moment it exists) — the picture the model is about to see, not the original,
+// which is the one worth putting on screen next to what it says about it.
+export async function describeImage(
+  imagePath,
+  { onStep = () => {}, onImage = () => {} } = {},
+) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (apiKey === undefined || apiKey === "") {
-    throw new Error("OPENROUTER_API_KEY is not set — put it in .env.");
+  if (apiKey === undefined || apiKey === '') {
+    throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
   }
-  const baseUrl = process.env.LLM_URL ?? "https://openrouter.ai/api/v1";
+  const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
   // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
-  // DESCRIBE_MODEL to try another (see the list at the top of this file).
-  const model =
-    process.env.DESCRIBE_MODEL ?? "qwen/qwen3-vl-235b-a22b-instruct";
+  // MODEL to try another (see the list at the top of this file).
+  const model = process.env.MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
 
   const ext = extname(imagePath).toLowerCase();
   if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || "(none)"}`);
+    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
   }
   // Always send a downscaled JPEG, whatever the source format.
-  const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString(
-    "base64",
-  )}`;
+  onStep(`Resizing to ${MAX_EDGE}px…`);
+  const base64 = resizedJpeg(imagePath).toString('base64');
+  onImage(base64);
+  const dataUri = `data:image/jpeg;base64,${base64}`;
+
+  onStep(`Analysing — ${model}…`);
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "http://localhost:8931",
-      "X-Title": "autogoon describe-image",
+      'HTTP-Referer': 'http://localhost:8931',
+      'X-Title': 'autogoon describe-image',
     },
     body: JSON.stringify({
       model,
+      // Deterministic, so re-running the same image compares prompts and models
+      // rather than sampling luck.
+      temperature: 0,
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: [
-            { type: "text", text: PROMPT },
-            { type: "image_url", image_url: { url: dataUri } },
+            { type: 'text', text: PROMPT },
+            { type: 'image_url', image_url: { url: dataUri } },
           ],
         },
       ],
@@ -173,33 +275,72 @@ export async function describeImage(imagePath) {
 
   const data = await res.json();
   const raw = data?.choices?.[0]?.message?.content;
-  if (typeof raw !== "string" || raw.trim() === "") {
+  if (typeof raw !== 'string' || raw.trim() === '') {
     throw new Error(
       `No caption was returned:\n${JSON.stringify(data, null, 2)}`,
     );
   }
 
+  // Split the two-step reply. The last CAPTION: line wins (the model sometimes
+  // echoes the format template first); everything before it is the scratch
+  // observations. A model that ignored the format still gets read — its last
+  // non-empty line is the caption, since the caption comes last either way.
+  const reply = raw.trim();
+  const marked = [...reply.matchAll(/^[ \t]*CAPTION:[ \t]*(.+)$/gim)];
+  let caption;
+  let observations;
+  if (marked.length > 0) {
+    const last = marked[marked.length - 1];
+    caption = last[1];
+    observations = reply
+      .slice(0, last.index)
+      .replace(/^\s*OBSERVATIONS:[ \t]*/i, '')
+      .trim();
+  } else {
+    const lines = reply.split('\n').map((l) => l.trim());
+    const nonEmpty = lines.filter((l) => l !== '');
+    caption = nonEmpty[nonEmpty.length - 1];
+    observations = nonEmpty.slice(0, -1).join('\n');
+  }
+
   // Collapse to one line and strip any wrapping quotes the model may add.
-  return raw
-    .replace(/\s+/g, " ")
+  caption = caption
+    .replace(/\s+/g, ' ')
     .trim()
-    .replace(/^["']|["']$/g, "")
+    .replace(/^["']|["']$/g, '')
     .trim();
+  if (caption === '') {
+    throw new Error(`No caption could be read from the reply:\n${reply}`);
+  }
+
+  return { caption, observations };
 }
 
 // CLI: describe one image and write its sidecar. Runs only when invoked
-// directly (not when imported by describe-missing.mjs).
+// directly (not when imported by describe-missing.mjs). This is the
+// one-picture inspection tool, so it prints the model's observations alongside
+// the caption — that's how you tell a better prompt from a luckier one.
 async function main() {
   const imagePath = process.argv[2];
-  if (imagePath === undefined || imagePath === "") {
-    console.error("Usage: npm run goonpack:describe <path-to-image>");
+  if (imagePath === undefined || imagePath === '') {
+    console.error('Usage: npm run goonpack:describe <path-to-image>');
     process.exit(1);
   }
+  console.log(yellow(basename(imagePath)));
   try {
-    const caption = await describeImage(imagePath);
-    const outFile = sidecarPath(imagePath);
-    writeFileSync(outFile, `${caption}\n`);
-    console.log(`Wrote ${outFile}:\n${caption}`);
+    // Held back rather than printed as it arrives: the picture reads best under
+    // the caption, as the thing you check the words against.
+    let picture = '';
+    const { caption, observations } = await describeImage(imagePath, {
+      onStep: (s) => console.log(dim(s)),
+      onImage: (b64) => {
+        picture = inlineImage(b64);
+      },
+    });
+    writeFileSync(sidecarPath(imagePath), `${caption}\n`);
+    if (observations !== '') console.log(dim(observations));
+    console.log(green(caption));
+    if (picture !== '') console.log(picture);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
     process.exit(1);

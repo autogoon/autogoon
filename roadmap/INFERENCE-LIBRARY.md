@@ -166,10 +166,11 @@ Levers, in order of impact:
    for pose; feeds the model the leg detail it was missing.
 2. **Model** — Qwen2.5-VL (native-res ViT) and InternVL (tiling) are the best
    small ones for grounded spatial detail; worth one comparison round.
-3. **Prompt** — limited, and the current prompt _fights you_: "Output ONLY the
-   caption line — no preamble" forbids the reasoning that rescues ambiguous
-   poses. A two-step (reason/observe → condense) or explicitly stating _how_ to
-   tell them apart can help. But if the pixels aren't there, no prompt fixes it.
+3. **Prompt** — limited, and largely spent: the two moves it had to offer are
+   already made in `scripts/describe-image.mjs`, which has the model observe the
+   picture out loud before condensing to the caption, and states outright _how_
+   to tell the confusable poses apart. If the pixels aren't there, no prompt
+   fixes it.
 4. **Irreducible ambiguity** — a single frame sometimes genuinely can't say.
    Don't chase 100%.
 

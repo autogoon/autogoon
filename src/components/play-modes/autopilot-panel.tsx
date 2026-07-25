@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
 // Autopilot play mode panel. Owns the Autopilot engine, arms/plays the shared
 // Player, declares its commands once (button == voice). Event generation lives
 // in @/lib/play-modes/autopilot-engine.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
-import { FinishButton } from "@/components/finish-button";
-import { LogCard } from "@/components/log-card";
-import { RateLimitMeter } from "@/components/rate-limit-meter";
-import { SessionControls } from "@/components/session-controls";
-import { Segmented } from "@/components/segmented";
-import { Sparkline } from "@/components/sparkline";
-import { StrokeCard } from "@/components/stroke-card";
-import type { PlayerView } from "@/hooks/use-player";
-import { useStrokeControls } from "@/hooks/use-stroke-controls";
-import { useVoiceCommands, type Command } from "@/hooks/use-voice-commands";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
+import { FinishButton } from '@/components/finish-button';
+import { LogCard } from '@/components/log-card';
+import { RateLimitMeter } from '@/components/rate-limit-meter';
+import { SessionControls } from '@/components/session-controls';
+import { Segmented } from '@/components/segmented';
+import { Sparkline } from '@/components/sparkline';
+import { StrokeCard } from '@/components/stroke-card';
+import type { PlayerView } from '@/hooks/use-player';
+import { useStrokeControls } from '@/hooks/use-stroke-controls';
+import { useVoiceCommands, type Command } from '@/hooks/use-voice-commands';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import {
   AutopilotEngine,
   type IntensityLevel,
   type EdgeControlLevel,
   type SuctionControlLevel,
-} from "@/lib/play-modes/autopilot-engine";
+} from '@/lib/play-modes/autopilot-engine';
 
-const INTENSITY_LEVELS: IntensityLevel[] = ["warmup", "low", "medium", "high"];
-const DEFAULT_INTENSITY: IntensityLevel = "warmup";
-const DEFAULT_EDGE: EdgeControlLevel = "moderate";
-const DEFAULT_SUCTION: SuctionControlLevel = "more";
+const INTENSITY_LEVELS: IntensityLevel[] = ['warmup', 'low', 'medium', 'high'];
+const DEFAULT_INTENSITY: IntensityLevel = 'warmup';
+const DEFAULT_EDGE: EdgeControlLevel = 'moderate';
+const DEFAULT_SUCTION: SuctionControlLevel = 'more';
 
 export function AutopilotPanel({
   vacuglide,
@@ -54,10 +54,10 @@ export function AutopilotPanel({
   const engine = engineRef.current;
 
   const isCurrent = player.source === engine;
-  const state = isCurrent ? player.state : "armed";
+  const state = isCurrent ? player.state : 'armed';
 
   useEffect(() => {
-    if (active && player.state === "armed" && player.source !== engine) {
+    if (active && player.state === 'armed' && player.source !== engine) {
       device.arm(engine);
     }
   }, [active, player.state, player.source, device, engine]);
@@ -87,11 +87,11 @@ export function AutopilotPanel({
       // the app — so it starts the clock itself (play() no-ops if running).
       device.play();
     } catch (err) {
-      vacuglide.log(`error: ${(err as Error).message}`, "error");
+      vacuglide.log(`error: ${(err as Error).message}`, 'error');
     }
-    setIntensity("high");
-    setEdge("moderate");
-    setSuction("off");
+    setIntensity('high');
+    setEdge('moderate');
+    setSuction('off');
   }, [device, engine, vacuglide]);
 
   const changeIntensity = useCallback(
@@ -145,23 +145,23 @@ export function AutopilotPanel({
 
   const commands: Command[] = [
     ...stroke.keywords,
-    { word: "start", enabled: connected && state !== "playing", run: start },
-    { word: "stop", enabled: state === "playing", run: stop },
-    { word: "reset", enabled: state !== "playing", run: reset },
-    { word: "finish", enabled: canEnd, run: finishMe },
-    { word: "more", enabled: isCurrent, run: () => stepIntensity(1) },
-    { word: "less", enabled: isCurrent, run: () => stepIntensity(-1) },
-    { word: "gentle", enabled: isCurrent, run: () => changeEdge("gentle") },
-    { word: "moderate", enabled: isCurrent, run: () => changeEdge("moderate") },
-    { word: "intense", enabled: isCurrent, run: () => changeEdge("intense") },
-    { word: "off", enabled: isCurrent, run: () => changeSuction("off") },
-    { word: "light", enabled: isCurrent, run: () => changeSuction("little") },
-    { word: "heavy", enabled: isCurrent, run: () => changeSuction("more") },
+    { word: 'start', enabled: connected && state !== 'playing', run: start },
+    { word: 'stop', enabled: state === 'playing', run: stop },
+    { word: 'reset', enabled: state !== 'playing', run: reset },
+    { word: 'finish', enabled: canEnd, run: finishMe },
+    { word: 'more', enabled: isCurrent, run: () => stepIntensity(1) },
+    { word: 'less', enabled: isCurrent, run: () => stepIntensity(-1) },
+    { word: 'gentle', enabled: isCurrent, run: () => changeEdge('gentle') },
+    { word: 'moderate', enabled: isCurrent, run: () => changeEdge('moderate') },
+    { word: 'intense', enabled: isCurrent, run: () => changeEdge('intense') },
+    { word: 'off', enabled: isCurrent, run: () => changeSuction('off') },
+    { word: 'light', enabled: isCurrent, run: () => changeSuction('little') },
+    { word: 'heavy', enabled: isCurrent, run: () => changeSuction('more') },
   ];
   useVoiceCommands(active, commands);
 
   const logError = useCallback(
-    (message: string) => vacuglide.log(`error: ${message}`, "error"),
+    (message: string) => vacuglide.log(`error: ${message}`, 'error'),
     [vacuglide],
   );
 
@@ -199,10 +199,10 @@ export function AutopilotPanel({
       <Card title="Intensity">
         <Segmented
           options={[
-            { value: "warmup", label: "Warmup" },
-            { value: "low", label: "Low" },
-            { value: "medium", label: "Medium" },
-            { value: "high", label: "High" },
+            { value: 'warmup', label: 'Warmup' },
+            { value: 'low', label: 'Low' },
+            { value: 'medium', label: 'Medium' },
+            { value: 'high', label: 'High' },
           ]}
           value={intensity}
           onChange={changeIntensity}
@@ -217,9 +217,9 @@ export function AutopilotPanel({
       <Card title="Edge Control">
         <Segmented
           options={[
-            { value: "gentle", label: "Gentle", voiceCommand: "gentle" },
-            { value: "moderate", label: "Moderate", voiceCommand: "moderate" },
-            { value: "intense", label: "Intense", voiceCommand: "intense" },
+            { value: 'gentle', label: 'Gentle', voiceCommand: 'gentle' },
+            { value: 'moderate', label: 'Moderate', voiceCommand: 'moderate' },
+            { value: 'intense', label: 'Intense', voiceCommand: 'intense' },
           ]}
           value={edge}
           onChange={changeEdge}
@@ -230,9 +230,9 @@ export function AutopilotPanel({
       <Card title="Vacuum Maintenance">
         <Segmented
           options={[
-            { value: "off", label: "Off", voiceCommand: "off" },
-            { value: "little", label: "Light", voiceCommand: "light" },
-            { value: "more", label: "Heavy", voiceCommand: "heavy" },
+            { value: 'off', label: 'Off', voiceCommand: 'off' },
+            { value: 'little', label: 'Light', voiceCommand: 'light' },
+            { value: 'more', label: 'Heavy', voiceCommand: 'heavy' },
           ]}
           value={suction}
           onChange={changeSuction}

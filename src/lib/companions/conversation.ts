@@ -2,20 +2,20 @@
 // assistant turn, plus the projection to the LLM request and the localStorage
 // codec. No React, no I/O — the hook owns the live ref and the storage calls;
 // this module is the tested logic they lean on (like session-policy.ts).
-import type { LlmMessage, ToolCall } from "@/lib/llm/client";
+import type { LlmMessage, ToolCall } from '@/lib/llm/client';
 
 // Every variant carries an optional `at` (epoch ms, stamped on append) — the
 // basis for the transcript's timestamps/date headers and the projection's gap
 // markers. Optional because threads stored before timestamps existed have none:
 // those turns stay valid, they just can't anchor a gap or a timestamp.
 export type ThreadTurn =
-  | { role: "user"; content: string; at?: number }
+  | { role: 'user'; content: string; at?: number }
   // reasoningDetails holds OpenRouter's opaque reasoning_details, captured from
   // the stream and replayed verbatim; we never inspect its shape. toolCalls is
   // set on the turn where she called a tool (start/stop) — its content is
   // usually empty, the calls are the payload.
   | {
-      role: "assistant";
+      role: 'assistant';
       content: string;
       reasoningDetails?: unknown[];
       toolCalls?: ToolCall[];
@@ -30,7 +30,7 @@ export type ThreadTurn =
   // only — never sent to the model (only `result` is) — and persists with the
   // thread, so a sent picture stays in the log across a reload.
   | {
-      role: "tool";
+      role: 'tool';
       name: string;
       result: string;
       toolCallId: string;
@@ -49,7 +49,7 @@ export function appendUser(
 ): Thread {
   return [
     ...thread,
-    { role: "user", content, ...(at !== undefined ? { at } : {}) },
+    { role: 'user', content, ...(at !== undefined ? { at } : {}) },
   ];
 }
 
@@ -64,7 +64,7 @@ export function appendTool(
   return [
     ...thread,
     {
-      role: "tool",
+      role: 'tool',
       name,
       result,
       toolCallId,
@@ -84,7 +84,7 @@ export function appendAssistant(
   return [
     ...thread,
     {
-      role: "assistant",
+      role: 'assistant',
       content,
       ...(reasoningDetails !== undefined ? { reasoningDetails } : {}),
       ...(toolCalls !== undefined ? { toolCalls } : {}),
@@ -104,9 +104,9 @@ export function describeGap(ms: number): string {
   if (minutes < 60) return `${minutes} minutes pass.`;
   const hours = Math.round(ms / 3_600_000);
   if (hours < 24)
-    return hours === 1 ? "1 hour passes." : `${hours} hours pass.`;
+    return hours === 1 ? '1 hour passes.' : `${hours} hours pass.`;
   const days = Math.round(ms / 86_400_000);
-  return days === 1 ? "1 day passes." : `${days} days pass.`;
+  return days === 1 ? '1 day passes.' : `${days} days pass.`;
 }
 
 // A local timestamp for the prompt: "Thursday 23 July 2026, 2:05 pm". The name
@@ -115,11 +115,11 @@ export function describeGap(ms: number): string {
 // with the ICU version's combined-format separators.
 export function describeClock(at: number): string {
   const d = new Date(at);
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" });
-  const month = d.toLocaleDateString("en-GB", { month: "long" });
+  const weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
+  const month = d.toLocaleDateString('en-GB', { month: 'long' });
   const hour12 = ((d.getHours() + 11) % 12) + 1;
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  const ampm = d.getHours() < 12 ? "am" : "pm";
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = d.getHours() < 12 ? 'am' : 'pm';
   return `${weekday} ${d.getDate()} ${month} ${d.getFullYear()}, ${hour12}:${minutes} ${ampm}`;
 }
 
@@ -127,7 +127,7 @@ export function describeClock(at: number): string {
 // say) without saying anything. The transcript renders no bubble for these; the
 // tool chip or picture that follows is the visible record.
 export function isSilentAssistantTurn(turn: ThreadTurn): boolean {
-  return turn.role === "assistant" && turn.content.trim() === "";
+  return turn.role === 'assistant' && turn.content.trim() === '';
 }
 
 // Whether two timestamps fall on the same local calendar day — the transcript's
@@ -159,23 +159,23 @@ export function toLlmMessages(
   systemPrompt: string,
   passesReasoning: boolean,
 ): LlmMessage[] {
-  const messages: LlmMessage[] = [{ role: "system", content: systemPrompt }];
+  const messages: LlmMessage[] = [{ role: 'system', content: systemPrompt }];
   let prev: ThreadTurn | undefined;
   for (const turn of thread) {
-    if (turn.role === "user") {
+    if (turn.role === 'user') {
       if (
         prev?.at !== undefined &&
         turn.at !== undefined &&
         turn.at - prev.at >= GAP_MARKER_MIN_MS
       ) {
         messages.push({
-          role: "system",
+          role: 'system',
           content: `(${describeGap(turn.at - prev.at)})`,
         });
       }
-      messages.push({ role: "user", content: turn.content });
-    } else if (turn.role === "assistant") {
-      const msg: LlmMessage = { role: "assistant", content: turn.content };
+      messages.push({ role: 'user', content: turn.content });
+    } else if (turn.role === 'assistant') {
+      const msg: LlmMessage = { role: 'assistant', content: turn.content };
       if (passesReasoning && turn.reasoningDetails !== undefined) {
         msg.reasoningDetails = turn.reasoningDetails;
       }
@@ -186,7 +186,7 @@ export function toLlmMessages(
     } else {
       // role: "tool" — the result, keyed back to the call that produced it.
       messages.push({
-        role: "tool",
+        role: 'tool',
         content: turn.result,
         toolCallId: turn.toolCallId,
       });
@@ -216,19 +216,19 @@ export function parse(raw: string | null): Thread {
   if (!Array.isArray(data)) return [];
   const out: Thread = [];
   for (const item of data) {
-    if (item === null || typeof item !== "object") return [];
+    if (item === null || typeof item !== 'object') return [];
     const turn = item as Record<string, unknown>;
-    if (turn.at !== undefined && typeof turn.at !== "number") return [];
+    if (turn.at !== undefined && typeof turn.at !== 'number') return [];
     const at = turn.at as number | undefined;
-    if (turn.role === "user") {
-      if (typeof turn.content !== "string") return [];
+    if (turn.role === 'user') {
+      if (typeof turn.content !== 'string') return [];
       out.push({
-        role: "user",
+        role: 'user',
         content: turn.content,
         ...(at !== undefined ? { at } : {}),
       });
-    } else if (turn.role === "assistant") {
-      if (typeof turn.content !== "string") return [];
+    } else if (turn.role === 'assistant') {
+      if (typeof turn.content !== 'string') return [];
       if (
         turn.reasoningDetails !== undefined &&
         !Array.isArray(turn.reasoningDetails)
@@ -239,7 +239,7 @@ export function parse(raw: string | null): Thread {
         return [];
       }
       out.push({
-        role: "assistant",
+        role: 'assistant',
         content: turn.content,
         ...(turn.reasoningDetails !== undefined
           ? { reasoningDetails: turn.reasoningDetails }
@@ -249,19 +249,19 @@ export function parse(raw: string | null): Thread {
           : {}),
         ...(at !== undefined ? { at } : {}),
       });
-    } else if (turn.role === "tool") {
+    } else if (turn.role === 'tool') {
       if (
-        typeof turn.name !== "string" ||
-        typeof turn.result !== "string" ||
-        typeof turn.toolCallId !== "string"
+        typeof turn.name !== 'string' ||
+        typeof turn.result !== 'string' ||
+        typeof turn.toolCallId !== 'string'
       ) {
         return [];
       }
-      if (turn.imageSrc !== undefined && typeof turn.imageSrc !== "string") {
+      if (turn.imageSrc !== undefined && typeof turn.imageSrc !== 'string') {
         return [];
       }
       out.push({
-        role: "tool",
+        role: 'tool',
         name: turn.name,
         result: turn.result,
         toolCallId: turn.toolCallId,

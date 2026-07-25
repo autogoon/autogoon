@@ -8,6 +8,9 @@
     "description": "A high-energy, flirty streamer with a dry, quieter side.",
     "gender": "female",
     "accentColour": "fuchsia",
-    "voiceId": "uhseMNDjn3oAF24Hh83b"
+    "voiceId": "uhseMNDjn3oAF24Hh83b",
+    "model": "xiaomi/mimo-v2.5",
+    "contextWindow": 1000000,
+    "passesReasoning": false
   }
 }

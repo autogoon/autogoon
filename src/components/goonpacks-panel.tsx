@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Goonpacks admin: import packs, see what's installed — and what each pack
 // includes or overrides — and remove them. Picking who to play (and which
@@ -6,18 +6,18 @@
 // library. Buttons only, no voice words: importing is a file dialog and
 // removal is destructive-ish — neither wants a spoken trigger.
 
-import { useCallback, useRef, useState, type ReactNode } from "react";
-import { Button } from "@/components/button";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
+import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
 import {
   useGoonpackLibrary,
   type PackRow,
   type PendingImport,
-} from "@/hooks/use-goonpack-library";
-import { COMPANIONS } from "@/lib/companions/companions";
-import { keyId, keyVersion, packKey } from "@/lib/goonpacks/entries";
-import { PackError } from "@/lib/goonpacks/manifest";
+} from '@/hooks/use-goonpack-library';
+import { COMPANIONS } from '@/lib/companions/companions';
+import { keyId, keyVersion, packKey } from '@/lib/goonpacks/entries';
+import { PackError } from '@/lib/goonpacks/manifest';
 
 // What a pack brings, from its manifest plus the zip-derived summary:
 // pictures and prompt live in the zip; the rest are manifest fields. For an
@@ -28,16 +28,16 @@ function contents(row: PackRow): string {
   const s = row.summary;
   const m = row.manifest;
   if (s !== undefined && s.pictures > 0) {
-    parts.push(`${s.pictures} picture${s.pictures === 1 ? "" : "s"}`);
+    parts.push(`${s.pictures} picture${s.pictures === 1 ? '' : 's'}`);
   }
-  if (m?.noPictures === true) parts.push("no pictures");
-  if (s?.hasPrompt === true) parts.push("prompt");
-  if (m?.companion.voiceId !== undefined) parts.push("voice");
-  if (m?.companion.model !== undefined) parts.push("model");
+  if (m?.noPictures === true) parts.push('no pictures');
+  if (s?.hasPrompt === true) parts.push('prompt');
+  if (m?.companion.voiceId !== undefined) parts.push('voice');
+  if (m?.companion.model !== undefined) parts.push('model');
   if (m?.base !== undefined && m.companion.accentColour !== undefined) {
-    parts.push("colour");
+    parts.push('colour');
   }
-  return parts.join(" · ");
+  return parts.join(' · ');
 }
 
 // A row's accent: the pack's own colour when its manifest names one, else the
@@ -54,10 +54,10 @@ function rowAccent(row: PackRow, packs: PackRow[]): string | null {
     // find() lands on the newest.
     return (
       packs.find((p) => keyId(p.id) === m.base)?.manifest?.companion
-        .accentColour ?? "pink"
+        .accentColour ?? 'pink'
     );
   }
-  return "pink"; // a colourless complete pack — packToCompanion's default
+  return 'pink'; // a colourless complete pack — packToCompanion's default
 }
 
 // One pack, one card — the admin row and the import confirm sheet render the
@@ -94,24 +94,24 @@ function PackCard({
     ...(base !== undefined
       ? [`overlays ${COMPANIONS[base]?.name ?? base}`]
       : m !== undefined
-        ? ["complete companion"]
+        ? ['complete companion']
         : []),
-    ...(contents(row) !== "" ? [contents(row)] : []),
-  ].join(" · ");
+    ...(contents(row) !== '' ? [contents(row)] : []),
+  ].join(' · ');
   return (
     <Card
       accent={accent}
       dashed={accent === null}
       title={
         <>
-          {id}{" "}
+          {id}{' '}
           <span className="text-muted-foreground font-normal">{version}</span>
         </>
       }
       action={control}
     >
       {about !== undefined && <span className="block">{about}</span>}
-      {info !== "" && (
+      {info !== '' && (
         <span className="text-foreground mt-1 block">{info}</span>
       )}
       {row.incompatible !== undefined && (
@@ -148,7 +148,7 @@ export function GoonpacksPanel() {
         .then(setPendingImport)
         .catch((e: unknown) =>
           setImportError(
-            e instanceof PackError ? e.problems : ["Import failed."],
+            e instanceof PackError ? e.problems : ['Import failed.'],
           ),
         );
     },
@@ -165,7 +165,7 @@ export function GoonpacksPanel() {
         </p>
 
         <div className="mt-2 flex flex-col gap-2">
-          {library.status === "loading" ? (
+          {library.status === 'loading' ? (
             <p>Checking packs…</p>
           ) : library.packs.length === 0 ? (
             <p>No packs imported.</p>
@@ -201,7 +201,7 @@ export function GoonpacksPanel() {
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f !== undefined) onPickFile(f);
-            e.target.value = "";
+            e.target.value = '';
           }}
         />
 
@@ -245,12 +245,12 @@ export function GoonpacksPanel() {
                           setImportError(
                             e instanceof PackError
                               ? e.problems
-                              : ["Import failed."],
+                              : ['Import failed.'],
                           );
                         })
                     }
                   >
-                    {pendingImport.replaces ? "Replace" : "Import"}
+                    {pendingImport.replaces ? 'Replace' : 'Import'}
                   </Button>
                   <Button onClick={() => setPendingImport(null)}>Cancel</Button>
                 </div>

@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 // A label/value stat line — the session's State row and the Debug tab's
 // latency readouts.
 
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
 
 export function StatRow({
   label,

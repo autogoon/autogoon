@@ -29,9 +29,9 @@ export function floatTo16BitPcm(input: Float32Array): Int16Array {
 
 export function pcm16ToBase64(pcm: Int16Array): string {
   const bytes = new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
-  if (typeof Buffer !== "undefined")
-    return Buffer.from(bytes).toString("base64");
-  let binary = "";
+  if (typeof Buffer !== 'undefined')
+    return Buffer.from(bytes).toString('base64');
+  let binary = '';
   for (let i = 0; i < bytes.length; i++)
     binary += String.fromCharCode(bytes[i]!);
   return btoa(binary);

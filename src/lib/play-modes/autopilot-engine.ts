@@ -8,11 +8,11 @@ import {
   type PlayModeEngine,
   type SpeedEvent,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
-export type IntensityLevel = "warmup" | "low" | "medium" | "high";
-export type EdgeControlLevel = "gentle" | "moderate" | "intense";
-export type SuctionControlLevel = "off" | "little" | "more";
+export type IntensityLevel = 'warmup' | 'low' | 'medium' | 'high';
+export type EdgeControlLevel = 'gentle' | 'moderate' | 'intense';
+export type SuctionControlLevel = 'off' | 'little' | 'more';
 
 interface TemplateStep {
   speed: number;
@@ -174,11 +174,11 @@ function scaleDurationToEdge(
 }
 
 function applyPlateauJitter(speed: number, edge: EdgeControlLevel): number {
-  if (edge === "intense" && speed > 70) {
+  if (edge === 'intense' && speed > 70) {
     const headroom = Math.min(SPEED_MAX - speed, 15);
     return speed + Math.round(headroom * Math.random());
   }
-  if (edge === "gentle" && speed > 70) {
+  if (edge === 'gentle' && speed > 70) {
     const excess = Math.min(speed - 50, 20);
     return speed - Math.round(excess * 0.5);
   }
@@ -191,7 +191,7 @@ function buildBlock(
   edge: EdgeControlLevel,
 ): { events: SpeedEvent[]; endAt: number } {
   const events: SpeedEvent[] = [
-    { kind: "speed", at: startAt, speed: BLOCK_LEAD_IN_SPEED },
+    { kind: 'speed', at: startAt, speed: BLOCK_LEAD_IN_SPEED },
   ];
   let at = startAt;
   for (let i = 0; i < TEMPLATES_PER_BLOCK; i++) {
@@ -203,7 +203,7 @@ function buildBlock(
       const speed = applyPlateauJitter(scaled, edge);
       const duration = scaleDurationToEdge(step.speed, step.duration, edge);
       at += duration;
-      events.push({ kind: "speed", at, speed });
+      events.push({ kind: 'speed', at, speed });
     }
   }
   return { events, endAt: at };
@@ -246,9 +246,9 @@ export class AutopilotEngine implements PlayModeEngine {
   beginFinish(): void {
     this.finishing = true;
     this.finishEmitted = false;
-    this.intensityLevel = "high";
-    this.edgeControlLevel = "moderate";
-    this.suctionControlLevel = "off";
+    this.intensityLevel = 'high';
+    this.edgeControlLevel = 'moderate';
+    this.suctionControlLevel = 'off';
   }
 
   generateSpeed(
@@ -260,9 +260,9 @@ export class AutopilotEngine implements PlayModeEngine {
       if (this.finishEmitted) return [];
       this.finishEmitted = true;
       return [
-        { kind: "speed", at: fromTime, speed: SPEED_MAX, unscaled: true },
+        { kind: 'speed', at: fromTime, speed: SPEED_MAX, unscaled: true },
         {
-          kind: "speed",
+          kind: 'speed',
           at: fromTime + FINISH_HOLD_MS,
           speed: 0,
           unscaled: true,
@@ -295,8 +295,8 @@ export class AutopilotEngine implements PlayModeEngine {
   ): ValveEvent[] {
     if (this.finishing) {
       return [
-        { kind: "valve", at: fromTime, valve: "minus", open: false },
-        { kind: "valve", at: fromTime, valve: "plus", open: false },
+        { kind: 'valve', at: fromTime, valve: 'minus', open: false },
+        { kind: 'valve', at: fromTime, valve: 'plus', open: false },
       ];
     }
 
@@ -315,11 +315,11 @@ export class AutopilotEngine implements PlayModeEngine {
       const pulseMs = Math.round(
         (p.baseDuration * p.speedMultiplier) / (ev.speed / SPEED_MAX + 0.1),
       );
-      valves.push({ kind: "valve", at: ev.at, valve: "minus", open: true });
+      valves.push({ kind: 'valve', at: ev.at, valve: 'minus', open: true });
       valves.push({
-        kind: "valve",
+        kind: 'valve',
         at: ev.at + pulseMs,
-        valve: "minus",
+        valve: 'minus',
         open: false,
       });
       lastPulse = ev.at;

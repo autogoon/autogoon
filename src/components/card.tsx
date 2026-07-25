@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The one card component the panels are built from — a titled section, and
 // every variant the app's cards need, so the internals (title row, muted
@@ -26,12 +26,12 @@
 // The interior is spans-only so the same markup is legal inside <button> and
 // <div> alike — one render path, no drift between the two.
 
-import type { ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
-import { twMerge } from "tailwind-merge";
-import { ACTIVE_RING, RING } from "@/components/button";
-import { useKeywordFlash } from "@/components/keyword-spotter";
-import { VoiceCommandChip } from "@/components/voice-command-chip";
+import type { ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { twMerge } from 'tailwind-merge';
+import { ACTIVE_RING, RING } from '@/components/button';
+import { useKeywordFlash } from '@/components/keyword-spotter';
+import { VoiceCommandChip } from '@/components/voice-command-chip';
 
 export function Card({
   title,
@@ -75,26 +75,26 @@ export function Card({
   const shell = twMerge(
     [
       accent !== null || dashed
-        ? "rounded-xl border px-4 py-2 pb-3"
+        ? 'rounded-xl border px-4 py-2 pb-3'
         : bordered
-          ? "rounded-lg border border-foreground/15 bg-foreground/5 p-4"
-          : "",
-      dashed ? "border-foreground/40 border-dashed" : "",
+          ? 'rounded-lg border border-foreground/15 bg-foreground/5 p-4'
+          : '',
+      dashed ? 'border-foreground/40 border-dashed' : '',
       accent !== null
         ? `border-${accent}-500 bg-linear-to-br from-${accent}-500/15 to-${accent}-500/5`
-        : "",
+        : '',
       accent !== null && clickable
         ? `hover:from-${accent}-500/25 hover:to-${accent}-500/10`
-        : "",
-      clickable ? `cursor-pointer ${ACTIVE_RING}` : "",
-      fill ? "flex min-h-0 flex-1 flex-col" : "",
-      button ? "text-left" : "",
-      className ?? "",
+        : '',
+      clickable ? `cursor-pointer ${ACTIVE_RING}` : '',
+      fill ? 'flex min-h-0 flex-1 flex-col' : '',
+      button ? 'text-left' : '',
+      className ?? '',
       // The voice flash merges last so a custom look never disables it.
-      voiceCommand !== undefined && flashing.has(voiceCommand) ? RING : "",
+      voiceCommand !== undefined && flashing.has(voiceCommand) ? RING : '',
     ]
-      .filter((c) => c !== "")
-      .join(" "),
+      .filter((c) => c !== '')
+      .join(' '),
   );
 
   // The top-right cluster: controls first, the voice chip rightmost. Floated
@@ -112,7 +112,7 @@ export function Card({
   );
 
   const core = (
-    <span className={fill ? "flex min-h-0 flex-1 flex-col" : "flow-root"}>
+    <span className={fill ? 'flex min-h-0 flex-1 flex-col' : 'flow-root'}>
       {corner}
       {title !== undefined && (
         <span className="text-foreground mb-1 block text-xl font-semibold">
@@ -122,8 +122,8 @@ export function Card({
       <span
         className={
           fill
-            ? "text-muted-foreground flex min-h-0 flex-1 flex-col space-y-2"
-            : "text-muted-foreground block space-y-2"
+            ? 'text-muted-foreground flex min-h-0 flex-1 flex-col space-y-2'
+            : 'text-muted-foreground block space-y-2'
         }
       >
         {children}

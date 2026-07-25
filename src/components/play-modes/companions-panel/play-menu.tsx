@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
 // The play screen's hamburger menu: jump between the panel's tabs, toggle the
 // program preview, open the LLM request viewer. Rendered inside a `relative`
 // wrapper in the slim top bar; the full-screen transparent backdrop closes it,
 // as does picking any item. Buttons only — Companions registers no vosk words.
 
-import { Check } from "lucide-react";
+import { Check } from 'lucide-react';
 
-export type PlayTab = "session" | "controls" | "debug";
+export type PlayTab = 'session' | 'controls' | 'debug';
 
 const TABS: { id: PlayTab; label: string }[] = [
-  { id: "session", label: "Session" },
-  { id: "controls", label: "Controls" },
-  { id: "debug", label: "Debug" },
+  { id: 'session', label: 'Session' },
+  { id: 'controls', label: 'Controls' },
+  { id: 'debug', label: 'Debug' },
 ];
 
 const ITEM =
-  "hover:bg-foreground/10 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm";
+  'hover:bg-foreground/10 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm';
 
 export function PlayMenu({
   tab,
@@ -47,7 +47,7 @@ export function PlayMenu({
               onClose();
             }}
           >
-            <Check className={`size-4 ${tab === t.id ? "" : "invisible"}`} />
+            <Check className={`size-4 ${tab === t.id ? '' : 'invisible'}`} />
             {t.label}
           </button>
         ))}
@@ -60,7 +60,7 @@ export function PlayMenu({
             onClose();
           }}
         >
-          <Check className={`size-4 ${previewOpen ? "" : "invisible"}`} />
+          <Check className={`size-4 ${previewOpen ? '' : 'invisible'}`} />
           Program preview
         </button>
         <button

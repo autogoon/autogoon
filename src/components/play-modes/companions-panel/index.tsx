@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
@@ -26,59 +26,59 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from "react";
-import { ChevronLeft, Menu, Mic, MicOff } from "lucide-react";
-import { Button } from "@/components/button";
-import { Card } from "@/components/card";
-import { Panel } from "@/components/panel";
-import type { LogEntry } from "@/components/log-card";
-import { Segmented } from "@/components/segmented";
-import { SessionControls } from "@/components/session-controls";
-import { Slider } from "@/components/slider";
-import { Sparkline } from "@/components/sparkline";
-import { StrokeCard } from "@/components/stroke-card";
-import { useGoonpackLibrary } from "@/hooks/use-goonpack-library";
-import type { PlayerView } from "@/hooks/use-player";
-import { useStrokeControls } from "@/hooks/use-stroke-controls";
-import type { VacuglideDeviceController } from "@/hooks/use-vacuglide-device";
-import { useVoiceSession } from "@/hooks/use-voice-session";
-import { companionList, type Companion } from "@/lib/companions/companions";
+} from 'react';
+import { ChevronLeft, Menu, Mic, MicOff } from 'lucide-react';
+import { Button } from '@/components/button';
+import { Card } from '@/components/card';
+import { Panel } from '@/components/panel';
+import type { LogEntry } from '@/components/log-card';
+import { Segmented } from '@/components/segmented';
+import { SessionControls } from '@/components/session-controls';
+import { Slider } from '@/components/slider';
+import { Sparkline } from '@/components/sparkline';
+import { StrokeCard } from '@/components/stroke-card';
+import { useGoonpackLibrary } from '@/hooks/use-goonpack-library';
+import type { PlayerView } from '@/hooks/use-player';
+import { useStrokeControls } from '@/hooks/use-stroke-controls';
+import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
+import { useVoiceSession } from '@/hooks/use-voice-session';
+import { companionList, type Companion } from '@/lib/companions/companions';
 import {
   isSilentAssistantTurn,
   sameLocalDay,
-} from "@/lib/companions/conversation";
-import type { CompanionTool } from "@/lib/companions/tools";
-import type { LibraryEntry } from "@/lib/goonpacks/entries";
-import { voiceStage } from "@/lib/voice/session-policy";
-import { PackError } from "@/lib/goonpacks/manifest";
-import { resolveDefault, resolvePictureRef } from "@/lib/goonpacks/resolve";
+} from '@/lib/companions/conversation';
+import type { CompanionTool } from '@/lib/companions/tools';
+import type { LibraryEntry } from '@/lib/goonpacks/entries';
+import { voiceStage } from '@/lib/voice/session-policy';
+import { PackError } from '@/lib/goonpacks/manifest';
+import { resolveDefault, resolvePictureRef } from '@/lib/goonpacks/resolve';
 import {
   CompanionEngine,
   type VariabilityLevel,
-} from "@/lib/play-modes/companion-engine";
-import { ChatBubble } from "./chat-bubble";
+} from '@/lib/play-modes/companion-engine';
+import { ChatBubble } from './chat-bubble';
 import {
   ChooserCard,
   SELECTED_VARIANT_PREFIX,
   type PackSel,
-} from "./chooser-card";
-import { DateHeader } from "./date-header";
-import { DebugTab } from "./debug-tab";
-import { JsonOverlay } from "./json-overlay";
-import { Lightbox } from "./lightbox";
-import { MissingPictureBubble } from "./missing-picture-bubble";
-import { PictureBubble } from "./picture-bubble";
-import { PlayMenu, type PlayTab } from "./play-menu";
-import { RmsMeter } from "./rms-meter";
-import { VoiceStageBubble } from "./voice-stage";
-import { ToolChip } from "./tool-chip";
+} from './chooser-card';
+import { DateHeader } from './date-header';
+import { DebugTab } from './debug-tab';
+import { JsonOverlay } from './json-overlay';
+import { Lightbox } from './lightbox';
+import { MissingPictureBubble } from './missing-picture-bubble';
+import { PictureBubble } from './picture-bubble';
+import { PlayMenu, type PlayTab } from './play-menu';
+import { RmsMeter } from './rms-meter';
+import { VoiceStageBubble } from './voice-stage';
+import { ToolChip } from './tool-chip';
 
 // Fixed default knobs — the program is random within this baseline. Companions
 // start gentle: a low-intensity, lightly-varying program. She turns it up from
 // there via her intensity/variety tools. Speed is applied live; variety reshapes
 // the dip pattern.
 const DEFAULT_INTENSITY = 20;
-const DEFAULT_VARIETY: VariabilityLevel = "low";
+const DEFAULT_VARIETY: VariabilityLevel = 'low';
 
 export function CompanionsPanel({
   vacuglide,
@@ -91,7 +91,7 @@ export function CompanionsPanel({
   vacuglide: VacuglideDeviceController;
   player: PlayerView;
   active: boolean;
-  view: "setup" | "play";
+  view: 'setup' | 'play';
   onEnterPlay: () => void;
   // Back to the picker (the slim bar's < button) — locked while the program
   // runs, same rule as the breadcrumb the play screen no longer shows.
@@ -134,11 +134,11 @@ export function CompanionsPanel({
       if (raw === null) continue;
       try {
         const v: unknown = JSON.parse(raw);
-        if (typeof v === "object" && v !== null) {
+        if (typeof v === 'object' && v !== null) {
           const { base, overlay } = v as Partial<PackSel>;
           sel[e.companion.id] = {
-            base: typeof base === "string" ? base : null,
-            overlay: typeof overlay === "string" ? overlay : null,
+            base: typeof base === 'string' ? base : null,
+            overlay: typeof overlay === 'string' ? overlay : null,
           };
         }
       } catch {
@@ -182,7 +182,7 @@ export function CompanionsPanel({
   const [log, setLog] = useState<LogEntry[]>([]);
   const logIdRef = useRef(0);
   // Newest last (LogCard auto-scrolls to the bottom); `kind` picks the colour.
-  const append = useCallback((text: string, kind = "send") => {
+  const append = useCallback((text: string, kind = 'send') => {
     const time = new Date().toLocaleTimeString(undefined, { hour12: false });
     setLog((l) =>
       [...l, { id: logIdRef.current++, time, text, kind }].slice(-50),
@@ -238,42 +238,42 @@ export function CompanionsPanel({
     const pics = companion.pictures ?? [];
     return [
       {
-        name: "start",
+        name: 'start',
         description:
-          "Start the toy for the user — actually makes it begin. Call this whenever you want the toy to start.",
+          'Start the toy for the user — actually makes it begin. Call this whenever you want the toy to start.',
         run: () => {
           startProgram();
-          return "started";
+          return 'started';
         },
       },
       {
-        name: "stop",
+        name: 'stop',
         description:
-          "Stop the toy — actually pauses it. Call this whenever you want the toy to stop.",
+          'Stop the toy — actually pauses it. Call this whenever you want the toy to stop.',
         run: () => {
           stopProgram();
-          return "stopped";
+          return 'stopped';
         },
       },
       {
-        name: "intensity",
+        name: 'intensity',
         description:
           "Set how hard and fast the toy drives him, as a percentage from 0 (off) to 100 (relentless). Call this to make it more or less intense; pass the percent you're going to. Read the current level from the toy status first, then move up or down from there. Narrate it however you like — 'faster', 'more intense' — but the tool is what actually changes it.",
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             percent: {
-              type: "integer",
+              type: 'integer',
               minimum: 0,
               maximum: 100,
-              description: "0 = off, 100 = hardest/fastest",
+              description: '0 = off, 100 = hardest/fastest',
             },
           },
-          required: ["percent"],
+          required: ['percent'],
         },
         run: (args) => {
           const percent = args.percent;
-          if (typeof percent !== "number" || Number.isNaN(percent)) {
+          if (typeof percent !== 'number' || Number.isNaN(percent)) {
             return `invalid intensity: ${String(percent)}`;
           }
           changeIntensity(percent);
@@ -281,28 +281,28 @@ export function CompanionsPanel({
         },
       },
       {
-        name: "variety",
+        name: 'variety',
         description:
-          "Set how much the toy varies and teases — how much it mixes up the pace and pulls back into long slow dips before climbing again, versus a steadier drive. Levels: off, low, medium, high. Call this to make it more teasing and restless, or calmer and steadier.",
+          'Set how much the toy varies and teases — how much it mixes up the pace and pulls back into long slow dips before climbing again, versus a steadier drive. Levels: off, low, medium, high. Call this to make it more teasing and restless, or calmer and steadier.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             level: {
-              type: "string",
-              enum: ["off", "low", "medium", "high"],
+              type: 'string',
+              enum: ['off', 'low', 'medium', 'high'],
               description:
-                "off = steady drive, high = lots of teasing variation",
+                'off = steady drive, high = lots of teasing variation',
             },
           },
-          required: ["level"],
+          required: ['level'],
         },
         run: (args) => {
           const level = args.level;
           if (
-            level !== "off" &&
-            level !== "low" &&
-            level !== "medium" &&
-            level !== "high"
+            level !== 'off' &&
+            level !== 'low' &&
+            level !== 'medium' &&
+            level !== 'high'
           ) {
             return `invalid variety: ${String(level)}`;
           }
@@ -316,26 +316,26 @@ export function CompanionsPanel({
       ...(pics.length > 0
         ? [
             {
-              name: "send_picture",
+              name: 'send_picture',
               description:
-                "Send him a picture of yourself, shown to him right now in the call. Pass `which` — the number of the picture to send. The pictures you can send:\n" +
-                pics.map((p, i) => `${i + 1} — ${p.description}`).join("\n"),
+                'Send him a picture of yourself, shown to him right now in the call. Pass `which` — the number of the picture to send. The pictures you can send:\n' +
+                pics.map((p, i) => `${i + 1} — ${p.description}`).join('\n'),
               parameters: {
-                type: "object",
+                type: 'object',
                 properties: {
                   which: {
-                    type: "integer",
+                    type: 'integer',
                     minimum: 1,
                     maximum: pics.length,
-                    description: "the number of the picture to send",
+                    description: 'the number of the picture to send',
                   },
                 },
-                required: ["which"],
+                required: ['which'],
               },
               run: (args: Record<string, unknown>) => {
                 const n = args.which;
                 const idx =
-                  typeof n === "number" && Number.isFinite(n)
+                  typeof n === 'number' && Number.isFinite(n)
                     ? Math.min(Math.max(Math.round(n), 1), pics.length) - 1
                     : 0;
                 const pic = pics[idx]!;
@@ -370,10 +370,10 @@ export function CompanionsPanel({
     if (!vacuglide.connected) {
       return `The toy is not connected and is not running. ${levels}`;
     }
-    const running = player.source === engine && player.state === "playing";
+    const running = player.source === engine && player.state === 'playing';
     const status = running
-      ? "The toy is connected and running."
-      : "The toy is connected and not running.";
+      ? 'The toy is connected and running.'
+      : 'The toy is connected and not running.';
     return `${status} ${levels}`;
   }, [
     vacuglide.connected,
@@ -397,7 +397,7 @@ export function CompanionsPanel({
     companion,
     tools,
     getDeviceState,
-    onToolRun: (name, result) => append(`tool: ${name} → ${result}`, "hit"),
+    onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
 
@@ -406,7 +406,7 @@ export function CompanionsPanel({
   const stroke = useStrokeControls(vacuglide, player);
 
   const isCurrent = player.source === engine;
-  const state = isCurrent ? player.state : "armed";
+  const state = isCurrent ? player.state : 'armed';
 
   // Arm the engine when the play view is up and the Player is free — mirrors
   // Autopilot. Entering play via Begin also arms directly; arm() is idempotent,
@@ -415,8 +415,8 @@ export function CompanionsPanel({
   useEffect(() => {
     if (
       active &&
-      view === "play" &&
-      player.state === "armed" &&
+      view === 'play' &&
+      player.state === 'armed' &&
       player.source !== engine
     ) {
       device.arm(engine);
@@ -459,7 +459,7 @@ export function CompanionsPanel({
           enterPlay();
         } catch (e) {
           setPickError(
-            e instanceof PackError ? e.message : "pack failed to load",
+            e instanceof PackError ? e.message : 'pack failed to load',
           );
         }
       })();
@@ -468,7 +468,7 @@ export function CompanionsPanel({
   );
 
   const logError = useCallback(
-    (message: string) => vacuglide.log(`error: ${message}`, "error"),
+    (message: string) => vacuglide.log(`error: ${message}`, 'error'),
     [vacuglide],
   );
 
@@ -476,7 +476,7 @@ export function CompanionsPanel({
   useEffect(() => {
     if (status.phase !== prevPhase.current) {
       prevPhase.current = status.phase;
-      append(`STT ${status.phase}`, "info");
+      append(`STT ${status.phase}`, 'info');
     }
   }, [status.phase, append]);
 
@@ -484,8 +484,8 @@ export function CompanionsPanel({
   useEffect(() => {
     if (status.committed !== prevCommitted.current) {
       prevCommitted.current = status.committed;
-      if (status.committed !== "")
-        append(`heard: "${status.committed}"`, "hit");
+      if (status.committed !== '')
+        append(`heard: "${status.committed}"`, 'hit');
     }
   }, [status.committed, append]);
 
@@ -493,24 +493,24 @@ export function CompanionsPanel({
   useEffect(() => {
     if (status.replyPlaying !== prevReply.current) {
       prevReply.current = status.replyPlaying;
-      append(status.replyPlaying ? "reply started" : "reply ended");
+      append(status.replyPlaying ? 'reply started' : 'reply ended');
     }
   }, [status.replyPlaying, append]);
 
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   // A final (committed) transcript is added to the chat by the voice session,
   // so clear the composer rather than dropping the transcript back into it.
   const prevCommittedForBox = useRef(status.committed);
   useEffect(() => {
     if (status.committed !== prevCommittedForBox.current) {
       prevCommittedForBox.current = status.committed;
-      if (status.committed !== "") setText("");
+      if (status.committed !== '') setText('');
     }
   }, [status.committed]);
 
   // True while the user is dictating: the VAD hears voice, or interim (partial)
   // STT results are present. The composer shows the live partial and is locked.
-  const dictating = status.vadSpeaking || status.partial !== "";
+  const dictating = status.vadSpeaking || status.partial !== '';
 
   // The session's live stage, shared by the lightbox badge and the
   // transcript's stage bubble.
@@ -521,13 +521,13 @@ export function CompanionsPanel({
   // bubble replaces it, even while a spoken reply is still playing.
   const pendingReplyVisible =
     status.replyPlaying &&
-    status.replyText !== "" &&
-    [...status.thread].reverse().find((t) => t.role !== "tool")?.role !==
-      "assistant";
+    status.replyText !== '' &&
+    [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
+      'assistant';
 
   // Play-view sub-tabs, switched from the hamburger menu. Session (mic +
   // conversation) opens first.
-  const [tab, setTab] = useState<PlayTab>("session");
+  const [tab, setTab] = useState<PlayTab>('session');
   const [menuOpen, setMenuOpen] = useState(false);
   // The LLM request viewer: the pretty-printed JSON of the exact request a
   // turn sent right now would make, or null when closed. Snapshotted on click,
@@ -578,7 +578,7 @@ export function CompanionsPanel({
   // Focus the composer when the chat becomes visible (on load / entering Play).
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
   useEffect(() => {
-    if (active && view === "play" && tab === "session") {
+    if (active && view === 'play' && tab === 'session') {
       composerRef.current?.focus();
     }
   }, [active, view, tab]);
@@ -607,7 +607,7 @@ export function CompanionsPanel({
         />
       )}
 
-      {view === "setup" ? (
+      {view === 'setup' ? (
         <>
           <Card title="Companions">
             <p>
@@ -615,7 +615,7 @@ export function CompanionsPanel({
               runs the device while you talk — cut in any time and she stops.
             </p>
             <div className="mt-2 flex flex-col gap-2">
-              {library.status === "loading" ? (
+              {library.status === 'loading' ? (
                 <p>Checking packs…</p>
               ) : (
                 library.entries.map((entry) => (
@@ -636,9 +636,9 @@ export function CompanionsPanel({
 
           <Card title="Privacy">
             Unlike the rest of Autogoon, Companions sends data off your device:
-            your speech is transcribed by{" "}
+            your speech is transcribed by{' '}
             <span className="font-bold">ElevenLabs</span>, and replies are
-            generated by an LLM through{" "}
+            generated by an LLM through{' '}
             <span className="font-bold">OpenRouter</span> (routed to the fastest
             available provider). The conversation is stored in this browser.
           </Card>
@@ -656,12 +656,12 @@ export function CompanionsPanel({
           <div className="flex shrink-0 items-center gap-2">
             <Button
               onClick={onExitPlay}
-              disabled={player.state !== "armed"}
+              disabled={player.state !== 'armed'}
               aria-label="Back to the picker"
               title={
-                player.state !== "armed"
-                  ? "Stop the session first"
-                  : "Back to the picker"
+                player.state !== 'armed'
+                  ? 'Stop the session first'
+                  : 'Back to the picker'
               }
               className="flex items-center justify-center p-2"
             >
@@ -677,12 +677,12 @@ export function CompanionsPanel({
               onClick={() =>
                 status.micOn ? stopListening() : startListening()
               }
-              aria-label={status.micOn ? "Stop listening" : "Start listening"}
-              title={status.micOn ? "Stop listening" : "Start listening"}
+              aria-label={status.micOn ? 'Stop listening' : 'Start listening'}
+              title={status.micOn ? 'Stop listening' : 'Start listening'}
               className={`flex shrink-0 items-center justify-center p-2 ${
                 status.micOn
-                  ? ""
-                  : "border-blue-600 bg-blue-600 text-white enabled:hover:bg-blue-700"
+                  ? ''
+                  : 'border-blue-600 bg-blue-600 text-white enabled:hover:bg-blue-700'
               }`}
             >
               {status.micOn ? (
@@ -732,7 +732,7 @@ export function CompanionsPanel({
             </Card>
           )}
 
-          {tab === "controls" && (
+          {tab === 'controls' && (
             <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
               <SessionControls
                 state={state}
@@ -770,10 +770,10 @@ export function CompanionsPanel({
               <Card title="Variety">
                 <Segmented
                   options={[
-                    { value: "off", label: "Off" },
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
+                    { value: 'off', label: 'Off' },
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' },
                   ]}
                   value={variety}
                   onChange={changeVariety}
@@ -783,7 +783,7 @@ export function CompanionsPanel({
             </div>
           )}
 
-          {tab === "session" && (
+          {tab === 'session' && (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               <Card title="Conversation" fill>
                 {/* Scrolling transcript — fills the space; newest at the bottom
@@ -794,7 +794,7 @@ export function CompanionsPanel({
                 >
                   {status.thread.map((turn, i) => {
                     let row: ReactNode;
-                    if (turn.role === "tool") {
+                    if (turn.role === 'tool') {
                       // A picture she sent renders as a clickable thumbnail;
                       // any other tool call as the little action chip.
                       if (turn.imageSrc !== undefined) {
@@ -854,7 +854,7 @@ export function CompanionsPanel({
                   that bubble is the indicator, so the stage bubble stays out
                   of the way. Replaces the old Thinking… / Waiting for speech…
                   spinners. */}
-                  {!(stage === "streaming" && pendingReplyVisible) && (
+                  {!(stage === 'streaming' && pendingReplyVisible) && (
                     <VoiceStageBubble stage={stage} />
                   )}
                 </div>
@@ -873,16 +873,16 @@ export function CompanionsPanel({
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => {
                       // Enter says it (speaks the reply); Shift+Enter inserts a newline.
-                      if (e.key === "Enter" && !e.shiftKey) {
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        if (text.trim() !== "" && !status.replyPlaying) {
+                        if (text.trim() !== '' && !status.replyPlaying) {
                           submitText(text, { speak: true });
-                          setText("");
+                          setText('');
                         }
                       }
                     }}
                     placeholder={
-                      dictating ? "Listening…" : "Type a message, or speak…"
+                      dictating ? 'Listening…' : 'Type a message, or speak…'
                     }
                     className="bg-foreground/5 min-h-16 w-full rounded-lg p-2 disabled:opacity-70"
                   />
@@ -890,18 +890,18 @@ export function CompanionsPanel({
                     <Button
                       onClick={() => {
                         submitText(text, { speak: false });
-                        setText("");
+                        setText('');
                       }}
-                      disabled={text.trim() === "" || status.replyPlaying}
+                      disabled={text.trim() === '' || status.replyPlaying}
                     >
                       Send
                     </Button>
                     <Button
                       onClick={() => {
                         submitText(text, { speak: true });
-                        setText("");
+                        setText('');
                       }}
-                      disabled={text.trim() === "" || status.replyPlaying}
+                      disabled={text.trim() === '' || status.replyPlaying}
                       className="text-foreground bg-blue-600"
                     >
                       Say it
@@ -921,7 +921,7 @@ export function CompanionsPanel({
                       Clear
                     </Button>
                     <span className="text-muted-foreground self-center text-sm">
-                      {status.replyPlaying ? "working…" : "idle"}
+                      {status.replyPlaying ? 'working…' : 'idle'}
                     </span>
                   </div>
                 </div>
@@ -929,7 +929,7 @@ export function CompanionsPanel({
             </div>
           )}
 
-          {tab === "debug" && (
+          {tab === 'debug' && (
             <DebugTab
               status={status}
               log={log}

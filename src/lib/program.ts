@@ -21,7 +21,7 @@ export const UPCOMING_WINDOW_MS = 60_000;
 // through PlayModeEngine.scale() at send time. `unscaled` bypasses scale() —
 // only wind-down (cumming/finish) ramps set it.
 export interface SpeedEvent {
-  kind: "speed";
+  kind: 'speed';
   at: number;
   speed: number;
   unscaled?: boolean;
@@ -32,9 +32,9 @@ export interface SpeedEvent {
 // (the manual Stroke buttons) and a fixed pulse (tease/suction/cumming) share one
 // representation.
 export interface ValveEvent {
-  kind: "valve";
+  kind: 'valve';
   at: number;
-  valve: "plus" | "minus";
+  valve: 'plus' | 'minus';
   open: boolean;
   // Set by Player.insertEvent on ad-hoc (manual stroke) events; engines never
   // set it. Scheduled (engine-generated) strokes take precedence over manual
@@ -48,7 +48,7 @@ export type ProgramEvent = SpeedEvent | ValveEvent;
 // (`t` is ms from now, 0..UPCOMING_WINDOW_MS) and a scheduled valve change; both
 // are play-mode-agnostic — the Player produces them, the Sparkline draws them.
 export type CurvePoint = { t: number; speed: number };
-export type ValveMarker = { t: number; valve: "plus" | "minus"; open: boolean };
+export type ValveMarker = { t: number; valve: 'plus' | 'minus'; open: boolean };
 
 export interface UpcomingWindow {
   speed: CurvePoint[];
@@ -58,7 +58,7 @@ export interface UpcomingWindow {
 // The Player's transport state — the single source of truth the hooks, runner
 // and panels all read. "armed" = a program is built and previewed but the tick
 // loop is not running; "paused" = halted with position held (Start resumes).
-export type PlayerState = "armed" | "playing" | "paused";
+export type PlayerState = 'armed' | 'playing' | 'paused';
 
 // Read-only view of Player state handed to the engine on each call.
 export interface PlayerContext {

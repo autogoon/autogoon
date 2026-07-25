@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // Near-fullscreen overlay for a sent picture. The backdrop or the ✕ closes it,
 // as does Escape. It's rendered with the current lightbox src, so sending a new
@@ -6,11 +6,11 @@
 // exit fade-zoom before unmounting: requestClose flips to `closing` (swapping the
 // enter animation for the exit one) and unmounts after the animation.
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { X } from "lucide-react";
-import type { VoiceStage } from "@/lib/voice/session-policy";
-import { VoiceStageBadge } from "./voice-stage";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import { X } from 'lucide-react';
+import type { VoiceStage } from '@/lib/voice/session-policy';
+import { VoiceStageBadge } from './voice-stage';
 
 // How long the enter/exit fade-zoom runs — kept in sync with the `duration-200`
 // classes below so the unmount waits for the exit animation to finish.
@@ -54,10 +54,10 @@ export function Lightbox({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") requestClose();
+      if (e.key === 'Escape') requestClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [requestClose]);
 
   return (
@@ -66,7 +66,7 @@ export function Lightbox({
       aria-modal="true"
       onClick={requestClose}
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 duration-200 ${
-        closing ? "animate-out fade-out-0" : "animate-in fade-in-0"
+        closing ? 'animate-out fade-out-0' : 'animate-in fade-in-0'
       }`}
     >
       <VoiceStageBadge stage={stage} />
@@ -82,8 +82,8 @@ export function Lightbox({
       <div
         className={`relative h-[88vh] w-[92vw] duration-200 ease-out ${
           closing
-            ? "animate-out fade-out-0 zoom-out-95"
-            : "animate-in fade-in-0 zoom-in-95"
+            ? 'animate-out fade-out-0 zoom-out-95'
+            : 'animate-in fade-in-0 zoom-in-95'
         }`}
         onClick={(e) => e.stopPropagation()}
       >

@@ -10,7 +10,7 @@ import {
   type PlayModeEngine,
   type SpeedEvent,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
 // How long the whole build runs by default; the live value is the engine's
 // programMs, set from the panel's session-length setting before a session
@@ -77,15 +77,15 @@ const CUMMING_STEP_MS = 400;
 // enabled in setup. Wind-down is the classic ramp above; the other three are
 // one-shot outcomes the panel makes unstoppable (Stop is ignored once they
 // start — the safe word is the backstop).
-export type AfterPlayOption = "wind-down" | "torture" | "stay-in" | "eject";
+export type AfterPlayOption = 'wind-down' | 'torture' | 'stay-in' | 'eject';
 
 // The canonical option list (display order) — the panel validates restored
 // storage against it.
 export const AFTER_PLAY_OPTIONS: readonly AfterPlayOption[] = [
-  "wind-down",
-  "torture",
-  "stay-in",
-  "eject",
+  'wind-down',
+  'torture',
+  'stay-in',
+  'eject',
 ];
 
 // The eject recipe, established by experiment: this speed with the stroke+
@@ -262,15 +262,15 @@ function buildCummingScript(startAt: number): SpeedEvent[] {
     speed >= CUMMING_MID_SPEED;
     speed -= 1.5
   ) {
-    events.push({ kind: "speed", at, speed, unscaled: true });
+    events.push({ kind: 'speed', at, speed, unscaled: true });
     at += CUMMING_STEP_MS;
   }
   for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
-    events.push({ kind: "speed", at, speed, unscaled: true });
+    events.push({ kind: 'speed', at, speed, unscaled: true });
     at += CUMMING_STEP_MS;
   }
   events.push({
-    kind: "speed",
+    kind: 'speed',
     at: at + PARK_HOLD_MS,
     speed: 0,
     unscaled: true,
@@ -285,11 +285,11 @@ function buildCummingScript(startAt: number): SpeedEvent[] {
 function teaseEvents(from: number, until: number): ValveEvent[] {
   if (from > 0 || until <= 0) return [];
   return [
-    { kind: "valve", at: 0, valve: "minus", open: true },
+    { kind: 'valve', at: 0, valve: 'minus', open: true },
     {
-      kind: "valve",
+      kind: 'valve',
       at: STROKE_MINUS_APPLY_MS,
-      valve: "minus",
+      valve: 'minus',
       open: false,
     },
   ];
@@ -300,7 +300,7 @@ export class GoonEngine implements PlayModeEngine {
   private programMs = DEFAULT_PROGRAM_MS;
   private cumming = false;
   private cummingEmitted = false;
-  private afterPlayOptions: AfterPlayOption[] = ["wind-down"];
+  private afterPlayOptions: AfterPlayOption[] = ['wind-down'];
   private afterPlay: AfterPlayOption | null = null;
 
   constructor(intensity: number) {
@@ -359,23 +359,23 @@ export class GoonEngine implements PlayModeEngine {
       if (this.cummingEmitted) return [];
       this.cummingEmitted = true;
       switch (this.afterPlay) {
-        case "torture":
+        case 'torture':
           // Straight to full and hold — the single event stays in effect
           // forever once the engine parks.
           return [
-            { kind: "speed", at: fromTime, speed: PEAK_SPEED, unscaled: true },
+            { kind: 'speed', at: fromTime, speed: PEAK_SPEED, unscaled: true },
           ];
-        case "stay-in":
+        case 'stay-in':
           // Stop dead, still seated; the valves close in generateValves so
           // the seal holds.
-          return [{ kind: "speed", at: fromTime, speed: 0, unscaled: true }];
-        case "eject":
+          return [{ kind: 'speed', at: fromTime, speed: 0, unscaled: true }];
+        case 'eject':
           // Drive at the eject speed with stroke+ open (see generateValves)
           // long enough to push out, then rest.
           return [
-            { kind: "speed", at: fromTime, speed: EJECT_SPEED, unscaled: true },
+            { kind: 'speed', at: fromTime, speed: EJECT_SPEED, unscaled: true },
             {
-              kind: "speed",
+              kind: 'speed',
               at: fromTime + EJECT_MS,
               speed: 0,
               unscaled: true,
@@ -390,7 +390,7 @@ export class GoonEngine implements PlayModeEngine {
     let at = fromTime;
     while (at < untilTime) {
       if (at >= this.programMs) {
-        events.push({ kind: "speed", at, speed: PEAK_SPEED });
+        events.push({ kind: 'speed', at, speed: PEAK_SPEED });
         at += PARK_STEP_MS;
         continue;
       }
@@ -399,7 +399,7 @@ export class GoonEngine implements PlayModeEngine {
         at,
       );
       for (const wp of waypoints) {
-        events.push({ kind: "speed", at: wp.at, speed: wp.speed });
+        events.push({ kind: 'speed', at: wp.at, speed: wp.speed });
       }
       at = endAt;
     }
@@ -414,34 +414,34 @@ export class GoonEngine implements PlayModeEngine {
   ): ValveEvent[] {
     if (this.cumming) {
       switch (this.afterPlay) {
-        case "torture":
-        case "stay-in":
+        case 'torture':
+        case 'stay-in':
           // A clean slate: both valves closed (stay-in keeps its seal, and a
           // generated close settles any manual stroke in flight).
           return [
-            { kind: "valve", at: fromTime, valve: "minus", open: false },
-            { kind: "valve", at: fromTime, valve: "plus", open: false },
+            { kind: 'valve', at: fromTime, valve: 'minus', open: false },
+            { kind: 'valve', at: fromTime, valve: 'plus', open: false },
           ];
-        case "eject":
+        case 'eject':
           // Stroke+ held open for the whole push, then closed at rest.
           return [
-            { kind: "valve", at: fromTime, valve: "minus", open: false },
-            { kind: "valve", at: fromTime, valve: "plus", open: true },
+            { kind: 'valve', at: fromTime, valve: 'minus', open: false },
+            { kind: 'valve', at: fromTime, valve: 'plus', open: true },
             {
-              kind: "valve",
+              kind: 'valve',
               at: fromTime + EJECT_MS,
-              valve: "plus",
+              valve: 'plus',
               open: false,
             },
           ];
         default:
           // The one-shot suction pulse that rides the cumming wind-down.
           return [
-            { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
+            { kind: 'valve', at: fromTime + 3000, valve: 'minus', open: true },
             {
-              kind: "valve",
+              kind: 'valve',
               at: fromTime + 12000,
-              valve: "minus",
+              valve: 'minus',
               open: false,
             },
           ];

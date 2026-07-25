@@ -105,18 +105,18 @@ specs/plans are deleted.
       `src/lib/algorithms/companion-engine.test.ts` with:
 
 ```ts
-import { describe, expect, it } from "@jest/globals";
-import type { PlayerContext, SpeedEvent } from "../program";
-import { CompanionEngine } from "./companion-engine";
+import { describe, expect, it } from '@jest/globals';
+import type { PlayerContext, SpeedEvent } from '../program';
+import { CompanionEngine } from './companion-engine';
 
 // Contract tests (see program.ts): generation is random by design, so these pin
 // the guarantees the Player relies on, not exact output.
 
 const CTX: PlayerContext = { clock: 0, currentSpeed: 0, currentRawSpeed: 0 };
 
-describe("CompanionEngine.generateSpeed", () => {
-  it("always extends past fromTime, sorted, in pattern space", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
+describe('CompanionEngine.generateSpeed', () => {
+  it('always extends past fromTime, sorted, in pattern space', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
     let from = 0;
     for (let i = 0; i < 10; i++) {
       const until = from + 60_000;
@@ -134,8 +134,8 @@ describe("CompanionEngine.generateSpeed", () => {
     }
   });
 
-  it("emits the cumming wind-down once (unscaled) then parks", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
+  it('emits the cumming wind-down once (unscaled) then parks', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
     engine.beginCumming();
     const ramp = engine.generateSpeed(0, 60_000, CTX);
     expect(ramp.length).toBeGreaterThan(0);
@@ -143,8 +143,8 @@ describe("CompanionEngine.generateSpeed", () => {
     expect(engine.generateSpeed(60_000, 120_000, CTX)).toEqual([]);
   });
 
-  it("resumes generating after reset() clears a cumming", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
+  it('resumes generating after reset() clears a cumming', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
     engine.beginCumming();
     engine.generateSpeed(0, 60_000, CTX);
     engine.reset();
@@ -152,8 +152,8 @@ describe("CompanionEngine.generateSpeed", () => {
   });
 
   it("resumes from the device's current speed after a knob change", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
-    engine.setVariability("high");
+    const engine = new CompanionEngine(50, 'medium', 'medium');
+    engine.setVariability('high');
     const ctx: PlayerContext = {
       clock: 0,
       currentSpeed: 0,
@@ -164,44 +164,44 @@ describe("CompanionEngine.generateSpeed", () => {
   });
 });
 
-describe("CompanionEngine.generateValves", () => {
-  it("emits only the start stroke-minus tease on the window covering start", () => {
-    const engine = new CompanionEngine(20, "low", "low");
+describe('CompanionEngine.generateValves', () => {
+  it('emits only the start stroke-minus tease on the window covering start', () => {
+    const engine = new CompanionEngine(20, 'low', 'low');
     const speed = engine.generateSpeed(0, 60_000, CTX);
     expect(engine.generateValves(speed, 0, 60_000, CTX)).toEqual([
-      { kind: "valve", at: 0, valve: "minus", open: true },
-      { kind: "valve", at: 10_000, valve: "minus", open: false },
+      { kind: 'valve', at: 0, valve: 'minus', open: true },
+      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
     ]);
   });
 
-  it("emits nothing on a mid-session window", () => {
-    const engine = new CompanionEngine(20, "low", "low");
+  it('emits nothing on a mid-session window', () => {
+    const engine = new CompanionEngine(20, 'low', 'low');
     expect(engine.generateValves([], 60_000, 120_000, CTX)).toEqual([]);
   });
 
-  it("emits the one-shot suction pulse riding the cumming wind-down", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
+  it('emits the one-shot suction pulse riding the cumming wind-down', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
     engine.beginCumming();
     expect(engine.generateValves([], 0, 60_000, CTX)).toEqual([
-      { kind: "valve", at: 3000, valve: "minus", open: true },
-      { kind: "valve", at: 12000, valve: "minus", open: false },
+      { kind: 'valve', at: 3000, valve: 'minus', open: true },
+      { kind: 'valve', at: 12000, valve: 'minus', open: false },
     ]);
   });
 });
 
-describe("CompanionEngine.scale", () => {
-  it("scales raw speed by the live speed percent", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
-    const event: SpeedEvent = { kind: "speed", at: 0, speed: 60 };
+describe('CompanionEngine.scale', () => {
+  it('scales raw speed by the live speed percent', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
+    const event: SpeedEvent = { kind: 'speed', at: 0, speed: 60 };
     expect(engine.scale(event, CTX)).toBe(30);
     engine.setSpeedPercent(100);
     expect(engine.scale(event, CTX)).toBe(60);
   });
 
-  it("passes unscaled events through untouched", () => {
-    const engine = new CompanionEngine(50, "medium", "medium");
+  it('passes unscaled events through untouched', () => {
+    const engine = new CompanionEngine(50, 'medium', 'medium');
     const event: SpeedEvent = {
-      kind: "speed",
+      kind: 'speed',
       at: 0,
       speed: 25,
       unscaled: true,
@@ -239,9 +239,9 @@ import {
   type AlgorithmEngine,
   type SpeedEvent,
   type ValveEvent,
-} from "@/lib/program";
+} from '@/lib/program';
 
-export type VariabilityLevel = "off" | "low" | "medium" | "high";
+export type VariabilityLevel = 'off' | 'low' | 'medium' | 'high';
 
 // How much a leg's duration can be randomly shortened, per level.
 const TIMING_PERCENT: Record<VariabilityLevel, number> = {
@@ -336,7 +336,7 @@ function buildLeg(
 function toSpeedEvents(
   waypoints: Array<{ speed: number; at: number }>,
 ): SpeedEvent[] {
-  return waypoints.map((w) => ({ kind: "speed", at: w.at, speed: w.speed }));
+  return waypoints.map((w) => ({ kind: 'speed', at: w.at, speed: w.speed }));
 }
 
 // One dip. The floor is drawn once here, not per leg, so the down-leg and the
@@ -467,14 +467,14 @@ export class CompanionEngine implements AlgorithmEngine {
   ): ValveEvent[] {
     if (this.cumming) {
       return [
-        { kind: "valve", at: fromTime + 3000, valve: "minus", open: true },
-        { kind: "valve", at: fromTime + 12000, valve: "minus", open: false },
+        { kind: 'valve', at: fromTime + 3000, valve: 'minus', open: true },
+        { kind: 'valve', at: fromTime + 12000, valve: 'minus', open: false },
       ];
     }
     if (fromTime <= 0 && untilTime > 0) {
       return [
-        { kind: "valve", at: 0, valve: "minus", open: true },
-        { kind: "valve", at: STROKE_TEASE_MS, valve: "minus", open: false },
+        { kind: 'valve', at: 0, valve: 'minus', open: true },
+        { kind: 'valve', at: STROKE_TEASE_MS, valve: 'minus', open: false },
       ];
     }
     return [];
@@ -493,15 +493,15 @@ export class CompanionEngine implements AlgorithmEngine {
       speed >= CUMMING_MID_SPEED;
       speed -= 1.5
     ) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     for (let speed = CUMMING_MID_SPEED; speed >= CUMMING_END_SPEED; speed--) {
-      events.push({ kind: "speed", at, speed, unscaled: true });
+      events.push({ kind: 'speed', at, speed, unscaled: true });
       at += CUMMING_STEP_MS;
     }
     events.push({
-      kind: "speed",
+      kind: 'speed',
       at: at + 1_800_000,
       speed: 0,
       unscaled: true,
@@ -563,7 +563,7 @@ Replace the import block (currently lines ~40–45):
 import {
   CompanionEngine,
   type VariabilityLevel,
-} from "@/lib/algorithms/companion-engine";
+} from '@/lib/algorithms/companion-engine';
 ```
 
 Replace the default-knob constants (currently lines ~47–52):
@@ -574,7 +574,7 @@ Replace the default-knob constants (currently lines ~47–52):
 // there via her intensity/variety tools. Speed is applied live; variety reshapes
 // the dip pattern.
 const DEFAULT_INTENSITY = 20;
-const DEFAULT_VARIETY: VariabilityLevel = "low";
+const DEFAULT_VARIETY: VariabilityLevel = 'low';
 ```
 
 - [ ] **Step 2: Update the engine construction** (currently lines ~153–159)
@@ -701,10 +701,10 @@ const getDeviceState = useCallback((): string => {
   if (!vacuglide.connected) {
     return `The toy is not connected and is not running. ${levels}`;
   }
-  const running = player.source === engine && player.state === "playing";
+  const running = player.source === engine && player.state === 'playing';
   const status = running
-    ? "The toy is connected and running."
-    : "The toy is connected and not running.";
+    ? 'The toy is connected and running.'
+    : 'The toy is connected and not running.';
   return `${status} ${levels}`;
 }, [
   vacuglide.connected,

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // The session's fast-moving loudness bar — repaints every frame; kept small.
 
@@ -13,7 +13,7 @@ export function RmsMeter({
   return (
     <div className="bg-foreground/10 h-2 w-full overflow-hidden rounded">
       <div
-        className={`h-full ${speaking ? "bg-emerald-500" : "bg-foreground/30"}`}
+        className={`h-full ${speaking ? 'bg-emerald-500' : 'bg-foreground/30'}`}
         style={{ width: `${pct}%` }}
       />
     </div>

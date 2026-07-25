@@ -8,8 +8,8 @@
 export class PackError extends Error {
   readonly problems: string[];
   constructor(problems: string | string[]) {
-    const list = typeof problems === "string" ? [problems] : problems;
-    super(list.join("; "));
+    const list = typeof problems === 'string' ? [problems] : problems;
+    super(list.join('; '));
     this.problems = list;
   }
 }
@@ -21,39 +21,39 @@ export const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 // The accent hues safelisted in globals.css — a pack colour outside this set
 // would silently render unstyled, so reject it at import instead.
 const ACCENT_COLOURS = new Set([
-  "red",
-  "orange",
-  "amber",
-  "yellow",
-  "lime",
-  "green",
-  "emerald",
-  "teal",
-  "cyan",
-  "sky",
-  "blue",
-  "indigo",
-  "violet",
-  "purple",
-  "fuchsia",
-  "pink",
-  "rose",
+  'red',
+  'orange',
+  'amber',
+  'yellow',
+  'lime',
+  'green',
+  'emerald',
+  'teal',
+  'cyan',
+  'sky',
+  'blue',
+  'indigo',
+  'violet',
+  'purple',
+  'fuchsia',
+  'pink',
+  'rose',
 ]);
 
-const GENDERS = new Set(["female", "male", "nonbinary"]);
+const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
 export const PACK_FORMAT = 1;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
-  "format",
-  "id",
-  "version",
-  "base",
-  "aboutThePack",
-  "noPictures",
-  "companion",
+  'format',
+  'id',
+  'version',
+  'base',
+  'aboutThePack',
+  'noPictures',
+  'companion',
 ]);
 
 // The companion half of the manifest — everything under the `companion` key.
@@ -62,7 +62,7 @@ const TOP_FIELDS = new Set([
 export type CompanionConfig = {
   name?: string; // complete packs only — an overlay keeps the base's name
   description?: string; // the companion's, for their card (overlay: replaces the base's while selected)
-  gender?: "female" | "male" | "nonbinary"; // complete packs only, like name
+  gender?: 'female' | 'male' | 'nonbinary'; // complete packs only, like name
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)
   model?: string; // OpenRouter slug; app default when omitted
@@ -72,14 +72,14 @@ export type CompanionConfig = {
 
 // The keys of CompanionConfig — the only fields the companion section allows.
 const COMPANION_FIELDS = [
-  "name",
-  "description",
-  "gender",
-  "accentColour",
-  "voiceId",
-  "model",
-  "contextWindow",
-  "passesReasoning",
+  'name',
+  'description',
+  'gender',
+  'accentColour',
+  'voiceId',
+  'model',
+  'contextWindow',
+  'passesReasoning',
 ] as const;
 
 export type PackManifest = {
@@ -104,19 +104,19 @@ export type PackManifest = {
 // with it at once; only a manifest we can't judge at all (not an object, a
 // format this app doesn't know) fails alone.
 export function parseManifest(raw: unknown): PackManifest {
-  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new PackError("manifest.json doesn't contain a JSON object.");
   }
   const m = raw as Record<string, unknown>;
   // Format problems fail alone: without a format this app knows, the other
   // field rules may not apply, so any further "problems" could be junk.
-  if (typeof m.format !== "number") {
+  if (typeof m.format !== 'number') {
     throw new PackError(
       'manifest.json is missing the format field — add "format": 1.',
     );
   }
   if (m.format > PACK_FORMAT) {
-    throw new PackError("This pack needs a newer version of the app.");
+    throw new PackError('This pack needs a newer version of the app.');
   }
   if (m.format !== PACK_FORMAT) {
     throw new PackError(
@@ -127,39 +127,39 @@ export function parseManifest(raw: unknown): PackManifest {
   const problems: string[] = [];
   const optionalString = (v: unknown, field: string): string | undefined => {
     if (v === undefined) return undefined;
-    if (typeof v !== "string") {
+    if (typeof v !== 'string') {
       problems.push(`The ${field} field must be text.`);
       return undefined;
     }
     return v;
   };
-  if (m.id === undefined || m.id === "") {
+  if (m.id === undefined || m.id === '') {
     problems.push(
-      "manifest.json is missing the id field — every pack needs an id like publisher.packname.",
+      'manifest.json is missing the id field — every pack needs an id like publisher.packname.',
     );
-  } else if (typeof m.id !== "string" || !PACK_ID_RE.test(m.id)) {
+  } else if (typeof m.id !== 'string' || !PACK_ID_RE.test(m.id)) {
     problems.push(
-      "The id field must be publisher.packname — lowercase letters, numbers and hyphens only.",
+      'The id field must be publisher.packname — lowercase letters, numbers and hyphens only.',
     );
   }
-  if (m.version === undefined || m.version === "") {
+  if (m.version === undefined || m.version === '') {
     problems.push(
-      "manifest.json is missing the version field - this is the version number of your pack",
+      'manifest.json is missing the version field - this is the version number of your pack',
     );
-  } else if (typeof m.version !== "string") {
+  } else if (typeof m.version !== 'string') {
     problems.push('The version field must be text in quotes, like "1.0.0".');
   }
-  if (m.aboutThePack === undefined || m.aboutThePack === "") {
+  if (m.aboutThePack === undefined || m.aboutThePack === '') {
     problems.push(
-      "manifest.json is missing the aboutThePack field — say what the pack adds or changes.",
+      'manifest.json is missing the aboutThePack field — say what the pack adds or changes.',
     );
-  } else if (typeof m.aboutThePack !== "string") {
-    problems.push("The aboutThePack field must be text.");
+  } else if (typeof m.aboutThePack !== 'string') {
+    problems.push('The aboutThePack field must be text.');
   }
   if (m.base !== undefined) {
-    if (typeof m.base !== "string" || !PACK_ID_RE.test(m.base)) {
+    if (typeof m.base !== 'string' || !PACK_ID_RE.test(m.base)) {
       problems.push(
-        "The base field must be the id of the companion this overlay changes, like autogoon.aimee.",
+        'The base field must be the id of the companion this overlay changes, like autogoon.aimee.',
       );
     } else if (m.base === m.id) {
       // Structurally nonsensical, and it slips the library's install-state
@@ -171,12 +171,12 @@ export function parseManifest(raw: unknown): PackManifest {
     }
   }
   if (m.noPictures !== undefined) {
-    if (typeof m.noPictures !== "boolean") {
-      problems.push("The noPictures field must be true or false (no quotes).");
+    if (typeof m.noPictures !== 'boolean') {
+      problems.push('The noPictures field must be true or false (no quotes).');
     }
     if (m.base === undefined) {
       problems.push(
-        "noPictures is only for overlay packs — remove it from manifest.json.",
+        'noPictures is only for overlay packs — remove it from manifest.json.',
       );
     }
   }
@@ -190,12 +190,12 @@ export function parseManifest(raw: unknown): PackManifest {
   let c: Record<string, unknown> = {};
   if (m.companion !== undefined) {
     if (
-      typeof m.companion !== "object" ||
+      typeof m.companion !== 'object' ||
       m.companion === null ||
       Array.isArray(m.companion)
     ) {
       problems.push(
-        "The companion field must be a section in braces — companion: { … } with the companion fields inside.",
+        'The companion field must be a section in braces — companion: { … } with the companion fields inside.',
       );
     } else {
       c = m.companion as Record<string, unknown>;
@@ -222,29 +222,29 @@ export function parseManifest(raw: unknown): PackManifest {
     }
   }
   if (c.gender !== undefined && !GENDERS.has(c.gender as string)) {
-    problems.push("The gender field must be female, male or nonbinary.");
+    problems.push('The gender field must be female, male or nonbinary.');
   }
-  const accentColour = optionalString(c.accentColour, "accentColour");
+  const accentColour = optionalString(c.accentColour, 'accentColour');
   if (accentColour !== undefined && !ACCENT_COLOURS.has(accentColour)) {
     problems.push(
-      `Unknown accentColour: ${accentColour} — pick one of ${[...ACCENT_COLOURS].join(", ")}.`,
+      `Unknown accentColour: ${accentColour} — pick one of ${[...ACCENT_COLOURS].join(', ')}.`,
     );
   }
-  if (c.contextWindow !== undefined && typeof c.contextWindow !== "number") {
-    problems.push("The contextWindow field must be a number (no quotes).");
+  if (c.contextWindow !== undefined && typeof c.contextWindow !== 'number') {
+    problems.push('The contextWindow field must be a number (no quotes).');
   }
   if (
     c.passesReasoning !== undefined &&
-    typeof c.passesReasoning !== "boolean"
+    typeof c.passesReasoning !== 'boolean'
   ) {
     problems.push(
-      "The passesReasoning field must be true or false (no quotes).",
+      'The passesReasoning field must be true or false (no quotes).',
     );
   }
-  const name = optionalString(c.name, "name");
-  const description = optionalString(c.description, "description");
-  const voiceId = optionalString(c.voiceId, "voiceId");
-  const model = optionalString(c.model, "model");
+  const name = optionalString(c.name, 'name');
+  const description = optionalString(c.description, 'description');
+  const voiceId = optionalString(c.voiceId, 'voiceId');
+  const model = optionalString(c.model, 'model');
   if (problems.length > 0) throw new PackError(problems);
   // The casts are sound: reaching here means every pushed check passed.
   return {
@@ -257,7 +257,7 @@ export function parseManifest(raw: unknown): PackManifest {
     companion: {
       name,
       description,
-      gender: c.gender as CompanionConfig["gender"],
+      gender: c.gender as CompanionConfig['gender'],
       accentColour,
       voiceId,
       model,

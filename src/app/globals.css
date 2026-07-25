@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 /* Companion picker cards build their classes by interpolating each companion's
    `accentColour` (e.g. `border-fuchsia-500`), so Tailwind can't see them in

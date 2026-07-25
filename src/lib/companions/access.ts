@@ -6,8 +6,8 @@
 // names, the localStorage read/write, and the pure list parser the server
 // reuses. No secret and no server-only imports live here.
 
-export const ACCESS_HEADER = "x-access-id";
-export const ACCESS_STORAGE_KEY = "companions:access-id";
+export const ACCESS_HEADER = 'x-access-id';
+export const ACCESS_STORAGE_KEY = 'companions:access-id';
 
 // Parse the comma-separated COMPANIONS_ACCESS_IDS env value into a clean list:
 // split on commas, trim, drop blanks. An empty result means NOTHING validates —
@@ -15,25 +15,25 @@ export const ACCESS_STORAGE_KEY = "companions:access-id";
 // builds/deploys an unset or empty env leaves Companions hidden and its routes
 // rejecting everything (the dev server skips the gate on the paid routes).
 export function parseAccessIds(raw: string | undefined): string[] {
-  return (raw ?? "")
-    .split(",")
+  return (raw ?? '')
+    .split(',')
     .map((s) => s.trim())
-    .filter((s) => s !== "");
+    .filter((s) => s !== '');
 }
 
 // The saved access ID for this browser (empty string when unset/unavailable).
 export function getAccessId(): string {
   try {
-    return localStorage.getItem(ACCESS_STORAGE_KEY) ?? "";
+    return localStorage.getItem(ACCESS_STORAGE_KEY) ?? '';
   } catch {
-    return "";
+    return '';
   }
 }
 
 // Persist (or clear, when empty) the access ID for this browser.
 export function setAccessId(id: string): void {
   try {
-    if (id === "") localStorage.removeItem(ACCESS_STORAGE_KEY);
+    if (id === '') localStorage.removeItem(ACCESS_STORAGE_KEY);
     else localStorage.setItem(ACCESS_STORAGE_KEY, id);
   } catch {
     // ignore: storage full or unavailable
