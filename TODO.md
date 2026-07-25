@@ -27,20 +27,50 @@ What's already built is described in
 ### Ambient chat
 
 Built on the shipped thread and companion-driven control. Narration and ambient
-filler collapse into one source: a self-poke on a **cadence set by her
-`chattiness` trait** (from the traits record — see
-[Personas shape their programs](#personas-shape-their-programs); whichever
-feature lands first introduces it) — every _x_ ± _y_ seconds, no per-event
-trigger. The cue carries no payload; the persona decides what to say from the
-thread's current + upcoming device state (`player.upcoming`), free to end a turn
-in a tool call. Preemptible under barge-in.
+filler collapse into one source: at the end of each of her turns she schedules
+the next one, so a silence is filled by her rather than by a clock watching for
+it.
 
-**Idle cutoff:** the ambient clock must be _time since the last user turn_ (the
-thread's `at` stamps), not since the last turn — her own self-pokes would
-otherwise reset it forever. After a while with no user turn she asks "are you
-still there?"; unanswered, the self-poke cadence stops (no LLM/TTS spend on an
-empty room) until he speaks again — which the gap markers then frame as him
-coming back.
+**The loop.** She replies; as that reply finishes, a poke is scheduled for _x_ ±
+_y_ seconds' time. A confirmed partial cancels it — a real turn is already on
+its way, so there is nothing to fill. A poke that does fire runs a turn on no
+payload: the persona decides what to say from the thread and the device's
+current + upcoming state (`player.upcoming`), is free to end the turn in a tool
+call, and schedules its own successor. Preemptible under barge-in like any other
+reply.
+
+**She decides when to stop, not a timer.** The system prompt tells her she may
+ask whether you're still there once you've been quiet a while, and that a reply
+carrying `WAIT_FOR_USER` schedules no successor — the same marker for when she
+judges the conversation finished. The marker is stripped before TTS. Only your
+next turn restarts the loop, which the gap markers then frame as you coming
+back. This is what makes the cadence self-limiting: she knows whether there is
+anything left to say, and a clock doesn't.
+
+**Only while a program runs.** A running program is the signal you're there —
+you start it deliberately and stop it when you're done — so nothing is scheduled
+unless the Player is `playing`, and stopping the program stops her. The
+scheduler is wall-clock and belongs to the voice session, **not** to the program
+itself: program events are dropped on every regeneration and scale with playback
+rate, and neither should touch her cadence.
+
+**Cadence** comes from `chattiness`, an optional per-companion manifest field
+(1–5). The other traits arrive with
+[Personas shape their programs](#personas-shape-their-programs), the work that
+actually consumes them.
+
+### Activity cutoff
+
+A spend backstop, separate from [Ambient chat](#ambient-chat)'s own
+`WAIT_FOR_USER` stop: after long enough with no sign of anyone — no user turn,
+no control touched — stop the program. Stopping the program already stops
+ambient chat, so the one cutoff covers a session left running in an empty room,
+which is where LLM and TTS spend would otherwise run indefinitely.
+
+The hard part is the number, not the mechanism. Long silences during play are
+normal — the device is working and there is nothing to say — so a cutoff tuned
+for an empty room must not fire on someone who is simply quiet. Worth warning
+before it stops rather than stopping silently.
 
 ### Safeword as a hard stop
 
