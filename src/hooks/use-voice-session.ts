@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
+import { stripTextualToolCalls } from '@/lib/llm/textual-tool-calls';
 import { AMBIENT_CUE } from '@/lib/companions/ambient';
 import {
   createAmbientScheduler,
@@ -495,7 +496,16 @@ export function useVoiceSession(opts: {
               metrics: { ...s.metrics, llm: { ttftMs: ttft, totalMs, tps } },
             }));
           }
-          return { content, reasoning, toolCalls };
+          // Cut out any tool call the model wrote as text: it has already been
+          // recovered and dispatched (see textual-tool-calls.ts), so what's left
+          // here is markup. Stripped at the single point every caller takes its
+          // text from, so neither the transcript nor TTS can ever see it — a
+          // spoken turn would otherwise read the tags aloud in her voice.
+          return {
+            content: stripTextualToolCalls(content),
+            reasoning,
+            toolCalls,
+          };
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
