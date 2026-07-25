@@ -104,6 +104,34 @@ you say you're cumming. The persona decides, so the ending stops being a setting
 and becomes something she does to you. And because she can choose, she can say
 she will without saying which.
 
+### Pin a provider, and see what upstream actually said
+
+Two things that made a five-minute throughput test into a long one.
+
+**Choosing the provider.** A companion's model is a slug and nothing more, so
+routing is whatever OpenRouter decides — `:nitro` sorts by throughput and can
+land consecutive turns on different providers. That makes provider-level
+comparison impossible to do by hand, and it defeats prompt caching, which is
+per-provider. Wants to be a setting rather than an edit: a provider (or endpoint
+tag, e.g. `xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks
+off so a pin that can't be served fails loudly instead of quietly going
+elsewhere. Worth surfacing which provider actually served a turn, too — it comes
+back on every response.
+
+**Seeing the error.** `/api/llm` turns any upstream failure into a flat 502 with
+upstream's own message discarded, so a provider rejecting a request is
+indistinguishable from the key being wrong. Pass the status and body through:
+the one that cost the most time here said exactly what was wrong
+(`messages[31].tool_calls[1] is missing a function name`) and we couldn't see
+it.
+
+That error is also a real bug worth chasing separately: a stream can open a
+tool_call index that never gets a name, and we persist it — so it replays on
+every later turn and a strict provider rejects the whole conversation. Clearing
+the thread is an acceptable fix for an already-poisoned one; what matters is not
+writing a nameless call in the first place, and skipping one (and its orphaned
+result) when projecting an old thread.
+
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,
