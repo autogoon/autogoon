@@ -121,6 +121,41 @@ changes.
 - **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
   thinking should be replayed to it with the conversation. Optional; leave it
   out unless you know the model needs it.
+- **`chattiness`** and **`playfulness`** — how readily she speaks up when you
+  haven't, from 1 to 5. Both optional, 3 if omitted. `chattiness` applies while
+  the toy is idle, `playfulness` while it's running — they're separate because
+  they're separate appetites: a woman of few words can still keep up a filthy
+  running commentary once things are underway, and one setting couldn't say so.
+
+  What each buys, as the pause after she finishes speaking. Every pause is
+  varied a little so she doesn't tick like a clock, which is what the range
+  column is — it leans shorter rather than longer, so she errs on the side of
+  eager.
+
+  **`chattiness` — while the toy is idle:**
+
+  | value | base pause | actual range |
+  | ----- | ---------- | ------------ |
+  | 1     | 50s        | 25–60s       |
+  | 2     | 40s        | 20–48s       |
+  | 3     | 30s        | 15–36s       |
+  | 4     | 20s        | 10–24s       |
+  | 5     | 10s        | 5–12s        |
+
+  **`playfulness` — while it's running:**
+
+  | value | base pause | actual range |
+  | ----- | ---------- | ------------ |
+  | 1     | 25s        | 12.5–30s     |
+  | 2     | 20s        | 10–24s       |
+  | 3     | 15s        | 7.5–18s      |
+  | 4     | 10s        | 5–12s        |
+  | 5     | 5s         | 2.5–6s       |
+
+  Treat these as the feel rather than a promise — they're tuned by ear and may
+  shift. And note they're measured from the moment she stops talking, so the gap
+  between her turns is always longer than the table: her next line still has to
+  be written and spoken first.
 
 ### Overlays
 
