@@ -65,10 +65,17 @@ simply never sent.
 
 A `systemPrompt` is not one monolithic string per companion. The **mechanical
 rules that are the same for everyone** — reply format, baseline speaking style,
-how the device is driven — live once as persona-neutral blocks in
+what the device is and how it's driven — live once as persona-neutral blocks in
 `shared-prompt.ts` (each export is commented with where it slots in), and each
 persona module interpolates them into place, so those rules can't drift between
-companions. What stays in the persona module is only that companion: her
+companions.
+
+The device description is part of that shared set for a reason: **what the toy
+does to you isn't a persona's to invent.** Left to infer the hardware from the
+tool names, a model guesses — the wrong shape, the wrong sensation, sometimes
+the wrong act — and it guesses mid-scene, where the words are the whole point.
+Written once, no pack author has to know the hardware, and no companion is wrong
+about it. What stays in the persona module is only that companion: her
 character, setup, tone, and disposition (crucially, **who leads** during play —
 the shared control block is neutral on that). Personas are written in the
 **second person** ("You're 21…") so they read as one voice with the shared

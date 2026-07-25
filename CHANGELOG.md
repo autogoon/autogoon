@@ -15,6 +15,17 @@
   commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
+- enhancement: **A companion knows what the toy does to you** — Companions were
+  driving the device without ever being told what it is, so anything one said
+  about how it felt was invented — the wrong shape, the wrong sensation,
+  sometimes the wrong act entirely, in the middle of a scene where the words are
+  the whole point. They're now told plainly what a Vacuglide is and what it does
+  to whoever's wearing it — including what each variety level actually feels
+  like, so a companion knows that turning it up high means leaving you stopped
+  dead and waiting rather than just going faster. It applies to every companion,
+  including imported ones: a goonpack author doesn't have to describe the
+  hardware. ([#23](https://github.com/autogoon/autogoon/pull/23))
+
 - enhancement: **See how talkative a companion is before you pick** — Each
   card on the picker now shows both silence-filling settings as a row of pips in
   that companion's own colour, so you can tell at a glance which will keep a

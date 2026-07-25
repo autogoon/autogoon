@@ -81,21 +81,6 @@ when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
 the system prompts. _(The on-hardware feel tuning remains.)_
 
-### Tell the companions what the toy actually is
-
-The system prompt drives the device by tool without ever describing what's on
-the other end. A persona is left inferring the hardware from the knob names, so
-what it says about the toy is invented — the wrong shape, the wrong sensation,
-sometimes the wrong act entirely, which lands badly in the middle of a scene
-where the words are the whole point.
-
-Give the shared prompt a short factual block: what a Vacuglide is, that it's a
-sleeve that strokes and applies suction rather than anything inserted, what the
-speed and valve controls do to the feel, and what the wearer actually
-experiences when a knob moves. Written once in `shared-prompt.ts`, so no pack
-author has to know it. The nuance is length and register — enough for the talk
-to be accurate, not so much that a persona narrates a spec sheet.
-
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,
