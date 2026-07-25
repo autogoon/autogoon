@@ -12,6 +12,10 @@
 @source inline(
   "{hover:,}{from,to}-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-500/{5,10,15,20,25}"
 );
+/* Filled trait pips on the same cards, in the same interpolated colour. */
+@source inline(
+  "bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-500"
+);
 
 @custom-variant dark (&:is(.dark *));
 
