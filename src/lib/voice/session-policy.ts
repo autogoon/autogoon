@@ -6,15 +6,6 @@ export function shouldOpenSocket(phase: SttPhase, onset: boolean): boolean {
   return onset && phase === 'closed';
 }
 
-export function shouldCloseSocket(
-  phase: SttPhase,
-  lastVoiceAtMs: number,
-  nowMs: number,
-  timeoutMs: number,
-): boolean {
-  return phase === 'open' && nowMs - lastVoiceAtMs >= timeoutMs;
-}
-
 // A barge-in cuts the companion off only once we've actually decoded speech —
 // `speechConfirmed` — not on raw mic energy. See partialHasWord: waiting for a
 // real word means a cough, a thump, or her own audio leaking past AEC no longer

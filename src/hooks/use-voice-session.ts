@@ -120,16 +120,6 @@ const IDLE_STATUS: VoiceStatus = {
   thread: [],
 };
 
-// Close the STT socket after this long without voice. Deliberately far longer
-// than a conversational gap: audio only flows between a VAD onset and the
-// server's commit (see stt.ts), so an idle socket streams nothing and costs
-// nothing — ElevenLabs bill audio processed, not connection uptime. Holding it
-// open means an interruption doesn't wait on a token fetch and handshake. The
-// timeout is now a backstop against a socket left open by a forgotten session,
-// not a cost control.
-const STT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-const MAYBE_CLOSE_INTERVAL_MS = 500;
-
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
   `companions:thread:${companion.id}`;
@@ -207,7 +197,6 @@ export function useVoiceSession(opts: {
   // — the gate on surfacing partials in status. Reset at each utterance
   // boundary: a committed transcript or the socket closing.
   const speechConfirmedRef = useRef(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
   const threadRef = useRef<Thread>([]);
@@ -652,16 +641,26 @@ export function useVoiceSession(opts: {
           setStatus((s) => ({ ...s, phase }));
         }
       },
+      onServerError: (raw) => {
+        onLogRef.current?.(`STT ${raw}`, 'error');
+      },
+      onClosed: ({ local, code, reason, wasClean }) => {
+        // Our own hang-up is expected and already visible as the phase change.
+        // One from the far end is the interesting case: it's how an idle
+        // socket's death shows up, and the code and reason are all we get.
+        if (local) return;
+        const why = reason !== '' ? ` ${reason}` : '';
+        onLogRef.current?.(
+          `STT closed by server: ${code}${why}${wasClean ? '' : ' (unclean)'}`,
+          'error',
+        );
+      },
     });
     sttRef.current = stt;
 
     void startMic({
       onFrame: (b64) => stt.sendFrame(b64),
       onRms: (rms) => {
-        // Keep the socket alive across sustained speech: refresh lastVoiceAt on
-        // every voiced frame, not just at onset, so a long utterance doesn't
-        // trip the idle-close timeout mid-sentence.
-        if (vadSpeakingRef.current) stt.noteVoice(Date.now());
         setStatus((s) => ({
           ...s,
           rms,
@@ -677,7 +676,6 @@ export function useVoiceSession(opts: {
         // isn't clipped (this is also what starts the audio flowing so a
         // partial can arrive to barge in on).
         stt.beginUtterance(() => micHandleRef.current?.preRoll.flush() ?? []);
-        stt.noteVoice(Date.now());
         setStatus((s) => ({ ...s, vadSpeaking: true }));
       },
       onOffset: () => {
@@ -701,17 +699,9 @@ export function useVoiceSession(opts: {
         // stop()+start() hasn't already handed the session to a newer stt.
         if (sttRef.current === stt) startingRef.current = false;
       });
-
-    intervalRef.current = setInterval(() => {
-      stt.maybeClose(Date.now(), STT_IDLE_TIMEOUT_MS);
-    }, MAYBE_CLOSE_INTERVAL_MS);
   }, [ensureClients, submitText, cancelReply]);
 
   const stop = useCallback((): void => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
     // Abort the in-flight turn (also stops the TTS via its signal).
     turnRef.current?.abort();
     turnRef.current = null;

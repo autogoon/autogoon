@@ -9,11 +9,13 @@
   or you've actually stopped.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- enhancement: **Quicker to interrupt her** — The speech connection is now held
-  open between turns instead of being dropped after a few seconds, so cutting
-  her off mid-sentence no longer waits for a new connection to be set up first.
-  Your microphone audio is only sent while you're actually saying something, so
-  holding the line open costs nothing.
+- enhancement: **Quicker to interrupt her** — The app no longer drops the speech
+  connection a few seconds after you stop talking, so interrupting her shortly
+  after she starts replying doesn't wait for a new connection to be set up
+  first. Your microphone audio is only sent while you're actually saying
+  something, so holding the line open costs nothing. The transcription service
+  still closes an unused connection after a while of its own accord, so a very
+  late interruption reconnects as before.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - enhancement: **The message she's speaking shimmers** — Instead of a separate
@@ -32,6 +34,17 @@
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
+
+- internal: **The STT socket says why it died** — Server error messages and any
+  websocket close we didn't initiate now reach the event log with their close
+  code, instead of being dropped by the message switch's `default`. That's how
+  ElevenLabs' undocumented idle rule was found: a clean 1000 about fourteen
+  seconds after the last audio. Our own idle-close machinery is gone with it —
+  timeout, poll interval, `noteVoice`, `maybeClose` and `shouldCloseSocket` —
+  since there's no point racing a server that already does the job. The
+  invariant this all rests on is written up in
+  [ARCHITECTURE.md](./ARCHITECTURE.md).
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - internal: **Comments describe the present too** — The current-state rule that
   keeps future work out of docs now covers code comments, in both directions: a
