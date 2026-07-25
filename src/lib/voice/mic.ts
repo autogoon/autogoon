@@ -31,8 +31,16 @@ const VAD_CONFIG: VadConfig = {
   hangoverFrames: 5,
 };
 
-// ~500 ms of pre-roll at 20 ms/frame, so barge-in can flush the opening word.
-const PRE_ROLL_FRAMES = Math.ceil(500 / 20); // 25
+// One capture frame's worth of audio. Set by the worklet, which buffers
+// `sampleRate * 0.02` samples before posting each frame (see
+// public/companion-audio-worklet.js) — change it there and this must follow.
+// Exported because anything counting frames to get a duration — how much audio
+// a session actually streamed, say — needs it, and a wrong constant there is a
+// silently wrong number.
+export const FRAME_MS = 20;
+
+// ~500 ms of pre-roll, so barge-in can flush the opening word.
+const PRE_ROLL_FRAMES = Math.ceil(500 / FRAME_MS); // 25
 
 type CaptureMessage = { samples: Float32Array; rms: number };
 

@@ -27,7 +27,6 @@ import {
   confirmSpeech,
   isBargeIn,
   partialHasWord,
-  shouldOpenSocket,
   type SttPhase,
 } from '@/lib/voice/session-policy';
 import {
@@ -53,6 +52,10 @@ export type VoiceStatus = {
   vadSpeaking: boolean;
   rms: number;
   preRollFrames: number;
+  // Frames actually streamed to the STT this session. At FRAME_MS each, this is
+  // the audio ElevenLabs bill for — the number to check a session against the
+  // usage dashboard, and the one that should stay flat between turns.
+  sentFrames: number;
   partial: string;
   committed: string;
   replyPlaying: boolean;
@@ -105,6 +108,7 @@ const IDLE_STATUS: VoiceStatus = {
   vadSpeaking: false,
   rms: 0,
   preRollFrames: 0,
+  sentFrames: 0,
   partial: '',
   committed: '',
   replyPlaying: false,
@@ -116,8 +120,14 @@ const IDLE_STATUS: VoiceStatus = {
   thread: [],
 };
 
-// Close the STT socket after this long without voice.
-const STT_IDLE_TIMEOUT_MS = 8000;
+// Close the STT socket after this long without voice. Deliberately far longer
+// than a conversational gap: audio only flows between a VAD onset and the
+// server's commit (see stt.ts), so an idle socket streams nothing and costs
+// nothing — ElevenLabs bill audio processed, not connection uptime. Holding it
+// open means an interruption doesn't wait on a token fetch and handshake. The
+// timeout is now a backstop against a socket left open by a forgotten session,
+// not a cost control.
+const STT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const MAYBE_CLOSE_INTERVAL_MS = 500;
 
 // Persistence key, namespaced per companion so each keeps its own thread.
@@ -656,18 +666,17 @@ export function useVoiceSession(opts: {
           ...s,
           rms,
           preRollFrames: micHandleRef.current?.preRoll.length ?? 0,
+          sentFrames: stt.framesSent(),
         }));
       },
       onOnset: () => {
         vadSpeakingRef.current = true;
         // Onset no longer cuts the reply — that waits for a decoded word in
-        // onPartial. It still opens a fresh listening turn from a closed socket,
-        // flushing the pre-roll so the opening word isn't clipped (this is also
-        // what starts the audio flowing so a partial can arrive to barge in on).
-        if (shouldOpenSocket(stt.phase(), true)) {
-          const preRoll = micHandleRef.current?.preRoll.flush() ?? [];
-          void stt.open(preRoll).catch(() => {});
-        }
+        // onPartial. It starts this utterance streaming, opening the socket
+        // first if it's cold, and flushes the pre-roll so the opening word
+        // isn't clipped (this is also what starts the audio flowing so a
+        // partial can arrive to barge in on).
+        stt.beginUtterance(() => micHandleRef.current?.preRoll.flush() ?? []);
         stt.noteVoice(Date.now());
         setStatus((s) => ({ ...s, vadSpeaking: true }));
       },

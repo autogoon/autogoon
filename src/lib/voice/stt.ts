@@ -6,7 +6,11 @@
 // test (the pure lifecycle decisions live in session-policy.ts and are tested
 // there); verified in the Task 13 acceptance run.
 import { pcm16ToBase64 } from './audio-encoding';
-import { type SttPhase, shouldCloseSocket } from './session-policy';
+import {
+  type SttPhase,
+  shouldCloseSocket,
+  shouldOpenSocket,
+} from './session-policy';
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type SttEvents = {
@@ -22,18 +26,30 @@ type IncomingMessage = { message_type?: string; text?: string };
 const MAX_PENDING_FRAMES = 500;
 
 export type Stt = {
-  open: (preRoll: Int16Array[]) => Promise<void>;
+  beginUtterance: (getPreRoll: () => Int16Array[]) => void;
   sendFrame: (base64Pcm: string) => void;
   noteVoice: (nowMs: number) => void;
   maybeClose: (nowMs: number, timeoutMs: number) => void;
   close: () => void;
   phase: () => SttPhase;
+  framesSent: () => number;
 };
 
 export function createStt(events: SttEvents): Stt {
   let ws: WebSocket | null = null;
   let phase: SttPhase = 'closed';
   let lastVoiceAtMs = 0;
+  // Audio only flows while an utterance is in flight, so an open socket between
+  // turns costs nothing (ElevenLabs bills audio processed, not connection
+  // uptime). The gate opens at the VAD's onset and closes on the server's
+  // committed transcript — deliberately NOT on the VAD's offset, because
+  // commit_strategy=vad means the server has to hear the trailing silence to
+  // decide the utterance ended. Cut the audio at our own offset and the commit
+  // never arrives, so the turn never runs.
+  let streaming = false;
+  // Frames actually put on the wire, so a session can report how much audio it
+  // streamed and that can be checked against the bill.
+  let sent = 0;
   // Frames captured after open() is called but before the socket is live
   // (session_started) — the token fetch + WebSocket handshake, often 1–2s.
   // Without this they'd be dropped, losing the opening seconds of speech; they
@@ -54,9 +70,13 @@ export function createStt(events: SttEvents): Stt {
         commit: false,
       }),
     );
+    sent += 1;
   }
 
   function sendFrame(base64Pcm: string): void {
+    // Between utterances the socket stays up but silent — this is the whole
+    // saving, so the gate is checked before anything else.
+    if (!streaming) return;
     if (phase === 'open' && ws?.readyState === WebSocket.OPEN) {
       rawSend(base64Pcm);
     } else if (phase === 'connecting' && pending.length < MAX_PENDING_FRAMES) {
@@ -64,6 +84,26 @@ export function createStt(events: SttEvents): Stt {
       pending.push(base64Pcm);
     }
     // closed/closing: no active listening turn — drop.
+  }
+
+  // A VAD onset: start streaming this utterance. Opens the socket if it's cold,
+  // and on a warm one flushes the pre-roll straight down it so the opening word
+  // survives — the pre-roll used to matter only at connect time, but with the
+  // socket held open between turns every utterance now starts mid-connection.
+  // getPreRoll is a callback because flushing drains the mic's ring: it must
+  // only be called when this really is a fresh utterance, never on an onset
+  // that lands while an earlier one is still streaming.
+  function beginUtterance(getPreRoll: () => Int16Array[]): void {
+    if (streaming) return;
+    streaming = true;
+    if (shouldOpenSocket(phase, true)) {
+      void open(getPreRoll()).catch(() => {});
+      return;
+    }
+    // Connecting: frames are already buffering into `pending`, and the pre-roll
+    // went with the open() that started it — nothing to add.
+    if (phase !== 'open') return;
+    for (const frame of getPreRoll()) rawSend(pcm16ToBase64(frame));
   }
 
   async function open(preRoll: Int16Array[]): Promise<void> {
@@ -116,6 +156,9 @@ export function createStt(events: SttEvents): Stt {
           break;
         }
         case 'committed_transcript': {
+          // The server has decided the utterance ended, so it needs no more
+          // audio until the next onset — stop streaming, keep the socket.
+          streaming = false;
           if (typeof msg.text === 'string') events.onCommitted(msg.text);
           break;
         }
@@ -127,6 +170,8 @@ export function createStt(events: SttEvents): Stt {
     socket.addEventListener('close', () => {
       if (ws === socket) ws = null;
       pending = [];
+      // No socket, no utterance — the next onset opens both.
+      streaming = false;
       setPhase('closed');
     });
 
@@ -157,11 +202,12 @@ export function createStt(events: SttEvents): Stt {
   }
 
   return {
-    open,
+    beginUtterance,
     sendFrame,
     noteVoice,
     maybeClose,
     close,
     phase: () => phase,
+    framesSent: () => sent,
   };
 }

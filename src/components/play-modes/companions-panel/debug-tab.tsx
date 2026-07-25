@@ -9,6 +9,7 @@ import { LogCard, type LogEntry } from '@/components/log-card';
 import { RateLimitMeter } from '@/components/rate-limit-meter';
 import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import type { VoiceStatus } from '@/hooks/use-voice-session';
+import { FRAME_MS } from '@/lib/voice/mic';
 import { DebugLLMButton } from './debug-llm-button';
 import { EventLog } from './event-log';
 import { StatRow } from './stat-row';
@@ -30,6 +31,12 @@ export function DebugTab({
         <div className="text-muted-foreground flex gap-4">
           <span>STT {status.phase}</span>
           <span>pre-roll {status.preRollFrames}</span>
+          {/* The billable number: audio actually streamed this session. It
+              should climb only while you're talking and sit still between
+              turns, however long the socket stays open. */}
+          <span>
+            sent {((status.sentFrames * FRAME_MS) / 1000).toFixed(1)}s
+          </span>
         </div>
         <div className="mt-2">
           <p className="min-h-6">
