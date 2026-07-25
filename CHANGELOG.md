@@ -7,6 +7,7 @@
   load balancing, which had been spreading requests across providers regardless
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
+  ([#21](https://github.com/autogoon/autogoon/pull/21))
 
 ## 2026-07-24
 
