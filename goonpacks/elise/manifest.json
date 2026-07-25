@@ -9,7 +9,7 @@
     "gender": "female",
     "accentColour": "fuchsia",
     "voiceId": "uhseMNDjn3oAF24Hh83b",
-    "model": "xiaomi/mimo-v2.5",
+    "model": "xiaomi/mimo-v2.5:nitro",
     "contextWindow": 1000000,
     "passesReasoning": false
   }
