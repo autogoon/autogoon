@@ -12,6 +12,10 @@
 @source inline(
   "{hover:,}{from,to}-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-500/{5,10,15,20,25}"
 );
+/* Filled trait pips on the same cards, in the same interpolated colour. */
+@source inline(
+  "bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-500"
+);
 
 @custom-variant dark (&:is(.dark *));
 
@@ -174,7 +178,7 @@
  * The same sweeping band as text-shimmer, laid on a hairline ring instead of
  * the text — it marks the message a companion is speaking right now. The ring
  * is a pseudo-element masked to its own border box (rather than a real border
- * or a background-clip trick), because her bubble's background is translucent
+ * or a background-clip trick), because the bubble's background is translucent
  * and anything painted behind it would show through. Shares text-shimmer's
  * keyframes and timing so the two read as one effect; --shimmer-color follows
  * the same convention.
@@ -200,8 +204,8 @@
     background-size: 250% 100%;
     /* Two dials, set where the utility is used: --shimmer-duration for the
        sweep's pace and --shimmer-strength for how present the ring is. The
-       warming-up state (her voice loading) runs slower and fainter than the
-       speaking one, so the ring visibly picks up when she starts talking. */
+       warming-up state (the voice loading) runs slower and fainter than the
+       speaking one, so the ring visibly picks up once the talking starts. */
     opacity: var(--shimmer-strength, 1);
     /* Punch the fill out of the ring: paint the border box, mask away the
        content box, leaving just the 1px edge. Longhands on purpose — the

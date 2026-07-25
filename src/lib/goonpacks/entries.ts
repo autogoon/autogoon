@@ -35,7 +35,7 @@ export const newestFirst = (a: string, b: string): number =>
 export type VariantSlot = 'pictures' | 'prompt' | 'voice' | 'colour' | 'model';
 
 // One selectable pack version — an option in the card's base or overlay
-// select. key null = the built-in herself (the base select's only option on
+// select. key null = the built-in itself (the base select's only option on
 // a built-in card).
 export type PackOption = {
   key: string | null;

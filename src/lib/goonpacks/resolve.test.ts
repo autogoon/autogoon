@@ -26,6 +26,8 @@ const base: Companion = {
   model: 'm',
   contextWindow: 10,
   passesReasoning: true,
+  chattiness: 2,
+  playfulness: 4,
 };
 const overlay = (
   extra: { companion?: object; noPictures?: boolean } = {},

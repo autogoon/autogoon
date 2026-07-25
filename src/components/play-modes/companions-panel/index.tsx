@@ -3,7 +3,7 @@
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
-// shared Player, so the device runs the companion's program while she talks. One
+// shared Player, so the device runs the companion's program while they talk. One
 // companion, a random program on fixed default knobs, on-screen intensity/
 // variety controls, and buttons-only device controls (no vosk words — open
 // dictation to the companion would otherwise transcribe them).
@@ -74,9 +74,9 @@ import { VoiceStageBubble } from './voice-stage';
 import { ToolChip } from './tool-chip';
 
 // Fixed default knobs — the program is random within this baseline. Companions
-// start gentle: a low-intensity, lightly-varying program. She turns it up from
-// there via her intensity/variety tools. Speed is applied live; variety reshapes
-// the dip pattern.
+// start gentle: a low-intensity, lightly-varying program. The companion turns it
+// up from there via their intensity/variety tools. Speed is applied live;
+// variety reshapes the dip pattern.
 const DEFAULT_INTENSITY = 20;
 const DEFAULT_VARIETY: VariabilityLevel = 'low';
 
@@ -191,7 +191,7 @@ export function CompanionsPanel({
 
   // Program-shaping knobs, owned here. Declared above the tools / voice session
   // because the intensity/variety tools below drive changeIntensity / changeVariety
-  // — one path for both her tool calls and the on-screen controls.
+  // — one path for both the companion's tool calls and the on-screen controls.
   const [intensity, setIntensity] = useState<number>(DEFAULT_INTENSITY);
   const [variety, setVariety] = useState<VariabilityLevel>(DEFAULT_VARIETY);
 
@@ -221,8 +221,8 @@ export function CompanionsPanel({
     [device, engine, vacuglide],
   );
 
-  // The picture shown in the lightbox — null when closed. Set when she sends a
-  // picture (auto-opens; if it's already open, it swaps to the newest) and when
+  // The picture shown in the lightbox — null when closed. Set when the companion
+  // sends a picture (auto-opens; if it's already open, it swaps to the newest) and when
   // a picture in the transcript is clicked.
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const showPicture = useCallback((src: string) => setLightboxSrc(src), []);
@@ -233,8 +233,8 @@ export function CompanionsPanel({
   // array-literal inference merges the differently-shaped `intensity`/`variety`
   // `parameters.properties` into one shape before the check, and fails.
   const tools = useMemo((): CompanionTool[] => {
-    // Her pictures, if any. Empty → the send_picture tool is left out entirely,
-    // so a companion with no pictures never offers it.
+    // The companion's pictures, if any. Empty → the send_picture tool is left out
+    // entirely, so a companion with no pictures never offers it.
     const pics = companion.pictures ?? [];
     return [
       {
@@ -310,8 +310,8 @@ export function CompanionsPanel({
           return `variety → ${level}`;
         },
       },
-      // send_picture — only when she has pictures. She picks by number from the
-      // list in the description; run() resolves it to a src, opens the lightbox,
+      // send_picture — only when the companion has pictures. They pick by number
+      // from the list in the description; run() resolves it to a src, opens the lightbox,
       // and returns the src so it renders inline in the transcript too.
       ...(pics.length > 0
         ? [
@@ -363,7 +363,7 @@ export function CompanionsPanel({
   // The toy's state in plain terms — connection, whether it's actually running
   // (running implies connected), and the current intensity/variety levels. This
   // is the ground-truth line the companion reads each turn; the level is here (not just
-  // in her tool history) so she stays in sync when the knobs are changed
+  // in their tool history) so they stay in sync when the knobs are changed
   // manually. No "program" (in-app jargon).
   const getDeviceState = useCallback((): string => {
     const levels = `It's set to ${intensity}% intensity with ${variety} variety.`;
@@ -397,6 +397,7 @@ export function CompanionsPanel({
     companion,
     tools,
     getDeviceState,
+    isPlaying: () => player.state === 'playing',
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
@@ -529,9 +530,9 @@ export function CompanionsPanel({
     [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
       'assistant';
 
-  // From the moment her words are headed for the speaker, her most recent turn
-  // wears the shimmer instead of a status row — faint while the voice loads,
-  // stronger once she's speaking.
+  // From the moment the companion's words are headed for the speaker, their most
+  // recent turn wears the shimmer instead of a status row — faint while the
+  // voice loads, stronger once they're speaking.
   const voice =
     stage === 'tts' ? 'warming' : stage === 'speaking' ? 'speaking' : undefined;
 
@@ -650,8 +651,8 @@ export function CompanionsPanel({
         <>
           <Card title="Companions">
             <p>
-              Choose a companion. She listens, replies in her own voice, and
-              runs the device while you talk — cut in any time and she stops.
+              Choose a companion. They listen, reply in their own voice, and run
+              the device while you talk — cut in any time and they stop.
             </p>
             <div className="mt-2 flex flex-col gap-2">
               {library.status === 'loading' ? (
@@ -834,8 +835,8 @@ export function CompanionsPanel({
                   {status.thread.map((turn, i) => {
                     let row: ReactNode;
                     if (turn.role === 'tool') {
-                      // A picture she sent renders as a clickable thumbnail;
-                      // any other tool call as the little action chip.
+                      // A picture the companion sent renders as a clickable
+                      // thumbnail; any other tool call as the little action chip.
                       if (turn.imageSrc !== undefined) {
                         const src = resolvePictureRef(
                           turn.imageSrc,
@@ -856,8 +857,8 @@ export function CompanionsPanel({
                         );
                       }
                     } else if (isSilentAssistantTurn(turn)) {
-                      // She called a tool without saying anything: no bubble —
-                      // the tool chip or picture that follows is the record.
+                      // The companion called a tool without saying anything: no
+                      // bubble — the tool chip or picture that follows is the record.
                       row = null;
                     } else {
                       row = (
@@ -907,9 +908,9 @@ export function CompanionsPanel({
                       Error: {status.replyError}
                     </p>
                   )}
-                  {/* The ring mirrors the one on a message she's speaking:
-                      hers shimmers while she talks, the composer while we're
-                      listening to you. It rides the wrapper because a textarea
+                  {/* The ring mirrors the one on a message the companion is
+                      speaking: theirs shimmers while they talk, the composer
+                      while we're listening to you. It rides the wrapper because a textarea
                       can't carry the pseudo-element that draws it, and because
                       the ring shouldn't dim with the disabled box inside. */}
                   <div

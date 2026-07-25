@@ -3,6 +3,7 @@
   "proseWrap": "always",
   "singleQuote": true,
   "overrides": [
-    { "files": "CHANGELOG.md", "options": { "proseWrap": "preserve" } }
+    { "files": "CHANGELOG.md", "options": { "proseWrap": "preserve" } },
+    { "files": "goonpacks/**/*.md", "options": { "proseWrap": "preserve" } }
   ]
 }

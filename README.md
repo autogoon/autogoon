@@ -30,12 +30,13 @@ to install; just open it, enter your device token, and go.
 ## Companions — if you run it yourself
 
 There's a fourth mode: **[Companions](./modes/COMPANIONS.md)** — talk to an AI
-companion who chats back in her own voice, remembers the conversation, and
-drives the toy herself. Given pictures (bring your own), she'll send you one
-that fits the moment, picked by its caption — no image ever goes to a vision
-model mid-play.
+companion who chats back in their own voice, remembers the conversation, and
+drives the toy themselves. They don't wait to be spoken to either: go quiet and
+the conversation keeps going, so you can lie back mid-session and let them run
+it. Given pictures (bring your own), a companion will send you one that fits the
+moment, picked by its caption — no image ever goes to a vision model mid-play.
 
-**Companions isn't usable on the public app.** Her chat, voice and hearing are
+**Companions isn't usable on the public app.** Their chat, voice and hearing are
 paid cloud services, so on a deploy the mode sits behind an access key and stays
 hidden without one. Run the app yourself with your own keys and it just works —
 locally, no access key needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
@@ -44,7 +45,7 @@ covers setup and pictures.
 **Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
 zip — persona, voice, colour and pictures — imported straight into the app: a
 complete new companion, or an overlay that changes one you have (add pictures,
-swap her voice or persona). Assembling one is plain-text work, no coding —
+swap their voice or persona). Assembling one is plain-text work, no coding —
 [GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in the repo.
 
 ## Privacy
@@ -55,8 +56,9 @@ recognition runs entirely locally in your browser, so your microphone audio
 never leaves your machine.
 
 The exception is **Companions**, which can't be local-only by nature: during
-play your speech is transcribed by a cloud STT service, and her replies come
-from a cloud LLM and TTS voice. The other three modes stay fully local.
+play your speech is transcribed by a cloud STT service, and the companion's
+replies come from a cloud LLM and TTS voice. The other three modes stay fully
+local.
 
 ## The app
 

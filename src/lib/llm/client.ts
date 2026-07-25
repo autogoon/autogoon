@@ -4,6 +4,7 @@
 // server-side, and the proxy is unauthenticated for the local experiment.
 // openai-node needs an ABSOLUTE baseURL — see createLlmClient for how that's built.
 import OpenAI from 'openai';
+import { parseTextualToolCalls } from './textual-tool-calls';
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type LlmMessage = {
@@ -193,10 +194,17 @@ export function createLlmClient(model: string): LlmClient {
     );
     const reasoning: ReasoningEntry[] = [];
     const toolCalls: AssembledCall[] = [];
+    // Kept so the finished text can be checked for calls the model wrote out
+    // instead of making — see textual-tool-calls.ts. Deltas still stream
+    // untouched; a block can span several, so it's only knowable at the end.
+    let content = '';
     for await (const chunk of completion) {
       const choice = chunk.choices[0];
       const delta = choice?.delta?.content;
-      if (delta) yield delta;
+      if (delta) {
+        content += delta;
+        yield delta;
+      }
       const extras = choice?.delta as DeltaExtras | undefined;
       const rd = extras?.reasoning_details;
       if (rd != null) mergeReasoning(reasoning, rd);
@@ -211,9 +219,15 @@ export function createLlmClient(model: string): LlmClient {
     // — an early break (barge-in / abort) calls the generator's return() and
     // skips this, so truncated data is never handed back.
     if (reasoning.length > 0) opts.onReasoning?.(reasoning);
-    if (toolCalls.length > 0) {
-      opts.onToolCalls?.(toolCalls.map(({ index: _index, ...c }) => c));
-    }
+    // A model that wrote its calls out as text made none through the API, so
+    // these are additions rather than duplicates — but concatenate rather than
+    // replace, in case a turn manages one of each.
+    const recovered = parseTextualToolCalls(content);
+    const calls = [
+      ...toolCalls.map(({ index: _index, ...c }) => c),
+      ...recovered,
+    ];
+    if (calls.length > 0) opts.onToolCalls?.(calls);
   }
 
   return { stream };

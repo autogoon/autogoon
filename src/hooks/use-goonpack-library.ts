@@ -302,7 +302,7 @@ export function useGoonpackLibrary() {
     async (
       entry: LibraryEntry,
       // The card's two selects: which base version (null = the built-in
-      // herself) and which overlay version (null = none).
+      // itself) and which overlay version (null = none).
       baseKey: string | null,
       overlayKey: string | null,
     ): Promise<Companion | null> => {

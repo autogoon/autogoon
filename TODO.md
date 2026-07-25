@@ -13,6 +13,22 @@ Concrete, intended work. Speculative direction and design thinking lives in
   screen), and how it composes with the bring-your-own-keys feature below (with
   BYO keys it's the _user's_ balance — arguably more useful, same lookups).
 
+- **Finish intensity.** One global percentage in Settings: the intensity you'd
+  want to finish at. **Finish** goes to it; **companion-set intensity** is
+  multiplied by it (they set 100, it lands on 50, and they never see the setting
+  or the scaled number); and **the wind-down** starts at it and ramps down.
+  Torture and the two ruins don't take it — they're absolute on purpose — and
+  Autopilot doesn't change, being a faithful recreation of the Vacuglide
+  algorithm. A companion picking a number has no idea what it does to you, and
+  the only fix today is saying so in words, every session and every new
+  companion.
+
+- **Put the wind-down on a curve.** It glides down in two straight-line phases.
+  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it
+  approaches a standstill instead of stepping evenly the whole way — a 5-unit
+  change at speed 10 is felt far more than the same change at speed 90. Goon,
+  Groove and Companions each carry their own copy of the constants.
+
 ## Companions
 
 Remaining companion features — largely independent, picked off in any order,
@@ -24,53 +40,31 @@ rationale live in the design doc:
 What's already built is described in
 [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
-### Ambient chat
+### Split the voice session and the companions panel
 
-Built on the shipped thread and companion-driven control. Narration and ambient
-filler collapse into one source: at the end of each of her turns she schedules
-the next one, so a silence is filled by her rather than by a clock watching for
-it.
+`use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
+`companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
+to hold in the head. The coupling is load-bearing rather than careless — the mic
+and STT callbacks are created once and outlive many renders, so everything they
+read has to be a ref — which is why "just split it" isn't the fix.
 
-**The loop.** She replies; as that reply finishes, a poke is scheduled for _x_ ±
-_y_ seconds' time. A confirmed partial cancels it — a real turn is already on
-its way, so there is nothing to fill. A poke that does fire runs a turn on no
-payload: the persona decides what to say from the thread and the device's
-current + upcoming state (`player.upcoming`), is free to end the turn in a tool
-call, and schedules its own successor. Preemptible under barge-in like any other
-reply.
-
-**She decides when to stop, not a timer.** The system prompt tells her she may
-ask whether you're still there once you've been quiet a while, and that a reply
-carrying `WAIT_FOR_USER` schedules no successor — the same marker for when she
-judges the conversation finished. The marker is stripped before TTS. Only your
-next turn restarts the loop, which the gap markers then frame as you coming
-back. This is what makes the cadence self-limiting: she knows whether there is
-anything left to say, and a clock doesn't.
-
-**Nothing else gates it.** Not the mic, not a running program: she decides
-whether there is more to say, so a second gate would only mute her where she'd
-be welcome. The scheduler is wall-clock and belongs to the voice session — never
-to the program, whose events are dropped on every regeneration and scale with
-playback rate, neither of which should touch her cadence. The cost of dropping
-the gate is that stopping the program no longer stops her; walking away leaves
-her poking until she gives up, which is what [Activity cutoff](#activity-cutoff)
-backstops.
-
-**Cadence** comes from two optional per-companion manifest fields (1–5), in
-**seconds**: `chattiness` out of play and `playfulness` while a program runs.
-Two rather than one because the appetites are independent — a laconic persona
-can still narrate play relentlessly — and one knob would force them to move
-together. This is the only thing the program's state decides; it never gates
-whether she speaks. The shape to design for is what motivates the feature:
-you're mid-play, lying back, letting her drive.
+Three seams are visible in the hook. **Thread persistence** (`persistThread`,
+`clearThread`, the load effect) touches two refs and nothing else: a clean lift
+with no design needed. **The turn runner** — `submitText` and its helpers: LLM
+streaming, metrics, tool dispatch, the reaction, the TTS handoff — is the bulk
+and needs most of the refs, so extracting it means inventing an explicit
+session-context to carry them, which is the real work and the reason this hasn't
+happened. **What remains** is the mic/STT/VAD wiring and start/stop, which is
+what a hook of that name should mostly be.
 
 ### Activity cutoff
 
-A spend backstop, separate from [Ambient chat](#ambient-chat)'s own
-`WAIT_FOR_USER` stop: after long enough with no sign of anyone — no user turn,
-no control touched — stop the program. Stopping the program already stops
-ambient chat, so the one cutoff covers a session left running in an empty room,
-which is where LLM and TTS spend would otherwise run indefinitely.
+A spend backstop, separate from ambient chat's own `wait_for_user` stop (shipped
+— see [modes/COMPANIONS.md](./modes/COMPANIONS.md)): after long enough with no
+sign of anyone — no user turn, no control touched — stop the program. Stopping
+the program already stops ambient chat, so the one cutoff covers a session left
+running in an empty room, which is where LLM and TTS spend would otherwise run
+indefinitely.
 
 The hard part is the number, not the mechanism. Long silences during play are
 normal — the device is working and there is nothing to say — so a cutoff tuned
@@ -103,6 +97,29 @@ when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
 the system prompts. _(The on-hardware feel tuning remains.)_
 
+### The companion picks the after-play
+
+The companion gets a tool for each after-play and picks which one to use when
+you say you're cumming. The persona decides, so the ending stops being a setting
+and becomes something she does to you. And because she can choose, she can say
+she will without saying which.
+
+### Reconsider the second person the prompts assume
+
+The shared prompt and the ambient cue both address the user as "he" throughout,
+and the toy-start rule doubled the density of it. The premise is reasonable —
+it's a male masturbator, so nearly every user is male — but it's an assumption
+baked into copy rather than a setting, and the companions themselves aren't
+gendered anywhere else in the app.
+
+Worth deciding deliberately rather than by default. The options are roughly:
+leave it (and say so somewhere, so it reads as a choice); neutralise the prompt
+copy; or make it a setting, which is the most work and the only one that costs a
+compatibility surface — pack prompts are author-written and would have to follow
+whatever convention is picked. Note that neutral pronouns in prompt copy also
+cost some clarity: "he" and "she" in the same block disambiguate who is being
+talked about in a way "they" twice over does not.
+
 ### Personas shape their programs
 
 Map a companion's traits onto **Groove's knobs** — `intensity` to the
@@ -111,14 +128,14 @@ program stops being random and becomes **hers**. This is the missing piece for
 the companions' _programs_ (not just their chat) to diverge.
 
 **First settle which of these are code at all.** `chattiness` and `playfulness`
-shipped with [Ambient chat](#ambient-chat) because they drive a timer. The rest
-may not need any: `dominance` is really how readily she overrides what you asked
-for, and that is a disposition the system prompt can carry on its own —
-plausibly `variety` too. A trait only earns a manifest field and a mapping if
-code reads it; one that only colours how she behaves belongs in her prompt,
-where an author can already write it. Work out which is which before adding
-fields, because a manifest field is a compatibility surface and packs in the
-wild make it expensive to take back.
+shipped with ambient chat because they drive a timer. The rest may not need any:
+`dominance` is really how readily a companion overrides what you asked for, and
+that is a disposition the system prompt can carry on its own — plausibly
+`variety` too. A trait only earns a manifest field and a mapping if code reads
+it; one that only colours how a companion behaves belongs in the prompt, where
+an author can already write it. Work out which is which before adding fields,
+because a manifest field is a compatibility surface and packs in the wild make
+it expensive to take back.
 
 ### Trait-driven companion contrast
 

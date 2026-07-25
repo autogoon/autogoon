@@ -3,8 +3,8 @@ name: doc-check
 description:
   Use before opening a PR and again before merging it, after a rename or
   refactor, or whenever code and docs may have drifted apart — including stale
-  paths, renamed identifiers, incomplete lists, or docs describing behaviour
-  the code no longer has.
+  paths, renamed identifiers, incomplete lists, or docs describing behaviour the
+  code no longer has.
 ---
 
 # Doc check
@@ -33,17 +33,17 @@ owns the what — docs own the why, the invariants, and the cross-file shape).
 
 Two classes of doc, checked differently:
 
-- **Future-friendly** — `TODO.md`, `ROADMAP.md` + `roadmap/*.md`, and the
-  dated plans/specs under `docs/`. These describe intent and churn as plans
-  change: only check the claims they make about the _current_ code ("Groove's
-  floor is fixed at 60"), never flag unbuilt ideas.
+- **Future-friendly** — `TODO.md`, `ROADMAP.md` + `roadmap/*.md`, and the dated
+  plans/specs under `docs/`. These describe intent and churn as plans change:
+  only check the claims they make about the _current_ code ("Groove's floor is
+  fixed at 60"), never flag unbuilt ideas.
 - **Current-state** — literally everything else (README, ARCHITECTURE,
-  CLAUDE.md, DEVELOPERS, MODES.md, `modes/*.md`). These describe **only what
-  is implemented**, as it is today.
+  CLAUDE.md, DEVELOPERS, MODES.md, `modes/*.md`). These describe **only what is
+  implemented**, as it is today.
 
-Current-state docs also split by **audience**: README, MODES.md and
-`modes/*.md` are **user-facing** — written for someone using the app;
-ARCHITECTURE.md, DEVELOPERS.md and CLAUDE.md are developer-facing.
+Current-state docs also split by **audience**: README, MODES.md and `modes/*.md`
+are **user-facing** — written for someone using the app; ARCHITECTURE.md,
+DEVELOPERS.md and CLAUDE.md are developer-facing.
 
 `modes/AUTOPILOT.md` is deliberately exhaustive (the only record of the
 reverse-engineered algorithm): its constants must match `autopilot-engine.ts`
@@ -72,27 +72,38 @@ exactly.
    and experiential "you never know what's coming" are not future work.)
 9. **Past leakage** — the mirror image, and just as much a finding: a
    current-state doc or code comment describing what something _replaced_ or
-   _used to be_ ("replaces the old spinners", "this used to live in…",
-   "renamed from…", "no longer uses…"). The change belongs in `CHANGELOG.md`
-   and git history, which already record it; the reader in front of the code
-   needs what it does now. Delete the clause — the sentence around it almost
-   always stands on its own. The exception is provenance explaining a live
-   constraint ("ported verbatim from X, so it keeps X's quirks"): that
-   describes the present and stays.
+   _used to be_ ("replaces the old spinners", "this used to live in…", "renamed
+   from…", "no longer uses…"). The change belongs in `CHANGELOG.md` and git
+   history, which already record it; the reader in front of the code needs what
+   it does now. Delete the clause — the sentence around it almost always stands
+   on its own. The exception is provenance explaining a live constraint ("ported
+   verbatim from X, so it keeps X's quirks"): that describes the present and
+   stays.
 10. **Audience** — user-facing docs speak to someone _using_ the app, so repo
-   mechanics are findings there: what's committed or gitignored, generated
-   modules and build plumbing, "see the header comments in scripts/…". That
-   material belongs in DEVELOPERS.md, ARCHITECTURE.md, or the code itself. npm
-   commands a user actually runs to operate a feature (the describe scripts,
-   restarting dev) are fine — they're user instructions, not developer ones.
+    mechanics are findings there: what's committed or gitignored, generated
+    modules and build plumbing, "see the header comments in scripts/…". That
+    material belongs in DEVELOPERS.md, ARCHITECTURE.md, or the code itself. npm
+    commands a user actually runs to operate a feature (the describe scripts,
+    restarting dev) are fine — they're user instructions, not developer ones.
 11. **Vocabulary & register** — docs use the app's terms: **play mode** (never
-    "algorithm" as the category — it survives only where it genuinely means
-    one, like "the Vacuglide algorithm"), **program** (the timed plan),
+    "algorithm" as the category — it survives only where it genuinely means one,
+    like "the Vacuglide algorithm"), **program** (the timed plan),
     **play/session** (what the user is doing). A persona's _fiction_ stays in
     persona copy — "during a call" belongs to Elise and Aimee's video-call
     framing, not to app documentation. And a capability is described as the
     feature's, not as belonging to whichever companion currently has it
     ("Companions can send pictures", not "Aimee can").
+12. **Companion gender** — a companion can be any gender: one is whatever their
+    pack's author wrote. So anything describing _companions in general_ — docs,
+    changelog entries, code comments, type and field comments — says "they", or
+    is written to need no pronoun at all ("the companion", "a card shows…"). The
+    built-ins happening to be women is a fact about them, not about the feature.
+    The exception is copy about **one named persona**, where her own pronouns
+    are correct and neutralising would be wrong: Miley's `chattiness` comment,
+    Elise's prompt, a changelog line naming her. The test is what the sentence
+    is about — the app, or a character in it. (The second person the prompts
+    address the _user_ in is a separate question, parked in
+    [TODO.md](../../../TODO.md).)
 
 ## Output and fixes
 

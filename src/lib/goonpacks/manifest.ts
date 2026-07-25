@@ -68,6 +68,8 @@ export type CompanionConfig = {
   model?: string; // OpenRouter slug; app default when omitted
   contextWindow?: number;
   passesReasoning?: boolean;
+  chattiness?: number; // 1–5: how readily a silence is filled out of play
+  playfulness?: number; // 1–5: how readily they talk over a running program
 };
 
 // The keys of CompanionConfig — the only fields the companion section allows.
@@ -80,6 +82,8 @@ const COMPANION_FIELDS = [
   'model',
   'contextWindow',
   'passesReasoning',
+  'chattiness',
+  'playfulness',
 ] as const;
 
 export type PackManifest = {
@@ -241,6 +245,17 @@ export function parseManifest(raw: unknown): PackManifest {
       'The passesReasoning field must be true or false (no quotes).',
     );
   }
+  // 1–5 on both, so a pack that means "barely speaks" can't quietly ask for a
+  // poke every few milliseconds. Out-of-range is rejected rather than clamped:
+  // a number outside the scale is a misunderstanding of what it means, and the
+  // author would rather be told than have it silently reinterpreted.
+  for (const trait of ['chattiness', 'playfulness'] as const) {
+    const v = c[trait];
+    if (v === undefined) continue;
+    if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 5) {
+      problems.push(`The ${trait} field must be a whole number from 1 to 5.`);
+    }
+  }
   const name = optionalString(c.name, 'name');
   const description = optionalString(c.description, 'description');
   const voiceId = optionalString(c.voiceId, 'voiceId');
@@ -263,6 +278,8 @@ export function parseManifest(raw: unknown): PackManifest {
       model,
       contextWindow: c.contextWindow as number | undefined,
       passesReasoning: c.passesReasoning as boolean | undefined,
+      chattiness: c.chattiness as number | undefined,
+      playfulness: c.playfulness as number | undefined,
     },
   };
 }

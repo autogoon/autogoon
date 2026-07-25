@@ -1,13 +1,13 @@
 'use client';
 
-// One transcript row: user turns right-aligned in the accent colour, hers
-// left-aligned and muted. `pending` dims the in-progress reply until it folds
-// into the thread. `at` (absent on pending bubbles and pre-timestamp turns)
-// puts a small clock time under the bubble, on its aligned side. `voice` rings
-// the bubble with a slow shimmer once her words are on their way to being
-// spoken: faint and slow while the voice loads, brighter and quicker once she's
-// actually saying them. The message itself is the indicator, so neither stage
-// gets a status row of its own.
+// One transcript row: user turns right-aligned in the accent colour, the
+// companion's left-aligned and muted. `pending` dims the in-progress reply until
+// it folds into the thread. `at` (absent on pending bubbles and pre-timestamp
+// turns) puts a small clock time under the bubble, on its aligned side. `voice`
+// rings the bubble with a slow shimmer once the companion's words are on their
+// way to being spoken: faint and slow while the voice loads, brighter and
+// quicker once they're actually saying them. The message itself is the
+// indicator, so neither stage gets a status row of its own.
 
 const VOICE = {
   warming: {

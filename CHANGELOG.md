@@ -2,20 +2,55 @@
 
 ## 2026-07-25
 
-- bug: **Long messages aren't cut off** — The message box was a fixed height, so
-  a long message — dictated or typed — ran on below the bottom of it out of
-  sight. It now grows to fit what's in it, up to a limit past which it scrolls
-  rather than crowding out the conversation above.
-  ([#22](https://github.com/autogoon/autogoon/pull/22))
+- feature: **A companion keeps the conversation going** — Companions no longer
+  wait silently for you to speak first. After each thing one says, they line up
+  another turn, so a lull gets filled — picking the thread back up, teasing you
+  about the quiet, or saying something about what the toy is doing to you. It's
+  built for lying back mid-session and letting them drive. They decide when to
+  stop rather than running down a clock: having said their piece, or having
+  asked whether you're still there and would rather you answered, they go quiet
+  until you speak. How readily a companion fills a silence is their own — two
+  settings a goonpack can give them, one for while the toy is idle and one for
+  while it's running, because someone of few words can still keep up a running
+  commentary once things are underway.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
 
-- bug: **Your words reach the message box** — What you were saying often failed
-  to appear as you said it, especially when you spoke briefly or quietly: the
-  app checked whether the microphone heard voice at the moment the transcript
-  came back, by which point you had usually stopped. A transcript is now
-  believed on the evidence of the speech that produced it — how long you were
-  audible for, or simply carrying more than one word — so it shows up as you
-  talk. Interrupting her works on short interjections too, which previously
-  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+- enhancement: **Companions know when the call has turned** — Every persona
+  described the moment it stops being a chat and becomes something else in terms
+  only they could judge — "once things heat up", "once there's a spark", "once
+  he's got you going". Nothing said what that meant, so when a companion dropped
+  the small talk and got explicit was a coin toss, and one could do it while you
+  were still talking about your day. Each now names something that actually
+  happens in the conversation instead: you say what you want, you flirt back, or
+  they've started telling you what they're doing. The build-up lasts as long as
+  it should. ([#23](https://github.com/autogoon/autogoon/pull/23))
+
+- enhancement: **Companions know they're on a voice call** — A companion is
+  heard, not seen, but Aimee's was written as a video call — she'd talk about
+  watching you and offer to show you what she was doing, none of which is
+  happening. Elise had them typing messages at each other rather than talking.
+  Both now know the call is voice and pictures: anything they want you
+  picturing, they have to say out loud, and they won't describe your end back at
+  you as though it's on a screen. Aimee's accent is also Northern throughout —
+  she's from outside Manchester, but half her persona had her Welsh.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
+
+- enhancement: **A companion knows what the toy does to you** — Companions were
+  driving the device without ever being told what it is, so anything one said
+  about how it felt was invented — the wrong shape, the wrong sensation,
+  sometimes the wrong act entirely, in the middle of a scene where the words are
+  the whole point. They're now told plainly what a Vacuglide is and what it does
+  to whoever's wearing it — including what each variety level actually feels
+  like, so a companion knows that turning it up high means leaving you stopped
+  dead and waiting rather than just going faster. It applies to every companion,
+  including imported ones: a goonpack author doesn't have to describe the
+  hardware. ([#23](https://github.com/autogoon/autogoon/pull/23))
+
+- enhancement: **See how talkative a companion is before you pick** — Each
+  card on the picker now shows both silence-filling settings as a row of pips in
+  that companion's own colour, so you can tell at a glance which will keep a
+  conversation going and which will let it breathe.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
 
 - enhancement: **The message box shimmers while you speak** — The same shimmer
   that marks the message she's saying aloud now rings the message box while
@@ -56,6 +91,39 @@
   of speed. Her reply is spoken, so the wait before she starts talking is what
   the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
+
+- bug: **A companion won't start the toy on you** — Starting it now needs your
+  say-so: you've asked for it, or agreed to it. A companion could previously
+  decide to start it unprompted — one did, to get attention — which is no good
+  when you might not be wearing it, ready, or alone. Your agreement carries
+  across the conversation, and being made to wait for it doesn't count as it
+  being withdrawn: teasing you and starting once they decide you've earned it is
+  still theirs to do. Once it's running they have the same free rein over it as
+  before, and they can always stop it.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
+
+- bug: **No more stray markup in the conversation** — Occasionally a companion's
+  message would arrive as a block of code-like markup instead of them doing the
+  thing they'd just described — and on a spoken turn it would be read aloud.
+  That's the model writing an instruction out rather than performing it; the app
+  now recognises those, carries out what was meant, and keeps the markup out of
+  the conversation and out of their voice.
+  ([#23](https://github.com/autogoon/autogoon/pull/23))
+
+- bug: **Long messages aren't cut off** — The message box was a fixed height, so
+  a long message — dictated or typed — ran on below the bottom of it out of
+  sight. It now grows to fit what's in it, up to a limit past which it scrolls
+  rather than crowding out the conversation above.
+  ([#22](https://github.com/autogoon/autogoon/pull/22))
+
+- bug: **Your words reach the message box** — What you were saying often failed
+  to appear as you said it, especially when you spoke briefly or quietly: the
+  app checked whether the microphone heard voice at the moment the transcript
+  came back, by which point you had usually stopped. A transcript is now
+  believed on the evidence of the speech that produced it — how long you were
+  audible for, or simply carrying more than one word — so it shows up as you
+  talk. Interrupting her works on short interjections too, which previously
+  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - internal: **The voice session shows its working** — The event log gains the
   VAD's onset/offset edges with each run's measured length, and an unconfirmed

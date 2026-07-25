@@ -14,6 +14,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
+import { stripTextualToolCalls } from '@/lib/llm/textual-tool-calls';
+import { AMBIENT_CUE } from '@/lib/companions/ambient';
+import {
+  createAmbientScheduler,
+  type AmbientScheduler,
+} from '@/lib/companions/ambient-scheduler';
 import {
   createLlmClient,
   type LlmClient,
@@ -62,6 +68,12 @@ export type VoiceStatus = {
   // the audio ElevenLabs bill for — the number to check a session against the
   // usage dashboard, and the one that should stay flat between turns.
   sentFrames: number;
+  // Ambient chat's whole state: when the next unprompted turn is due (null when
+  // none is pending) and whether the companion has bowed out until you speak.
+  // Surfaced so the debug tab can show what's coming — otherwise a poke that
+  // never comes and a poke that was never armed look identical.
+  ambientDueAt: number | null;
+  ambientHolding: boolean;
   partial: string;
   committed: string;
   replyPlaying: boolean;
@@ -75,7 +87,7 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
-  // True while her reply audio is actually playing: set where awaitingSpeech
+  // True while the companion's reply audio is actually playing: set where awaitingSpeech
   // clears (first audio bytes), cleared when the utterance finishes or the
   // turn is cancelled/superseded. The bit replyPlaying can't give a display —
   // that flag spans the whole turn, generation included.
@@ -116,6 +128,8 @@ const IDLE_STATUS: VoiceStatus = {
   rms: 0,
   preRollFrames: 0,
   sentFrames: 0,
+  ambientDueAt: null,
+  ambientHolding: false,
   partial: '',
   committed: '',
   replyPlaying: false,
@@ -130,8 +144,8 @@ const IDLE_STATUS: VoiceStatus = {
 // What a worded partial needs before it is believed: either that much voicing
 // behind it, or that many words in it (see confirmSpeech — either will do).
 // Two sets because the decisions cost different things. A phantom briefly
-// showing in the composer is invisible a moment later; cutting her off
-// mid-reply for a cough is not, so barge-in asks for more voicing.
+// showing in the composer is invisible a moment later; cutting the companion
+// off mid-reply for a cough is not, so barge-in asks for more voicing.
 //
 // The voicing figures sit above a transient — the VAD's attack already discards
 // anything under 60ms — and under a spoken word, including a clipped "stop".
@@ -149,6 +163,22 @@ const BARGE_IN_MIN = { voicedMs: 250, words: 2 };
 // seconds to return its first partial, and the cost of firing early is only
 // that the lock lifts and re-takes when the transcript lands.
 const UTTERANCE_SILENT_TIMEOUT_MS = 2000;
+
+// How a companion ends the ambient loop: called on having said what they
+// wanted, or having asked whether you're still there and would rather wait than
+// keep talking to an empty room. A tool rather than a marker in the reply
+// because a tool call can never be spoken aloud — a marker that escaped the
+// stripping would be read out in the companion's voice mid-scene.
+//
+// It sets a latch rather than skipping one scheduling. A tool call is followed
+// by a reaction generation, and the arm at the end of that reaction would
+// otherwise undo what the tool just asked for.
+const WAIT_FOR_USER_TOOL: CompanionTool = {
+  name: 'wait_for_user',
+  description:
+    "Stop talking and wait for him to speak. Call this when you have nothing more to add for now, or when you've asked whether he's still there and want to leave the next move to him. You'll stay quiet until he says something.",
+  run: () => 'waiting for him',
+};
 
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
@@ -168,6 +198,10 @@ export function useVoiceSession(opts: {
   companion: Companion;
   tools?: CompanionTool[];
   getDeviceState?: () => string;
+  // Whether a program is running right now. Ambient chat reads it to pick which
+  // appetite applies — talking over a running device is a different situation
+  // from filling a conversational pause. It never gates whether they speak.
+  isPlaying?: () => boolean;
   onToolRun?: (name: string, result: string) => void;
   // Debug hook: emit a line into the panel's event log. Wired to the same
   // append() as tool dispatch, for tracing the LLM/barge-in round-trip.
@@ -198,6 +232,8 @@ export function useVoiceSession(opts: {
     opts?.getDeviceState ?? (() => ''),
   );
   getDeviceStateRef.current = opts?.getDeviceState ?? (() => '');
+  const isPlayingRef = useRef<() => boolean>(opts?.isPlaying ?? (() => false));
+  isPlayingRef.current = opts?.isPlaying ?? (() => false);
   const onToolRunRef = useRef<
     ((name: string, result: string) => void) | undefined
   >(opts?.onToolRun);
@@ -252,6 +288,9 @@ export function useVoiceSession(opts: {
   }, []);
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
+  // Ambient chat's timer and latch, in one object rather than two more refs
+  // here (see ambient-scheduler.ts). Created with the session in start().
+  const ambientRef = useRef<AmbientScheduler | null>(null);
   const threadRef = useRef<Thread>([]);
 
   const setReplyPlaying = useCallback((playing: boolean): void => {
@@ -345,9 +384,12 @@ export function useVoiceSession(opts: {
   // cancelling the LLM stream and TTS together. An LLM error surfaces in
   // status.replyError and the session stays usable.
   const submitText = useCallback(
-    (text: string, opts?: { speak?: boolean }): void => {
+    (text: string, opts?: { speak?: boolean; ambient?: boolean }): void => {
       const prompt = text.trim();
-      if (prompt === '') return;
+      // An ambient turn carries no text by design — it answers a silence, not a
+      // message — so only a typed or spoken turn has to be non-empty.
+      const ambient = opts?.ambient ?? false;
+      if (prompt === '' && !ambient) return;
       const clients = ensureClients();
       if (clients === null) return;
       const { tts, llm } = clients;
@@ -357,7 +399,15 @@ export function useVoiceSession(opts: {
       const companion = companionRef.current;
 
       // Commit the user turn the moment it's submitted (ref + state + persist).
-      persistThread(appendUser(threadRef.current, prompt, Date.now()));
+      // An ambient turn appends nothing: there is no user turn behind it, and
+      // inventing one would mean answering a message you never sent.
+      if (!ambient) {
+        persistThread(appendUser(threadRef.current, prompt, Date.now()));
+        // You spoke, so the loop is live again however it was left, and there is
+        // no silence left for a pending poke to fill.
+        ambientRef.current?.release();
+      }
+      ambientRef.current?.cancel();
 
       // Supersede any in-flight turn (its LLM stream + TTS) before starting.
       turnRef.current?.abort();
@@ -396,7 +446,9 @@ export function useVoiceSession(opts: {
           onLogRef.current?.(`LLM ${label}: request sent`, 'send');
           for await (const delta of llm.stream(messages, {
             signal: controller.signal,
-            tools: withTools ? toRequestTools(toolsRef.current) : undefined,
+            tools: withTools
+              ? toRequestTools([...toolsRef.current, WAIT_FOR_USER_TOOL])
+              : undefined,
             onUsage: (u) => {
               completionTokens = u.completionTokens;
             },
@@ -444,7 +496,17 @@ export function useVoiceSession(opts: {
               metrics: { ...s.metrics, llm: { ttftMs: ttft, totalMs, tps } },
             }));
           }
-          return { content, reasoning, toolCalls };
+          // Cut out any tool call the model wrote as text: it has already been
+          // recovered and dispatched (see textual-tool-calls.ts), so what's left
+          // here is markup. Stripped at the single point every caller takes its
+          // text from, so neither the transcript nor TTS can ever see it — a
+          // spoken turn would otherwise read the tags aloud in the companion's
+          // voice.
+          return {
+            content: stripTextualToolCalls(content),
+            reasoning,
+            toolCalls,
+          };
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
@@ -481,7 +543,7 @@ export function useVoiceSession(opts: {
 
         try {
           // Fill the live markers — the toy status (bottom of the prompt's
-          // CONTROL section, the last thing she reads) and the current time.
+          // CONTROL section, the last thing the companion reads) and the current time.
           const systemPrompt = buildSystemPrompt(
             companion.systemPrompt,
             getDeviceStateRef.current(),
@@ -491,8 +553,14 @@ export function useVoiceSession(opts: {
             systemPrompt,
             companion.passesReasoning,
           );
+          // The cue for an ambient turn rides this one request only — appended
+          // to the projection rather than written to the thread, so it prompts
+          // a turn without accumulating or showing in the transcript.
+          if (ambient) {
+            baseMessages.push({ role: 'system', content: AMBIENT_CUE });
+          }
 
-          // Call 1 — offer the tools. She may speak, call a tool, or do BOTH: a
+          // Call 1 — offer the tools. The companion may speak, call a tool, or do BOTH: a
           // pre-tool line ("mm, let me get you going") and the call in one turn.
           const r1 = await runLlm(baseMessages, true, 'call-1');
           if (r1 === null) return;
@@ -501,9 +569,10 @@ export function useVoiceSession(opts: {
           let reasoning = r1.reasoning;
 
           if (r1.toolCalls.length > 0) {
-            // Speak her pre-tool line first, if she said one, BEFORE the device
-            // acts — the line plays, THEN the toy starts/changes, THEN her
-            // reaction. A barge-in here bails before anything is run or stored.
+            // Speak the pre-tool line first, if the companion said one, BEFORE
+            // the device acts — the line plays, THEN the toy starts/changes,
+            // THEN their reaction. A barge-in here bails before anything is run
+            // or stored.
             if (speak && r1.content.trim() !== '') {
               if (!(await speakText(r1.content))) return;
             }
@@ -512,8 +581,8 @@ export function useVoiceSession(opts: {
             // (content + calls + any Call-1 reasoning) then each tool result
             // linked back by id, committed together so the stored history is
             // always a valid call/result pair. This is also what later turns
-            // replay so she sees she has actually called tools before — without
-            // it she drifts back to narrating "*starting*" instead of calling.
+            // replay so the companion sees they have actually called tools before —
+            // without it they drift back to narrating "*starting*" instead of calling.
             let next = appendAssistant(
               threadRef.current,
               r1.content,
@@ -522,7 +591,19 @@ export function useVoiceSession(opts: {
               Date.now(),
             );
             for (const call of r1.toolCalls) {
-              const tool = toolsRef.current.find((t) => t.name === call.name);
+              // wait_for_user is the session's own, not the panel's: it acts on
+              // the scheduler rather than the device, so it's dispatched here
+              // instead of being looked up among the declared tools.
+              const tool =
+                call.name === WAIT_FOR_USER_TOOL.name
+                  ? {
+                      ...WAIT_FOR_USER_TOOL,
+                      run: () => {
+                        ambientRef.current?.hold();
+                        return 'waiting for him';
+                      },
+                    }
+                  : toolsRef.current.find((t) => t.name === call.name);
               // Parse the tool-call arguments (`{}` for zero-arg tools like
               // start/stop; e.g. `{ level: "warmup" }` for intensity/edge). A
               // malformed blob runs the tool with no args — the tool validates.
@@ -559,11 +640,11 @@ export function useVoiceSession(opts: {
               return;
             }
 
-            // Call 2 — feed the tool results back so she reacts to them in
-            // words. Rebuilt from the just-persisted thread (which now holds the
-            // tool-call turn + results), so the request and the stored history
-            // are one and the same. No tools this call: it's her spoken
-            // reaction, not a place to chain more actions.
+            // Call 2 — feed the tool results back so the companion reacts to
+            // them in words. Rebuilt from the just-persisted thread (which now
+            // holds the tool-call turn + results), so the request and the stored
+            // history are one and the same. No tools this call: it's their
+            // spoken reaction, not a place to chain more actions.
             const call2 = toLlmMessages(
               threadRef.current,
               systemPrompt,
@@ -578,9 +659,9 @@ export function useVoiceSession(opts: {
             reasoning = r2.reasoning;
           }
 
-          // Commit the (final) spoken reply — the reaction when she acted, else
-          // her plain reply. reasoning is replayed only when the companion
-          // passes it.
+          // Commit the (final) spoken reply — the reaction when the companion
+          // acted, else their plain reply. reasoning is replayed only when the
+          // companion passes it.
           if (reply.trim() !== '') {
             persistThread(
               appendAssistant(
@@ -615,6 +696,12 @@ export function useVoiceSession(opts: {
           if (turnRef.current === controller) {
             turnRef.current = null;
             setReplyPlaying(false);
+            // The turn is finished, so line up the next silence-filler. Guarded
+            // by the same check as everything else here: a superseded turn —
+            // barged in on, or replaced by a newer one — must not arm, or a
+            // cut-off reply would leave a poke behind it. The scheduler ignores
+            // this if the companion has asked to be left alone.
+            ambientRef.current?.arm(companion, isPlayingRef.current());
             // Catch-all: if TTS resolved without first audio (error/abort) the
             // "waiting for speech" flag would otherwise stick — likewise
             // "speaking" if the audio was cut rather than finishing.
@@ -644,6 +731,13 @@ export function useVoiceSession(opts: {
     }
     ensureClients();
 
+    ambientRef.current = createAmbientScheduler(() => {
+      // A poke is an ordinary spoken turn with nothing behind it — same path,
+      // same barge-in, same tools. It arms its own successor when it finishes,
+      // which is what keeps the loop going without a clock polling for it.
+      submitText('', { speak: true, ambient: true });
+    });
+
     const stt = createStt({
       onPartial: (text) => {
         // Words are being decoded, so a commit is coming — the watchdog's job
@@ -664,6 +758,10 @@ export function useVoiceSession(opts: {
           PARTIAL_MIN,
         );
         if (speechConfirmedRef.current) {
+          // You're talking, so a real turn is on its way and there is no silence
+          // to fill. Cancelled on the confirmed partial rather than the raw one:
+          // a phantom shouldn't be able to call the companion off.
+          ambientRef.current?.cancel();
           setStatus((s) => ({ ...s, partial: text }));
         } else {
           // Carries the evidence the decision was made on, not just the verdict:
@@ -685,9 +783,9 @@ export function useVoiceSession(opts: {
         }
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
-        // her voice leaking past AEC) doesn't interrupt her mid-sentence. It
+        // their voice leaking past AEC) doesn't interrupt them mid-sentence. It
         // asks for more voicing than the composer does — the cost of being wrong
-        // is her being cut off mid-sentence, not a word appearing and vanishing
+        // is the companion being cut off mid-sentence, not a word appearing and vanishing
         // — but it is not sticky: each partial is judged on the evidence so far,
         // so a confirmed utterance can't leave a latch set that lets the next
         // phantom through.
@@ -752,6 +850,8 @@ export function useVoiceSession(opts: {
           rms,
           preRollFrames: micHandleRef.current?.preRoll.length ?? 0,
           sentFrames: stt.framesSent(),
+          ambientDueAt: ambientRef.current?.dueAt() ?? null,
+          ambientHolding: ambientRef.current?.holding() ?? false,
         }));
       },
       onOnset: () => {
@@ -825,6 +925,8 @@ export function useVoiceSession(opts: {
     sttRef.current = null;
     micHandleRef.current?.stop();
     micHandleRef.current = null;
+    ambientRef.current?.stop();
+    ambientRef.current = null;
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
     voicedRunRef.current = { startedAt: 0, longestMs: 0 };
