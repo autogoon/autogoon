@@ -12,6 +12,7 @@
   `2`. A pack still saying `1` that had neither a `pictures/` folder nor a
   `noPictures` field already is a format 2 pack and imports unchanged; one that
   had either is rejected, saying what to fix.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - enhancement: **Packs are unpacked, not stored whole** — Importing a pack now
   unzips it into your browser's storage once, showing its progress as it goes,
@@ -22,6 +23,7 @@
   over, so re-import their zips; the storage the old copies held is reclaimed on
   the next start. Pictures sent in conversations before this change no longer
   show in the transcript — the conversations themselves are untouched.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
   directory tree keyed `id@version`, extracted in a worker from a streamed zip,
@@ -32,6 +34,7 @@
   Nothing derived is persisted anywhere: the library index is rebuilt from the
   trees at every load, so "installed" is one live verdict against the current
   rules.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 ## 2026-07-25
 
