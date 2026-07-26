@@ -3203,6 +3203,138 @@ expect(
   (`'Testy · complete companion · 1 picture · prompt · voice'`).
 - The reload assertion's comment changes from "(IndexedDB)" to "(OPFS)".
 
+- [ ] **Step 5b: Cover the version gate end to end**
+
+The version gate is split across two stages that only meet at runtime, and no
+unit test can reach the seam: `prepareImport` rejects some packs from the
+**zip's** manifest before extracting a byte, while `parsePack` rejects others
+from the **extracted tree** and then deletes it. A `PackTree` test starts from a
+tree that already exists, so it can say nothing about whether extraction was
+correctly skipped or whether a failed tree was cleaned up. Both are load-bearing
+— the first is what stops a multi-gigabyte old pack being written to disk before
+being refused, the second is the "a tree that fails deletes itself" rule.
+
+Add to `tests/e2e/goonpack-import.spec.ts`. Reuse the existing `TINY_PNG` and
+add a helper so each case is one `zipSync` call:
+
+```ts
+// A pack zip built to order. `format` and the media folder's name are the two
+// axes the version gate turns on.
+function packZip(
+  manifest: Record<string, unknown>,
+  media: Record<string, Uint8Array> = {},
+): Buffer {
+  return Buffer.from(
+    zipSync({
+      'manifest.json': strToU8(JSON.stringify(manifest)),
+      'system-prompt.md': strToU8('You are Testy.'),
+      ...media,
+    }),
+  );
+}
+
+const v1Manifest = (extra: Record<string, unknown> = {}) => ({
+  format: 1,
+  id: 'e2e.oldpack',
+  version: '1.0.0',
+  aboutThePack: 'a format 1 pack',
+  companion: { name: 'Oldie', voiceId: 'v-e2e' },
+  ...extra,
+});
+
+// Import a zip and return the error lines the panel showed, or [] on success.
+async function importZip(
+  page: import('@playwright/test').Page,
+  name: string,
+  buffer: Buffer,
+): Promise<string[]> {
+  await page
+    .getByTestId('goonpack-file-input')
+    .setInputFiles({ name, mimeType: 'application/zip', buffer });
+  const confirm = page.getByRole('button', { name: 'Import', exact: true });
+  if ((await confirm.count()) > 0) {
+    await confirm.click();
+    await expect(confirm).toHaveCount(0);
+  }
+  return page.locator('.text-red-500').allTextContents();
+}
+
+// Does OPFS hold a tree for this key?
+const treeExists = (page: import('@playwright/test').Page, key: string) =>
+  page.evaluate(async (k) => {
+    const root = await navigator.storage.getDirectory();
+    try {
+      const packs = await root.getDirectoryHandle('goonpacks');
+      await packs.getDirectoryHandle(k);
+      return true;
+    } catch {
+      return false;
+    }
+  }, key);
+
+test('the version gate accepts and refuses format 1 packs by what they use', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Goonpacks' }).click();
+
+  // A format 1 pack with no media is a format 2 pack in every respect.
+  expect(await importZip(page, 'old-clean.zip', packZip(v1Manifest()))).toEqual(
+    [],
+  );
+  await expect(page.getByText('Oldie · complete companion')).toBeVisible();
+  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(true);
+  await page.getByRole('button', { name: 'Remove', exact: true }).click();
+
+  // A format 1 pack that used noPictures is refused from the zip's manifest
+  // alone — nothing is extracted, so no tree is ever created.
+  expect(
+    await importZip(
+      page,
+      'old-nopictures.zip',
+      packZip(v1Manifest({ base: 'autogoon.aimee', noPictures: true })),
+    ),
+  ).toEqual([
+    'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
+  ]);
+  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
+
+  // A format 1 pack with a pictures/ folder is only knowable from the tree, so
+  // it extracts, fails validation, and deletes itself.
+  expect(
+    await importZip(
+      page,
+      'old-pictures.zip',
+      packZip(v1Manifest(), {
+        'pictures/one.png': new Uint8Array(TINY_PNG),
+        'pictures/one.txt': strToU8('a test picture'),
+      }),
+    ),
+  ).toEqual([
+    'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
+  ]);
+  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
+  await expect(page.getByText('No packs imported.')).toBeVisible();
+
+  // A format this app doesn't have yet is refused outright.
+  expect(
+    await importZip(
+      page,
+      'future.zip',
+      packZip({ ...v1Manifest(), format: 3 }),
+    ),
+  ).toEqual(['This pack needs a newer version of the app.']);
+});
+```
+
+Two things to get right while writing this: the panel renders import errors as
+`<p className="mt-1 text-sm text-red-500">`, so `.text-red-500` is the selector
+for the error lines — if you changed that markup in Step 4, update the helper to
+match. And the confirm sheet only appears when `prepareImport` succeeded, which
+is exactly why `importZip` checks for the button rather than assuming it: the
+`noPictures` and `format: 3` cases fail before a sheet is ever shown, and that
+difference is part of what these cases prove.
+
 - [ ] **Step 6: Run everything — the whole task's gate**
 
 This is the first point since Phase A where the branch is expected to be green.
