@@ -10,12 +10,12 @@ import type { LibraryEntry, PackOption } from '@/lib/goonpacks/entries';
 import { prepareImport, type PendingImport } from '@/lib/goonpacks/import';
 import {
   buildLibrary,
-  revokeLibrary,
+  carryMediaOver,
   type Library,
   type LibrarySource,
   type PackRow,
 } from '@/lib/goonpacks/library';
-import { buildEntries } from '@/lib/goonpacks/entries';
+import { buildEntries, packKey } from '@/lib/goonpacks/entries';
 import {
   applyOverlay,
   packToCompanion,
@@ -58,27 +58,29 @@ let current: Library | null = null;
 let inflight: Promise<Library> | null = null;
 const listeners = new Set<(library: Library) => void>();
 
-async function load(): Promise<Library> {
+// `replaced` is the key an import just overwrote, whose old media entries point
+// at a tree that no longer exists.
+async function load(replaced: ReadonlySet<string>): Promise<Library> {
   // One clean pass before anything reads the trees: a tree with no marker is an
   // interrupted import or removal. Then the old zip database goes, once —
   // nothing reads it, and it is holding quota.
   await sweepIncomplete();
   void purgeLegacyDatabase();
   const built = await buildLibrary(source);
-  if (current !== null) revokeLibrary(current);
+  if (current !== null) carryMediaOver(current, built, replaced);
   current = built;
   for (const listener of listeners) listener(built);
   return built;
 }
 
 function library(): Promise<Library> {
-  return (inflight ??= load());
+  return (inflight ??= load(new Set()));
 }
 
-// After an import or a removal: throw the index away and build a fresh one,
-// revoking the URLs the old one handed out.
-function rebuild(): Promise<Library> {
-  inflight = load();
+// After an import or a removal: build a fresh index, and let it adopt the media
+// entries of every pack that is still installed and untouched.
+function rebuild(replaced?: string): Promise<Library> {
+  inflight = load(new Set(replaced === undefined ? [] : [replaced]));
   return inflight;
 }
 
@@ -109,7 +111,9 @@ export function useGoonpackLibrary() {
       ...pending,
       commit: async (onProgress) => {
         await pending.commit(onProgress);
-        await rebuild();
+        // This pack's tree was just rewritten, so its old media entries point
+        // at files that are gone; every other pack's carry over untouched.
+        await rebuild(packKey(pending.manifest));
       },
     };
   }, []);

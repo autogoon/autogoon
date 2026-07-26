@@ -1,6 +1,6 @@
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { companionList } from '@/lib/companions/companions';
-import { buildLibrary, type LibrarySource } from './library';
+import { buildLibrary, carryMediaOver, type LibrarySource } from './library';
 import type { PackTree } from './pack';
 
 const BUILT_IN = companionList[0]!.id;
@@ -182,5 +182,101 @@ describe('buildLibrary', () => {
       listKeys: () => Promise.resolve(['pub.comp@1.0.0', 'gone.pack@1.0.0']),
     });
     expect(lib.rows.map((r) => r.id)).toEqual(['pub.comp@1.0.0']);
+  });
+});
+
+describe('carryMediaOver', () => {
+  // The real URL.revokeObjectURL needs a document; what matters here is which
+  // URLs the reconciliation decides to revoke.
+  const revoked: string[] = [];
+  const real = URL.revokeObjectURL;
+  beforeEach(() => {
+    revoked.length = 0;
+    URL.revokeObjectURL = (url: string) => revoked.push(url) as unknown as void;
+  });
+  afterEach(() => {
+    URL.revokeObjectURL = real;
+  });
+
+  // Two packs, both with their media URLs already minted, rebuilt into a fresh
+  // index — the state after any import or removal.
+  const twoPacks = () =>
+    source({
+      'pub.a@1.0.0': completePack('pub.a'),
+      'pub.b@1.0.0': completePack('pub.b'),
+    });
+  const loadAll = async (lib: Awaited<ReturnType<typeof buildLibrary>>) => {
+    for (const content of lib.content.values()) {
+      for (const m of content.media) await m.load();
+    }
+  };
+
+  it('carries a still-installed pack across, URLs and entry objects intact', async () => {
+    const before = await buildLibrary(twoPacks());
+    await loadAll(before);
+    const carried = before.content.get('pub.a@1.0.0')!.media[0]!;
+
+    const after = await buildLibrary(twoPacks());
+    carryMediaOver(before, after, new Set());
+
+    expect(revoked).toEqual([]);
+    // The same entry object, so a Companion resolved before the rebuild is
+    // still holding a live URL.
+    expect(after.content.get('pub.a@1.0.0')!.media[0]).toBe(carried);
+    expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBe(
+      'blob:pub.a@1.0.0/a.jpg',
+    );
+  });
+
+  it('revokes only the pack that is gone from the new index', async () => {
+    const before = await buildLibrary(twoPacks());
+    await loadAll(before);
+
+    const after = await buildLibrary(
+      source({ 'pub.a@1.0.0': completePack('pub.a') }),
+    );
+    carryMediaOver(before, after, new Set());
+
+    expect(revoked.sort()).toEqual([
+      'blob:pub.b@1.0.0/a.jpg',
+      'blob:pub.b@1.0.0/b.mp4',
+    ]);
+    expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBe(
+      'blob:pub.a@1.0.0/a.jpg',
+    );
+  });
+
+  it('revokes a pack whose tree was just replaced', async () => {
+    const before = await buildLibrary(twoPacks());
+    await loadAll(before);
+
+    const after = await buildLibrary(twoPacks());
+    carryMediaOver(before, after, new Set(['pub.a@1.0.0']));
+
+    expect(revoked.sort()).toEqual([
+      'blob:pub.a@1.0.0/a.jpg',
+      'blob:pub.a@1.0.0/b.mp4',
+    ]);
+    // Re-imported: fresh entries, nothing minted yet.
+    expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBeUndefined();
+    expect(after.content.get('pub.b@1.0.0')!.media[0]!.src).toBe(
+      'blob:pub.b@1.0.0/a.jpg',
+    );
+  });
+
+  it('revokes a media file that has gone from a carried-over pack', async () => {
+    const before = await buildLibrary(twoPacks());
+    await loadAll(before);
+
+    const { 'media/b.mp4': _gone, ...trimmed } = completePack('pub.a');
+    const after = await buildLibrary(
+      source({ 'pub.a@1.0.0': trimmed, 'pub.b@1.0.0': completePack('pub.b') }),
+    );
+    carryMediaOver(before, after, new Set());
+
+    expect(revoked).toEqual(['blob:pub.a@1.0.0/b.mp4']);
+    expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBe(
+      'blob:pub.a@1.0.0/a.jpg',
+    );
   });
 });

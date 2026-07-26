@@ -83,8 +83,8 @@ const summarize = (media: ParsedMedia[], hasPrompt: boolean): PackSummary => ({
 
 // A media entry whose object URL is minted on first render and memoised here:
 // a pack can hold thousands of files, most of which are never shown. The URL
-// then lives as long as this entry — revoked only when the pack is removed or
-// re-imported (revokeLibrary).
+// then lives as long as this entry — and the entry outlives the index it was
+// built for, until its pack is removed or re-imported (carryMediaOver).
 function mediaEntry(
   source: LibrarySource,
   key: string,
@@ -202,12 +202,35 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
   };
 }
 
-// Every object URL the index handed out. Called when the index is replaced —
-// after an import or a removal — never between renders.
-export function revokeLibrary(library: Library): void {
-  for (const content of library.content.values()) {
-    for (const m of content.media) {
-      if (m.src !== undefined) URL.revokeObjectURL(m.src);
+// Hand the outgoing index's media over to the one replacing it. A pack that is
+// still installed and untouched keeps its very entry objects, URLs and all: a
+// Companion resolved before the rebuild — and every picture already sent in the
+// thread — holds those objects, and revoking their URLs would break media that
+// is on screen. Only what the new index doesn't adopt is revoked: packs that
+// were removed, packs whose tree an import just replaced (`replaced`), and
+// individual files that have gone from a carried-over pack.
+export function carryMediaOver(
+  previous: Library,
+  next: Library,
+  replaced: ReadonlySet<string>,
+): void {
+  const revoke = (
+    media: CompanionMedia[],
+    keep?: ReadonlySet<CompanionMedia>,
+  ) => {
+    for (const m of media) {
+      if (m.src !== undefined && keep?.has(m) !== true)
+        URL.revokeObjectURL(m.src);
     }
+  };
+  for (const [key, before] of previous.content) {
+    const after = replaced.has(key) ? undefined : next.content.get(key);
+    if (after === undefined) {
+      revoke(before.media);
+      continue;
+    }
+    const carried = new Map(before.media.map((m) => [m.ref, m]));
+    after.media = after.media.map((m) => carried.get(m.ref) ?? m);
+    revoke(before.media, new Set(after.media));
   }
 }
