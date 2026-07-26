@@ -44,7 +44,10 @@ reasoning.
 - **Public, pseudonymous repo.** Never commit real names, `/Users/<name>` paths,
   personal URLs or session links. Genericise concrete paths in docs.
 - **Pack format version is `2`** (`PACK_FORMAT` in
-  `src/lib/goonpacks/manifest.ts`).
+  `src/lib/goonpacks/manifest.ts`). A **format 1** pack is accepted only when it
+  used neither of the two things the formats differ over — no `pictures/` folder
+  and no `noPictures` field — because such a pack already _is_ a format 2 pack.
+  Otherwise it is rejected with `OLD_LAYOUT_PROBLEM`.
 - **Stills:** `.jpg`, `.jpeg`, `.png`, `.webp`. **Clips:** `.mp4`, `.webm`.
   **`.mov` is rejected with a message saying so.**
 - **Vocabulary:** `pictures/` → `media/`, `noPictures` → `noMedia`,
@@ -1082,6 +1085,77 @@ this task exists to avoid.
 listing of names plus a text reader. Media is never read. The authoring build
 script gets the first real tree implementation (node fs).
 
+**This phase also amends Task 1's format gate.** Formats 1 and 2 differ in
+exactly two things: the media folder's name, and `noPictures` vs `noMedia`. A
+format-1 pack that uses neither — the pictureless example pack, any voice-only
+or colour-only overlay — is byte-for-byte a format-2 pack, so it is accepted
+rather than told to rebuild. One that uses either is rejected, with the
+old-layout message. That splits the check by where its evidence lives: the
+`noPictures` half stays in `parseManifest`, the `pictures/` half is a tree fact
+and moves here.
+
+- [ ] **Step 0: Amend the format gate in `manifest.ts`**
+
+Export the message so `parsePack` can raise the same one:
+
+```ts
+// Formats 1 and 2 differ only in the media folder's name and this field, so
+// this is what "written for the old format" concretely means.
+export const OLD_LAYOUT_PROBLEM =
+  'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.';
+```
+
+Replace Task 1's unconditional format-1 throw with:
+
+```ts
+if (m.format > PACK_FORMAT) {
+  throw new PackError('This pack needs a newer version of the app.');
+}
+if (m.format !== PACK_FORMAT && m.format !== 1) {
+  throw new PackError(
+    "This pack uses a format version this app doesn't recognise.",
+  );
+}
+// A format 1 pack that used noPictures is genuinely written to the old
+// format; one that didn't may still be a format 2 pack in every respect,
+// which only the tree can say — parsePack finishes the judgement.
+if (m.format === 1 && m.noPictures !== undefined) {
+  throw new PackError(OLD_LAYOUT_PROBLEM);
+}
+```
+
+Leave `TOP_FIELDS` alone: a **format 2** manifest carrying `noPictures` still
+reports it as an unknown top-level field, which is the right message for a typo.
+
+Add to `src/lib/goonpacks/manifest.test.ts`, replacing Task 1's
+`names the old layout when a format 1 pack is imported` case:
+
+```ts
+it('accepts a format 1 manifest that used no old-format feature', () => {
+  expect(
+    parseManifest({
+      format: 1,
+      id: 'a.b',
+      version: '1',
+      aboutThePack: 'x',
+      base: 'autogoon.aimee',
+    }).format,
+  ).toBe(1);
+});
+it('names the old layout when a format 1 pack used noPictures', () => {
+  expect(() =>
+    parseManifest({
+      format: 1,
+      id: 'a.b',
+      version: '1',
+      aboutThePack: 'x',
+      base: 'autogoon.aimee',
+      noPictures: true,
+    }),
+  ).toThrow(/old pictures\/ layout/);
+});
+```
+
 - [ ] **Step 1: Write the failing pack tests**
 
 Replace `src/lib/goonpacks/pack.test.ts` wholesale:
@@ -1238,6 +1312,37 @@ describe('parsePack', () => {
     ).rejects.toThrow(PackError);
   });
 
+  it('accepts a format 1 pack that carries no media', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': JSON.stringify({
+          format: 1,
+          id: 'test.pack',
+          version: '1.0.0',
+          aboutThePack: 'a colour-only overlay',
+          base: 'autogoon.aimee',
+          companion: { accentColour: 'cyan' },
+        }),
+      }),
+    );
+    expect(pack.media).toEqual([]);
+  });
+
+  it('names the old layout when a format 1 pack has a pictures/ folder', async () => {
+    const t = tree({
+      'manifest.json': JSON.stringify({
+        format: 1,
+        id: 'test.pack',
+        version: '1.0.0',
+        aboutThePack: 'an old pack',
+        base: 'autogoon.aimee',
+      }),
+      'pictures/a.jpg': '',
+      'pictures/a.txt': 'cap',
+    });
+    await expect(parsePack(t)).rejects.toThrow(/old pictures\/ layout/);
+  });
+
   it('names the folder when everything landed inside one', async () => {
     const t = tree({
       'yourpack/manifest.json': complete(),
@@ -1342,7 +1447,12 @@ still takes bytes and `peekManifest` doesn't exist.
 // complete-vs-overlay completeness rules are all name rules, so only
 // manifest.json, system-prompt.md and the captions are ever read. Validating a
 // multi-gigabyte pack costs a few hundred kilobytes.
-import { PackError, parseManifest, type PackManifest } from './manifest';
+import {
+  OLD_LAYOUT_PROBLEM,
+  PackError,
+  parseManifest,
+  type PackManifest,
+} from './manifest';
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 
 export const MANIFEST = 'manifest.json';
@@ -1516,6 +1626,14 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   // Completeness rules need a readable manifest to know overlay from complete —
   // without one, the manifest's own problems already tell the story.
   if (manifest !== undefined) {
+    // The tree half of the format gate (parseManifest holds the other):
+    // formats 1 and 2 differ only in this folder's name and noPictures, so a
+    // format 1 pack with neither is a format 2 pack and passes. With a
+    // pictures/ folder it is genuinely old, and says so rather than reporting
+    // no media.
+    if (manifest.format === 1 && names.some((n) => n.startsWith('pictures/'))) {
+      problems.push(OLD_LAYOUT_PROBLEM);
+    }
     if (manifest.base === undefined) {
       if (systemPrompt === undefined) {
         problems.push('A complete pack needs a system-prompt.md file.');
@@ -1620,7 +1738,9 @@ example becomes `media/`.
 npx jest src/lib/goonpacks/
 ```
 
-Then rebuild the example pack — it needs `format: 2` in its manifest first:
+Then rebuild the example pack. It carries no media, so the format-1 carve-out
+means it builds unchanged — but bump it anyway, because the example pack is what
+authors copy and it should show the current format:
 
 ```bash
 # goonpacks/elise/manifest.json: "format": 1 → 2
@@ -3270,7 +3390,10 @@ Everything the change made stale.
   if they send pictures or clips".
 - The layout block:
   `media/  optional. Their pictures and clips, with a caption file each`.
-- `"format": 1` → `2` in both example manifests, and the `format` bullet.
+- `"format": 1` → `2` in both example manifests, and the `format` bullet, which
+  gains: a pack still on `1` imports unchanged if it has no `pictures/` folder
+  and no `noPictures` field — the two things the formats differ over — and
+  otherwise says what to rebuild.
 - The overlay bullet list: "add pictures or clips (or strip the base's, with
   `noMedia`)".
 - `noPictures` → `noMedia` throughout, with its meaning unchanged.
@@ -3543,6 +3666,15 @@ discovering them in the diff:
    unit-testable in the node Jest environment.
 6. **`tsconfig.json` gains `DOM.AsyncIterable`.** Without it,
    `FileSystemDirectoryHandle.entries()` does not typecheck.
-7. **Extraction lands on the main thread in Task 3 and moves into a worker in
+7. **A format 1 pack is accepted when it means the same thing as a format 2
+   one** — no `pictures/` folder, no `noPictures`. The spec says "no backwards
+   compatibility", and this is not compatibility: the formats differ in exactly
+   those two things, so such a pack is already format 2. It costs the format
+   gate its manifest-only purity (the tree half moves into `parsePack`), and it
+   buys every voice-only and colour-only overlay — and the example pack — a
+   rebuild they'd otherwise be told to do for no reason. Decided by the human
+   partner after Task 1, on seeing
+   `elise: 1 error … uses the old pictures/ layout` for a pack with no pictures.
+8. **Extraction lands on the main thread in Task 3 and moves into a worker in
    Task 4.** Same function, called from a different thread — it keeps the OPFS
    switch reviewable and gives the worker move an unambiguous before/after.
