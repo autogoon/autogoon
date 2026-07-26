@@ -1,5 +1,5 @@
-// Zips each goonpacks/<dir>/ into goonpacks/<id>.zip — the id read from the
-// pack's manifest, so directory names stay free. Run: npm run goonpack:build
+// Zips each goonpacks/<dir>/ into goonpacks/<dir>.zip (see the naming note
+// where the file is written). Run: npm run goonpack:build
 // (runs under tsx, so it imports the app's validator directly: every pack
 // source passes parsePack — the same checks importing runs — before it is
 // zipped, or the build fails. Only the app-level cross-pack checks, like "is
