@@ -13,9 +13,9 @@ const zipFile = (files: Record<string, Uint8Array>): File =>
 const manifest = (id: string) =>
   strToU8(JSON.stringify({ format: 2, id, version: '1.0.0' }));
 
-// Deliberately incompressible, so the zip really is big enough to span several
-// reads of the file stream — a repeating fill would deflate to nothing and the
-// whole archive would arrive in one chunk, proving nothing.
+// Deliberately incompressible, for the stop-reading test: it measures how much
+// of the zip peekZip left unread, and a repeating fill would deflate to a few
+// hundred bytes, arrive in a single chunk, and leave nothing to leave unread.
 const bulky = (() => {
   const bytes = new Uint8Array(400_000);
   let x = 0x9e3779b9; // xorshift32: deflate finds nothing to squeeze out of it
@@ -48,15 +48,34 @@ function fakeDir(written: Set<string>, prefix = ''): FileSystemDirectoryHandle {
   } as unknown as FileSystemDirectoryHandle;
 }
 
-// level 0 stores entries instead of deflating them. fflate passes a STORED
-// entry through as a window onto the archive read-chunk (byteOffset > 0, its
-// backing buffer the whole chunk), where a deflated entry arrives in a fresh
-// exact-size buffer. A default-level zip therefore can't catch the bug the
-// window test below is about, with or without the fix.
+// level 0 stores entries instead of deflating them. fflate passes a STORED entry
+// through as a window onto the archive read-chunk, so an entry's first chunk
+// starts partway into it — byteOffset > 0, backed by the whole chunk — where a
+// deflated entry always arrives in a fresh exact-size buffer. A default-level
+// zip therefore can't catch the bug the chunk-buffer test below is about, with
+// or without the fix.
 const storedZipFile = (files: Record<string, Uint8Array>): File =>
   new File([zipSync(files, { level: 0 })], 'pack.zip', {
     type: 'application/zip',
   });
+
+// The zip fflate can't read. It registers a decoder for method 8 and no other,
+// so an entry declaring method 99 (WinZip AES) makes entry.start() throw
+// `TypeError: ctr is not a constructor` out through unzip.push() — the throw
+// peekZip's catch (extract.ts:155) exists for. Bytes that simply aren't a zip
+// don't throw at all, so a patched header is the only fixture that keeps that
+// catch honest; without it the failure reaches the user as the panel's generic
+// "Import failed." The patch is the compression-method field of the first local
+// file header, 2 bytes at offset 8.
+const unsupportedMethodZipFile = (): File => {
+  const bytes = zipSync({ 'manifest.json': manifest('test.pack') });
+  new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).setUint16(
+    8,
+    99,
+    true,
+  );
+  return new File([bytes], 'pack.zip', { type: 'application/zip' });
+};
 
 // fakeDir, but also recording the exact Uint8Array chunks handed to each file's
 // writable.
@@ -143,7 +162,6 @@ describe('extractZip', () => {
       }
     }
 
-    // And the bytes are still the file that went in.
     const parts = chunks.get('media/big.mp4')!;
     const joined = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
@@ -156,8 +174,8 @@ describe('extractZip', () => {
 });
 
 describe('peekZip', () => {
-  it("returns the root manifest's text and every entry name", async () => {
-    const { manifest: raw, names } = await peekZip(
+  it("returns the root manifest's text", async () => {
+    const { manifest: raw } = await peekZip(
       zipFile({
         'manifest.json': manifest('test.pack'),
         'system-prompt.md': strToU8('You are Testy.'),
@@ -165,7 +183,6 @@ describe('peekZip', () => {
       }),
     );
     expect(JSON.parse(raw!)).toMatchObject({ id: 'test.pack' });
-    expect(names).toContain('manifest.json');
   });
 
   // From these names prepareImport builds "Everything is inside yourpack/ —
@@ -180,7 +197,6 @@ describe('peekZip', () => {
       }),
     );
     expect(raw).toBeNull();
-    // prepareImport names the wrapper folder from exactly these.
     expect(names.sort()).toEqual([
       'yourpack/manifest.json',
       'yourpack/media/a.jpg',
@@ -188,12 +204,18 @@ describe('peekZip', () => {
   });
 
   // prepareImport turns this empty result into "No manifest.json at the zip
-  // root — zip the pack folder's contents, not the folder." A throw escaping
-  // here instead would reach the user as the panel's generic "Import failed."
+  // root — zip the pack folder's contents, not the folder."
   it('returns an empty result for bytes that are not a zip', async () => {
     await expect(
       peekZip(new File([strToU8('not a zip at all')], 'nope.zip')),
     ).resolves.toEqual({ manifest: null, names: [] });
+  });
+
+  it('reports no manifest for an entry compressed with a method fflate cannot read', async () => {
+    await expect(peekZip(unsupportedMethodZipFile())).resolves.toEqual({
+      manifest: null,
+      names: ['manifest.json'],
+    });
   });
 
   it('stops reading once the manifest is complete', async () => {
@@ -207,7 +229,6 @@ describe('peekZip', () => {
     });
     let served = 0;
     const chunked = {
-      size: bytes.length,
       stream: () =>
         new ReadableStream<Uint8Array>({
           pull: (controller) => {
@@ -217,7 +238,7 @@ describe('peekZip', () => {
             controller.enqueue(next);
           },
         }),
-      // Only the two members peekZip uses; a real File can't be chunked.
+      // Only stream, which is all peekZip reads; a real File can't be chunked.
     } as unknown as File;
 
     expect((await peekZip(chunked)).manifest).not.toBeNull();

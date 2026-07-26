@@ -15,7 +15,7 @@ const complete = (extra: object = {}) =>
 
 // An in-memory PackTree: file contents by path. Media files hold '' — parsePack
 // must never read them, and a test that made it read one would still pass on
-// content but is caught by the "never reads media" test below.
+// content but is caught by the "never reads a media file" test below.
 function tree(files: Record<string, string>): PackTree & { read: string[] } {
   const read: string[] = [];
   return {
@@ -32,14 +32,17 @@ function tree(files: Record<string, string>): PackTree & { read: string[] } {
 
 describe('parsePack', () => {
   it('parses a complete pack with stills, videos and captions', async () => {
+    // The media is listed out of alphabetical order deliberately: pack.media
+    // comes back sorted by name (pack.ts:183), so the index assertions below
+    // only hold if that sort ran.
     const t = tree({
       'manifest.json': complete(),
       'system-prompt.md': 'You are Testy.',
-      'media/a.jpg': '',
-      'media/a.txt': 'desc a\n',
-      'media/b.png': '',
       'media/c.mp4': '',
       'media/c.txt': 'a video',
+      'media/b.png': '',
+      'media/a.jpg': '',
+      'media/a.txt': 'desc a\n',
     });
     const pack = await parsePack(t);
     expect(pack.manifest.id).toBe('test.pack');
@@ -93,15 +96,24 @@ describe('parsePack', () => {
     await expect(parsePack(t)).rejects.toThrow(/mp4 or \.webm/);
   });
 
-  it('rejects unsupported files and subfolders under media/', async () => {
+  it('rejects an unsupported extension in media/, naming the file and the allowed types', async () => {
     const t = tree({
       'manifest.json': manifest({ base: 'autogoon.aimee' }),
       'media/a.gif': '',
-      'media/sub/b.jpg': '',
     });
     const problems = await parsePack(t).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
       'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
+    ]);
+  });
+
+  it('rejects a subfolder under media/, naming the path', async () => {
+    const t = tree({
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'media/sub/b.jpg': '',
+    });
+    const problems = await parsePack(t).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
       "media/ can't contain subfolders — found media/sub/b.jpg.",
     ]);
   });
@@ -127,26 +139,33 @@ describe('parsePack', () => {
         }),
       ),
     ).rejects.toThrow(/noMedia/);
-    const clean = await parsePack(
+  });
+
+  it('keeps noMedia set on an overlay with no media/ folder', async () => {
+    const pack = await parsePack(
       tree({
         'manifest.json': manifest({ base: 'autogoon.aimee', noMedia: true }),
       }),
     );
-    expect(clean.manifest.noMedia).toBe(true);
+    expect(pack.manifest.noMedia).toBe(true);
   });
 
-  it('rejects a complete pack missing prompt/name/voiceId', async () => {
+  it('rejects a complete pack with no system-prompt.md', async () => {
     await expect(
       parsePack(tree({ 'manifest.json': complete() })),
     ).rejects.toThrow(/system-prompt/);
-    await expect(
-      parsePack(
-        tree({
-          'manifest.json': manifest({ companion: { voiceId: 'v' } }),
-          'system-prompt.md': 'x',
-        }),
-      ),
-    ).rejects.toThrow(PackError);
+  });
+
+  it('rejects a complete pack whose companion has no name', async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({ companion: { voiceId: 'v' } }),
+        'system-prompt.md': 'x',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'A complete pack needs a name field in the companion section of manifest.json.',
+    ]);
   });
 
   it('accepts a format 1 pack that carries no media', async () => {
@@ -180,10 +199,15 @@ describe('parsePack', () => {
     await expect(parsePack(t)).rejects.toThrow(/old pictures\/ layout/);
   });
 
-  it('names the folder when everything landed inside one', async () => {
+  it('names the wrapper folder when the folder was zipped instead of its contents', async () => {
+    // The __MACOSX/ entry is what a Finder zip of a folder actually carries.
+    // Unless it is filtered as junk, wrapperFolder (pack.ts:84) sees two
+    // top-level names and returns null, and this specific advice degrades to
+    // the generic "No manifest.json at the pack root" message.
     const t = tree({
       'yourpack/manifest.json': complete(),
       'yourpack/media/a.jpg': '',
+      '__MACOSX/._manifest.json': '',
     });
     await expect(parsePack(t)).rejects.toThrow(
       /Everything is inside yourpack\//,
@@ -196,13 +220,10 @@ describe('parsePack', () => {
     ).rejects.toThrow(/No manifest.json at the pack root/);
   });
 
-  it('ignores junk and extra files at the root', async () => {
+  it('ignores macOS junk inside media/ rather than listing it as media', async () => {
     const pack = await parsePack(
       tree({
         'manifest.json': manifest({ base: 'autogoon.aimee' }),
-        'readme.txt': 'hello',
-        '.DS_Store': '',
-        '__MACOSX/._manifest.json': '',
         'media/.DS_Store': '',
         'media/._a.jpg': '',
       }),
@@ -259,13 +280,22 @@ describe('peekManifest', () => {
       base: 'autogoon.aimee',
     });
   });
-  it('ignores non-string fields and unreadable input', () => {
-    // A top-level name (the pre-companion-section shape) still peeks.
-    expect(peekManifest(JSON.stringify({ version: 2, name: 'Testy' }))).toEqual(
-      {
-        name: 'Testy',
-      },
-    );
+  it("skips a version field that isn't a string", () => {
+    expect(
+      peekManifest(JSON.stringify({ version: 2, base: 'autogoon.aimee' })),
+    ).toEqual({ base: 'autogoon.aimee' });
+  });
+
+  it("returns nothing for input that isn't JSON", () => {
     expect(peekManifest('nope')).toEqual({});
+  });
+
+  it('reads a top-level name from a pre-companion-section manifest', () => {
+    // Manifests written before the companion section existed carry the name at
+    // the top level; peekManifest stays lenient about that so the admin row can
+    // name a pack parsePack rejects.
+    expect(peekManifest(JSON.stringify({ name: 'Testy' }))).toEqual({
+      name: 'Testy',
+    });
   });
 });

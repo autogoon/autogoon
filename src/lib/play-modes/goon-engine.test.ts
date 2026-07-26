@@ -1,36 +1,50 @@
 import { describe, expect, it } from '@jest/globals';
 import type { PlayerContext, SpeedEvent } from '../program';
-import { GoonEngine } from './goon-engine';
+import { type AfterPlayOption, GoonEngine } from './goon-engine';
 
-// Contract tests for the engine (see program.ts): generation is random by
-// design, so these pin the guarantees the Player relies on, not exact output.
+// generateSpeed's dip pattern is random by design, so its tests pin the
+// guarantees the Player relies on (see program.ts) rather than exact events. The
+// after-play scripts, the valve overlay and scale are deterministic, and are
+// asserted event for event.
 
 const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
 describe('GoonEngine.generateSpeed', () => {
-  it('always extends past fromTime, sorted, in pattern space', () => {
+  it("each batch ends after fromTime, so the Player's look-ahead makes progress", () => {
     const engine = new GoonEngine(50);
     let from = 0;
     // Walk several look-ahead batches the way the Player does.
     for (let i = 0; i < 10; i++) {
-      const until = from + 60_000;
-      const events = engine.generateSpeed(from, until, CTX);
+      const events = engine.generateSpeed(from, from + 60_000, CTX);
       expect(events.length).toBeGreaterThan(0);
-
-      let lastAt = from;
-      for (const event of events) {
-        // Sorted non-decreasing, all within [fromTime, …).
-        expect(event.at).toBeGreaterThanOrEqual(lastAt);
-        lastAt = event.at;
-        expect(event.speed).toBeGreaterThanOrEqual(0);
-        expect(event.speed).toBeLessThanOrEqual(100);
-      }
-      // Progress guarantee: a batch ending at or before fromTime would make
-      // the Player's look-ahead loop spin.
+      const lastAt = events[events.length - 1]!.at;
       expect(lastAt).toBeGreaterThan(from);
       from = lastAt;
     }
   });
+
+  it('returns events sorted non-decreasing by at', () => {
+    const engine = new GoonEngine(50);
+    let from = 0;
+    for (let i = 0; i < 10; i++) {
+      const ats = engine
+        .generateSpeed(from, from + 60_000, CTX)
+        .map((e) => e.at);
+      expect(ats).toEqual([...ats].sort((a, b) => a - b));
+      from = ats[ats.length - 1]!;
+    }
+  });
+
+  it('keeps advancing through the taper, where a dip collapses to a peak-to-peak hold', () => {
+    // The last few seconds of the build: standardFloor rounds to 100, so both
+    // legs of every dip run 100 -> 100. buildLeg's from === to guard is what
+    // still consumes the leg time; without it this call never returns.
+    const engine = new GoonEngine(100);
+    const programMs = 30 * 60_000;
+    const events = engine.generateSpeed(programMs - 2_000, programMs, CTX);
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[events.length - 1]!.at).toBeGreaterThan(programMs - 2_000);
+  }, 1_000);
 
   it('emits the wind-down once when cumming, then parks', () => {
     const engine = new GoonEngine(50);
@@ -46,46 +60,64 @@ describe('GoonEngine.generateSpeed', () => {
     expect(engine.generateSpeed(60_000, 120_000, CTX)).toEqual([]);
   });
 
-  it('scales the build to the configured session length', () => {
-    const short = new GoonEngine(100);
-    short.setProgramMs(10 * 60_000);
-    // Past the configured end the build parks, holding at top speed…
-    const parked = short.generateSpeed(10 * 60_000, 11 * 60_000, CTX);
-    expect(parked.length).toBeGreaterThan(0);
-    expect(parked.every((e) => e.speed === 100)).toBe(true);
-
-    // …while the default 30-minute build at the same position is still
-    // mid-ramp, its dips sitting well under the top.
-    const midBuild = new GoonEngine(100).generateSpeed(
-      10 * 60_000,
-      12 * 60_000,
-      CTX,
-    );
-    expect(midBuild.some((e) => e.speed < 100)).toBe(true);
+  it('tiles the park at top speed a minute at a time past the configured session length', () => {
+    const engine = new GoonEngine(100);
+    engine.setProgramMs(10 * 60_000);
+    expect(engine.generateSpeed(10 * 60_000, 13 * 60_000, CTX)).toEqual([
+      { kind: 'speed', at: 600_000, speed: 100 },
+      { kind: 'speed', at: 660_000, speed: 100 },
+      { kind: 'speed', at: 720_000, speed: 100 },
+    ]);
   });
 
-  it('resumes generating after reset() clears a cumming session', () => {
+  it('compresses the build into a shorter session, so the same clock sits further up the ramp', () => {
+    const topSpeedAtFiveMinutes = (programMs: number): number => {
+      const engine = new GoonEngine(100);
+      engine.setProgramMs(programMs);
+      const events = engine.generateSpeed(5 * 60_000, 6 * 60_000, CTX);
+      return Math.max(...events.map((e) => e.speed));
+    };
+    // Measured over 300 runs each: five minutes into a 10-minute build the
+    // batch tops out at 61..64, and into a 30-minute one at 34.
+    expect(topSpeedAtFiveMinutes(10 * 60_000)).toBeGreaterThan(50);
+    expect(topSpeedAtFiveMinutes(30 * 60_000)).toBeLessThan(40);
+  });
+
+  it('generates an ordinary dip batch after reset(), not another cumming wind-down', () => {
     const engine = new GoonEngine(50);
     engine.beginCumming();
     engine.generateSpeed(0, 60_000, CTX);
 
     engine.reset();
-    expect(engine.generateSpeed(0, 60_000, CTX).length).toBeGreaterThan(0);
+    const events = engine.generateSpeed(0, 60_000, CTX);
+    // The build's first cycle opens on the raw peak under the BUILD_START build
+    // speed (25% of 100) and is scalable; a reset that left `cumming` set would
+    // hand back the unscaled wind-down instead, stranding the session in the
+    // send-off forever.
+    expect(events[0]).toEqual({ kind: 'speed', at: 0, speed: 25 });
+    expect(events.every((e) => e.unscaled === undefined)).toBe(true);
   });
 });
 
 describe('GoonEngine after-play', () => {
+  const armed = (option: AfterPlayOption): GoonEngine => {
+    const engine = new GoonEngine(50);
+    engine.setAfterPlayOptions([option]);
+    engine.beginCumming();
+    return engine;
+  };
+
   it('defaults to the wind-down', () => {
     expect(new GoonEngine(50).beginCumming()).toBe('wind-down');
   });
 
-  it('picks only among the enabled options', () => {
+  it('picks the sole enabled option', () => {
     const engine = new GoonEngine(50);
     engine.setAfterPlayOptions(['torture']);
     expect(engine.beginCumming()).toBe('torture');
   });
 
-  it('draws every pick from the enabled set', () => {
+  it('never returns an option outside the enabled set across repeated draws', () => {
     const engine = new GoonEngine(50);
     engine.setAfterPlayOptions(['stay-in', 'eject']);
     for (let i = 0; i < 50; i++) {
@@ -94,59 +126,93 @@ describe('GoonEngine after-play', () => {
     }
   });
 
-  it('torture slams to full speed and holds, ignoring the intensity ceiling', () => {
+  it('draws both enabled options over repeated picks', () => {
     const engine = new GoonEngine(50);
-    engine.setAfterPlayOptions(['torture']);
-    engine.beginCumming();
-    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
-      { kind: 'speed', at: 1_000, speed: 100, unscaled: true },
-    ]);
-    // Parked: the hold is the in-effect speed forever.
-    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
-    expect(engine.generateValves([], 1_000, 1_000, CTX)).toEqual([
-      { kind: 'valve', at: 1_000, valve: 'minus', open: false },
-      { kind: 'valve', at: 1_000, valve: 'plus', open: false },
-    ]);
+    engine.setAfterPlayOptions(['stay-in', 'eject']);
+    const drawn = new Set<AfterPlayOption>();
+    for (let i = 0; i < 50; i++) {
+      engine.reset();
+      drawn.add(engine.beginCumming());
+    }
+    expect([...drawn].sort()).toEqual(['eject', 'stay-in']);
   });
 
-  it('stay-in stops the device dead with the valves closed', () => {
-    const engine = new GoonEngine(50);
-    engine.setAfterPlayOptions(['stay-in']);
-    engine.beginCumming();
-    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
-      { kind: 'speed', at: 1_000, speed: 0, unscaled: true },
-    ]);
-    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
-    expect(engine.generateValves([], 1_000, 1_000, CTX)).toEqual([
-      { kind: 'valve', at: 1_000, valve: 'minus', open: false },
-      { kind: 'valve', at: 1_000, valve: 'plus', open: false },
-    ]);
+  describe('torture', () => {
+    it('slams to full speed, unscaled so the intensity ceiling cannot soften it', () => {
+      expect(armed('torture').generateSpeed(1_000, 61_000, CTX)).toEqual([
+        { kind: 'speed', at: 1_000, speed: 100, unscaled: true },
+      ]);
+    });
+
+    it('parks after the slam, leaving full speed in effect', () => {
+      const engine = armed('torture');
+      engine.generateSpeed(1_000, 61_000, CTX);
+      expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    });
+
+    it('closes both valves, settling any manual stroke in flight', () => {
+      expect(armed('torture').generateValves([], 1_000, 61_000, CTX)).toEqual([
+        { kind: 'valve', at: 1_000, valve: 'minus', open: false },
+        { kind: 'valve', at: 1_000, valve: 'plus', open: false },
+      ]);
+    });
   });
 
-  it('eject drives speed 40 with stroke+ open for 15 seconds, then stops', () => {
-    const engine = new GoonEngine(50);
-    engine.setAfterPlayOptions(['eject']);
-    engine.beginCumming();
-    expect(engine.generateSpeed(1_000, 61_000, CTX)).toEqual([
-      { kind: 'speed', at: 1_000, speed: 40, unscaled: true },
-      { kind: 'speed', at: 16_000, speed: 0, unscaled: true },
-    ]);
-    expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
-    expect(engine.generateValves([], 1_000, 16_000, CTX)).toEqual([
-      { kind: 'valve', at: 1_000, valve: 'minus', open: false },
-      { kind: 'valve', at: 1_000, valve: 'plus', open: true },
-      { kind: 'valve', at: 16_000, valve: 'plus', open: false },
-    ]);
+  describe('stay-in', () => {
+    it('stops the device dead, unscaled so the intensity ceiling cannot soften it', () => {
+      expect(armed('stay-in').generateSpeed(1_000, 61_000, CTX)).toEqual([
+        { kind: 'speed', at: 1_000, speed: 0, unscaled: true },
+      ]);
+    });
+
+    it('parks after the stop, leaving the device at rest', () => {
+      const engine = armed('stay-in');
+      engine.generateSpeed(1_000, 61_000, CTX);
+      expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    });
+
+    it('closes both valves so the seal holds', () => {
+      expect(armed('stay-in').generateValves([], 1_000, 61_000, CTX)).toEqual([
+        { kind: 'valve', at: 1_000, valve: 'minus', open: false },
+        { kind: 'valve', at: 1_000, valve: 'plus', open: false },
+      ]);
+    });
   });
 
-  it('the wind-down still rides its suction pulse', () => {
-    const engine = new GoonEngine(50);
-    engine.setAfterPlayOptions(['wind-down']);
-    engine.beginCumming();
-    expect(engine.generateValves([], 1_000, 20_000, CTX)).toEqual([
-      { kind: 'valve', at: 4_000, valve: 'minus', open: true },
-      { kind: 'valve', at: 13_000, valve: 'minus', open: false },
-    ]);
+  describe('eject', () => {
+    it('drives speed 40 for 15 seconds, then stops', () => {
+      expect(armed('eject').generateSpeed(1_000, 61_000, CTX)).toEqual([
+        { kind: 'speed', at: 1_000, speed: 40, unscaled: true },
+        { kind: 'speed', at: 16_000, speed: 0, unscaled: true },
+      ]);
+    });
+
+    it('parks after the push, leaving the device at rest', () => {
+      const engine = armed('eject');
+      engine.generateSpeed(1_000, 61_000, CTX);
+      expect(engine.generateSpeed(61_000, 121_000, CTX)).toEqual([]);
+    });
+
+    it('holds stroke+ open for the whole push, then closes it', () => {
+      expect(armed('eject').generateValves([], 1_000, 16_000, CTX)).toEqual([
+        { kind: 'valve', at: 1_000, valve: 'minus', open: false },
+        { kind: 'valve', at: 1_000, valve: 'plus', open: true },
+        { kind: 'valve', at: 16_000, valve: 'plus', open: false },
+      ]);
+    });
+  });
+
+  describe('wind-down', () => {
+    it('opens stroke-minus 3 s in and closes it at 12 s', () => {
+      // fromTime is the Player's clock, never 0 past the first window, so the
+      // pulse has to be anchored to it rather than to session start.
+      expect(armed('wind-down').generateValves([], 1_000, 20_000, CTX)).toEqual(
+        [
+          { kind: 'valve', at: 4_000, valve: 'minus', open: true },
+          { kind: 'valve', at: 13_000, valve: 'minus', open: false },
+        ],
+      );
+    });
   });
 });
 

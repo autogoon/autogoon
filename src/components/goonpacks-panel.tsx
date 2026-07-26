@@ -227,7 +227,11 @@ export function GoonpacksPanel() {
         <Button onClick={() => fileRef.current?.click()}>Import pack</Button>
 
         {importError?.map((p) => (
-          <p key={p} className="mt-1 text-sm text-red-500">
+          <p
+            key={p}
+            data-testid="import-error"
+            className="mt-1 text-sm text-red-500"
+          >
             {p}
           </p>
         ))}

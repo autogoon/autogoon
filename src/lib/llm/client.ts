@@ -1,7 +1,7 @@
 // The companion's LLM client: a thin wrapper over the openai SDK pointed at our
-// same-origin proxy route (Task 1), which forwards to OpenRouter. The client now
-// sends the companion's model itself; the route injects only the API key
-// server-side, and the proxy is unauthenticated for the local experiment.
+// same-origin proxy route, which forwards to OpenRouter. The client sends the
+// companion's model itself; the route injects only the API key server-side, and
+// the proxy is unauthenticated for the local experiment.
 // openai-node needs an ABSOLUTE baseURL — see createLlmClient for how that's built.
 import OpenAI from 'openai';
 import { parseTextualToolCalls } from './textual-tool-calls';

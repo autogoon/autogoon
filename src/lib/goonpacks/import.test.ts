@@ -4,8 +4,8 @@ import { extractionError } from './import';
 // The rest of the import pipeline is a worker, OPFS and Web Locks, and is
 // covered by tests/e2e/goonpack-import.spec.ts. What's decided here is which
 // story a failure inside the worker tells the user. Only an Error's name and
-// message cross the worker boundary, so `name` is all these three cases have to
-// tell one kind of failure from another.
+// message cross the worker boundary, so `name` is all these cases have to tell
+// one kind of failure from another.
 describe('extractionError', () => {
   // Without this case a full disk reports "The zip couldn't be read: The quota
   // has been exceeded.", sending the user off to re-zip a pack that is fine.
@@ -30,7 +30,7 @@ describe('extractionError', () => {
     ).toEqual(['The pack vanished from browser storage.']);
   });
 
-  it('reports an unnamed error as a zip that could not be read', () => {
+  it("reports a plain Error as a zip that couldn't be read, quoting its message", () => {
     expect(extractionError('Error', 'invalid zip data').problems).toEqual([
       "The zip couldn't be read: invalid zip data.",
     ]);

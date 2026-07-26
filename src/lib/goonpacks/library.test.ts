@@ -13,8 +13,10 @@ const manifest = (extra: object) =>
     ...extra,
   });
 
-// A source over plain objects: key → { path → text }. Media files are listed by
-// name and never read, exactly as OPFS backs it.
+// A source over plain objects: key → { path → text }. `readText` covers
+// manifest.json, system-prompt.md and the caption sidecars — the only files
+// parsePack opens — so the .jpg/.mp4 entries carry empty text, and `mediaUrl`
+// stands in for reading their bytes.
 function source(trees: Record<string, Record<string, string>>): LibrarySource {
   return {
     listKeys: () => Promise.resolve(Object.keys(trees)),
@@ -47,7 +49,7 @@ const overlayPack = (id: string, base: string) => ({
 });
 
 describe('buildLibrary', () => {
-  it('lists a valid pack as a row, an entry and resolvable content', async () => {
+  it("builds a row carrying the pack's media counts and prompt flag", async () => {
     const lib = await buildLibrary(
       source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
     );
@@ -57,16 +59,36 @@ describe('buildLibrary', () => {
       summary: { media: { images: 1, videos: 1 }, hasPrompt: true },
     });
     expect(lib.rows[0]!.incompatible).toBeUndefined();
+  });
+
+  it('builds a chooser entry for a complete pack', async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+    );
     expect(lib.entries.some((e) => e.companion.id === 'pub.comp')).toBe(true);
+  });
+
+  it('keys the manifests map by id@version, so an import can tell an upgrade from a new pack', async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+    );
+    expect([...lib.manifests.keys()]).toEqual(['pub.comp@1.0.0']);
+  });
+
+  it('gives each media file a stable goonpack: ref, its kind and its sidecar caption', async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+    );
     const content = lib.content.get('pub.comp@1.0.0')!;
     expect(content.media.map((m) => m.ref)).toEqual([
       'goonpack:pub.comp@1.0.0/a',
       'goonpack:pub.comp@1.0.0/b',
     ]);
     expect(content.media[1]!.kind).toBe('video');
+    expect(content.media[0]!.description).toBe('a still');
   });
 
-  it('mints a media URL only when load() is called, then memoises it', async () => {
+  it("leaves a media item's src unset until load() is called", async () => {
     const lib = await buildLibrary(
       source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
     );
@@ -74,7 +96,22 @@ describe('buildLibrary', () => {
     expect(item.src).toBeUndefined();
     expect(await item.load()).toBe('blob:pub.comp@1.0.0/a.jpg');
     expect(item.src).toBe('blob:pub.comp@1.0.0/a.jpg');
-    expect(await item.load()).toBe('blob:pub.comp@1.0.0/a.jpg');
+  });
+
+  it('mints one URL per media item however often load() is called', async () => {
+    // The app's mediaUrl is URL.createObjectURL (use-goonpack-library.ts),
+    // which mints a fresh URL per call, so this fake mints uniquely too: an
+    // unmemoised load() would leak one object URL per render.
+    let mints = 0;
+    const lib = await buildLibrary({
+      ...source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+      mediaUrl: (key, media) =>
+        Promise.resolve(`blob:${++mints}:${key}/${media.file}`),
+    });
+    const item = lib.content.get('pub.comp@1.0.0')!.media[0]!;
+    expect(await item.load()).toBe('blob:1:pub.comp@1.0.0/a.jpg');
+    expect(await item.load()).toBe('blob:1:pub.comp@1.0.0/a.jpg');
+    expect(mints).toBe(1);
   });
 
   it('retries a media URL that failed once, rather than pinning it as missing', async () => {
@@ -117,28 +154,31 @@ describe('buildLibrary', () => {
       }),
     );
     expect(lib.rows[0]!.peek).toEqual({ name: 'Broken', version: '1.0.0' });
-    expect(lib.rows[0]!.incompatible).toHaveLength(1);
+    expect(lib.rows[0]!.incompatible).toEqual([
+      'manifest.json is missing the format field — add "format": 2.',
+    ]);
   });
 
-  it("holds back an overlay whose base isn't installed, and heals when it is", async () => {
-    const overlay = {
-      'manifest.json': manifest({
-        id: 'pub.goth',
-        base: 'pub.comp',
-        companion: { voiceId: 'v2' },
-      }),
-    };
-    const alone = await buildLibrary(source({ 'pub.goth@1.0.0': overlay }));
-    expect(alone.rows[0]!.incompatible).toEqual([
+  it("holds back an overlay whose base isn't installed", async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.goth@1.0.0': overlayPack('pub.goth', 'pub.comp') }),
+    );
+    expect(lib.rows[0]!.incompatible).toEqual([
       "This overlay changes pub.comp, which isn't installed — import that pack first.",
     ]);
-    const healed = await buildLibrary(
+  });
+
+  it('offers a held-back overlay once its base is installed too', async () => {
+    const lib = await buildLibrary(
       source({
-        'pub.goth@1.0.0': overlay,
+        'pub.goth@1.0.0': overlayPack('pub.goth', 'pub.comp'),
         'pub.comp@1.0.0': completePack('pub.comp'),
       }),
     );
-    expect(healed.rows.every((r) => r.incompatible === undefined)).toBe(true);
+    expect(lib.rows.map((r) => [r.id, r.incompatible])).toEqual([
+      ['pub.comp@1.0.0', undefined],
+      ['pub.goth@1.0.0', undefined],
+    ]);
   });
 
   it("rejects a complete pack squatting a built-in's id", async () => {
@@ -167,7 +207,7 @@ describe('buildLibrary', () => {
     ]);
   });
 
-  it('rejects versions of one id that disagree about being an overlay', async () => {
+  it('marks every version of an id incompatible when one is an overlay and another is complete', async () => {
     const lib = await buildLibrary(
       source({
         'pub.x@1.0.0': completePack('pub.x'),
@@ -180,7 +220,13 @@ describe('buildLibrary', () => {
         },
       }),
     );
-    expect(lib.rows.every((r) => r.incompatible !== undefined)).toBe(true);
+    const disagree = [
+      'Installed versions of this id disagree about being an overlay or a complete companion.',
+    ];
+    expect(lib.rows.map((r) => [r.id, r.incompatible])).toEqual([
+      ['pub.x@1.0.0', disagree],
+      ['pub.x@2.0.0', disagree],
+    ]);
   });
 
   it('sorts rows by id then version ascending', async () => {
@@ -209,8 +255,8 @@ describe('buildLibrary', () => {
 });
 
 describe('carryMediaOver', () => {
-  // The real URL.revokeObjectURL needs a document; what matters here is which
-  // URLs the reconciliation decides to revoke.
+  // Revoking is unobservable, so the stub records which URLs the reconciliation
+  // decides to revoke.
   const revoked: string[] = [];
   const real = URL.revokeObjectURL;
   beforeEach(() => {
@@ -221,8 +267,6 @@ describe('carryMediaOver', () => {
     URL.revokeObjectURL = real;
   });
 
-  // Two packs, both with their media URLs already minted, rebuilt into a fresh
-  // index — the state after any import or removal.
   const twoPacks = () =>
     source({
       'pub.a@1.0.0': completePack('pub.a'),
@@ -311,9 +355,6 @@ describe('carryMediaOver', () => {
       'blob:pub.comp@1.0.0/a.jpg',
       'blob:pub.comp@1.0.0/b.mp4',
     ]);
-    expect(before.content.get('pub.goth@1.0.0')!.media[0]!.src).toBe(
-      'blob:pub.goth@1.0.0/a.jpg',
-    );
   });
 
   it('revokes a media file that has gone from a carried-over pack', async () => {

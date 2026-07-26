@@ -1,14 +1,31 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  jest,
+} from '@jest/globals';
 
-const streamMock = jest.fn();
+// The SDK's textToSpeech.stream resolves to a web ReadableStream<Uint8Array>, so
+// the fake is typed to resolve one — a dropped `await` in the route then shows.
+const streamMock =
+  jest.fn<
+    (
+      voiceId: string,
+      options: { modelId: string; text: string; outputFormat: string },
+    ) => Promise<ReadableStream<Uint8Array>>
+  >();
+let constructedApiKey: string | undefined;
 jest.mock('@elevenlabs/elevenlabs-js', () => ({
   ElevenLabsClient: class {
     textToSpeech = { stream: streamMock };
+    constructor(options: { apiKey?: string }) {
+      constructedApiKey = options.apiKey;
+    }
   },
 }));
 
-// The real SDK's textToSpeech.stream resolves to a web ReadableStream<Uint8Array>,
-// so the fake mimics that shape.
 function fakeAudio(): ReadableStream<Uint8Array> {
   const chunks = [new Uint8Array([1, 2, 3]), new Uint8Array([4, 5])];
   return new ReadableStream<Uint8Array>({
@@ -19,26 +36,29 @@ function fakeAudio(): ReadableStream<Uint8Array> {
   });
 }
 
-function req(body: unknown): Request {
+function req(body: unknown, accessId = 'test-key'): Request {
   return new Request('http://localhost/api/tts', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json', 'x-access-id': 'test-key' },
+    headers: { 'content-type': 'application/json', 'x-access-id': accessId },
   });
 }
 
 describe('POST /api/tts', () => {
   beforeEach(() => {
     process.env.ELEVENLABS_API_KEY = 'sk_test_key';
-    // The gate is fail-closed, so the route needs a valid access context; these
-    // tests exercise the route's own logic with access already granted (the gate
-    // itself has its own tests). req() sends the matching x-access-id header.
+    // The gate is fail-closed: req() sends the matching x-access-id header.
     process.env.COMPANIONS_ACCESS_IDS = 'test-key';
     streamMock.mockReset();
+    constructedApiKey = undefined;
+  });
+  afterEach(() => {
+    delete process.env.ELEVENLABS_API_KEY;
+    delete process.env.COMPANIONS_ACCESS_IDS;
   });
 
   it('streams mp3 audio for the given text and voice', async () => {
-    streamMock.mockReturnValue(fakeAudio());
+    streamMock.mockResolvedValue(fakeAudio());
     const { POST } = await import('./route');
     const res = await POST(
       req({ text: 'hi', voiceId: 'exHJXWRRhHzWYCoZrSF1' }),
@@ -47,17 +67,40 @@ describe('POST /api/tts', () => {
     expect(res.headers.get('content-type')).toBe('audio/mpeg');
     const bytes = new Uint8Array(await res.arrayBuffer());
     expect(Array.from(bytes)).toEqual([1, 2, 3, 4, 5]);
-    const [voiceArg, optionsArg] = streamMock.mock.calls[0] as [
-      string,
-      { modelId: string },
-    ];
-    expect(voiceArg).toBe('exHJXWRRhHzWYCoZrSF1');
-    expect(optionsArg.modelId).toBe('eleven_v3');
+    const call = streamMock.mock.calls[0];
+    expect(call?.[0]).toBe('exHJXWRRhHzWYCoZrSF1');
+    expect(call?.[1].modelId).toBe('eleven_v3');
+  });
+
+  it('constructs the ElevenLabsClient with ELEVENLABS_API_KEY', async () => {
+    streamMock.mockResolvedValue(fakeAudio());
+    const { POST } = await import('./route');
+    await POST(req({ text: 'hi', voiceId: 'exHJXWRRhHzWYCoZrSF1' }));
+    expect(constructedApiKey).toBe('sk_test_key');
   });
 
   it('400s when text is missing', async () => {
     const { POST } = await import('./route');
     const res = await POST(req({ voiceId: 'x' }));
     expect(res.status).toBe(400);
+  });
+
+  it('401s and never calls upstream when the access id is wrong', async () => {
+    const { POST } = await import('./route');
+    const res = await POST(
+      req({ text: 'hi', voiceId: 'exHJXWRRhHzWYCoZrSF1' }, 'not-a-key'),
+    );
+    expect(res.status).toBe(401);
+    expect(streamMock).not.toHaveBeenCalled();
+  });
+
+  it('503s when ELEVENLABS_API_KEY is missing, without calling upstream', async () => {
+    delete process.env.ELEVENLABS_API_KEY;
+    const { POST } = await import('./route');
+    const res = await POST(
+      req({ text: 'hi', voiceId: 'exHJXWRRhHzWYCoZrSF1' }),
+    );
+    expect(res.status).toBe(503);
+    expect(streamMock).not.toHaveBeenCalled();
   });
 });

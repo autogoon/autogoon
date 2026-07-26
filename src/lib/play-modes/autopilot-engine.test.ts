@@ -2,10 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import type { PlayerContext, SpeedEvent } from '../program';
 import { AutopilotEngine } from './autopilot-engine';
 
-// Vacuum maintenance, faithful to the original bundle's handleSuctionControl:
-// a pulse fires only when a speed move is sent (a step transition — never
-// mid-step), gated by "at least `interval` since the last pulse". The
-// interval is a minimum gap, not a cadence.
+// The rules these tests pin — the pulse gate and the pulse-length formula —
+// are stated at generateValves in autopilot-engine.ts and tabulated in
+// modes/AUTOPILOT.md ("Vacuum maintenance").
 
 const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
@@ -28,7 +27,7 @@ const opens = (engine: AutopilotEngine, events: SpeedEvent[], until: number) =>
     .map((v) => v.at);
 
 describe('AutopilotEngine.generateValves (vacuum maintenance)', () => {
-  it('pulses only at speed moves, first once the interval has elapsed', () => {
+  it('holds the first pulse back until the minimum gap has elapsed from session start', () => {
     const engine = new AutopilotEngine('medium', 'moderate', 'little');
     // Steps every 5 s from session start; little = 3 s minimum gap. The gate
     // starts closed (the original's lastSuctionTime starts at 0), so the
@@ -71,15 +70,20 @@ describe('AutopilotEngine.generateValves (vacuum maintenance)', () => {
   it("keys each pulse's length to that move's speed", () => {
     const engine = new AutopilotEngine('medium', 'moderate', 'little');
     // Original formula: round(baseDuration × speedMultiplier / (speed/100 + 0.1)).
-    // little at speed 20 → round(200 × 0.8 / 0.3) = 533.
+    // little at speed 20 → round(200 × 0.8 / 0.3) = 533; at speed 100 →
+    // round(200 × 0.8 / 1.1) = 145. Two pulsing moves, so a fixed-length pulse
+    // can't satisfy both.
     const events: SpeedEvent[] = [
       { kind: 'speed', at: 0, speed: 50 },
       { kind: 'speed', at: 5_000, speed: 20 },
+      { kind: 'speed', at: 10_000, speed: 100 },
     ];
-    const valves = engine.generateValves(events, 0, 10_000, CTX);
+    const valves = engine.generateValves(events, 0, 15_000, CTX);
     expect(valves).toEqual([
       { kind: 'valve', at: 5_000, valve: 'minus', open: true },
       { kind: 'valve', at: 5_533, valve: 'minus', open: false },
+      { kind: 'valve', at: 10_000, valve: 'minus', open: true },
+      { kind: 'valve', at: 10_145, valve: 'minus', open: false },
     ]);
   });
 

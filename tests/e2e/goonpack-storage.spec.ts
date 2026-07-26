@@ -136,7 +136,7 @@ test('the load-time clean pass removes markerless trees only', async ({
   expect(await packKeys(page)).toEqual(['kept.pack@1.0.0']);
 });
 
-test('the clean pass spares a tree another tab is still importing', async ({
+test('the clean pass spares a tree another tab is importing, and removes it once the lock goes', async ({
   context,
   page,
 }) => {

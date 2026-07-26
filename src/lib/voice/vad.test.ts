@@ -22,12 +22,20 @@ function run(rmsSeq: number[]) {
 
 describe('vadStep', () => {
   it('fires onset only after attackFrames above onRms', () => {
-    expect(run([0.1]).events).toEqual([]); // 1 frame, not yet
-    expect(run([0.1, 0.1]).events).toEqual(['onset']); // 2 frames confirm
+    expect(run([0.1]).events).toEqual([]);
+    expect(run([0.1, 0.1]).events).toEqual(['onset']);
   });
 
-  it('does not fire onset on a single loud blip (debounced)', () => {
-    expect(run([0.1, 0, 0, 0]).events).toEqual([]);
+  it('fires onset once per utterance, not on every frame that stays above onRms', () => {
+    expect(run([0.1, 0.1, 0.1, 0.1]).events).toEqual(['onset']);
+  });
+
+  it('does not fire onset when the frames above onRms are not consecutive', () => {
+    expect(run([0.1, 0, 0.1]).events).toEqual([]);
+  });
+
+  it('restarts the attack count when a frame lands between offRms and onRms', () => {
+    expect(run([0.1, 0.03, 0.1]).events).toEqual([]);
   });
 
   it('fires offset only after hangoverFrames below offRms', () => {
@@ -36,9 +44,31 @@ describe('vadStep', () => {
     expect(r.speaking).toBe(false);
   });
 
-  it('stays speaking through a short dip above offRms', () => {
-    const r = run([0.1, 0.1, 0.03, 0.03, 0.1]); // 0.03 is between off and on
+  it('does not fire offset before any onset has been confirmed', () => {
+    expect(run([0.01, 0.01, 0.01, 0.01]).events).toEqual([]);
+  });
+
+  it('stays speaking through a dip above offRms for longer than hangoverFrames', () => {
+    const r = run([0.1, 0.1, 0.03, 0.03, 0.03, 0.03]); // 0.03 is between off and on
     expect(r.events).toEqual(['onset']);
+    expect(r.speaking).toBe(true);
+  });
+
+  it('restarts the hangover count when a frame lands between offRms and onRms', () => {
+    const r = run([0.1, 0.1, 0.01, 0.01, 0.03, 0.01, 0.01]);
+    expect(r.events).toEqual(['onset']);
+    expect(r.speaking).toBe(true);
+  });
+
+  it('restarts the hangover count when a frame climbs back above onRms', () => {
+    const r = run([0.1, 0.1, 0.01, 0.01, 0.1, 0.01, 0.01]);
+    expect(r.events).toEqual(['onset']);
+    expect(r.speaking).toBe(true);
+  });
+
+  it('fires a second onset once speech resumes after an offset', () => {
+    const r = run([0.1, 0.1, 0.01, 0.01, 0.01, 0.1, 0.1]);
+    expect(r.events).toEqual(['onset', 'offset', 'onset']);
     expect(r.speaking).toBe(true);
   });
 });

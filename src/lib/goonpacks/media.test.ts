@@ -19,17 +19,27 @@ describe('splitName', () => {
   it('splits stem from a lowercased extension', () => {
     expect(splitName('Beach.JPG')).toEqual({ stem: 'Beach', ext: 'jpg' });
     expect(splitName('a.b.mp4')).toEqual({ stem: 'a.b', ext: 'mp4' });
+  });
+  it('returns the whole name as the stem when there is no extension', () => {
     expect(splitName('noext')).toEqual({ stem: 'noext', ext: '' });
+  });
+  it('keeps a leading dot as part of the stem, not an extension', () => {
+    expect(splitName('.DS_Store')).toEqual({ stem: '.DS_Store', ext: '' });
   });
 });
 
 describe('isJunkPath', () => {
-  it('spots macOS and archive housekeeping', () => {
+  it('treats __MACOSX entries, .DS_Store and AppleDouble forks as junk', () => {
+    expect(isJunkPath('__MACOSX/media/beach.jpg')).toBe(true);
     expect(isJunkPath('__MACOSX/._manifest.json')).toBe(true);
     expect(isJunkPath('.DS_Store')).toBe(true);
     expect(isJunkPath('media/.DS_Store')).toBe(true);
-    expect(isJunkPath('media/._beach.jpg')).toBe(true); // AppleDouble fork
-    expect(isJunkPath('media/')).toBe(true); // directory entry
+    expect(isJunkPath('media/._beach.jpg')).toBe(true);
+  });
+  it('treats a bare directory entry as junk', () => {
+    expect(isJunkPath('media/')).toBe(true);
+  });
+  it('keeps a media file and manifest.json', () => {
     expect(isJunkPath('media/beach.jpg')).toBe(false);
     expect(isJunkPath('manifest.json')).toBe(false);
   });

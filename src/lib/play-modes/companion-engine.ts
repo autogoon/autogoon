@@ -93,7 +93,8 @@ function buildLeg(
     { speed: from, at: startAt },
   ];
   // A zero-length leg (from === to) still consumes its leg time, or the cycle
-  // collapses to zero duration and the Player's look-ahead loop spins forever.
+  // collapses to zero duration and generateSpeed's own tiling loop never
+  // returns, building empty cycles at the same instant forever.
   if (from === to) return { waypoints, endAt: startAt + Math.round(legMs) };
   const steps = Math.max(1, Math.round(legMs / STEP_INTERVAL_MS));
   const stepMs = Math.max(1, Math.round(legMs / steps));
@@ -247,7 +248,7 @@ export class CompanionEngine implements PlayModeEngine {
       ];
     }
     // The one-shot stroke-minus tease. The open fires once at session start; the
-    // close must survive a mid-tease re-lay — a knob change in the first
+    // close must survive a mid-tease re-lay — a variety change in the first
     // STROKE_TEASE_MS calls invalidateFuture, which drops the future close and
     // re-pulls this overlay with fromTime = clock (>0). So emit the close on any
     // window overlapping [0, STROKE_TEASE_MS), but the open only on the window

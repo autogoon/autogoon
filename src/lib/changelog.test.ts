@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import { parseChangelog } from './changelog';
 
-// The changelog's strict format (see CLAUDE.md): `## YYYY-MM-DD` day headings,
-// one `- tag: text` line per change, inline `code` and [link](url) only.
+// SAMPLE is a miniature CHANGELOG.md in the shape CLAUDE.md mandates: all four
+// tags, a bold summary, an entry with a trailing PR link. A day heading's text
+// is taken as written, so nothing here pins the date's format.
 
 const SAMPLE = `# Changelog
 
@@ -14,6 +15,7 @@ const SAMPLE = `# Changelog
 ## 2026-07-14
 
 - enhancement: Nicer dips.
+- internal: Engine helpers moved.
 `;
 
 describe('parseChangelog', () => {
@@ -21,18 +23,25 @@ describe('parseChangelog', () => {
     const days = parseChangelog(SAMPLE);
     expect(days.map((d) => d.date)).toEqual(['2026-07-16', '2026-07-14']);
     expect(days[0]!.entries).toHaveLength(2);
-    expect(days[1]!.entries).toHaveLength(1);
+    expect(days[1]!.entries).toHaveLength(2);
   });
 
   it('splits the tag off each entry', () => {
     const days = parseChangelog(SAMPLE);
     expect(days[0]!.entries.map((e) => e.tag)).toEqual(['feature', 'bug']);
-    expect(days[1]!.entries[0]!.tag).toBe('enhancement');
+    expect(days[1]!.entries.map((e) => e.tag)).toEqual([
+      'enhancement',
+      'internal',
+    ]);
   });
 
   it('splits the bold few-word summary off an entry', () => {
     const days = parseChangelog(SAMPLE);
     expect(days[0]!.entries[0]!.summary).toBe('Add after-play outcomes');
+  });
+
+  it('reads an entry with no bold summary as summary-less', () => {
+    const days = parseChangelog(SAMPLE);
     // Entries without one read as summary-less, not broken.
     expect(days[0]!.entries[1]!.summary).toBeNull();
     expect(days[0]!.entries[1]!.paragraphs).toEqual([
@@ -40,23 +49,36 @@ describe('parseChangelog', () => {
     ]);
   });
 
+  it('reads a bold summary that carries no description after it', () => {
+    const days = parseChangelog(
+      '## 2026-01-01\n\n- feature: **Bumped vosk**\n',
+    );
+    expect(days[0]!.entries[0]!.summary).toBe('Bumped vosk');
+    expect(days[0]!.entries[0]!.paragraphs).toEqual([]);
+  });
+
   it('parses inline code and links into segments', () => {
-    const entry = parseChangelog(SAMPLE)[0]!.entries[0]!;
-    // A sentence ending before "(" is not a paragraph break, so the PR link
-    // stays attached to its sentence.
-    expect(entry.paragraphs).toEqual([
+    const days = parseChangelog(
+      '## 2026-01-01\n\n- feature: Uses `noPictures` and links [#11](https://github.com/autogoon/autogoon/pull/11)\n',
+    );
+    expect(days[0]!.entries[0]!.paragraphs).toEqual([
       [
-        { kind: 'text', text: 'Goon now asks what ' },
-        { kind: 'code', text: 'cumming' },
-        { kind: 'text', text: ' should bring. (' },
+        { kind: 'text', text: 'Uses ' },
+        { kind: 'code', text: 'noPictures' },
+        { kind: 'text', text: ' and links ' },
         {
           kind: 'link',
           text: '#11',
           href: 'https://github.com/autogoon/autogoon/pull/11',
         },
-        { kind: 'text', text: ')' },
       ],
     ]);
+  });
+
+  it('keeps a trailing PR link in the same paragraph as its sentence', () => {
+    const entry = parseChangelog(SAMPLE)[0]!.entries[0]!;
+    // A sentence ending before "(" is not a paragraph break.
+    expect(entry.paragraphs).toHaveLength(1);
   });
 
   it('splits an entry into paragraphs at sentence boundaries', () => {
@@ -74,11 +96,19 @@ describe('parseChangelog', () => {
     ]);
   });
 
-  it('keeps an entry with no recognised tag whole, tagged null', () => {
+  it('keeps an untagged entry whole, tagged null', () => {
     const days = parseChangelog('## 2026-01-01\n\n- just some text\n');
     expect(days[0]!.entries[0]!.tag).toBeNull();
     expect(days[0]!.entries[0]!.paragraphs).toEqual([
       [{ kind: 'text', text: 'just some text' }],
+    ]);
+  });
+
+  it('keeps an entry with an unrecognised tag whole, tagged null', () => {
+    const days = parseChangelog('## 2026-01-01\n\n- chore: tidied up\n');
+    expect(days[0]!.entries[0]!.tag).toBeNull();
+    expect(days[0]!.entries[0]!.paragraphs).toEqual([
+      [{ kind: 'text', text: 'chore: tidied up' }],
     ]);
   });
 

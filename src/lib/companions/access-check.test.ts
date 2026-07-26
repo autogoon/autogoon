@@ -7,11 +7,11 @@ const req = (id?: string): Request =>
     headers: id === undefined ? {} : { [ACCESS_HEADER]: id },
   });
 
-describe('checkAccess', () => {
-  afterEach(() => {
-    delete process.env.COMPANIONS_ACCESS_IDS;
-  });
+afterEach(() => {
+  delete process.env.COMPANIONS_ACCESS_IDS;
+});
 
+describe('checkAccess', () => {
   it('denies everything when no ids are configured (fail closed)', () => {
     delete process.env.COMPANIONS_ACCESS_IDS;
     expect(checkAccess(req())).toBe(false);
@@ -45,8 +45,10 @@ describe('checkAccess', () => {
       env.NODE_ENV = previous;
     }
   });
+});
 
-  it('checkAccessId stays strict on the dev server (the access box tests real ids)', () => {
+describe('checkAccessId', () => {
+  it('stays strict on the dev server, where checkAccess is open (the access box tests real ids)', () => {
     const env = process.env as Record<string, string | undefined>;
     const previous = env.NODE_ENV;
     env.NODE_ENV = 'development';

@@ -26,6 +26,11 @@ const FIXTURE = path.join(
 );
 
 test("saying a play mode's name opens its screen", async ({ page }) => {
+  // Two waits below budget 90 s (the vosk model load) and 30 s (recognition),
+  // so the suite-wide 120 s in playwright.config.ts would expire first and
+  // report a timeout instead of the assertion that actually failed.
+  test.setTimeout(150_000);
+
   // Serve the fixture bytes on a URL only the stub fetches — nothing
   // test-related ships in public/.
   await page.route('**/__fixtures/autopilot.wav', (route) =>
@@ -65,7 +70,6 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
 
   await page.goto('/');
 
-  // The app opens on home — the device group and the play mode chooser.
   await expect(page.getByText('Choose a play mode')).toBeVisible();
 
   // Click (anywhere harmless) BEFORE the audio pipeline comes up: sticky user
@@ -83,11 +87,13 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
 
   await page.evaluate(() => window.__testMic?.speak());
 
-  // vosk hears "autopilot" and the app navigates to its screen. By role, not
-  // text: every screen stays in the DOM (inactive ones CSS-hidden) and the
-  // changelog also says "Vacuum Maintenance", so a text locator is ambiguous —
-  // roles only match the accessibility tree, i.e. the visible screen.
-  await expect(
-    page.getByRole('heading', { name: 'Vacuum Maintenance' }),
-  ).toBeVisible({ timeout: 30_000 });
+  // vosk hears "autopilot" and the app navigates to its screen: navigate()
+  // pushes `#autopilot` (src/app/page.tsx:262-268), and the screen itself is
+  // read off "Edge Control" (autopilot-panel.tsx:217). Every screen stays in
+  // the DOM with the inactive ones CSS-hidden, so a text locator has to name
+  // something no other panel holds — "Vacuum Maintenance" would also match the
+  // Changelog screen, which renders CHANGELOG.md. Card titles are `<span>`s
+  // (card.tsx:118), so there is no heading to match either.
+  await expect(page).toHaveURL(/#autopilot$/, { timeout: 30_000 });
+  await expect(page.getByText('Edge Control', { exact: true })).toBeVisible();
 });

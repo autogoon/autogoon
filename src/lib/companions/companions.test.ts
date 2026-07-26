@@ -1,33 +1,43 @@
 import { describe, it, expect } from '@jest/globals';
-import { COMPANIONS } from './companions';
-
-describe('Aimee', () => {
-  const aimee = COMPANIONS['autogoon.aimee']!;
-
-  it('has a voice id and the configured presentation', () => {
-    expect(typeof aimee.voiceId).toBe('string');
-    expect(aimee.voiceId.length).toBeGreaterThan(0);
-    expect(aimee.gender).toBe('female');
-    expect(aimee.name).toBe('Aimee');
-  });
-});
-
-describe('Miley', () => {
-  const miley = COMPANIONS['autogoon.miley']!;
-
-  it('has a voice id and the configured presentation', () => {
-    expect(typeof miley.voiceId).toBe('string');
-    expect(miley.voiceId.length).toBeGreaterThan(0);
-    expect(miley.gender).toBe('female');
-    expect(miley.name).toBe('Miley');
-  });
-});
+import { COMPANIONS, companionList } from './companions';
 
 describe('COMPANIONS registry', () => {
+  // Every other test here loops over COMPANIONS and so passes on an empty
+  // registry; this is the only one that would catch one.
+  it('contains both built-ins', () => {
+    expect(Object.keys(COMPANIONS)).toEqual(
+      expect.arrayContaining(['autogoon.aimee', 'autogoon.miley']),
+    );
+  });
+
+  it('gives every companion a non-empty voiceId', () => {
+    for (const companion of Object.values(COMPANIONS)) {
+      expect(companion.voiceId).not.toBe('');
+    }
+  });
+
+  it('gives every companion a distinct voiceId', () => {
+    const ids = Object.values(COMPANIONS).map((c) => c.voiceId);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('keys each companion by its own id', () => {
     for (const [id, companion] of Object.entries(COMPANIONS)) {
       expect(companion.id).toBe(id);
     }
+  });
+});
+
+describe('companionList', () => {
+  it('holds every companion in the registry', () => {
+    expect(companionList.map((c) => c.id).sort()).toEqual(
+      Object.keys(COMPANIONS).sort(),
+    );
+  });
+
+  it('orders companions alphabetically by name, as the picker shows them', () => {
+    const names = companionList.map((c) => c.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
   });
 
   // The prompt is the front of every request, so anything in it that changes
@@ -36,7 +46,7 @@ describe('COMPANIONS registry', () => {
   // The live values ride a trailing system message instead (liveStateMessage).
   // {{MEDIA_SECTION}} is fine — it resolves once, when a companion is
   // assembled. Only the per-turn markers cost anything.
-  it('builds prompts with nothing that changes between turns', () => {
+  it("no companion's system prompt contains a per-turn value", () => {
     for (const companion of Object.values(COMPANIONS)) {
       expect(companion.systemPrompt).not.toContain('{{TOY_STATUS}}');
       expect(companion.systemPrompt).not.toContain('{{NOW}}');

@@ -23,28 +23,24 @@ const MIN = 0;
 const MAX = 1;
 
 describe('ambientDelayMs', () => {
-  it('runs from a long pause at 1 to a short one at 5, out of play', () => {
-    // 60s − 10s×trait, then −50%/+20%.
+  it('out of play, chattiness 1 waits 25–60s and chattiness 5 waits 5–12s', () => {
     expect(ambientDelayMs(companion(1, 3), false, MIN)).toBe(25_000);
     expect(ambientDelayMs(companion(1, 3), false, MAX)).toBe(60_000);
     expect(ambientDelayMs(companion(5, 3), false, MIN)).toBe(5_000);
     expect(ambientDelayMs(companion(5, 3), false, MAX)).toBe(12_000);
   });
 
-  it('runs shorter in play, where the same gap feels longer', () => {
-    // 30s − 5s×trait, same jitter.
+  it('in play, playfulness 1 waits 12.5–30s and playfulness 5 waits 2.5–6s', () => {
     expect(ambientDelayMs(companion(3, 1), true, MIN)).toBe(12_500);
     expect(ambientDelayMs(companion(3, 1), true, MAX)).toBe(30_000);
     expect(ambientDelayMs(companion(3, 5), true, MIN)).toBe(2_500);
     expect(ambientDelayMs(companion(3, 5), true, MAX)).toBe(6_000);
   });
 
-  // The two appetites are independent by design: this companion barely speaks
-  // between turns but narrates play relentlessly, and one knob couldn't say so.
-  it('reads the appetite the situation calls for, not the other one', () => {
-    const laconicButLoudInPlay = companion(1, 5);
-    expect(ambientDelayMs(laconicButLoudInPlay, false, MIN)).toBe(25_000);
-    expect(ambientDelayMs(laconicButLoudInPlay, true, MIN)).toBe(2_500);
+  it('uses playfulness in play and chattiness out of play', () => {
+    const chatty1Playful5 = companion(1, 5);
+    expect(ambientDelayMs(chatty1Playful5, false, MIN)).toBe(25_000);
+    expect(ambientDelayMs(chatty1Playful5, true, MIN)).toBe(2_500);
   });
 
   it('is monotonic — more appetite is never a longer wait', () => {

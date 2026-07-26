@@ -1,12 +1,15 @@
 import { describe, expect, it } from '@jest/globals';
 import { MEDIA_SECTION } from '@/lib/companions/shared-prompt';
 import {
+  DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
+  DEFAULT_PLAYFULNESS,
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
+import type { CompanionConfig } from './manifest';
 import {
   applyOverlay,
   packToCompanion,
@@ -30,7 +33,7 @@ const base: Companion = {
   playfulness: 4,
 };
 const overlay = (
-  extra: { companion?: object; noMedia?: boolean } = {},
+  extra: { companion?: CompanionConfig; noMedia?: boolean } = {},
   media = [] as Companion['media'],
 ) => ({
   manifest: {
@@ -53,25 +56,46 @@ const still = (src: string): CompanionMedia => ({
 });
 
 describe('applyOverlay', () => {
-  it('keeps the base id and fields the overlay omits', () => {
-    const out = applyOverlay(base, overlay());
-    expect(out.id).toBe('autogoon.aimee');
-    expect(out.voiceId).toBe('v-base');
+  it("keeps the base's id, not the overlay pack's own id", () => {
+    expect(applyOverlay(base, overlay()).id).toBe('autogoon.aimee');
   });
-  it('replaces fields the overlay provides', () => {
-    const out = applyOverlay(base, {
-      ...overlay({
-        companion: { voiceId: 'v-new', description: 'her goth era' },
+  it('keeps a base field the overlay does not mention', () => {
+    expect(applyOverlay(base, overlay()).voiceId).toBe('v-base');
+  });
+  it("replaces every field the overlay's companion section sets", () => {
+    const out = applyOverlay(
+      base,
+      overlay({
+        companion: {
+          description: 'her goth era',
+          accentColour: 'violet',
+          voiceId: 'v-new',
+          model: 'm-new',
+          contextWindow: 200_000,
+          passesReasoning: false,
+          chattiness: 5,
+          playfulness: 1,
+        },
       }),
-      systemPrompt: 'yo {{NOT_A_SECTION}}',
-    });
-    expect(out.voiceId).toBe('v-new');
+    );
     expect(out.description).toBe('her goth era');
-    expect(out.systemPrompt).toBe('yo ');
+    expect(out.accentColour).toBe('violet');
+    expect(out.voiceId).toBe('v-new');
+    expect(out.model).toBe('m-new');
+    expect(out.contextWindow).toBe(200_000);
+    expect(out.passesReasoning).toBe(false);
+    expect(out.chattiness).toBe(5);
+    expect(out.playfulness).toBe(1);
+  });
+  it("uses the overlay's system prompt in place of the base's", () => {
+    const out = applyOverlay(base, { ...overlay(), systemPrompt: 'yo' });
+    expect(out.systemPrompt).toBe('yo');
   });
   it("never takes the overlay's name — the base's is kept", () => {
-    // The manifest rejects `name` on overlays; belt and braces, the merge
-    // ignores it even if one sneaks into a stored record.
+    // The base's name survives only by omission: `name` is absent from the
+    // field-by-field merge and arrives with `...base` (resolve.ts:95). Adding
+    // `name: c.name ?? base.name` beside the other eight lines would let an
+    // overlay rename a companion and take over their thread.
     const out = applyOverlay(base, overlay({ companion: { name: 'Amy' } }));
     expect(out.name).toBe('Aimee');
   });
@@ -80,24 +104,34 @@ describe('applyOverlay', () => {
     expect(applyOverlay(base, overlay({}, pics)).systemPrompt).toBe(
       `hi\n${MEDIA_SECTION}`,
     );
-    expect(applyOverlay(base, overlay()).systemPrompt).toBe('hi\n');
   });
-  it("noMedia strips the base's pictures and the section", () => {
-    const baseMedia: Companion = {
-      ...base,
-      media: [still('blob:b')],
-    };
-    const out = applyOverlay(baseMedia, overlay({ noMedia: true }));
+  it("replaces the base's pictures with the overlay's own media set", () => {
+    const pics = [still('blob:overlay')];
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')] },
+      overlay({}, pics),
+    );
+    expect(out.media).toEqual(pics);
+  });
+  it('noMedia leaves the resolved companion with no media', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:b')] },
+      overlay({ noMedia: true }),
+    );
     expect(out.media).toBeUndefined();
+  });
+  it('noMedia drops MEDIA_SECTION from the prompt', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:b')] },
+      overlay({ noMedia: true }),
+    );
     expect(out.systemPrompt).toBe('hi\n');
   });
 });
 
 describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
-  // A non-built-in base must go through the overlay resolve unfilled
-  // (packToCompanionRaw), so applyOverlay's fill is the only one — filling
-  // twice would strip {{MEDIA_SECTION}} for good on the first (pictureless)
-  // pass, before the overlay's own pictures ever get a say.
+  // A non-built-in base must reach applyOverlay with its prompt unfilled, so
+  // applyOverlay's fill is the only one — see packToCompanionRaw in resolve.ts.
   const pictureLessBase = () =>
     packToCompanionRaw({
       manifest: {
@@ -115,53 +149,77 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
     const out = applyOverlay(pictureLessBase(), overlay({}, pics));
     expect(out.systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
   });
-  it('stays dropped when neither the base nor the overlay bring pictures', () => {
+  it('leaves MEDIA_SECTION out when neither the pack-shaped base nor the overlay bring pictures', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
     expect(out.systemPrompt).toBe('hi\n');
   });
 });
 
 describe('packToCompanion', () => {
+  const completePack = (companion: CompanionConfig) => ({
+    manifest: {
+      format: 2,
+      id: 'some.one',
+      version: '1',
+      aboutThePack: 'a complete pack',
+      companion,
+    },
+    systemPrompt: 'p\n{{MEDIA_SECTION}}',
+    media: [still('blob:pack')],
+  });
   it('builds a companion with app defaults for omitted fields', () => {
-    const c = packToCompanion({
-      manifest: {
-        format: 2,
-        id: 'some.one',
-        version: '1',
-        aboutThePack: 'a complete pack',
-        companion: { name: 'One', voiceId: 'v1' },
-      },
-      systemPrompt: 'p',
-      media: [],
-    });
+    const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
     expect(c.id).toBe('some.one');
     expect(c.model).toBe(DEFAULT_MODEL);
     expect(c.contextWindow).toBe(DEFAULT_CONTEXT_WINDOW);
     expect(c.passesReasoning).toBe(DEFAULT_PASSES_REASONING);
+    expect(c.chattiness).toBe(DEFAULT_CHATTINESS);
+    expect(c.playfulness).toBe(DEFAULT_PLAYFULNESS);
     expect(c.gender).toBe('female');
     expect(c.accentColour).toBe('pink');
+  });
+  it('fills MEDIA_SECTION for a pack that ships media of its own', () => {
+    const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
+    expect(c.systemPrompt).toBe(`p\n${MEDIA_SECTION}`);
+  });
+  it("falls back to the pack's aboutThePack when the companion section carries no description", () => {
+    const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
+    expect(c.description).toBe('a complete pack');
+  });
+  it('names the companion after the pack id when the manifest gives no name', () => {
+    const c = packToCompanion(completePack({ voiceId: 'v1' }));
+    expect(c.name).toBe('some.one');
   });
 });
 
 describe('resolveDefault', () => {
-  it("fills the built-in's tokens (pictureless → section dropped)", () => {
+  it('drops MEDIA_SECTION for a built-in with no pictures', () => {
     expect(resolveDefault(base).systemPrompt).toBe('hi\n');
+  });
+  it('fills MEDIA_SECTION for a built-in that has pictures of its own', () => {
+    const withPics: Companion = { ...base, media: [still('blob:builtin')] };
+    expect(resolveDefault(withPics).systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
   });
 });
 
 describe('resolveMediaRef', () => {
+  const entry = (ref: string, src: string): CompanionMedia => ({
+    kind: 'image',
+    description: 'd',
+    ref,
+    src,
+    load: () => Promise.resolve(src),
+  });
   const media: CompanionMedia[] = [
-    {
-      kind: 'image',
-      description: 'd',
-      ref: 'goonpack:g00ner.aimee@1.0.0/1',
-      src: 'blob:live',
-      load: () => Promise.resolve('blob:live'),
-    },
+    entry('goonpack:g00ner.aimee@1.0.0/1', 'blob:first'),
+    entry('goonpack:g00ner.aimee@1.0.0/2', 'blob:second'),
   ];
-  it('resolves a matching ref to its entry', () => {
+  it('resolves a ref to the item it names, not the first item of its pack', () => {
     expect(resolveMediaRef('goonpack:g00ner.aimee@1.0.0/1', media)).toBe(
       media[0],
+    );
+    expect(resolveMediaRef('goonpack:g00ner.aimee@1.0.0/2', media)).toBe(
+      media[1],
     );
   });
   it('returns null when the same name lives in a different pack', () => {

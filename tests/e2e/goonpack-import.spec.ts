@@ -28,8 +28,9 @@ const completePack = zipSync({
   'media/one.txt': strToU8('a test picture'),
 });
 
-// A pack zip built to order. `format` and the media folder's name are the two
-// axes the version gate turns on.
+// A pack zip built to order. The version gate turns on three inputs: `format`
+// and `noPictures` in the manifest (manifest.ts:132-145), and whether the tree
+// holds a pictures/ folder (pack.ts:193).
 function packZip(
   manifest: Record<string, unknown>,
   media: Record<string, Uint8Array> = {},
@@ -52,10 +53,8 @@ const v1Manifest = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
-// The Import card's error lines. A <p>, where an incompatible row's problems
-// are <span>s — so this is the import's own feedback and nothing else's.
 const importErrors = (page: import('@playwright/test').Page) =>
-  page.locator('p.text-red-500');
+  page.getByTestId('import-error');
 
 // Import a zip and return the error lines the panel showed, or [] on success.
 async function importZip(
@@ -65,14 +64,10 @@ async function importZip(
 ): Promise<string[]> {
   const errors = importErrors(page);
   const confirm = page.getByRole('button', { name: 'Import', exact: true });
-  // Each import starts from a clean panel. Picking a file clears the previous
-  // one's errors, but not before React renders, so reading them afterwards can
-  // return the last import's lines as this one's — and two cases here expect
-  // the same message, which would hide it. A reload settles the question; the
-  // app restores the Goonpacks screen from the URL hash.
-  await page.reload();
+  // Every panel is mounted from the first paint, so the file input is reachable
+  // before the Goonpacks screen is the visible one — and the confirm sheet and
+  // the error lines below are only visible on it.
   await expect(page.getByRole('button', { name: 'Import pack' })).toBeVisible();
-  await expect(errors).toHaveCount(0);
   await page
     .getByTestId('goonpack-file-input')
     .setInputFiles({ name, mimeType: 'application/zip', buffer });
@@ -101,21 +96,19 @@ const treeExists = (page: import('@playwright/test').Page, key: string) =>
     }
   }, key);
 
-test('import, persist, and remove a goonpack', async ({ page }) => {
+// Import the complete pack through the UI, leaving the Goonpacks screen with
+// the pack installed — the arrange step for anything that needs one on disk.
+async function installCompletePack(page: import('@playwright/test').Page) {
   await page.goto('/');
   await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
-
-  // Import → confirm sheet shows the manifest info → commit. The pack then
-  // lists with what it includes (media/prompt from the tree, voice from the
-  // manifest).
   await page.getByTestId('goonpack-file-input').setInputFiles({
     name: 'e2e.testy.zip',
     mimeType: 'application/zip',
     buffer: Buffer.from(completePack),
   });
-  // The sheet renders the same card the installed row will, before anything is
-  // stored: the id and version head it, the companion's name is on the info line.
+  // The confirm sheet renders the same card the installed row will, before
+  // anything is stored: the id and version head it.
   await expect(
     page.getByText('e2e.testy 1.0.0', { exact: true }),
   ).toBeVisible();
@@ -125,6 +118,15 @@ test('import, persist, and remove a goonpack', async ({ page }) => {
   await expect(
     page.getByRole('button', { name: 'Import', exact: true }),
   ).toHaveCount(0);
+}
+
+test('importing a pack puts its tree on disk and offers it on the chooser', async ({
+  page,
+}) => {
+  await installCompletePack(page);
+
+  // The row says what the pack includes: media and prompt read from the tree,
+  // voice from the manifest.
   await expect(
     page.getByText('Testy · complete companion · 1 picture · prompt · voice'),
   ).toBeVisible();
@@ -149,47 +151,58 @@ test('import, persist, and remove a goonpack', async ({ page }) => {
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Companions' }).click();
   await expect(page.getByText('Testy', { exact: true })).toBeVisible();
+});
 
-  // Survives a reload (OPFS). The app restores the Companions screen
-  // itself from the URL hash pushed on navigation — no click needed, and
-  // clicking again would race the restore (the home chooser flashes first).
-  await page.reload();
+test('an imported pack survives a reload', async ({ page }) => {
+  await installCompletePack(page);
+  await page.getByRole('button', { name: 'Home' }).click();
+  await page.getByRole('button', { name: 'Companions' }).click();
   await expect(page.getByText('Testy', { exact: true })).toBeVisible();
 
-  // Remove on the Goonpacks tab — the list empties and her chooser card goes.
-  await page.getByRole('button', { name: 'Home' }).click();
-  await page.getByRole('button', { name: 'Goonpacks' }).click();
+  // The app restores the Companions screen itself from the URL hash pushed on
+  // navigation — no click needed, and clicking again would race the restore
+  // (the home chooser flashes first).
+  await page.reload();
+  await expect(page.getByText('Testy', { exact: true })).toBeVisible();
+});
+
+test('removing a pack deletes its tree and its chooser card', async ({
+  page,
+}) => {
+  await installCompletePack(page);
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await expect(page.getByText('No packs imported.')).toBeVisible();
   expect(await treeExists(page, 'e2e.testy@1.0.0')).toBe(false);
+
+  // Aimee is on the chooser whatever happens, so waiting for her card is what
+  // makes Testy's absence an absence rather than an unrendered screen.
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Companions' }).click();
+  await expect(page.getByText('Aimee', { exact: true })).toBeVisible();
   await expect(page.getByText('Testy', { exact: true })).toHaveCount(0);
 });
 
-test('the version gate accepts and refuses format 1 packs by what they use', async ({
+test('a format 1 pack with no pictures/ folder imports as if it were format 2', async ({
   page,
 }) => {
   await page.goto('/');
   await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
 
-  // A format 1 pack with no media is a format 2 pack in every respect.
   expect(await importZip(page, 'old-clean.zip', packZip(v1Manifest()))).toEqual(
     [],
   );
   await expect(page.getByText('Oldie · complete companion')).toBeVisible();
   expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(true);
-  await page.getByRole('button', { name: 'Remove', exact: true }).click();
-  // Wait for the removal to land before the next case, which reuses this key:
-  // an empty list means removePackTree AND the rebuild after it have finished.
-  // Reloading over a removal in flight would leave the markerless tree that a
-  // half-done removal is supposed to leave — correct behaviour, but the next
-  // case would then be asserting about this one's leftovers.
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+});
 
-  // A format 1 pack that used noPictures is refused from the zip's manifest
-  // alone — nothing is extracted, so no tree is ever created.
+test('a format 1 pack that sets noPictures is refused from the manifest, before anything is extracted', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await skipWithoutOpfs(page);
+  await page.getByRole('button', { name: 'Goonpacks' }).click();
+
   expect(
     await importZip(
       page,
@@ -200,9 +213,17 @@ test('the version gate accepts and refuses format 1 packs by what they use', asy
     'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
   ]);
   expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
+});
 
-  // A format 1 pack with a pictures/ folder is only knowable from the tree, so
-  // it extracts, fails validation, and deletes itself.
+test('a format 1 pack with a pictures/ folder extracts, fails validation, and deletes its own tree', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await skipWithoutOpfs(page);
+  await page.getByRole('button', { name: 'Goonpacks' }).click();
+
+  // The folder is only knowable from the tree, so this pack gets as far as
+  // being written to disk before anything can refuse it.
   expect(
     await importZip(
       page,
@@ -216,9 +237,15 @@ test('the version gate accepts and refuses format 1 packs by what they use', asy
     'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
   ]);
   expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+});
 
-  // A format this app doesn't have yet is refused outright.
+test("a pack whose format is newer than the app's is refused outright", async ({
+  page,
+}) => {
+  await page.goto('/');
+  await skipWithoutOpfs(page);
+  await page.getByRole('button', { name: 'Goonpacks' }).click();
+
   expect(
     await importZip(
       page,
