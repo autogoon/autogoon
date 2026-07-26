@@ -23,7 +23,7 @@ LEGAL-AND-DISTRIBUTION.md
 
 # Local goonpack sources (media + manifests) — personal content, never
 # committed. Zip a pack directory's contents to import it in the app. The one
-# exception is the committed, deliberately medialess example pack
+# exception is the committed, deliberately media-free example pack
 # (goonpacks/elise/) — and even there, media stays local.
 /goonpacks/*
 !/goonpacks/elise/
