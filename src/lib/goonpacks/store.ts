@@ -146,13 +146,28 @@ export async function removePackTree(key: string): Promise<void> {
   });
 }
 
+// The name of the lock an import holds for as long as it is writing a pack's
+// tree. The marker says "finished"; this says "being written right now", which
+// a markerless tree on disk can't distinguish from one abandoned by a crash.
+// A Web Lock is the browser's to release — it goes the moment the holding tab
+// closes, navigates away or crashes — so an import that dies needs no timeout
+// and no staleness constant: the next sweep simply finds the lock free.
+export const importLock = (key: string): string => `goonpack-import:${key}`;
+
 // The one clean pass, run before every library build: a tree with no marker is
 // a crashed import, a cancelled import or a crashed removal — all the same
-// state, all deleted.
+// state, all deleted. A tree whose import lock is held is none of those: it is
+// being written, here or in another tab, and is left alone.
 export async function sweepIncomplete(): Promise<string[]> {
   const removed: string[] = [];
   for (const key of await listPackKeys()) {
     if (await hasMarker(key)) continue;
+    const importing = await navigator.locks.request(
+      importLock(key),
+      { ifAvailable: true },
+      (lock) => lock === null, // null = the lock is held elsewhere
+    );
+    if (importing) continue;
     await removePackTree(key);
     removed.push(key);
   }
@@ -183,7 +198,14 @@ const HEADROOM_BYTES = 64 * 1024 * 1024;
 export async function estimateHeadroom(
   bytes: number,
 ): Promise<{ ok: boolean; available: number }> {
-  const est = await navigator.storage.estimate();
+  let est: StorageEstimate;
+  try {
+    est = await navigator.storage.estimate();
+  } catch {
+    // A browser that won't even say how much room it has won't give us a
+    // directory either — say so here, as the first thing an import does.
+    throw new PackError(NO_STORAGE);
+  }
   const quota = est.quota ?? 0;
   const usage = est.usage ?? 0;
   const available = Math.max(0, quota - usage);

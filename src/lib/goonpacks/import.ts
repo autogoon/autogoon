@@ -11,6 +11,7 @@ import { parsePack } from './pack';
 import {
   createPackDir,
   estimateHeadroom,
+  importLock,
   markComplete,
   openPackTree,
   removePackTree,
@@ -86,36 +87,43 @@ export async function prepareImport(
         );
       }
       await requestPersistence();
-      onProgress?.({ phase: 'extracting', bytes: 0, total: file.size });
-      const dir = await createPackDir(key);
-      try {
-        await extractZip(file, dir, (bytes) =>
-          onProgress?.({ phase: 'extracting', bytes, total: file.size }),
-        );
-      } catch (e) {
-        await removePackTree(key);
-        throw e instanceof PackError
-          ? e
-          : new PackError("The zip couldn't be read.");
-      }
-      onProgress?.({ phase: 'checking', bytes: file.size, total: file.size });
-      const tree = await openPackTree(key);
-      if (tree === null) {
-        throw new PackError('The pack vanished from browser storage.');
-      }
-      try {
-        const validated = await parsePack(tree);
-        if (packKey(validated.manifest) !== key) {
-          throw new PackError(
-            "The pack's id and version don't match the manifest it was read from.",
+      // Everything that writes the tree happens inside the import lock: until
+      // the marker lands, the tree on disk is indistinguishable from one an
+      // interrupted import left behind, and any clean pass — this tab's or
+      // another tab's — would delete it mid-extraction. Held on the main
+      // thread so it still spans extraction once that moves into a worker.
+      await navigator.locks.request(importLock(key), async () => {
+        onProgress?.({ phase: 'extracting', bytes: 0, total: file.size });
+        const dir = await createPackDir(key);
+        try {
+          await extractZip(file, dir, (bytes) =>
+            onProgress?.({ phase: 'extracting', bytes, total: file.size }),
           );
+        } catch (e) {
+          await removePackTree(key);
+          throw e instanceof PackError
+            ? e
+            : new PackError("The zip couldn't be read.");
         }
-      } catch (e) {
-        await removePackTree(key);
-        throw e;
-      }
-      // Last: the tree is complete and valid, and only now is it installed.
-      await markComplete(key);
+        onProgress?.({ phase: 'checking', bytes: file.size, total: file.size });
+        const tree = await openPackTree(key);
+        if (tree === null) {
+          throw new PackError('The pack vanished from browser storage.');
+        }
+        try {
+          const validated = await parsePack(tree);
+          if (packKey(validated.manifest) !== key) {
+            throw new PackError(
+              "The pack's id and version don't match the manifest it was read from.",
+            );
+          }
+        } catch (e) {
+          await removePackTree(key);
+          throw e;
+        }
+        // Last: the tree is complete and valid, and only now is it installed.
+        await markComplete(key);
+      });
     },
   };
 }
