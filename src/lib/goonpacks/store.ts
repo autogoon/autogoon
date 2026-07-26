@@ -11,11 +11,18 @@
 // is the only signal that says so. Removal deletes the marker first and the tree
 // second, so a crash mid-removal leaves exactly what a crash mid-import leaves,
 // and one clean pass at load covers both.
+import { PackError } from './manifest';
 import { isJunkPath } from './media';
 import { MEDIA_DIR, type PackTree } from './pack';
 
 export const PACKS_DIR = 'goonpacks';
 export const MARKER = '.complete';
+
+// A browser can present the whole storage API and still refuse to hand over a
+// directory, so this is what every write path says when it can't get one —
+// reading just comes back empty, which is a library with no packs in it.
+const NO_STORAGE =
+  "This browser can't store packs — private browsing and restricted storage settings are the usual cause.";
 
 export async function packsRoot(
   create = false,
@@ -94,7 +101,7 @@ export async function createPackDir(
   key: string,
 ): Promise<FileSystemDirectoryHandle> {
   const packs = await packsRoot(true);
-  if (packs === null) throw new Error('no OPFS');
+  if (packs === null) throw new PackError(NO_STORAGE);
   await packs.removeEntry(key, { recursive: true }).catch(() => {
     // nothing there — the common case
   });
@@ -103,7 +110,7 @@ export async function createPackDir(
 
 export async function markComplete(key: string): Promise<void> {
   const packs = await packsRoot(true);
-  if (packs === null) throw new Error('no OPFS');
+  if (packs === null) throw new PackError(NO_STORAGE);
   const dir = await packs.getDirectoryHandle(key);
   const marker = await dir.getFileHandle(MARKER, { create: true });
   await (await marker.createWritable()).close();
@@ -184,14 +191,18 @@ export async function estimateHeadroom(
 }
 
 // Asked once, on the first import: without it the origin's storage is
-// best-effort and can be evicted under pressure.
+// best-effort and can be evicted under pressure. The answer is never waited
+// for — Firefox settles persist() only when the user answers its permission
+// prompt, which may be never, and an import that works either way must not
+// hang behind it.
 export async function requestPersistence(): Promise<void> {
   try {
-    if (!(await navigator.storage.persisted())) {
-      await navigator.storage.persist();
-    }
+    if (await navigator.storage.persisted()) return;
+    void navigator.storage.persist().catch(() => {
+      // denied, or not supported — best-effort storage it is
+    });
   } catch {
-    // not supported — best-effort storage it is
+    // no Storage API at all
   }
 }
 
