@@ -645,20 +645,20 @@ export function useVoiceSession(opts: {
               } catch {
                 // ignore: malformed arguments → run with no args
               }
-              // run() returns either the result string or a { result, imageSrc }
-              // object (send_picture): normalise to both. imageSrc rides onto
-              // the tool turn for rendering; only `result` is fed to the model.
+              // run() returns either the result string or a { result, mediaRef }
+              // object (send_media): normalise to both. mediaRef rides onto the
+              // tool turn for rendering; only `result` is fed to the model.
               const raw = tool === undefined ? 'unknown tool' : tool.run(args);
               const result = typeof raw === 'string' ? raw : raw.result;
-              const imageSrc =
-                typeof raw === 'string' ? undefined : raw.imageSrc;
+              const mediaRef =
+                typeof raw === 'string' ? undefined : raw.mediaRef;
               onToolRunRef.current?.(call.name, result);
               next = appendTool(
                 next,
                 call.name,
                 result,
                 call.id,
-                imageSrc,
+                mediaRef,
                 Date.now(),
               );
             }

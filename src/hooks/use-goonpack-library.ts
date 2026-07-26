@@ -86,7 +86,7 @@ function baseError(
 }
 
 // Unzip a stored pack for play. Missing record → PackError (rare: removed
-// between refreshes); pictures become object URLs, accounted for by
+// between refreshes); media become object URLs, accounted for by
 // resolveVariant. `collect` gets every object URL created.
 async function loadContent(
   key: string, // storage key (id@version)
@@ -101,17 +101,19 @@ async function loadContent(
   return {
     manifest: parsed.manifest,
     systemPrompt: parsed.systemPrompt,
-    pictures: parsed.pictures.map((p) => {
+    media: parsed.pictures.map((p) => {
       const src = URL.createObjectURL(
         new Blob([p.bytes.buffer as ArrayBuffer], { type: p.mimeType }),
       );
       collect?.push(src);
       return {
-        src,
+        kind: 'image' as const,
         description: p.description,
         // Stable thread reference: object URLs die with the session, so the
         // thread persists this ref and rendering resolves it (see spec Threads).
         ref: `goonpack:${key}/${p.name}`,
+        src,
+        load: () => Promise.resolve(src),
       };
     }),
   };
@@ -287,13 +289,13 @@ export function useGoonpackLibrary() {
 
   // Resolve a pick to a playable Companion. Loads first, swaps after: the
   // previous variant's object URLs are revoked only once the new content is
-  // in hand, so a failed or slow switch leaves the current pictures intact.
+  // in hand, so a failed or slow switch leaves the current media intact.
   // A pick overtaken by a newer one discards everything it created and
   // returns null — the caller just drops it.
   //
-  // Both a base and an overlay load their own picture set, but applyOverlay
+  // Both a base and an overlay load their own media set, but applyOverlay
   // keeps only one of the two in full (never a merge) — so every URL created
-  // during a resolve that isn't in the final companion's picture set is a
+  // during a resolve that isn't in the final companion's media set is a
   // loser and must be revoked here, not left to leak. `created` collects
   // every URL made this call; on throw, all of it is revoked; otherwise the
   // non-winning subset is. Invariant after any outcome: the only live pack
@@ -329,7 +331,7 @@ export function useGoonpackLibrary() {
         for (const url of created) URL.revokeObjectURL(url);
         throw e;
       }
-      const winning = new Set((companion.pictures ?? []).map((p) => p.src));
+      const winning = new Set((companion.media ?? []).map((m) => m.src!));
       if (seq !== resolveSeqRef.current) {
         for (const url of created) URL.revokeObjectURL(url); // overtaken: nothing survives
         return null;

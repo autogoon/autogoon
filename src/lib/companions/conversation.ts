@@ -25,16 +25,16 @@ export type ThreadTurn =
   // toolCallId. name is display-only (the transcript chip); result is both the
   // chip text and what we feed back to the model. Unlike before, these ARE
   // replayed to the LLM (see toLlmMessages) so the companion sees their own prior tool use.
-  // imageSrc is set only for a picture-sending tool (send_picture): it's the
-  // picture the transcript renders inline and the lightbox opens. It's display-
-  // only — never sent to the model (only `result` is) — and persists with the
-  // thread, so a sent picture stays in the log across a reload.
+  // mediaRef is set only for a media-sending tool (send_media): it's the
+  // still or clip the transcript renders inline and the lightbox opens. It's
+  // display-only — never sent to the model (only `result` is) — and persists
+  // with the thread, so sent media stays in the log across a reload.
   | {
       role: 'tool';
       name: string;
       result: string;
       toolCallId: string;
-      imageSrc?: string;
+      mediaRef?: string;
       at?: number;
     };
 
@@ -58,7 +58,7 @@ export function appendTool(
   name: string,
   result: string,
   toolCallId: string,
-  imageSrc?: string,
+  mediaRef?: string,
   at?: number,
 ): Thread {
   return [
@@ -68,7 +68,7 @@ export function appendTool(
       name,
       result,
       toolCallId,
-      ...(imageSrc !== undefined ? { imageSrc } : {}),
+      ...(mediaRef !== undefined ? { mediaRef } : {}),
       ...(at !== undefined ? { at } : {}),
     },
   ];
@@ -257,7 +257,7 @@ export function parse(raw: string | null): Thread {
       ) {
         return [];
       }
-      if (turn.imageSrc !== undefined && typeof turn.imageSrc !== 'string') {
+      if (turn.mediaRef !== undefined && typeof turn.mediaRef !== 'string') {
         return [];
       }
       out.push({
@@ -265,7 +265,7 @@ export function parse(raw: string | null): Thread {
         name: turn.name,
         result: turn.result,
         toolCallId: turn.toolCallId,
-        ...(turn.imageSrc !== undefined ? { imageSrc: turn.imageSrc } : {}),
+        ...(turn.mediaRef !== undefined ? { mediaRef: turn.mediaRef } : {}),
         ...(at !== undefined ? { at } : {}),
       });
     } else {

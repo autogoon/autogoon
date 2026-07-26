@@ -5,14 +5,14 @@ import {
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
   type Companion,
-  type CompanionPicture,
+  type CompanionMedia,
 } from '@/lib/companions/companions';
 import {
   applyOverlay,
   packToCompanion,
   packToCompanionRaw,
   resolveDefault,
-  resolvePictureRef,
+  resolveMediaRef,
 } from './resolve';
 
 const base: Companion = {
@@ -31,7 +31,7 @@ const base: Companion = {
 };
 const overlay = (
   extra: { companion?: object; noMedia?: boolean } = {},
-  pictures = [] as Companion['pictures'],
+  media = [] as Companion['media'],
 ) => ({
   manifest: {
     format: 2,
@@ -42,7 +42,14 @@ const overlay = (
     noMedia: extra.noMedia,
     companion: extra.companion ?? {},
   },
-  pictures: pictures ?? [],
+  media: media ?? [],
+});
+const still = (src: string): CompanionMedia => ({
+  kind: 'image',
+  description: 'd',
+  ref: `goonpack:test.pack@1/${src}`,
+  src,
+  load: () => Promise.resolve(src),
 });
 
 describe('applyOverlay', () => {
@@ -69,19 +76,19 @@ describe('applyOverlay', () => {
     expect(out.name).toBe('Aimee');
   });
   it('fills MEDIA_SECTION when the overlay brings pictures', () => {
-    const pics = [{ src: 'blob:x', description: 'd' }];
+    const pics = [still('blob:x')];
     expect(applyOverlay(base, overlay({}, pics)).systemPrompt).toBe(
       `hi\n${MEDIA_SECTION}`,
     );
     expect(applyOverlay(base, overlay()).systemPrompt).toBe('hi\n');
   });
   it("noMedia strips the base's pictures and the section", () => {
-    const basePics: Companion = {
+    const baseMedia: Companion = {
       ...base,
-      pictures: [{ src: 'blob:b', description: 'd' }],
+      media: [still('blob:b')],
     };
-    const out = applyOverlay(basePics, overlay({ noMedia: true }));
-    expect(out.pictures).toBeUndefined();
+    const out = applyOverlay(baseMedia, overlay({ noMedia: true }));
+    expect(out.media).toBeUndefined();
     expect(out.systemPrompt).toBe('hi\n');
   });
 });
@@ -101,10 +108,10 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
         companion: { name: 'Base', voiceId: 'v' },
       },
       systemPrompt: 'hi\n{{MEDIA_SECTION}}',
-      pictures: [],
+      media: [],
     });
   it('restores MEDIA_SECTION when the overlay brings pictures over a pictureless base', () => {
-    const pics = [{ src: 'blob:overlay', description: 'd' }];
+    const pics = [still('blob:overlay')];
     const out = applyOverlay(pictureLessBase(), overlay({}, pics));
     expect(out.systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
   });
@@ -125,7 +132,7 @@ describe('packToCompanion', () => {
         companion: { name: 'One', voiceId: 'v1' },
       },
       systemPrompt: 'p',
-      pictures: [],
+      media: [],
     });
     expect(c.id).toBe('some.one');
     expect(c.model).toBe(DEFAULT_MODEL);
@@ -142,19 +149,28 @@ describe('resolveDefault', () => {
   });
 });
 
-describe('resolvePictureRef', () => {
-  const pictures: CompanionPicture[] = [
-    { src: 'blob:live', description: 'd', ref: 'goonpack:g00ner.aimee/1' },
+describe('resolveMediaRef', () => {
+  const media: CompanionMedia[] = [
+    {
+      kind: 'image',
+      description: 'd',
+      ref: 'goonpack:g00ner.aimee@1.0.0/1',
+      src: 'blob:live',
+      load: () => Promise.resolve('blob:live'),
+    },
   ];
-  it("resolves a matching ref to its picture's src", () => {
-    expect(resolvePictureRef('goonpack:g00ner.aimee/1', pictures)).toBe(
-      'blob:live',
+  it('resolves a matching ref to its entry', () => {
+    expect(resolveMediaRef('goonpack:g00ner.aimee@1.0.0/1', media)).toBe(
+      media[0],
     );
   });
   it('returns null when the same name lives in a different pack', () => {
-    expect(resolvePictureRef('goonpack:other.pack/1', pictures)).toBeNull();
+    expect(resolveMediaRef('goonpack:other.pack@1/1', media)).toBeNull();
   });
   it('never resolves a pre-goonpacks path ref', () => {
-    expect(resolvePictureRef('/companions/aimee/x.jpg', pictures)).toBeNull();
+    expect(resolveMediaRef('/companions/aimee/x.jpg', media)).toBeNull();
+  });
+  it('returns null for a companion with no media', () => {
+    expect(resolveMediaRef('goonpack:a.b@1/1', undefined)).toBeNull();
   });
 });

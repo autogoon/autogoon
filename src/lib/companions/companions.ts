@@ -1,3 +1,4 @@
+import type { MediaKind } from '@/lib/goonpacks/media';
 import { AIMEE_SYSTEM_PROMPT } from './aimee-prompt';
 import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 
@@ -10,18 +11,20 @@ import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// A picture a companion can send. `src` is a session-scoped object URL,
-// created when an imported goonpack's zip is unzipped for play (built-ins
-// ship pictureless — a picture only reaches one via an overlay pack, see
-// src/lib/goonpacks/); `description` is what the model reads to pick a
-// fitting one, from the pack's <basename>.txt sidecar, or "" when there's
-// none. `ref` is the thread-stable reference (see below) — object URLs die
-// with the session, so the thread persists `ref` instead and resolves it
-// against whatever's currently loaded.
-export type CompanionPicture = {
-  src: string;
+// One thing a companion can send: a still or a clip. `description` is what the
+// model reads to pick a fitting one, from the pack's <basename>.txt sidecar, or
+// "" when there's none. `ref` is the thread-stable reference — object URLs die
+// with the session, so a sent item persists as `ref` and rendering resolves it
+// against whatever's currently loaded. `src` is that object URL once it exists:
+// `load()` mints it on first render (a pack's media is thousands of files, most
+// of which are never shown) and memoises it here, and it stays alive as long as
+// this entry does.
+export type CompanionMedia = {
+  kind: MediaKind;
   description: string;
-  ref?: string; // stable thread ref (goonpack:<packId>/<name>); packs only
+  ref: string;
+  src?: string;
+  load(): Promise<string>;
 };
 
 export type Companion = {
@@ -42,11 +45,11 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
-  // The pictures they can send during a call — filled by an installed goonpack
+  // The media they can send during a call — filled by an installed goonpack
   // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
-  // installed: the panel then offers no send_picture tool, and their prompt gets
-  // no picture section.
-  pictures?: CompanionPicture[];
+  // installed: the panel then offers no send_media tool, and their prompt gets
+  // no media section.
+  media?: CompanionMedia[];
 };
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/

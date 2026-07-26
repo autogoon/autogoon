@@ -42,7 +42,11 @@ import type { PlayerView } from '@/hooks/use-player';
 import { useStrokeControls } from '@/hooks/use-stroke-controls';
 import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
 import { useVoiceSession } from '@/hooks/use-voice-session';
-import { companionList, type Companion } from '@/lib/companions/companions';
+import {
+  companionList,
+  type Companion,
+  type CompanionMedia,
+} from '@/lib/companions/companions';
 import {
   isSilentAssistantTurn,
   sameLocalDay,
@@ -51,7 +55,7 @@ import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
 import { voiceStage } from '@/lib/voice/session-policy';
 import { PackError } from '@/lib/goonpacks/manifest';
-import { resolveDefault, resolvePictureRef } from '@/lib/goonpacks/resolve';
+import { resolveDefault, resolveMediaRef } from '@/lib/goonpacks/resolve';
 import {
   CompanionEngine,
   type VariabilityLevel,
@@ -66,8 +70,8 @@ import { DateHeader } from './date-header';
 import { DebugTab } from './debug-tab';
 import { JsonOverlay } from './json-overlay';
 import { Lightbox } from './lightbox';
-import { MissingPictureBubble } from './missing-picture-bubble';
-import { PictureBubble } from './picture-bubble';
+import { MediaBubble } from './media-bubble';
+import { MissingMediaBubble } from './missing-media-bubble';
 import { PlayMenu, type PlayTab } from './play-menu';
 import { RmsMeter } from './rms-meter';
 import { VoiceStageBubble } from './voice-stage';
@@ -221,11 +225,13 @@ export function CompanionsPanel({
     [device, engine, vacuglide],
   );
 
-  // The picture shown in the lightbox — null when closed. Set when the companion
-  // sends a picture (auto-opens; if it's already open, it swaps to the newest) and when
-  // a picture in the transcript is clicked.
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-  const showPicture = useCallback((src: string) => setLightboxSrc(src), []);
+  // The media shown in the lightbox — null when closed. Set when the companion
+  // sends media (auto-opens; if it's already open, it swaps to the newest) and
+  // when an item in the transcript is clicked.
+  const [lightboxMedia, setLightboxMedia] = useState<CompanionMedia | null>(
+    null,
+  );
+  const showMedia = useCallback((m: CompanionMedia) => setLightboxMedia(m), []);
 
   // The tools the companion can call, and the live device-state line injected each turn.
   // Return type annotated on the callback (not via useMemo's generic) so each
@@ -233,9 +239,9 @@ export function CompanionsPanel({
   // array-literal inference merges the differently-shaped `intensity`/`variety`
   // `parameters.properties` into one shape before the check, and fails.
   const tools = useMemo((): CompanionTool[] => {
-    // The companion's pictures, if any. Empty → the send_media tool is left out
-    // entirely, so a companion with no pictures never offers it.
-    const pics = companion.pictures ?? [];
+    // The companion's media, if any. Empty → the send_media tool is left out
+    // entirely, so a companion with no media never offers it.
+    const items = companion.media ?? [];
     return [
       {
         name: 'start',
@@ -310,24 +316,30 @@ export function CompanionsPanel({
           return `variety → ${level}`;
         },
       },
-      // send_media — only when the companion has pictures. They pick by number
-      // from the list in the description; run() resolves it to a src, opens the lightbox,
-      // and returns the src so it renders inline in the transcript too.
-      ...(pics.length > 0
+      // send_media — only when the companion has media. They pick by number
+      // from the list in the description; run() resolves it to an item, opens
+      // the lightbox, and returns its ref so it renders inline in the
+      // transcript too.
+      ...(items.length > 0
         ? [
             {
               name: 'send_media',
               description:
-                'Send him a picture of yourself, shown to him right now in the call. Pass `which` — the number of the picture to send. The pictures you can send:\n' +
-                pics.map((p, i) => `${i + 1} — ${p.description}`).join('\n'),
+                'Send him a picture or a clip of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. What you can send:\n' +
+                items
+                  .map(
+                    (m, i) =>
+                      `${i + 1} — ${m.kind === 'video' ? '(clip) ' : ''}${m.description}`,
+                  )
+                  .join('\n'),
               parameters: {
                 type: 'object',
                 properties: {
                   which: {
                     type: 'integer',
                     minimum: 1,
-                    maximum: pics.length,
-                    description: 'the number of the picture to send',
+                    maximum: items.length,
+                    description: 'the number of the one to send',
                   },
                 },
                 required: ['which'],
@@ -336,15 +348,13 @@ export function CompanionsPanel({
                 const n = args.which;
                 const idx =
                   typeof n === 'number' && Number.isFinite(n)
-                    ? Math.min(Math.max(Math.round(n), 1), pics.length) - 1
+                    ? Math.min(Math.max(Math.round(n), 1), items.length) - 1
                     : 0;
-                const pic = pics[idx]!;
-                showPicture(pic.src);
+                const item = items[idx]!;
+                showMedia(item);
                 return {
-                  result: `Sent him the picture: ${pic.description}`,
-                  // Persist the stable ref (packs' object URLs die with the
-                  // session) — the live lightbox above still gets the URL.
-                  imageSrc: pic.ref ?? pic.src,
+                  result: `Sent him the ${item.kind === 'video' ? 'clip' : 'picture'}: ${item.description}`,
+                  mediaRef: item.ref,
                 };
               },
             } satisfies CompanionTool,
@@ -356,8 +366,8 @@ export function CompanionsPanel({
     stopProgram,
     changeIntensity,
     changeVariety,
-    companion.pictures,
-    showPicture,
+    companion.media,
+    showMedia,
   ]);
 
   // The toy's state in plain terms — connection, whether it's actually running
@@ -538,7 +548,7 @@ export function CompanionsPanel({
 
   // Which bubble wears it: the pending one if the reply hasn't committed yet,
   // otherwise the last assistant turn that actually rendered a bubble — a
-  // silent picture turn has none, so the marker falls back past it.
+  // silent media turn has none, so the marker falls back past it.
   const voicedFromEnd = [...status.thread]
     .reverse()
     .findIndex((t) => t.role === 'assistant' && !isSilentAssistantTurn(t));
@@ -630,12 +640,12 @@ export function CompanionsPanel({
       {/* TTS element — rendered once, in both views, so audioRef stays stable. */}
       <audio ref={audioRef} className="hidden" />
 
-      {/* Lightbox for a sent picture — above everything, in either view. */}
-      {lightboxSrc !== null && (
+      {/* Lightbox for sent media — above everything, in either view. */}
+      {lightboxMedia !== null && (
         <Lightbox
-          src={lightboxSrc}
+          media={lightboxMedia}
           stage={stage}
-          onClose={() => setLightboxSrc(null)}
+          onClose={() => setLightboxMedia(null)}
         />
       )}
 
@@ -835,20 +845,20 @@ export function CompanionsPanel({
                   {status.thread.map((turn, i) => {
                     let row: ReactNode;
                     if (turn.role === 'tool') {
-                      // A picture the companion sent renders as a clickable
+                      // Media the companion sent renders as a clickable
                       // thumbnail; any other tool call as the little action chip.
-                      if (turn.imageSrc !== undefined) {
-                        const src = resolvePictureRef(
-                          turn.imageSrc,
-                          companion.pictures,
+                      if (turn.mediaRef !== undefined) {
+                        const item = resolveMediaRef(
+                          turn.mediaRef,
+                          companion.media,
                         );
                         row =
-                          src === null ? (
-                            <MissingPictureBubble />
+                          item === null ? (
+                            <MissingMediaBubble />
                           ) : (
-                            <PictureBubble
-                              src={src}
-                              onOpen={() => showPicture(src)}
+                            <MediaBubble
+                              media={item}
+                              onOpen={() => showMedia(item)}
                             />
                           );
                       } else {
@@ -858,7 +868,7 @@ export function CompanionsPanel({
                       }
                     } else if (isSilentAssistantTurn(turn)) {
                       // The companion called a tool without saying anything: no
-                      // bubble — the tool chip or picture that follows is the record.
+                      // bubble — the tool chip or media that follows is the record.
                       row = null;
                     } else {
                       row = (

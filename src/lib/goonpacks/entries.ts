@@ -136,7 +136,10 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       {
         key: null,
         label: 'default',
-        media: { images: c.pictures?.length ?? 0, clips: 0 },
+        media: {
+          images: c.media?.filter((m) => m.kind === 'image').length ?? 0,
+          clips: c.media?.filter((m) => m.kind === 'video').length ?? 0,
+        },
         changed: [],
       },
     ],
@@ -158,7 +161,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
     completes.push({
       // The card's identity (name, fallbacks) comes from the newest version;
       // the selects override per pick.
-      companion: packToCompanion({ manifest: newest.manifest, pictures: [] }),
+      companion: packToCompanion({ manifest: newest.manifest, media: [] }),
       builtIn: false,
       bases: versions.map(baseOption),
       overlays: overlaysFor(p.manifest.id),
