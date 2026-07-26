@@ -3,7 +3,8 @@
 // A tree that fails deletes itself; an abandoned one is removed by the clean
 // pass at the next load, so there is no cancel to implement.
 import { COMPANIONS } from '@/lib/companions/companions';
-import { extractZip, peekZip } from './extract';
+import { peekZip } from './extract';
+import type { ExtractMessage, ExtractRequest } from './extract-worker';
 import { packKey } from './entries';
 import { baseError } from './library';
 import { PackError, parseManifest, type PackManifest } from './manifest';
@@ -31,6 +32,35 @@ export type PendingImport = {
 };
 
 const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
+
+// Run extraction in a dedicated worker, resolving when the tree is written.
+// The worker is created per import and terminated either way — extraction is
+// the only thing it does.
+function extractInWorker(
+  file: File,
+  dir: FileSystemDirectoryHandle,
+  onProgress: (bytes: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('./extract-worker.ts', import.meta.url), {
+      type: 'module',
+    });
+    worker.onmessage = (event: MessageEvent<ExtractMessage>) => {
+      const m = event.data;
+      if (m.type === 'progress') onProgress(m.bytes);
+      else {
+        worker.terminate();
+        if (m.type === 'done') resolve();
+        else reject(new PackError("The zip couldn't be read."));
+      }
+    };
+    worker.onerror = () => {
+      worker.terminate();
+      reject(new PackError("The zip couldn't be read."));
+    };
+    worker.postMessage({ file, dir } satisfies ExtractRequest);
+  });
+}
 
 // Read the zip's manifest and run the checks that don't need the tree, so the
 // confirm sheet names the pack before anything is written.
@@ -91,12 +121,12 @@ export async function prepareImport(
       // the marker lands, the tree on disk is indistinguishable from one an
       // interrupted import left behind, and any clean pass — this tab's or
       // another tab's — would delete it mid-extraction. Held on the main
-      // thread so it still spans extraction once that moves into a worker.
+      // thread, spanning the worker call that does the extraction itself.
       await navigator.locks.request(importLock(key), async () => {
         onProgress?.({ phase: 'extracting', bytes: 0, total: file.size });
         const dir = await createPackDir(key);
         try {
-          await extractZip(file, dir, (bytes) =>
+          await extractInWorker(file, dir, (bytes) =>
             onProgress?.({ phase: 'extracting', bytes, total: file.size }),
           );
         } catch (e) {

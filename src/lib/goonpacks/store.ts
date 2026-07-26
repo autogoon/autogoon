@@ -157,19 +157,24 @@ export const importLock = (key: string): string => `goonpack-import:${key}`;
 // The one clean pass, run before every library build: a tree with no marker is
 // a crashed import, a cancelled import or a crashed removal — all the same
 // state, all deleted. A tree whose import lock is held is none of those: it is
-// being written, here or in another tab, and is left alone.
+// being written, here or in another tab, and is left alone. The delete runs
+// inside the lock callback — not after it releases — so a tree only ever goes
+// once this pass holds the lock for it; the marker is re-checked inside the
+// callback too, in case an import completed while the lock was waited on.
 export async function sweepIncomplete(): Promise<string[]> {
   const removed: string[] = [];
   for (const key of await listPackKeys()) {
     if (await hasMarker(key)) continue;
-    const importing = await navigator.locks.request(
+    await navigator.locks.request(
       importLock(key),
       { ifAvailable: true },
-      (lock) => lock === null, // null = the lock is held elsewhere
+      async (lock) => {
+        if (lock === null) return; // held elsewhere: an import owns it
+        if (await hasMarker(key)) return; // completed while we waited
+        await removePackTree(key);
+        removed.push(key);
+      },
     );
-    if (importing) continue;
-    await removePackTree(key);
-    removed.push(key);
   }
   return removed;
 }
