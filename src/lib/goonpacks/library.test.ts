@@ -39,6 +39,13 @@ const completePack = (id: string) => ({
   'media/b.mp4': '',
 });
 
+const overlayPack = (id: string, base: string) => ({
+  'manifest.json': manifest({ id, base, companion: { voiceId: 'v2' } }),
+  'media/a.jpg': '',
+  'media/a.txt': 'a still',
+  'media/b.mp4': '',
+});
+
 describe('buildLibrary', () => {
   it('lists a valid pack as a row, an entry and resolvable content', async () => {
     const lib = await buildLibrary(
@@ -67,6 +74,22 @@ describe('buildLibrary', () => {
     expect(item.src).toBeUndefined();
     expect(await item.load()).toBe('blob:pub.comp@1.0.0/a.jpg');
     expect(item.src).toBe('blob:pub.comp@1.0.0/a.jpg');
+    expect(await item.load()).toBe('blob:pub.comp@1.0.0/a.jpg');
+  });
+
+  it('retries a media URL that failed once, rather than pinning it as missing', async () => {
+    const src = source({ 'pub.comp@1.0.0': completePack('pub.comp') });
+    let fail = true;
+    const lib = await buildLibrary({
+      ...src,
+      mediaUrl: (key, media) => {
+        if (!fail) return src.mediaUrl(key, media);
+        fail = false;
+        return Promise.reject(new Error('unreadable'));
+      },
+    });
+    const item = lib.content.get('pub.comp@1.0.0')!.media[0]!;
+    await expect(item.load()).rejects.toThrow('unreadable');
     expect(await item.load()).toBe('blob:pub.comp@1.0.0/a.jpg');
   });
 
@@ -261,6 +284,35 @@ describe('carryMediaOver', () => {
     expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBeUndefined();
     expect(after.content.get('pub.b@1.0.0')!.media[0]!.src).toBe(
       'blob:pub.b@1.0.0/a.jpg',
+    );
+  });
+
+  it('keeps a pack that only became incompatible, so on-screen media survives', async () => {
+    const before = await buildLibrary(
+      source({
+        'pub.comp@1.0.0': completePack('pub.comp'),
+        'pub.goth@1.0.0': overlayPack('pub.goth', 'pub.comp'),
+      }),
+    );
+    await loadAll(before);
+
+    // The base is removed. The overlay is still installed — it just has nothing
+    // to lay itself over, so it lists as incompatible and leaves `content`.
+    const after = await buildLibrary(
+      source({ 'pub.goth@1.0.0': overlayPack('pub.goth', 'pub.comp') }),
+    );
+    expect(after.content.has('pub.goth@1.0.0')).toBe(false);
+    expect(after.rows.map((r) => r.id)).toEqual(['pub.goth@1.0.0']);
+    carryMediaOver(before, after, new Set());
+
+    // Only the pack that actually went is revoked: a thread bubble holding the
+    // overlay's media still has a URL that renders.
+    expect(revoked.sort()).toEqual([
+      'blob:pub.comp@1.0.0/a.jpg',
+      'blob:pub.comp@1.0.0/b.mp4',
+    ]);
+    expect(before.content.get('pub.goth@1.0.0')!.media[0]!.src).toBe(
+      'blob:pub.goth@1.0.0/a.jpg',
     );
   });
 

@@ -15,7 +15,7 @@ import { join, dirname } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
-import { describeMedia, type MediaCount } from '../src/lib/goonpacks/entries';
+import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
 import { isJunkPath } from '../src/lib/goonpacks/media';
 import {
@@ -111,11 +111,7 @@ for (const entry of entries) {
   // directories can hold two versions of the same id without clobbering.
   const out = join(packsDir, `${entry.name}.zip`);
   writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
-  const media: MediaCount = {
-    images: parsed.media.filter((m) => m.kind === 'image').length,
-    videos: parsed.media.filter((m) => m.kind === 'video').length,
-  };
-  const counts = describeMedia(media);
+  const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${entry.name}: 0 errors`));
   console.log(
     `  built, ${entry.name}.zip${counts === '' ? '' : `, ${counts}`}`,

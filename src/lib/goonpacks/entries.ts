@@ -8,6 +8,7 @@
 // the card's two selects. Newest first in both, by alphanumeric version sort.
 import { companionList, type Companion } from '@/lib/companions/companions';
 import type { PackManifest } from './manifest';
+import type { MediaKind } from './media';
 import { packToCompanion } from './resolve';
 
 // What a pack's tree holds that the manifest can't say — the media it carries,
@@ -17,6 +18,15 @@ export type MediaCount = { images: number; videos: number };
 export type PackSummary = { media: MediaCount; hasPrompt: boolean };
 
 export const totalMedia = (c: MediaCount): number => c.images + c.videos;
+
+// The one tally of a media list, wherever the list comes from: a parsed tree,
+// a built-in companion's own media, or the authoring build script's pack.
+export const countMedia = (
+  media: readonly { kind: MediaKind }[],
+): MediaCount => ({
+  images: media.filter((m) => m.kind === 'image').length,
+  videos: media.filter((m) => m.kind === 'video').length,
+});
 
 // "3 pictures · 2 videos" — one phrase, used by both the chooser card's
 // feature line and the Goonpacks row, so a pack reads the same on either
@@ -139,10 +149,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       {
         key: null,
         label: 'default',
-        media: {
-          images: c.media?.filter((m) => m.kind === 'image').length ?? 0,
-          videos: c.media?.filter((m) => m.kind === 'video').length ?? 0,
-        },
+        media: countMedia(c.media ?? []),
         changed: [],
       },
     ],

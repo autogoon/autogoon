@@ -9,6 +9,7 @@
 import { COMPANIONS, type CompanionMedia } from '@/lib/companions/companions';
 import {
   buildEntries,
+  countMedia,
   keyId,
   keyVersion,
   newestFirst,
@@ -74,10 +75,7 @@ export function baseError(
 }
 
 const summarize = (media: ParsedMedia[], hasPrompt: boolean): PackSummary => ({
-  media: {
-    images: media.filter((m) => m.kind === 'image').length,
-    videos: media.filter((m) => m.kind === 'video').length,
-  },
+  media: countMedia(media),
   hasPrompt,
 });
 
@@ -217,6 +215,11 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
 // is on screen. Only what the new index doesn't adopt is revoked: packs that
 // were removed, packs whose tree an import just replaced (`replaced`), and
 // individual files that have gone from a carried-over pack.
+//
+// Still INSTALLED, note, not still offered: a pack can drop out of `content`
+// by turning incompatible (its base was removed) while its media is on screen
+// in a thread, and that is media the app can still render, not media to break.
+// It has a row either way, which is what says it is installed.
 export function carryMediaOver(
   previous: Library,
   next: Library,
@@ -231,9 +234,17 @@ export function carryMediaOver(
         URL.revokeObjectURL(m.src);
     }
   };
+  // Every key the new index saw on disk, offered or not: a row is what an
+  // installed pack always has.
+  const installed = new Set(next.rows.map((r) => r.id));
   for (const [key, before] of previous.content) {
-    const after = replaced.has(key) ? undefined : next.content.get(key);
+    if (replaced.has(key)) {
+      revoke(before.media); // re-imported: these entries point at files that are gone
+      continue;
+    }
+    const after = next.content.get(key);
     if (after === undefined) {
+      if (installed.has(key)) continue; // still on disk, just no longer offered
       revoke(before.media);
       continue;
     }
