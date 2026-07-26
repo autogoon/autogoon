@@ -233,7 +233,7 @@ export function CompanionsPanel({
   // array-literal inference merges the differently-shaped `intensity`/`variety`
   // `parameters.properties` into one shape before the check, and fails.
   const tools = useMemo((): CompanionTool[] => {
-    // The companion's pictures, if any. Empty → the send_picture tool is left out
+    // The companion's pictures, if any. Empty → the send_media tool is left out
     // entirely, so a companion with no pictures never offers it.
     const pics = companion.pictures ?? [];
     return [
@@ -310,13 +310,13 @@ export function CompanionsPanel({
           return `variety → ${level}`;
         },
       },
-      // send_picture — only when the companion has pictures. They pick by number
+      // send_media — only when the companion has pictures. They pick by number
       // from the list in the description; run() resolves it to a src, opens the lightbox,
       // and returns the src so it renders inline in the transcript too.
       ...(pics.length > 0
         ? [
             {
-              name: 'send_picture',
+              name: 'send_media',
               description:
                 'Send him a picture of yourself, shown to him right now in the call. Pass `which` — the number of the picture to send. The pictures you can send:\n' +
                 pics.map((p, i) => `${i + 1} — ${p.description}`).join('\n'),
