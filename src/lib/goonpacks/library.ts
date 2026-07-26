@@ -1,0 +1,213 @@
+// The pack library, built in memory at every app load by walking the OPFS
+// trees. Nothing derived is persisted, so validity is one live verdict: a pack
+// either passes today's rules and is offered, or it lists on the Goonpacks
+// screen as incompatible — with the reason — and is offered nowhere. An
+// incompatible pack heals on a later load (e.g. its base gets imported).
+//
+// The source is injected so this whole pass is testable without OPFS; the app
+// passes the OPFS-backed one from store.ts.
+import { COMPANIONS, type CompanionMedia } from '@/lib/companions/companions';
+import {
+  buildEntries,
+  keyId,
+  keyVersion,
+  newestFirst,
+  packKey,
+  type LibraryEntry,
+  type LoadedPack,
+  type PackSummary,
+} from './entries';
+import { PackError, type PackManifest } from './manifest';
+import {
+  MANIFEST,
+  parsePack,
+  peekManifest,
+  type PackPeek,
+  type PackTree,
+  type ParsedMedia,
+} from './pack';
+import type { PackContent } from './resolve';
+
+export type LibrarySource = {
+  listKeys(): Promise<string[]>;
+  openTree(key: string): Promise<PackTree | null>;
+  mediaUrl(key: string, media: ParsedMedia): Promise<string>;
+};
+
+// One row of the Goonpacks admin list, one per installed id@version. A valid
+// pack carries its manifest and summary. An incompatible one carries every
+// problem validation could determine, plus whatever we can still say about it:
+// its manifest when only the cross-pack checks failed, or a best-effort peek
+// when validation itself did.
+export type PackRow = {
+  id: string;
+  manifest?: PackManifest;
+  summary?: PackSummary;
+  peek?: PackPeek;
+  incompatible?: string[];
+};
+
+export type Library = {
+  entries: LibraryEntry[];
+  rows: PackRow[];
+  content: Map<string, PackContent>;
+  manifests: Map<string, PackManifest>;
+};
+
+// Cross-pack rules a tree can't know about itself: an overlay's base must be
+// installed and must be a companion (built-in or complete pack), never another
+// overlay. Applied at load over the parsed set — and at import for immediate
+// feedback.
+export function baseError(
+  manifest: PackManifest,
+  isInstalled: (id: string) => 'companion' | 'overlay' | undefined,
+): string | null {
+  if (manifest.base === undefined) return null;
+  const base = isInstalled(manifest.base);
+  if (base === undefined) {
+    return `This overlay changes ${manifest.base}, which isn't installed — import that pack first.`;
+  }
+  if (base === 'overlay') {
+    return 'The base must be a complete companion, not another overlay.';
+  }
+  return null;
+}
+
+const summarize = (media: ParsedMedia[], hasPrompt: boolean): PackSummary => ({
+  media: {
+    images: media.filter((m) => m.kind === 'image').length,
+    videos: media.filter((m) => m.kind === 'video').length,
+  },
+  hasPrompt,
+});
+
+// A media entry whose object URL is minted on first render and memoised here:
+// a pack can hold thousands of files, most of which are never shown. The URL
+// then lives as long as this entry — revoked only when the pack is removed or
+// re-imported (revokeLibrary).
+function mediaEntry(
+  source: LibrarySource,
+  key: string,
+  m: ParsedMedia,
+): CompanionMedia {
+  let pending: Promise<string> | null = null;
+  const entry: CompanionMedia = {
+    kind: m.kind,
+    description: m.description,
+    // Stable thread reference: object URLs die with the session, so the thread
+    // persists this ref and rendering resolves it.
+    ref: `goonpack:${key}/${m.name}`,
+    load: () =>
+      (pending ??= source.mediaUrl(key, m).then((url) => {
+        entry.src = url;
+        return url;
+      })),
+  };
+  return entry;
+}
+
+export async function buildLibrary(source: LibrarySource): Promise<Library> {
+  const valid: (LoadedPack & { key: string; content: PackContent })[] = [];
+  const bad: PackRow[] = [];
+
+  for (const key of await source.listKeys()) {
+    const tree = await source.openTree(key);
+    if (tree === null) continue; // removed between the listing and the read
+    try {
+      const parsed = await parsePack(tree);
+      if (packKey(parsed.manifest) !== key) {
+        throw new PackError(
+          "The pack's id and version don't match the pack it was imported as.",
+        );
+      }
+      valid.push({
+        key,
+        manifest: parsed.manifest,
+        summary: summarize(parsed.media, parsed.systemPrompt !== undefined),
+        content: {
+          manifest: parsed.manifest,
+          systemPrompt: parsed.systemPrompt,
+          media: parsed.media.map((m) => mediaEntry(source, key, m)),
+        },
+      });
+    } catch (e) {
+      let peek: PackPeek = {};
+      try {
+        peek = peekManifest(await tree.readText(MANIFEST));
+      } catch {
+        // a tree we can't even read a manifest out of describes itself as nothing
+      }
+      bad.push({
+        id: key,
+        peek,
+        incompatible:
+          e instanceof PackError ? e.problems : ["The pack couldn't be read."],
+      });
+    }
+  }
+
+  // Cross-pack pass over ids (versions of an id stand or fall together for
+  // these): a complete pack squatting a built-in id, an id whose versions
+  // disagree about being overlay or complete, then overlay base rules against
+  // what remains.
+  const kinds = new Map<string, Set<string>>();
+  for (const p of valid) {
+    const set = kinds.get(p.manifest.id) ?? new Set<string>();
+    set.add(p.manifest.base === undefined ? 'complete' : 'overlay');
+    kinds.set(p.manifest.id, set);
+  }
+  const isInstalled = (id: string): 'companion' | 'overlay' | undefined =>
+    COMPANIONS[id] !== undefined || kinds.get(id)?.has('complete') === true
+      ? 'companion'
+      : kinds.has(id)
+        ? 'overlay'
+        : undefined;
+
+  const survivors: typeof valid = [];
+  for (const p of valid) {
+    const id = p.manifest.id;
+    let reason: string | null;
+    if (kinds.get(id)!.size > 1) {
+      reason =
+        'Installed versions of this id disagree about being an overlay or a complete companion.';
+    } else if (p.manifest.base === undefined && COMPANIONS[id] !== undefined) {
+      reason =
+        "The pack's id belongs to a built-in companion — pick a different id.";
+    } else {
+      reason = baseError(p.manifest, isInstalled);
+    }
+    if (reason === null) survivors.push(p);
+    else bad.push({ id: p.key, manifest: p.manifest, incompatible: [reason] });
+  }
+
+  return {
+    entries: buildEntries(survivors),
+    content: new Map(survivors.map((p) => [p.key, p.content])),
+    manifests: new Map(survivors.map((p) => [p.key, p.manifest])),
+    rows: [
+      ...survivors.map((p) => ({
+        id: p.key,
+        manifest: p.manifest,
+        summary: p.summary,
+      })),
+      ...bad,
+    ].sort(
+      // Rows: ids alphabetical, versions ascending within an id — the whole
+      // inventory reads one way (the chooser's pickers are where newest-first
+      // means something).
+      (a, b) =>
+        keyId(a.id).localeCompare(keyId(b.id)) ||
+        newestFirst(keyVersion(b.id), keyVersion(a.id)),
+    ),
+  };
+}
+
+// Every object URL the index handed out. Called when the index is replaced —
+// after an import or a removal — never between renders.
+export function revokeLibrary(library: Library): void {
+  for (const content of library.content.values()) {
+    for (const m of content.media) {
+      if (m.src !== undefined) URL.revokeObjectURL(m.src);
+    }
+  }
+}
