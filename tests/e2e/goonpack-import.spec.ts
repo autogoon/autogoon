@@ -65,6 +65,14 @@ async function importZip(
 ): Promise<string[]> {
   const errors = importErrors(page);
   const confirm = page.getByRole('button', { name: 'Import', exact: true });
+  // Each import starts from a clean panel. Picking a file clears the previous
+  // one's errors, but not before React renders, so reading them afterwards can
+  // return the last import's lines as this one's — and two cases here expect
+  // the same message, which would hide it. A reload settles the question; the
+  // app restores the Goonpacks screen from the URL hash.
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Import pack' })).toBeVisible();
+  await expect(errors).toHaveCount(0);
   await page
     .getByTestId('goonpack-file-input')
     .setInputFiles({ name, mimeType: 'application/zip', buffer });
@@ -136,8 +144,8 @@ test('import, persist, and remove a goonpack', async ({ page }) => {
   ).toEqual(['one.png', 'one.txt']);
 
   // Her card (a clickable div, not a button — the pickers live inside it)
-  // shows up on the Companions chooser (a separate screen with its
-  // own library instance — it re-syncs on entry).
+  // shows up on the Companions chooser, which watches the same one index this
+  // screen just rebuilt.
   await page.getByRole('button', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Companions' }).click();
   await expect(page.getByText('Testy', { exact: true })).toBeVisible();
