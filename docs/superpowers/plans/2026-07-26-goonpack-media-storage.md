@@ -48,11 +48,13 @@ reasoning.
   used neither of the two things the formats differ over — no `pictures/` folder
   and no `noPictures` field — because such a pack already _is_ a format 2 pack.
   Otherwise it is rejected with `OLD_LAYOUT_PROBLEM`.
-- **Stills:** `.jpg`, `.jpeg`, `.png`, `.webp`. **Clips:** `.mp4`, `.webm`.
+- **Stills:** `.jpg`, `.jpeg`, `.png`, `.webp`. **Videos:** `.mp4`, `.webm`.
   **`.mov` is rejected with a message saying so.**
 - **Vocabulary:** `pictures/` → `media/`, `noPictures` → `noMedia`,
-  `{{PICTURES_SECTION}}` → `{{MEDIA_SECTION}}`. In docs and UI copy, a still is
-  a "picture" and a video is a "clip"; "media" is the collective noun.
+  `{{PICTURES_SECTION}}` → `{{MEDIA_SECTION}}`. In code, comments, UI copy and
+  docs, a still is a **picture** and a moving image is a **video** — never a
+  "clip". "Media" is the collective noun. (`MediaKind`'s values stay
+  `'image' | 'video'`, matching the MIME families.)
 - **Docs point at code.** Never copy a type, command list or config value into a
   doc — link the source file and say what it's for. Comments describe what the
   code does now, never what it replaced or what's coming.
@@ -71,26 +73,26 @@ New:
 | `src/lib/goonpacks/extract-worker.ts`                         | The dedicated Worker wrapper around `extract.ts` — receives a `File` + directory handle, posts progress.                                                                                                                               |
 | `src/lib/goonpacks/import.ts`                                 | The import pipeline the UI drives: quota check, persistence request, spawn the worker, validate the extracted tree, write or delete.                                                                                                   |
 | `src/hooks/use-media-url.ts`                                  | React glue for a `CompanionMedia`'s lazy object URL.                                                                                                                                                                                   |
-| `src/components/play-modes/companions-panel/media-bubble.tsx` | A sent still or clip in the transcript (`<img>` or `<video>`).                                                                                                                                                                         |
+| `src/components/play-modes/companions-panel/media-bubble.tsx` | A sent still or video in the transcript (`<img>` or `<video>`).                                                                                                                                                                        |
 
 Replaced or reshaped:
 
-| File                                                                                                                                           | Change                                                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/goonpacks/store.ts`                                                                                                                   | IndexedDB zip store → OPFS trees, the marker, the clean pass, the legacy purge.                                                                                            |
-| `src/lib/goonpacks/pack.ts`                                                                                                                    | `parsePack` becomes an async, name-level validation pass over a `PackTree`; `ParsedPicture.bytes` goes; `peekPack(zipBytes)` becomes `peekManifest(text)`.                 |
-| `src/lib/goonpacks/manifest.ts`                                                                                                                | `PACK_FORMAT = 2`, `noPictures` → `noMedia`, a format-1 pack gets the old-layout message.                                                                                  |
-| `src/lib/goonpacks/entries.ts`                                                                                                                 | `PackSummary`/`PackOption` learn media (`images` + `clips`), `VariantSlot` gains `media`, `effectivePictures` → `effectiveMedia`, plus a shared `describeMedia` formatter. |
-| `src/lib/goonpacks/resolve.ts`                                                                                                                 | `PackContent.media`, `resolvePictureRef` → `resolveMediaRef` returning the entry (not a src), `noMedia`.                                                                   |
-| `src/lib/goonpacks/prompt.ts`, `src/lib/companions/shared-prompt.ts`                                                                           | `PICTURES_SECTION` → `MEDIA_SECTION`, its text covering clips and naming the `send_media` tool.                                                                            |
-| `src/lib/companions/companions.ts`                                                                                                             | `CompanionPicture` → `CompanionMedia` (kind, required `ref`, lazy `load()`); `Companion.pictures` → `Companion.media`.                                                     |
-| `src/lib/companions/conversation.ts`, `tools.ts`, `src/hooks/use-voice-session.ts`                                                             | `imageSrc` → `mediaRef` on the tool turn.                                                                                                                                  |
-| `src/hooks/use-goonpack-library.ts`                                                                                                            | A thin React wrapper over `library.ts` + `import.ts`; loses the reindex, the unzip and the object-URL bookkeeping.                                                         |
-| `src/components/goonpacks-panel.tsx`                                                                                                           | Import progress; media counts.                                                                                                                                             |
-| `src/components/play-modes/companions-panel/index.tsx`, `lightbox.tsx`, `picture-bubble.tsx`, `missing-picture-bubble.tsx`, `chooser-card.tsx` | `send_media`, clips as `<video>`, media counts.                                                                                                                            |
-| `scripts/goonpack-build.ts`, `scripts/describe-missing.mjs`, `scripts/describe-image.mjs`                                                      | `media/`; clips zipped, and skipped by the captioners.                                                                                                                     |
-| `GOONPACKS.md`, `ARCHITECTURE.md`, `DEVELOPERS.md`, `README.md`, `modes/COMPANIONS.md`, `CHANGELOG.md`, `.gitignore`                           | Docs and the ignore rule.                                                                                                                                                  |
-| `tests/e2e/goonpack-import.spec.ts`                                                                                                            | Round-trip over OPFS.                                                                                                                                                      |
+| File                                                                                                                                           | Change                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/goonpacks/store.ts`                                                                                                                   | IndexedDB zip store → OPFS trees, the marker, the clean pass, the legacy purge.                                                                                             |
+| `src/lib/goonpacks/pack.ts`                                                                                                                    | `parsePack` becomes an async, name-level validation pass over a `PackTree`; `ParsedPicture.bytes` goes; `peekPack(zipBytes)` becomes `peekManifest(text)`.                  |
+| `src/lib/goonpacks/manifest.ts`                                                                                                                | `PACK_FORMAT = 2`, `noPictures` → `noMedia`, a format-1 pack gets the old-layout message.                                                                                   |
+| `src/lib/goonpacks/entries.ts`                                                                                                                 | `PackSummary`/`PackOption` learn media (`images` + `videos`), `VariantSlot` gains `media`, `effectivePictures` → `effectiveMedia`, plus a shared `describeMedia` formatter. |
+| `src/lib/goonpacks/resolve.ts`                                                                                                                 | `PackContent.media`, `resolvePictureRef` → `resolveMediaRef` returning the entry (not a src), `noMedia`.                                                                    |
+| `src/lib/goonpacks/prompt.ts`, `src/lib/companions/shared-prompt.ts`                                                                           | `PICTURES_SECTION` → `MEDIA_SECTION`, its text covering videos and naming the `send_media` tool.                                                                            |
+| `src/lib/companions/companions.ts`                                                                                                             | `CompanionPicture` → `CompanionMedia` (kind, required `ref`, lazy `load()`); `Companion.pictures` → `Companion.media`.                                                      |
+| `src/lib/companions/conversation.ts`, `tools.ts`, `src/hooks/use-voice-session.ts`                                                             | `imageSrc` → `mediaRef` on the tool turn.                                                                                                                                   |
+| `src/hooks/use-goonpack-library.ts`                                                                                                            | A thin React wrapper over `library.ts` + `import.ts`; loses the reindex, the unzip and the object-URL bookkeeping.                                                          |
+| `src/components/goonpacks-panel.tsx`                                                                                                           | Import progress; media counts.                                                                                                                                              |
+| `src/components/play-modes/companions-panel/index.tsx`, `lightbox.tsx`, `picture-bubble.tsx`, `missing-picture-bubble.tsx`, `chooser-card.tsx` | `send_media`, videos as `<video>`, media counts.                                                                                                                            |
+| `scripts/goonpack-build.ts`, `scripts/describe-missing.mjs`, `scripts/describe-image.mjs`                                                      | `media/`; videos zipped, and skipped by the captioners.                                                                                                                     |
+| `GOONPACKS.md`, `ARCHITECTURE.md`, `DEVELOPERS.md`, `README.md`, `modes/COMPANIONS.md`, `CHANGELOG.md`, `.gitignore`                           | Docs and the ignore rule.                                                                                                                                                   |
+| `tests/e2e/goonpack-import.spec.ts`                                                                                                            | Round-trip over OPFS.                                                                                                                                                       |
 
 **Why `library.ts` exists as a module singleton, not hook state.** Two
 components each hold their own `useGoonpackLibrary()` instance (the Companions
@@ -135,7 +137,7 @@ still zips in IndexedDB and everything is still a still image.
     `function splitName(file: string): { stem: string; ext: string }`;
     `function isJunkPath(path: string): boolean`.
   - `manifest.ts`: `PACK_FORMAT = 2`; `PackManifest.noMedia?: boolean`.
-  - `entries.ts`: `type MediaCount = { images: number; clips: number }`;
+  - `entries.ts`: `type MediaCount = { images: number; videos: number }`;
     `type PackSummary = { media: MediaCount; hasPrompt: boolean }`;
     `type VariantSlot = 'media' | 'prompt' | 'voice' | 'colour' | 'model'`;
     `PackOption.media: MediaCount`, `PackOption.noMedia?: boolean`;
@@ -154,7 +156,7 @@ import { describe, expect, it } from '@jest/globals';
 import { MEDIA_TYPES, isJunkPath, splitName } from './media';
 
 describe('MEDIA_TYPES', () => {
-  it('maps stills and clips to their kind and MIME type', () => {
+  it('maps stills and videos to their kind and MIME type', () => {
     expect(MEDIA_TYPES.jpg).toEqual({ kind: 'image', mimeType: 'image/jpeg' });
     expect(MEDIA_TYPES.jpeg).toEqual({ kind: 'image', mimeType: 'image/jpeg' });
     expect(MEDIA_TYPES.png).toEqual({ kind: 'image', mimeType: 'image/png' });
@@ -202,7 +204,7 @@ Run: `npx jest src/lib/goonpacks/media.test.ts` Expected: FAIL —
 
 export type MediaKind = 'image' | 'video';
 
-// Stills and clips a pack may carry, by lowercased extension. .mov is
+// Stills and videos a pack may carry, by lowercased extension. .mov is
 // deliberately absent: it plays in Safari and unreliably elsewhere, so
 // accepting it yields packs that work on their author's machine and not on a
 // stranger's — parsePack rejects it by name with a message saying so.
@@ -330,18 +332,18 @@ Run: `npx jest src/lib/goonpacks/manifest.test.ts` Expected: PASS.
 In `src/lib/goonpacks/entries.test.ts`:
 
 - `format: 1` → `format: 2` in the `manifest` fixture.
-- `const NO_EXTRAS = { media: { images: 0, clips: 0 }, hasPrompt: false };`
+- `const NO_EXTRAS = { media: { images: 0, videos: 0 }, hasPrompt: false };`
 - Every `{ pictures: N, hasPrompt: X }` summary becomes
-  `{ media: { images: N, clips: 0 }, hasPrompt: X }`.
+  `{ media: { images: N, videos: 0 }, hasPrompt: X }`.
 - Every `pictures: N` assertion on a `PackOption` becomes
-  `media: { images: N, clips: 0 }`.
+  `media: { images: N, videos: 0 }`.
 - `noPictures` → `noMedia`; `changed: ['pictures', …]` →
   `changed: ['media', …]`.
 - Replace the `effectivePictures` describe block with:
 
 ```ts
 describe('effectiveMedia', () => {
-  const none = { images: 0, clips: 0 };
+  const none = { images: 0, videos: 0 };
   const opt = (extra: object) => ({
     key: 'pub.o@1',
     label: 'pub',
@@ -350,35 +352,37 @@ describe('effectiveMedia', () => {
     ...extra,
   });
   it("no overlay, or a medialess overlay, plays the base's set", () => {
-    expect(effectiveMedia(null, { images: 9, clips: 1 })).toEqual({
+    expect(effectiveMedia(null, { images: 9, videos: 1 })).toEqual({
       images: 9,
-      clips: 1,
+      videos: 1,
     });
-    expect(effectiveMedia(opt({}), { images: 9, clips: 1 })).toEqual({
+    expect(effectiveMedia(opt({}), { images: 9, videos: 1 })).toEqual({
       images: 9,
-      clips: 1,
+      videos: 1,
     });
   });
   it("an overlay's own set wins; noMedia strips to zero", () => {
     expect(
-      effectiveMedia(opt({ media: { images: 4, clips: 2 } }), {
+      effectiveMedia(opt({ media: { images: 4, videos: 2 } }), {
         images: 9,
-        clips: 0,
+        videos: 0,
       }),
-    ).toEqual({ images: 4, clips: 2 });
+    ).toEqual({ images: 4, videos: 2 });
     expect(
-      effectiveMedia(opt({ noMedia: true }), { images: 9, clips: 0 }),
+      effectiveMedia(opt({ noMedia: true }), { images: 9, videos: 0 }),
     ).toEqual(none);
   });
 });
 
 describe('describeMedia', () => {
-  it('names stills and clips separately, singular and plural', () => {
-    expect(describeMedia({ images: 0, clips: 0 })).toBe('');
-    expect(describeMedia({ images: 1, clips: 0 })).toBe('1 picture');
-    expect(describeMedia({ images: 3, clips: 0 })).toBe('3 pictures');
-    expect(describeMedia({ images: 0, clips: 1 })).toBe('1 clip');
-    expect(describeMedia({ images: 3, clips: 2 })).toBe('3 pictures · 2 clips');
+  it('names stills and videos separately, singular and plural', () => {
+    expect(describeMedia({ images: 0, videos: 0 })).toBe('');
+    expect(describeMedia({ images: 1, videos: 0 })).toBe('1 picture');
+    expect(describeMedia({ images: 3, videos: 0 })).toBe('3 pictures');
+    expect(describeMedia({ images: 0, videos: 1 })).toBe('1 video');
+    expect(describeMedia({ images: 3, videos: 2 })).toBe(
+      '3 pictures · 2 videos',
+    );
   });
 });
 ```
@@ -394,21 +398,21 @@ Run: `npx jest src/lib/goonpacks/entries.test.ts` Expected: FAIL —
 
 ```ts
 // What a pack's tree holds that the manifest can't say — the media it carries,
-// split by kind (the chooser and the admin row name stills and clips
+// split by kind (the chooser and the admin row name stills and videos
 // separately), and whether it has a prompt.
-export type MediaCount = { images: number; clips: number };
+export type MediaCount = { images: number; videos: number };
 export type PackSummary = { media: MediaCount; hasPrompt: boolean };
 
-export const totalMedia = (c: MediaCount): number => c.images + c.clips;
+export const totalMedia = (c: MediaCount): number => c.images + c.videos;
 
-// "3 pictures · 2 clips" — one phrase, used by both the chooser card's feature
+// "3 pictures · 2 videos" — one phrase, used by both the chooser card's feature
 // line and the Goonpacks row, so a pack reads the same on either screen.
 export function describeMedia(c: MediaCount): string {
   const parts: string[] = [];
   if (c.images > 0) {
     parts.push(`${c.images} picture${c.images === 1 ? '' : 's'}`);
   }
-  if (c.clips > 0) parts.push(`${c.clips} clip${c.clips === 1 ? '' : 's'}`);
+  if (c.videos > 0) parts.push(`${c.videos} video${c.videos === 1 ? '' : 's'}`);
   return parts.join(' · ');
 }
 ```
@@ -433,14 +437,14 @@ export function effectiveMedia(
   base: MediaCount,
 ): MediaCount {
   if (overlay === null) return base;
-  if (overlay.noMedia === true) return { images: 0, clips: 0 };
+  if (overlay.noMedia === true) return { images: 0, videos: 0 };
   return totalMedia(overlay.media) > 0 ? overlay.media : base;
 }
 ```
 
 `baseOption`/`overlayOption`: `media: p.summary.media`,
 `noMedia: p.manifest.noMedia`. `buildEntries`' built-in option:
-`media: { images: 0, clips: 0 }` (built-ins ship medialess; the field is there
+`media: { images: 0, videos: 0 }` (built-ins ship medialess; the field is there
 so a built-in option has the same shape as a pack's). Leave
 `packToCompanion({ manifest: newest.manifest, pictures: [] })` alone —
 `PackContent` keeps its `pictures` field until Task 2.
@@ -463,10 +467,11 @@ In `src/lib/companions/shared-prompt.ts`, replace the `PICTURES_SECTION` export
 with:
 
 ```ts
-export const MEDIA_SECTION = `PICTURES AND CLIPS:
-- You can send him a picture or a short clip of yourself, right there in the
-  call, with the send_media tool. It lists what you have and what each one
-  shows — pick the one that fits the moment and send it.
+export const MEDIA_SECTION = `PICTURES AND VIDEOS:
+- You can send him a picture or a short video of yourself, right there in the
+  call, with the send_media tool. It lists what you have, marked picture or
+  video, and what each one shows — pick the one that fits the moment and send
+  it.
 - Sending it is calling the tool — saying "here, look at this" in words does
   nothing on its own. So when you want him to see you, USE THE TOOL. Right
   after, you'll be told it sent, and THEN you say something about it — teasing,
@@ -505,7 +510,7 @@ until Task 3, so every count goes into `images`.
   `isJunkPath`, `splitName` from `./media` and use them. The picture branch
   becomes
   `const type = MEDIA_TYPES[ext]; if (type?.kind === 'image') { … mimeType: type.mimeType … }`
-  — clips still fall through to the unsupported message here; the full media
+  — videos still fall through to the unsupported message here; the full media
   rules land in Task 3.
 - `manifest.noPictures` → `manifest.noMedia`, message
   `'noMedia is set but the pack has a media/ folder — remove one or the other.'`
@@ -524,7 +529,7 @@ until Task 3, so every count goes into `images`.
 
 ```ts
 const summarize = (parsed: ParsedPack): PackSummary => ({
-  media: { images: parsed.pictures.length, clips: 0 },
+  media: { images: parsed.pictures.length, videos: 0 },
   hasPrompt: parsed.systemPrompt !== undefined,
 });
 ```
@@ -591,9 +596,9 @@ git commit -m "Goonpacks: media vocabulary and pack format 2"
 
 ---
 
-## Task 2: Clips in the companion's media set
+## Task 2: Videos in the companion's media set
 
-Give a companion's media a kind and a lazily-resolved URL, and render a clip as
+Give a companion's media a kind and a lazily-resolved URL, and render a video as
 a `<video>`. Storage is still zips; the library fills `src` eagerly and `load()`
 just hands it back, so the render path is finished here and never touched again
 when OPFS lands.
@@ -690,7 +695,7 @@ Run: `npx jest src/lib/goonpacks/resolve.test.ts` Expected: FAIL —
 In `src/lib/companions/companions.ts`, replace `CompanionPicture`:
 
 ```ts
-// One thing a companion can send: a still or a clip. `description` is what the
+// One thing a companion can send: a still or a video. `description` is what the
 // model reads to pick a fitting one, from the pack's <basename>.txt sidecar, or
 // "" when there's none. `ref` is the thread-stable reference — object URLs die
 // with the session, so a sent item persists as `ref` and rendering resolves it
@@ -743,7 +748,7 @@ Run: `npx jest src/lib/goonpacks/resolve.test.ts` → PASS.
 ```ts
 // What a tool's `run` may return. A plain string is the common case (the result
 // text logged + fed back to the model). The object form lets a tool also attach
-// a still or clip to the transcript turn (send_media): `result` is the
+// a still or video to the transcript turn (send_media): `result` is the
 // model-facing text, `mediaRef` the stable reference the transcript renders and
 // the lightbox opens.
 export type ToolRunResult = { result: string; mediaRef?: string };
@@ -751,7 +756,7 @@ export type ToolRunResult = { result: string; mediaRef?: string };
 
 `src/lib/companions/conversation.ts`: rename `imageSrc` to `mediaRef` on the
 tool turn and in `appendTool`'s parameter list, and reword the comment ("the
-still or clip the transcript renders inline…").
+still or video the transcript renders inline…").
 
 `src/hooks/use-voice-session.ts:648-662`: rename the local and the comment.
 
@@ -813,7 +818,7 @@ export function useMediaUrl(media: CompanionMedia | null): string | null {
 'use client';
 
 // Something the companion sent, inline in the transcript — left-aligned like
-// their bubbles. A still is a thumbnail; a clip plays inline, muted and looping,
+// their bubbles. A still is a thumbnail; a video plays inline, muted and looping,
 // as its own preview. Either one opens full-size in the lightbox on click.
 
 import Image from 'next/image';
@@ -835,7 +840,7 @@ export function MediaBubble({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={media.kind === 'video' ? 'Open clip' : 'Open picture'}
+        aria-label={media.kind === 'video' ? 'Open video' : 'Open picture'}
         className="ring-foreground/10 relative h-44 w-44 overflow-hidden rounded-2xl ring-1 transition hover:opacity-90"
       >
         {media.kind === 'video' ? (
@@ -858,7 +863,7 @@ export function MediaBubble({
 
 Rename `missing-picture-bubble.tsx` to `missing-media-bubble.tsx`, the component
 to `MissingMediaBubble`, and its text to `Media from another pack.`; reword the
-comment to "A still or clip from a pack that isn't loaded right now — never
+comment to "A still or video from a pack that isn't loaded right now — never
 substitute." Delete `picture-bubble.tsx`.
 
 ```bash
@@ -867,13 +872,13 @@ git mv src/components/play-modes/companions-panel/missing-picture-bubble.tsx \
 git rm src/components/play-modes/companions-panel/picture-bubble.tsx
 ```
 
-- [ ] **Step 8: Teach the lightbox about clips**
+- [ ] **Step 8: Teach the lightbox about videos**
 
 In `lightbox.tsx`, take `media: CompanionMedia` in place of `src: string`,
 resolve it with `useMediaUrl`, and render a `<video controls autoPlay loop>` for
-a clip. Keep the enter/exit animation, the badge and the Escape handling exactly
-as they are; the effect that resets `closing` keys on `media` instead of `src`.
-Render nothing (`return null`) while the URL is still resolving.
+a video. Keep the enter/exit animation, the badge and the Escape handling
+exactly as they are; the effect that resets `closing` keys on `media` instead of
+`src`. Render nothing (`return null`) while the URL is still resolving.
 
 ```tsx
 export function Lightbox({
@@ -918,11 +923,11 @@ In `src/components/play-modes/companions-panel/index.tsx`:
             {
               name: 'send_media',
               description:
-                'Send him a picture or a clip of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. What you can send:\n' +
+                'Send him a picture or a video of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. Optionally pass `kind` to say which sort you mean; the call is refused if it disagrees with the number. What you can send:\n' +
                 items
                   .map(
                     (m, i) =>
-                      `${i + 1} — ${m.kind === 'video' ? '(clip) ' : ''}${m.description}`,
+                      `${i + 1} — (${m.kind === 'video' ? 'video' : 'picture'}) ${m.description}`,
                   )
                   .join('\n'),
               parameters: {
@@ -934,6 +939,12 @@ In `src/components/play-modes/companions-panel/index.tsx`:
                     maximum: items.length,
                     description: 'the number of the one to send',
                   },
+                  kind: {
+                    type: 'string',
+                    enum: ['picture', 'video'],
+                    description:
+                      'optional: the sort you mean to send, checked against the number',
+                  },
                 },
                 required: ['which'],
               },
@@ -944,9 +955,18 @@ In `src/components/play-modes/companions-panel/index.tsx`:
                     ? Math.min(Math.max(Math.round(n), 1), items.length) - 1
                     : 0;
                 const item = items[idx]!;
+                const named = item.kind === 'video' ? 'video' : 'picture';
+                // `kind` is a stated intent, not a filter — the list is one
+                // numbering over everything. Refusing a mismatch turns a
+                // misread number into a correction the companion can act on,
+                // rather than the wrong thing arriving on his screen.
+                const wanted = args.kind;
+                if (typeof wanted === 'string' && wanted !== named) {
+                  return `number ${idx + 1} is a ${named}, not a ${wanted} — check the list and pick again`;
+                }
                 showMedia(item);
                 return {
-                  result: `Sent him the ${item.kind === 'video' ? 'clip' : 'picture'}: ${item.description}`,
+                  result: `Sent him the ${named}: ${item.description}`,
                   mediaRef: item.ref,
                 };
               },
@@ -1026,7 +1046,7 @@ typecheck and by the e2e in Task 3.
 
 ```bash
 git add -A
-git commit -m "Companions: media entries carry a kind and a lazy URL; clips render as video"
+git commit -m "Companions: media entries carry a kind and a lazy URL; videos render as video"
 ```
 
 ---
@@ -1194,7 +1214,7 @@ function tree(files: Record<string, string>): PackTree & { read: string[] } {
 }
 
 describe('parsePack', () => {
-  it('parses a complete pack with stills, clips and captions', async () => {
+  it('parses a complete pack with stills, videos and captions', async () => {
     const t = tree({
       'manifest.json': complete(),
       'system-prompt.md': 'You are Testy.',
@@ -1202,7 +1222,7 @@ describe('parsePack', () => {
       'media/a.txt': 'desc a\n',
       'media/b.png': '',
       'media/c.mp4': '',
-      'media/c.txt': 'a clip',
+      'media/c.txt': 'a video',
     });
     const pack = await parsePack(t);
     expect(pack.manifest.id).toBe('test.pack');
@@ -1220,7 +1240,7 @@ describe('parsePack', () => {
       name: 'c',
       kind: 'video',
       mimeType: 'video/mp4',
-      description: 'a clip',
+      description: 'a video',
     });
   });
 
@@ -1250,7 +1270,7 @@ describe('parsePack', () => {
   it('rejects .mov by name, saying why', async () => {
     const t = tree({
       'manifest.json': manifest({ base: 'autogoon.aimee' }),
-      'media/clip.mov': '',
+      'media/video.mov': '',
     });
     await expect(parsePack(t)).rejects.toThrow(/\.mov/);
     await expect(parsePack(t)).rejects.toThrow(/mp4 or \.webm/);
@@ -1468,7 +1488,7 @@ export type PackTree = {
   readText(path: string): Promise<string>;
 };
 
-// One still or clip. `name` is the stem — the thread ref's second half and the
+// One still or video. `name` is the stem — the thread ref's second half and the
 // caption sidecar's name; `file` is the file inside media/, which is what
 // actually gets opened when the item is first rendered.
 export type ParsedMedia = {
@@ -1581,7 +1601,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     }
     if (ext === 'mov') {
       problems.push(
-        `${file} is a .mov — clips must be .mp4 or .webm, which play everywhere; .mov doesn't.`,
+        `${file} is a .mov — videos must be .mp4 or .webm, which play everywhere; .mov doesn't.`,
       );
       continue;
     }
@@ -1723,9 +1743,9 @@ so just add `await` and update the `parsePack` import.
 
 - `const dir = join(goonpacksDir, entry.name, 'media');`
 - `const IMAGE_RE = /\.(jpe?g|png|webp)$/i;` — the pack format's still types
-  only. Clips are skipped: their captions are hand-written.
+  only. Videos are skipped: their captions are hand-written.
 - Update the header comment: scans `goonpacks/<dir>/media/`, captions stills,
-  and leaves clips alone.
+  and leaves videos alone.
 
 `scripts/describe-image.mjs`: comments only — every `pictures/` in a path
 example becomes `media/`.
@@ -2221,7 +2241,7 @@ describe('buildLibrary', () => {
     expect(lib.rows).toHaveLength(1);
     expect(lib.rows[0]).toMatchObject({
       id: 'pub.comp@1.0.0',
-      summary: { media: { images: 1, clips: 1 }, hasPrompt: true },
+      summary: { media: { images: 1, videos: 1 }, hasPrompt: true },
     });
     expect(lib.rows[0]!.incompatible).toBeUndefined();
     expect(lib.entries.some((e) => e.companion.id === 'pub.comp')).toBe(true);
@@ -2446,7 +2466,7 @@ export function baseError(
 const summarize = (media: ParsedMedia[], hasPrompt: boolean): PackSummary => ({
   media: {
     images: media.filter((m) => m.kind === 'image').length,
-    clips: media.filter((m) => m.kind === 'video').length,
+    videos: media.filter((m) => m.kind === 'video').length,
   },
   hasPrompt,
 });
@@ -3211,8 +3231,8 @@ Report that the task is done and that the app is ready to be driven with a real
 pack. **Your human partner runs this** — it needs pack content that isn't in the
 repo. Say what to look for: `npm run dev`, import a large pack with at least one
 `.mp4`, and confirm the progress line climbs, the row lists "N pictures · M
-clips", a reload re-lists without a stall, and Remove empties it. Do not attempt
-it yourself.
+videos", a reload re-lists without a stall, and Remove empties it. Do not
+attempt it yourself.
 
 ---
 
@@ -3387,28 +3407,28 @@ Everything the change made stale.
 `GOONPACKS.md`:
 
 - The intro's "a `pictures/` folder if they send pictures" → "a `media/` folder
-  if they send pictures or clips".
+  if they send pictures or videos".
 - The layout block:
-  `media/  optional. Their pictures and clips, with a caption file each`.
+  `media/  optional. Their pictures and videos, with a caption file each`.
 - `"format": 1` → `2` in both example manifests, and the `format` bullet, which
   gains: a pack still on `1` imports unchanged if it has no `pictures/` folder
   and no `noPictures` field — the two things the formats differ over — and
   otherwise says what to rebuild.
-- The overlay bullet list: "add pictures or clips (or strip the base's, with
+- The overlay bullet list: "add pictures or videos (or strip the base's, with
   `noMedia`)".
 - `noPictures` → `noMedia` throughout, with its meaning unchanged.
 - `{{PICTURES_SECTION}}` → `{{MEDIA_SECTION}}`, described as "how they choose
-  and send pictures and clips. Only filled in when they actually have some, so
+  and send pictures and videos. Only filled in when they actually have some, so
   it's safe to include either way."
 - Replace the `## pictures/` section with:
 
 ```markdown
 ## media/
 
-The companion's pictures and clips, directly in `media/` (no subfolders).
+The companion's pictures and videos, directly in `media/` (no subfolders).
 
 - **Pictures:** `.jpg`, `.jpeg`, `.png` or `.webp`.
-- **Clips:** `.mp4` or `.webm`. `.mov` is rejected — it plays in Safari and
+- **Videos:** `.mp4` or `.webm`. `.mov` is rejected — it plays in Safari and
   unreliably everywhere else, so a `.mov` pack would work on your machine and
   not on someone else's. Re-encode it as MP4.
 
@@ -3422,11 +3442,12 @@ conversation refers to them by name, so one name means one thing.
 ```
 
 - The "Building the zip" section: note that `npm run goonpack:describe-missing`
-  captions pictures only, and clip captions are written by hand.
+  captions pictures only, and video captions are written by hand.
 - The storage paragraph in the intro and in "Importing and versions": packs are
   **unpacked** into the browser's storage at import, the zip isn't kept, and if
   the browser clears its storage the app forgets the pack — keep your zips.
-- "A sent picture stays in the conversation…" → "A sent picture or clip stays…".
+- "A sent picture stays in the conversation…" → "A sent picture or video
+  stays…".
 - Import copy: the confirm card is shown from the pack's manifest before
   anything is written; the unpack runs after you confirm, with a progress line.
 
@@ -3464,18 +3485,18 @@ code):
 ```
 
 Update the "Sent pictures persist as stable `goonpack:` refs" sentence to say
-"Sent pictures and clips".
+"Sent pictures and videos".
 
 - [ ] **Step 3: Update the rest of the prose**
 
 - `DEVELOPERS.md` "Goonpack sources": `goonpacks/<dir>/media/` and a note that
-  the captioners skip clips.
-- `README.md`: "Given pictures and clips (bring your own)…" and the goonpack
-  one-liner gains clips.
-- `modes/COMPANIONS.md` "Pictures" → "Pictures and clips": the tool is
-  `send_media`, it lists stills and clips together with one caption each, a clip
-  plays inline in the transcript and full-size in the lightbox, and the shared
-  media prompt block is interpolated only when they have some.
+  the captioners skip videos.
+- `README.md`: "Given pictures and videos (bring your own)…" and the goonpack
+  one-liner gains videos.
+- `modes/COMPANIONS.md` "Pictures" → "Pictures and videos": the tool is
+  `send_media`, it lists stills and videos together with one caption each, a
+  video plays inline in the transcript and full-size in the lightbox, and the
+  shared media prompt block is interpolated only when they have some.
 
 - [ ] **Step 4: Rebuild the example pack**
 
@@ -3495,10 +3516,11 @@ directory is committed.)
 At the top of `CHANGELOG.md`, under a new `## 2026-07-26`:
 
 ```markdown
-- feature: **Companions can send you clips** — A goonpack's `media/` folder now
-  holds video as well as stills: `.mp4` and `.webm` clips sit alongside pictures
-  with the same one-line captions, and a companion picks between them the same
-  way. A clip plays inline in the conversation and full-size when you open it.
+- feature: **Companions can send you videos** — A goonpack's `media/` folder now
+  holds video as well as stills: `.mp4` and `.webm` videos sit alongside
+  pictures with the same one-line captions, and a companion picks between them
+  the same way. A video plays inline in the conversation and full-size when you
+  open it.
 
 - enhancement: **Packs are unpacked, not stored whole** — Importing a pack now
   unzips it into browser storage once, with a progress bar, instead of keeping
@@ -3644,8 +3666,8 @@ These go beyond a literal reading of the spec. Raise them at review rather than
 discovering them in the diff:
 
 1. **`send_picture` becomes `send_media`.** The spec renames the prompt section
-   and says clips are chosen and sent exactly as stills are; a tool literally
-   named `send_picture` that sends a clip would be a lie to the model. The
+   and says videos are chosen and sent exactly as stills are; a tool literally
+   named `send_picture` that sends a video would be a lie to the model. The
    thread turn's `imageSrc` becomes `mediaRef` for the same reason. Both are
    sanctioned by the spec's "existing threads' picture references are not
    preserved".
@@ -3654,9 +3676,9 @@ discovering them in the diff:
    The sheet shows what the manifest says; the installed row that follows shows
    the counts. Alternative considered and rejected: extract first, then confirm
    — which would clobber the pack being replaced before the user agreed to it.
-3. **`PackSummary` splits `images` and `clips`.** The spec says "media counts";
+3. **`PackSummary` splits `images` and `videos`.** The spec says "media counts";
    one number would have to be labelled "3 media", which reads badly and hides
-   the thing a user cares about. `describeMedia` renders "3 pictures · 2 clips"
+   the thing a user cares about. `describeMedia` renders "3 pictures · 2 videos"
    in both surfaces.
 4. **The library index is a module-level singleton.** Required by "a URL lives
    as long as its index entry" once two screens hold the hook. See the note
@@ -3666,7 +3688,17 @@ discovering them in the diff:
    unit-testable in the node Jest environment.
 6. **`tsconfig.json` gains `DOM.AsyncIterable`.** Without it,
    `FileSystemDirectoryHandle.entries()` does not typecheck.
-7. **A format 1 pack is accepted when it means the same thing as a format 2
+7. **`send_media` takes an optional `kind`, validated rather than filtering.**
+   One flat numbered list over everything, each entry tagged `(picture)` or
+   `(video)`; `kind` states what the companion meant and the call is refused on
+   mismatch. Per-kind numbering was considered and rejected: it makes `which`
+   mean different things depending on another argument. Requested by the human
+   partner after Task 2 landed.
+8. **The word is "video", never "clip".** Branch-wide, in code, comments, UI
+   copy and docs — the design spec's "clip" is superseded. "Video" is what
+   people actually say, and "clip" collides with clipping/clip-path in a
+   codebase full of CSS. `MediaKind`'s values stay `'image' | 'video'`.
+9. **A format 1 pack is accepted when it means the same thing as a format 2
    one** — no `pictures/` folder, no `noPictures`. The spec says "no backwards
    compatibility", and this is not compatibility: the formats differ in exactly
    those two things, so such a pack is already format 2. It costs the format
@@ -3675,6 +3707,6 @@ discovering them in the diff:
    rebuild they'd otherwise be told to do for no reason. Decided by the human
    partner after Task 1, on seeing
    `elise: 1 error … uses the old pictures/ layout` for a pack with no pictures.
-8. **Extraction lands on the main thread in Task 3 and moves into a worker in
-   Task 4.** Same function, called from a different thread — it keeps the OPFS
-   switch reviewable and gives the worker move an unambiguous before/after.
+10. **Extraction lands on the main thread in Task 3 and moves into a worker in
+    Task 4.** Same function, called from a different thread — it keeps the OPFS
+    switch reviewable and gives the worker move an unambiguous before/after.
