@@ -7,6 +7,10 @@ testing to work out how well they work.
 Each idea lives in its own file under [`roadmap/`](./roadmap/); this page is the
 index.
 
+- [Other devices, and no device](roadmap/OTHER-DEVICES.md) — support strokers
+  beyond the Vacuglide, and no device at all: chat to the companions and use
+  your hand. A control prompt per device, and the open question of whether a
+  persona can be device-neutral.
 - [Improve keyword detection](roadmap/KEYWORD-DETECTION.md) — stop background
   media (videos) triggering voice commands: volume/clarity gating, or a KWS that
   knows the user's voice.
