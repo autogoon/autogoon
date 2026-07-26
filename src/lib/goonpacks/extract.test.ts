@@ -48,15 +48,48 @@ function fakeDir(written: Set<string>, prefix = ''): FileSystemDirectoryHandle {
   } as unknown as FileSystemDirectoryHandle;
 }
 
+// level 0 stores entries instead of deflating them. fflate passes a STORED
+// entry through as a window onto the archive read-chunk (byteOffset > 0, its
+// backing buffer the whole chunk), where a deflated entry arrives in a fresh
+// exact-size buffer. A default-level zip therefore can't catch the bug the
+// window test below is about, with or without the fix.
+const storedZipFile = (files: Record<string, Uint8Array>): File =>
+  new File([zipSync(files, { level: 0 })], 'pack.zip', {
+    type: 'application/zip',
+  });
+
+// fakeDir, but also recording the exact Uint8Array chunks handed to each file's
+// writable.
+function capturingDir(
+  chunks: Map<string, Uint8Array[]>,
+  prefix = '',
+): FileSystemDirectoryHandle {
+  return {
+    getDirectoryHandle: (name: string) =>
+      Promise.resolve(capturingDir(chunks, `${prefix}${name}/`)),
+    getFileHandle: (name: string) =>
+      Promise.resolve({
+        createWritable: () => {
+          const got: Uint8Array[] = [];
+          chunks.set(`${prefix}${name}`, got);
+          return Promise.resolve({
+            write: (chunk: Uint8Array) => {
+              got.push(chunk);
+              return Promise.resolve();
+            },
+            close: () => Promise.resolve(),
+          });
+        },
+      }),
+  } as unknown as FileSystemDirectoryHandle;
+}
+
 describe('extractZip', () => {
-  it('drops junk and any forged completion marker on the way in', async () => {
+  it('does not write the .DS_Store and __MACOSX/ files a Finder zip carries', async () => {
     const written = new Set<string>();
     await extractZip(
       zipFile({
         'manifest.json': manifest('test.pack'),
-        // A pack author's own file that happens to share the marker's name.
-        // Written, it would make an interrupted import look finished.
-        '.complete': strToU8('not mine to write'),
         '.DS_Store': strToU8('junk'),
         '__MACOSX/._manifest.json': strToU8('junk'),
         'media/a.jpg': strToU8('x'),
@@ -65,10 +98,65 @@ describe('extractZip', () => {
     );
     expect([...written].sort()).toEqual(['manifest.json', 'media/a.jpg']);
   });
+
+  // `.complete` is the marker markComplete() writes last, after validation, to
+  // mean the tree is installed. A zip entry of that name would land during
+  // extraction instead, so an import that crashed part-way would leave a tree
+  // that sweepIncomplete() spares and listCompletePackKeys() then serves as a
+  // real pack — a half-extracted pack that never heals.
+  it('does not write a .complete entry, which would forge the install marker', async () => {
+    const written = new Set<string>();
+    await extractZip(
+      zipFile({
+        'manifest.json': manifest('test.pack'),
+        '.complete': strToU8('not mine to write'),
+      }),
+      fakeDir(written),
+    );
+    expect([...written]).toEqual(['manifest.json']);
+  });
+
+  // Found in Safari 27: WebKit's FileSystemWritableFileStream.write() writes a
+  // view's ENTIRE backing buffer, ignoring byteOffset and length. Handed
+  // fflate's stored-entry windows, it wrote a copy of the whole zip as every
+  // file in the pack, so importing any pack failed with "manifest.json isn't
+  // valid JSON". Chromium and Firefox write the window and were unaffected.
+  // extract.ts copies each chunk; this pins the invariant that keeps WebKit
+  // correct — every chunk reaching write() owns the whole of its buffer.
+  it('gives every chunk its own buffer before it reaches write()', async () => {
+    const chunks = new Map<string, Uint8Array[]>();
+    await extractZip(
+      storedZipFile({
+        'manifest.json': manifest('test.pack'),
+        'media/big.mp4': bulky,
+      }),
+      capturingDir(chunks),
+    );
+
+    for (const [path, parts] of chunks) {
+      for (const part of parts) {
+        expect({
+          path,
+          byteOffset: part.byteOffset,
+          backing: part.buffer.byteLength,
+        }).toEqual({ path, byteOffset: 0, backing: part.byteLength });
+      }
+    }
+
+    // And the bytes are still the file that went in.
+    const parts = chunks.get('media/big.mp4')!;
+    const joined = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) {
+      joined.set(p, at);
+      at += p.length;
+    }
+    expect(joined).toEqual(bulky);
+  });
 });
 
 describe('peekZip', () => {
-  it("reads the root manifest's text and lists what it saw", async () => {
+  it("returns the root manifest's text and every entry name", async () => {
     const { manifest: raw, names } = await peekZip(
       zipFile({
         'manifest.json': manifest('test.pack'),
@@ -80,7 +168,11 @@ describe('peekZip', () => {
     expect(names).toContain('manifest.json');
   });
 
-  it('comes back with no manifest and the names that explain why', async () => {
+  // From these names prepareImport builds "Everything is inside yourpack/ —
+  // zip the folder's contents, not the folder." Without them it can only give
+  // the generic "No manifest.json at the zip root", which is also what a zip
+  // that isn't a pack gets, and the actual mistake goes unnamed.
+  it('returns a null manifest and the names when the pack is inside a wrapper folder', async () => {
     const { manifest: raw, names } = await peekZip(
       zipFile({
         'yourpack/manifest.json': manifest('test.pack'),
@@ -95,7 +187,10 @@ describe('peekZip', () => {
     ]);
   });
 
-  it('peeks a file that is not a zip as nothing, rather than throwing', async () => {
+  // prepareImport turns this empty result into "No manifest.json at the zip
+  // root — zip the pack folder's contents, not the folder." A throw escaping
+  // here instead would reach the user as the panel's generic "Import failed."
+  it('returns an empty result for bytes that are not a zip', async () => {
     await expect(
       peekZip(new File([strToU8('not a zip at all')], 'nope.zip')),
     ).resolves.toEqual({ manifest: null, names: [] });

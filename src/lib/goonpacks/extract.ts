@@ -10,9 +10,8 @@ import { MARKER } from './store';
 // One zip entry's destination, opened lazily (the handle is async; fflate's
 // ondata is not).
 type Sink = {
-  // Views over a plain ArrayBuffer, which is what a writable stream takes —
-  // fflate types its output as the wider Uint8Array<ArrayBufferLike>, but
-  // inflate never produces a shared-buffer view.
+  // Each chunk in a buffer of its own, which is what a writable stream takes —
+  // and what it has to be, for the reason given where they are copied.
   queue: Uint8Array<ArrayBuffer>[];
   done: boolean;
   writer: Promise<FileSystemWritableFileStream> | null;
@@ -55,7 +54,12 @@ export async function extractZip(
     sink.writer = fileHandle(dir, entry.name).then((h) => h.createWritable());
     entry.ondata = (err, chunk, final) => {
       if (err !== null) throw err;
-      if (chunk.length > 0) sink.queue.push(chunk as Uint8Array<ArrayBuffer>);
+      // slice() so the chunk owns its whole buffer before it reaches write().
+      // fflate passes a stored entry through as a window onto the archive
+      // buffer, and WebKit's write() writes a view's entire backing buffer,
+      // ignoring byteOffset and length — which lands a copy of the whole zip in
+      // every file of the pack.
+      if (chunk.length > 0) sink.queue.push(chunk.slice());
       if (final) sink.done = true;
     };
     entry.start();
