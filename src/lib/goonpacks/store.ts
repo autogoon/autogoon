@@ -1,88 +1,206 @@
-// Pack storage: IndexedDB holds ONE thing — each imported pack's zip bytes,
-// keyed by pack id. Everything else (manifest, summary, validity) is
-// re-derived from the zips at load by the same pipeline that imports them, so
-// there is exactly one notion of a valid pack and no stored state to drift or
-// migrate; a record that fails today's rules surfaces as incompatible, never
-// half-works. The user's zip files remain the store of record — this is a
-// cache ("Packs live in browser storage; keep your zips").
+// Pack storage: OPFS holds ONE directory tree per installed pack, keyed by
+// id@version, containing the pack's files as extracted. Nothing derived is
+// persisted anywhere — the library is rebuilt from the trees at every load — so
+// there is exactly one notion of a valid pack and no second store to drift out
+// of step. The user's zip files remain the store of record ("Packs live in
+// browser storage; keep your zips").
+//
+// A marker file, written last, means the tree is complete: extraction and
+// validation both succeeded before it appeared. Validation goes on names, so it
+// cannot tell a complete media/ from one missing six hundred files — the marker
+// is the only signal that says so. Removal deletes the marker first and the tree
+// second, so a crash mid-removal leaves exactly what a crash mid-import leaves,
+// and one clean pass at load covers both.
+import { isJunkPath } from './media';
+import { MEDIA_DIR, type PackTree } from './pack';
 
-const DB_NAME = 'autogoon-goonpacks';
-const STORE = 'packs';
+export const PACKS_DIR = 'goonpacks';
+export const MARKER = '.complete';
 
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('indexeddb open failed'));
-  });
-}
-
-function tx<T>(
-  mode: IDBTransactionMode,
-  run: (store: IDBObjectStore) => IDBRequest<T>,
-): Promise<T> {
-  return openDb().then(
-    (db) =>
-      new Promise<T>((resolve, reject) => {
-        const t = db.transaction(STORE, mode);
-        const req = run(t.objectStore(STORE));
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error ?? new Error('indexeddb failed'));
-        // A failed request aborts the transaction — oncomplete never fires on
-        // that path, so close on abort too or the connection leaks.
-        t.oncomplete = () => db.close();
-        t.onabort = () => db.close();
-      }),
-  );
-}
-
-// A stored record, unvalidated: `zip` is whatever the browser hands back
-// (records from older app versions may hold anything) — the load pipeline
-// decides whether it parses.
-export type PackRecord = { id: string; zip: unknown };
-
-export async function listPackRecords(): Promise<PackRecord[]> {
+export async function packsRoot(
+  create = false,
+): Promise<FileSystemDirectoryHandle | null> {
   try {
-    const db = await openDb();
-    return await new Promise((resolve, reject) => {
-      const t = db.transaction(STORE, 'readonly');
-      const s = t.objectStore(STORE);
-      const keysReq = s.getAllKeys();
-      const valsReq = s.getAll();
-      t.oncomplete = () => {
-        db.close();
-        resolve(
-          (keysReq.result as string[]).map((id, i) => ({
-            id,
-            zip: (valsReq.result as unknown[])[i],
-          })),
-        );
-      };
-      t.onerror = () => {
-        db.close();
-        reject(t.error ?? new Error('indexeddb failed'));
-      };
-      t.onabort = () => db.close();
-    });
+    const root = await navigator.storage.getDirectory();
+    return await root.getDirectoryHandle(PACKS_DIR, { create });
   } catch {
-    return []; // no database, no packs
+    return null; // no OPFS, or the directory doesn't exist yet
   }
 }
 
-export async function putPack(id: string, zip: ArrayBuffer): Promise<void> {
-  await tx('readwrite', (s) => s.put(zip, id));
+export async function listPackKeys(): Promise<string[]> {
+  const packs = await packsRoot();
+  if (packs === null) return [];
+  const keys: string[] = [];
+  for await (const [name, handle] of packs.entries()) {
+    if (handle.kind === 'directory') keys.push(name);
+  }
+  return keys;
 }
 
-export async function deletePack(id: string): Promise<void> {
-  await tx('readwrite', (s) => s.delete(id));
+// Every file in a pack's tree, as validation sees it: root files plus one level
+// of media/ (deeper nesting is listed too, so parsePack can reject it by name).
+async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
+  const names: string[] = [];
+  const walk = async (
+    handle: FileSystemDirectoryHandle,
+    prefix: string,
+  ): Promise<void> => {
+    for await (const [name, entry] of handle.entries()) {
+      const path = `${prefix}${name}`;
+      if (entry.kind === 'directory') {
+        await walk(entry, `${path}/`);
+      } else if (!isJunkPath(path)) {
+        names.push(path);
+      }
+    }
+  };
+  await walk(dir, '');
+  return names;
 }
 
-export async function getPackBytes(id: string): Promise<ArrayBuffer | null> {
+export async function openPackTree(key: string): Promise<PackTree | null> {
+  const packs = await packsRoot();
+  if (packs === null) return null;
+  let dir: FileSystemDirectoryHandle;
   try {
-    const r: unknown = await tx('readonly', (s) => s.get(id));
-    return r instanceof ArrayBuffer ? r : null;
+    dir = await packs.getDirectoryHandle(key);
   } catch {
     return null;
   }
+  const names = await listTree(dir);
+  return {
+    names,
+    readText: async (path: string) => {
+      const parts = path.split('/');
+      let at = dir;
+      for (const part of parts.slice(0, -1)) {
+        at = await at.getDirectoryHandle(part);
+      }
+      const file = await at.getFileHandle(parts[parts.length - 1]!);
+      return (await file.getFile()).text();
+    },
+  };
+}
+
+// A fresh directory for a pack being imported: any existing tree goes first, so
+// a re-import never merges with what it replaces.
+export async function createPackDir(
+  key: string,
+): Promise<FileSystemDirectoryHandle> {
+  const packs = await packsRoot(true);
+  if (packs === null) throw new Error('no OPFS');
+  await packs.removeEntry(key, { recursive: true }).catch(() => {
+    // nothing there — the common case
+  });
+  return packs.getDirectoryHandle(key, { create: true });
+}
+
+export async function markComplete(key: string): Promise<void> {
+  const packs = await packsRoot(true);
+  if (packs === null) throw new Error('no OPFS');
+  const dir = await packs.getDirectoryHandle(key);
+  const marker = await dir.getFileHandle(MARKER, { create: true });
+  await (await marker.createWritable()).close();
+}
+
+export async function hasMarker(key: string): Promise<boolean> {
+  const packs = await packsRoot();
+  if (packs === null) return false;
+  try {
+    const dir = await packs.getDirectoryHandle(key);
+    await dir.getFileHandle(MARKER);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Marker first, tree second: an interrupted removal leaves a markerless tree,
+// which is what the clean pass already deletes.
+export async function removePackTree(key: string): Promise<void> {
+  const packs = await packsRoot();
+  if (packs === null) return;
+  try {
+    const dir = await packs.getDirectoryHandle(key);
+    await dir.removeEntry(MARKER).catch(() => {
+      // already gone
+    });
+  } catch {
+    return; // no tree
+  }
+  await packs.removeEntry(key, { recursive: true }).catch(() => {
+    // already gone
+  });
+}
+
+// The one clean pass, run before every library build: a tree with no marker is
+// a crashed import, a cancelled import or a crashed removal — all the same
+// state, all deleted.
+export async function sweepIncomplete(): Promise<string[]> {
+  const removed: string[] = [];
+  for (const key of await listPackKeys()) {
+    if (await hasMarker(key)) continue;
+    await removePackTree(key);
+    removed.push(key);
+  }
+  return removed;
+}
+
+// A media file as a File — disk-backed and seekable, which is what a <video>
+// needs and what keeps a still off the heap until it is shown.
+export async function readMediaFile(
+  key: string,
+  file: string,
+): Promise<File | null> {
+  const packs = await packsRoot();
+  if (packs === null) return null;
+  try {
+    const dir = await packs.getDirectoryHandle(key);
+    const media = await dir.getDirectoryHandle(MEDIA_DIR.replace('/', ''));
+    return await (await media.getFileHandle(file)).getFile();
+  } catch {
+    return null;
+  }
+}
+
+// Refuse an import up front with a real number rather than failing partway
+// through. Headroom covers the extracted copy plus the browser's own slack.
+const HEADROOM_BYTES = 64 * 1024 * 1024;
+
+export async function estimateHeadroom(
+  bytes: number,
+): Promise<{ ok: boolean; available: number }> {
+  const est = await navigator.storage.estimate();
+  const quota = est.quota ?? 0;
+  const usage = est.usage ?? 0;
+  const available = Math.max(0, quota - usage);
+  return { ok: available >= bytes + HEADROOM_BYTES, available };
+}
+
+// Asked once, on the first import: without it the origin's storage is
+// best-effort and can be evicted under pressure.
+export async function requestPersistence(): Promise<void> {
+  try {
+    if (!(await navigator.storage.persisted())) {
+      await navigator.storage.persist();
+    }
+  } catch {
+    // not supported — best-effort storage it is
+  }
+}
+
+// One-off reclamation of the quota still held by pack zips from before packs
+// moved to OPFS. Nothing reads that database.
+export function purgeLegacyDatabase(): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase('autogoon-goonpacks');
+      req.onsuccess = () => resolve();
+      req.onerror = () => resolve();
+      req.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
 }
