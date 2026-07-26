@@ -125,7 +125,7 @@ export function describeClock(at: number): string {
 
 // An assistant turn with no spoken text — the model called a tool (send_media,
 // say) without saying anything. The transcript renders no bubble for these; the
-// tool chip or picture that follows is the visible record.
+// tool chip or media that follows is the visible record.
 export function isSilentAssistantTurn(turn: ThreadTurn): boolean {
   return turn.role === 'assistant' && turn.content.trim() === '';
 }

@@ -66,7 +66,7 @@ Open questions:
   app.
 - **Vocabulary.** The prompts and docs say "the toy", and `CONTROL_SECTION`
   names the hardware outright. Whatever lands has to leave every companion able
-  to refer to what he's using without the app having lied to her about it.
+  to refer to what he's using without the app having lied to them about it.
 - **The safe word** is always on, but with no program running it has nothing to
   stop — which is the same gap the safeword-as-hard-stop item in
   [TODO.md](../TODO.md) is about, reached from a different direction.

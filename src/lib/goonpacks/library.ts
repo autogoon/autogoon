@@ -210,7 +210,7 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
 
 // Hand the outgoing index's media over to the one replacing it. A pack that is
 // still installed and untouched keeps its very entry objects, URLs and all: a
-// Companion resolved before the rebuild — and every picture already sent in the
+// Companion resolved before the rebuild — and everything already sent in the
 // thread — holds those objects, and revoking their URLs would break media that
 // is on screen. Only what the new index doesn't adopt is revoked: packs that
 // were removed, packs whose tree an import just replaced (`replaced`), and

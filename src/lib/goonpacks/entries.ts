@@ -85,7 +85,7 @@ export type LibraryEntry = {
 
 export const publisher = (id: string) => id.split('.')[0]!;
 
-// Which slots an overlay changes, from its manifest + zip summary.
+// Which slots an overlay changes, from its manifest + tree summary.
 function changedSlots(p: LoadedPack): VariantSlot[] {
   const out: VariantSlot[] = [];
   if (totalMedia(p.summary.media) > 0 || p.manifest.noMedia === true) {

@@ -67,7 +67,7 @@ separated by commas:
       "format": 2,
       "id": "yourname.luna",
       "version": "1.0.0",
-      "aboutThePack": "Luna, a sleepy-voiced artist. 12 pictures.",
+      "aboutThePack": "Luna, a sleepy-voiced artist, complete with voice.",
       "companion": {
         "name": "Luna",
         "description": "A soft-spoken painter who stays up too late.",
@@ -98,9 +98,12 @@ separated by commas:
   side and sort alphanumerically, newest first — so a versioning scheme that
   sorts (like `1.0.0`, `1.0.1`, `1.1.0`) is worth using.
 - **`aboutThePack`** — one line about what the _pack_ adds or changes ("Beach
-  photo set for Aimee", "Luna, complete with voice and 12 pictures"). This is
-  about the pack, not the companion — it's what the Goonpacks list and the
-  import confirmation show. Their own blurb goes in `description`.
+  photo set for Aimee", "Luna, complete with voice"). This is about the pack,
+  not the companion — it's what the Goonpacks list and the import confirmation
+  show. Their own blurb goes in `description`. Leave what the pack holds out of
+  it — counts, or that it has none: the app works that out from the pack itself
+  and shows it beside this line, so anything hand-written there is a second
+  answer waiting to go stale.
 
 ### The companion section — their fields
 

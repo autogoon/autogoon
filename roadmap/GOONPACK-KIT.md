@@ -48,7 +48,7 @@ keep:
   written description rather than pasting an id (the Phase 2 follow-up in
   [TODO.md](../TODO.md#goonpacks)).
 - **Persona editing** — `system-prompt.md`, with the shared scaffolding the app
-  wraps around it visible so you can see what she's actually sent.
+  wraps around it visible so you can see what they're actually sent.
 - **Picture management** — add, remove, and spot near-duplicates (an embedding
   pass would do it; see [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md)).
 - **Build and validate** — what `goonpack:build` does, plus the import checks

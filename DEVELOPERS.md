@@ -102,7 +102,10 @@ Two layers, both local-only for now (no CI):
   `@jest/globals` rather than relying on globals.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
   spec runs on real Chromium, Firefox **and** WebKit; the config starts the dev
-  server on :8931 (or reuses one already running).
+  server on :8931 (or reuses one already running). The goonpack specs are the
+  one exception, and skip themselves rather than being pinned to a browser: they
+  probe OPFS and stand down where it is unusable (`tests/e2e/opfs.ts` explains
+  which engine that is today, and why the check is a capability probe).
 
 The voice test is the reason the E2E layer exists: it proves the whole voice
 pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command

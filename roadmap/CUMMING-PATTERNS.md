@@ -31,6 +31,6 @@ to be trusted, checked or displayed.
 goonpack already hands its author the whole system prompt, so this is a much
 smaller version of something the app accepts by design. But a companion choosing
 between patterns reads their descriptions, so whatever is written there colours
-how she thinks about them. Worth a note in the importer: describe the pattern,
+how they think about them. Worth a note in the importer: describe the pattern,
 nothing else. Even a line about when to use it ("perfect for when he's begging")
-is something she'll take as direction.
+is something they'll take as direction.

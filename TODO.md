@@ -5,6 +5,20 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 ## General
 
+- **Stop the program when the device disconnects.** A device that drops mid-run
+  leaves the Player ticking against nothing. The speed send throws,
+  `scheduleNextTick` reports the failure and schedules the next tick anyway, and
+  `lastDeviceSpeed` is only updated on a send that succeeded — so every tick
+  re-sends the same speed and logs the same error, several times a second, for
+  as long as the program has left to run. Valve sends don't even report:
+  `setValve` discards its rejection. Stopping belongs in the Player rather than
+  in each engine — it is the single path to the device, so one stop covers Goon,
+  Groove, Autopilot and Companions together, and no engine needs to know the
+  device exists. To settle: whether a disconnect stops or pauses (a pause would
+  let a reconnect carry on where it left off), how many consecutive failures
+  mean gone rather than a blip, and what the screen says — a device that has
+  dropped is the one failure the user can't otherwise see.
+
 - **Show remaining provider credits in the app.** Both providers expose balances
   (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint — character
   quota used/limit), so surface them in the app instead of two dashboards —
@@ -33,19 +47,19 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 **The next thing.** A companion with a collected set of a couple of thousand
 pictures can't use them: every item's description goes into the `send_media`
-schema and she picks by number, which stops working long before the window fills
+schema and they pick by number, which stops working long before the window fills
 — a model choosing between two thousand near-identical descriptions chooses
 badly. And the descriptions themselves are written for one woman alone in a
 pose, so a second body, a man, and anything happening between people have
 nowhere to go.
 
-The target design — what she's asked for, who does the searching, what gets
+The target design — what they've asked for, who does the searching, what gets
 stored per item — is
 [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md). The short of it:
-she asks in words, the app searches, and the tool result tells her what actually
-went. What's below is the work, staged so each stage answers one question and
-the next depends on it. Stages 0–2 are worth doing even if the retrieval half
-slips.
+they ask in words, the app searches, and the tool result tells them what
+actually went. What's below is the work, staged so each stage answers one
+question and the next depends on it. Stages 0–2 are worth doing even if the
+retrieval half slips.
 
 ### Stage 0 — the yardstick
 
@@ -89,7 +103,7 @@ bulk pass.
 
 ### Stage 3 — retrieval, offline
 
-Thirty to fifty realistic requests in a companion's own words ("her on her knees
+Thirty to fifty realistic requests in a companion's own words ("me on my knees
 looking up", "something with a man in it", "topless but not explicit", "filthier
 than the last one"), scored by hand against four implementations: a cheap LLM
 reading all the captions; caption-embedding top-k; top-k plus an LLM rerank over
@@ -166,11 +180,11 @@ before it stops rather than stopping silently.
 
 Vosk KWS reserved for the safeword → a hard stop that tears down the voice
 session (LLM + TTS), not just the device. Today the safeword only pauses the
-Player, so she keeps talking through it; and it is only in the grammar while a
-program runs, so with the device stopped there is no spoken way to stop her at
+Player, so they keep talking through it; and it is only in the grammar while a
+program runs, so with the device stopped there is no spoken way to stop them at
 all. Also the nav/global-word lockdown a running session needs, and reconciling
 the two concurrent mic captures (vosk vs. ElevenLabs STT) so the word that stops
-her isn't also transcribed as a turn.
+them isn't also transcribed as a turn.
 
 ### Context compaction / rolling window
 
@@ -192,8 +206,8 @@ the system prompts. _(The on-hardware feel tuning remains.)_
 
 The companion gets a tool for each after-play and picks which one to use when
 you say you're cumming. The persona decides, so the ending stops being a setting
-and becomes something she does to you. And because she can choose, she can say
-she will without saying which.
+and becomes something they do to you. And because they can choose, they can say
+they will without saying which.
 
 ### Pick packs up off disk in dev
 
@@ -302,9 +316,9 @@ talked about in a way "they" twice over does not.
 ### Personas shape their programs
 
 Map a companion's traits onto **Groove's knobs** — `intensity` to the
-speed-percent magnitude, `variety` to the timing/dip-variability level — so her
-program stops being random and becomes **hers**. This is the missing piece for
-the companions' _programs_ (not just their chat) to diverge.
+speed-percent magnitude, `variety` to the timing/dip-variability level — so
+their program stops being random and becomes **theirs**. This is the missing
+piece for the companions' _programs_ (not just their chat) to diverge.
 
 **First settle which of these are code at all.** `chattiness` and `playfulness`
 shipped with ambient chat because they drive a timer. The rest may not need any:
@@ -344,14 +358,14 @@ server keys** — its only job was protecting them.
 
 The personas are located (Riga, Pembrokeshire, Portland) but only the user's
 clock is real — the prompt's TIME line is his browser's time. Give a located
-persona her own: an IANA `timezone` field on `Companion` and a second TIME line
-("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it can
-be the middle of her night in the middle of his day. The app does all the
+persona their own: an IANA `timezone` field on `Companion` and a second TIME
+line ("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it
+can be the middle of their night in the middle of his day. The app does all the
 arithmetic — no LLM offset math (models are passable at offsets and quietly
-wrong about DST); she only roleplays the two clocks.
+wrong about DST); they only roleplay the two clocks.
 
-One rule ships with it: her clock colours the fiction, never gates it — she
-never refuses to play because it's 4am where she lives.
+One rule ships with it: their clock colours the fiction, never gates it — they
+never refuse to play because it's 4am where they live.
 
 ## Goonpacks
 

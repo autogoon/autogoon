@@ -1,8 +1,8 @@
 # Inference library — describing a library, and finding one picture in it
 
 What it takes for a companion to have a large picture library and use it well:
-she knows roughly what she's got, you can ask her for something and she finds
-it, and she can climb from clothed to explicit over a session. Everything in
+they know roughly what they've got, you can ask them for something and they find
+it, and they can climb from clothed to explicit over a session. Everything in
 this document is machinery in service of that sentence.
 
 Companion to [goonpacks](../GOONPACKS.md), the shipped pack format — a goonpack
@@ -19,14 +19,14 @@ target design it's aiming at.
 Almost every wrong turn here comes from trying to do both of these with one
 mechanism:
 
-- **Knowing what the set is like.** Small, always in her context, so she reaches
-  for plausible things and doesn't offer what isn't there. This is a
+- **Knowing what the set is like.** Small, always in their context, so they
+  reach for plausible things and don't offer what isn't there. This is a
   **summary**.
 - **Finding one specific item.** On demand, over thousands, and it has no
-  business being in her context at all. This is **retrieval**.
+  business being in their context at all. This is **retrieval**.
 
 The shipped mechanism does neither: it puts every item's description in the
-`send_media` tool schema and has her pick by number. That works at fifty and
+`send_media` tool schema and has them pick by number. That works at fifty and
 collapses well before a thousand — not because the window fills, but because a
 model choosing between two thousand near-identical descriptions chooses badly.
 
@@ -51,7 +51,7 @@ before a library reaches any impressive size.
 
 ## How a request gets served
 
-**The companion never searches. She asks, in words, and the app searches.** In
+**The companion never searches. They ask, in words, and the app searches.** In
 order:
 
 1. **Offline.** Every item gets two texts: a long description of everything in
@@ -60,22 +60,22 @@ order:
    — except only the caption is kept today.)
 2. **Offline.** An LLM reads all the captions and writes the set summary — a
    paragraph on what the collection _is_.
-3. **Session start.** Her prompt carries the summary and nothing else about the
-   media. She never sees a list of items.
-4. **Mid-conversation.** She calls `send_media` with a description of what she
-   wants — "her on her knees looking up at him" — not an index.
+3. **Session start.** Their prompt carries the summary and nothing else about
+   the media. They never see a list of items.
+4. **Mid-conversation.** They call `send_media` with a description of what they
+   want — "me on my knees looking up at him" — not an index.
 5. **The app searches**, puts the winner on his screen, and returns the caption
-   of what actually went. She speaks after that, so she describes what arrived
-   rather than what she asked for. The existing rule ("you'll be told it sent,
+   of what actually went. They speak after that, so they describe what arrived
+   rather than what they asked for. The existing rule ("you'll be told it sent,
    and THEN you say something about it") is what makes this safe, and it costs
    no extra turn.
-6. **No match is an answer.** When nothing is close the app says so, and she
-   asks for something else — far better than her announcing a picture that never
+6. **No match is an answer.** When nothing is close the app says so, and they
+   ask for something else — far better than them announcing a picture that never
    came.
 
-Searching is app code, not her, for three reasons: searching means reading the
-corpus, and the corpus is exactly what doesn't fit; her job is character, not
-lookup; and in the app it can use methods a chat turn can't, and be improved
+Searching is app code, not theirs, for three reasons: searching means reading
+the corpus, and the corpus is exactly what doesn't fit; their job is character,
+not lookup; and in the app it can use methods a chat turn can't, and be improved
 without touching anybody's persona prompt.
 
 ### Coarse on captions, fine on the long descriptions
@@ -85,11 +85,11 @@ The two texts are for two passes, and the counter-intuitive half matters:
 - **Coarse — embed the captions.** Embedding search gets _worse_ on long text: a
   vector over two hundred words is an average of everything in them, so it
   matches many things weakly and nothing strongly. A focused one-liner is the
-  shape embedding likes. Embed her request, take the top few dozen.
-- **Fine — rerank on the long descriptions.** Hand a cheap LLM her request plus
-  the full descriptions of only those candidates and let it choose. Detail the
-  caption dropped is unfindable in the coarse pass and present here, which is
-  what answers "is there a mirror in it", "does he have a condom on", "is he
+  shape embedding likes. Embed their request, take the top few dozen.
+- **Fine — rerank on the long descriptions.** Hand a cheap LLM their request
+  plus the full descriptions of only those candidates and let it choose. Detail
+  the caption dropped is unfindable in the coarse pass and present here, which
+  is what answers "is there a mirror in it", "does he have a condom on", "is he
   behind her".
 
 The fine pass is optional and should be earned: start with captions alone,
@@ -106,15 +106,15 @@ identity is a filter. So each item also carries a structured attribute panel
 
 Stateless search sends the same best match all evening. It needs:
 
-- **What she's already sent**, as an exclusion set, plus near-duplicate collapse
-  so the second-best isn't the same shot from an inch to the left.
+- **What they've already sent**, as an exclusion set, plus near-duplicate
+  collapse so the second-best isn't the same shot from an inch to the left.
 - **The last item and the current heat band**, because that's what makes
   relative requests work — and "something filthier than that" is how escalation
   is actually spoken.
 
 ### One interface, several implementations
 
-She always asks by description; what's underneath scales with the set. At fifty
+They always ask by description; what's underneath scales with the set. At fifty
 items "retrieval" is a cheap model reading all the captions. At thousands it's
 embeddings plus a rerank. At tens of thousands it's the same with attribute
 prefiltering doing more of the work. The tool contract never changes, so none of
@@ -125,7 +125,7 @@ this is visible to a persona.
 - **The long description** — everything in the picture, in prose. The retrieval
   fine pass and any future re-derivation both read this, so it's worth having
   even though nothing shows it to a user.
-- **The caption** — one line, the coarse-pass index and the text she's handed
+- **The caption** — one line, the coarse-pass index and the text they're handed
   when something sends.
 - **A structured attribute panel** —
   `{nudity, people, acts, garments, person, …}` as scored or enumerated fields,
@@ -134,7 +134,7 @@ this is visible to a persona.
   is a lossy projection, and the image vector catches what the captioner never
   wrote down.
 - **Text found in the image** — a watermark or overlay is often the cheapest
-  "more of her" signal there is, and a free seed for person identity.
+  "more of this person" signal there is, and a free seed for person identity.
 - **A dedup hash / near-duplicate cluster id.**
 
 Two texts per item outgrows the one-line `.txt` sidecar that `parsePack` reads
@@ -148,9 +148,9 @@ stale and then lies, which is worse than absent. An author overriding it is
 fine; the default should be derived and regenerated whenever the set changes.
 
 It's a **shape, not a list** — proportions, who's in it, which acts appear, the
-settings, the range of undress, a few hundred tokens. That's what lets her ask
+settings, the range of undress, a few hundred tokens. That's what lets them ask
 answerable questions instead of guessing, and it's the difference between a
-companion who knows her own collection and one who's bluffing.
+companion who knows their own collection and one who's bluffing.
 
 **Neutral or persona-aware?** Unsettled. A neutral summary is derived once per
 set and cached, and different personas care about different dimensions of the
@@ -222,7 +222,7 @@ direction, or from a VLM.
   vector.
 - **Short clips ride the same pipeline.** Keyframe them (scene change, or one a
   second or two), run the identical pass per frame, pool per clip — max-pool for
-  "ever shows X", or keep per-frame so she can send the best frame or a loop.
+  "ever shows X", or keep per-frame so they can send the best frame or a loop.
   Long-form video is about action over time rather than static attributes and is
   a materially bigger build; when it comes, the unit is auto-cut clips, which
   collapses it back into this pipeline.
@@ -299,4 +299,4 @@ design up front.
 - **Whether the coarse pass needs the image embedding at all**, or captions
   alone carry it.
 - **Where the heat band lives** — a companion's own sense of the session, or a
-  number the app tracks and hands her.
+  number the app tracks and hands them.
