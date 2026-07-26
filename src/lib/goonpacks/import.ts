@@ -33,17 +33,23 @@ export type PendingImport = {
 
 const mb = (bytes: number) => `${Math.round(bytes / (1024 * 1024))} MB`;
 
-// What went wrong inside the worker, in the user's terms. Running out of room
-// mid-extract is the one failure that isn't about the zip: the up-front
-// headroom check makes it rare rather than impossible (another tab can take the
-// space in between), and sending someone off to re-zip a pack that is fine
-// would be the wrong errand.
+// What went wrong inside the worker, in the user's terms. Not every failure in
+// there is about the zip, and sending someone off to re-zip a pack that is fine
+// would be the wrong errand: running out of room mid-extract is its own story
+// (the up-front headroom check makes it rare rather than impossible — another
+// tab can take the space in between), and so is anything the worker already
+// phrased as a PackError. Only what's left is the zip's fault.
 export function extractionError(name: string, message: string): PackError {
-  return new PackError(
-    name === 'QuotaExceededError'
-      ? 'Browser storage filled up part-way through unpacking this pack — free some space and try again.'
-      : `The zip couldn't be read: ${message}.`,
-  );
+  if (name === 'QuotaExceededError') {
+    return new PackError(
+      'Browser storage filled up part-way through unpacking this pack — free some space and try again.',
+    );
+  }
+  // A PackError raised inside the worker — storage it couldn't open, a tree
+  // that went missing — is already in the user's terms, and blaming the zip for
+  // it would send them off to re-zip a pack that is fine.
+  if (name === 'PackError') return new PackError(message);
+  return new PackError(`The zip couldn't be read: ${message}.`);
 }
 
 // Run extraction in a dedicated worker, resolving when the tree is written.
@@ -51,7 +57,7 @@ export function extractionError(name: string, message: string): PackError {
 // the only thing it does.
 function extractInWorker(
   file: File,
-  dir: FileSystemDirectoryHandle,
+  key: string,
   onProgress: (bytes: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -72,7 +78,7 @@ function extractInWorker(
       worker.terminate();
       reject(new PackError(`Extraction couldn't start: ${event.message}.`));
     };
-    worker.postMessage({ file, dir } satisfies ExtractRequest);
+    worker.postMessage({ file, key } satisfies ExtractRequest);
   });
 }
 
@@ -138,9 +144,9 @@ export async function prepareImport(
       // thread, spanning the worker call that does the extraction itself.
       await navigator.locks.request(importLock(key), async () => {
         onProgress?.({ phase: 'extracting', bytes: 0, total: file.size });
-        const dir = await createPackDir(key);
+        await createPackDir(key);
         try {
-          await extractInWorker(file, dir, (bytes) =>
+          await extractInWorker(file, key, (bytes) =>
             onProgress?.({ phase: 'extracting', bytes, total: file.size }),
           );
         } catch (e) {

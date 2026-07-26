@@ -122,6 +122,23 @@ export async function createPackDir(
   return packs.getDirectoryHandle(key, { create: true });
 }
 
+// The directory an import is extracting into, reopened from the pack's key
+// alone. The handle itself cannot make the trip to the worker doing the
+// extraction — WebKit refuses to structured-clone a FileSystemDirectoryHandle
+// across postMessage — so the key is what crosses and each side opens OPFS for
+// itself. Both failures here are about storage, not about the zip, and say so.
+export async function openPackDir(
+  key: string,
+): Promise<FileSystemDirectoryHandle> {
+  const packs = await packsRoot();
+  if (packs === null) throw new PackError(NO_STORAGE);
+  try {
+    return await packs.getDirectoryHandle(key);
+  } catch {
+    throw new PackError('The pack vanished from browser storage.');
+  }
+}
+
 export async function markComplete(key: string): Promise<void> {
   const packs = await packsRoot(true);
   if (packs === null) throw new PackError(NO_STORAGE);

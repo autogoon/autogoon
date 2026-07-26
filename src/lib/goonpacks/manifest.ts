@@ -10,6 +10,10 @@ export class PackError extends Error {
   constructor(problems: string | string[]) {
     const list = typeof problems === 'string' ? [problems] : problems;
     super(list.join('; '));
+    // Only an Error's name and message survive the trip out of a worker, so
+    // the name is what tells the importer this failure was already phrased for
+    // the user rather than being a raw exception to interpret.
+    this.name = 'PackError';
     this.problems = list;
   }
 }
