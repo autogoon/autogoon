@@ -156,8 +156,8 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       description: '',
     });
   }
-  // Captions are the only media-folder files read, and only after the name
-  // rules have run — a tree that fails them is never worth the reads.
+  // Captions are the only media-folder files ever read — a few hundred bytes
+  // of sidecar text each, never the media they describe.
   for (const path of captions) {
     sidecars.set(
       splitName(path.slice(MEDIA_DIR.length)).stem,

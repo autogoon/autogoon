@@ -87,12 +87,14 @@ export async function extractZip(
     await drain();
   } catch (e) {
     // Close what's open so the tree isn't left holding locks; the caller
-    // deletes it. No marker was written, so the clean pass would too.
+    // deletes it. No marker was written, so the clean pass would too. Every
+    // sink gets its turn and the original failure is what's thrown — a sink
+    // whose handle never opened must not become the error the caller sees.
     for (const sink of sinks) {
-      if (sink.writer !== null) {
-        await (await sink.writer).close().catch(() => {
-          // the stream is already broken — nothing to salvage
-        });
+      try {
+        if (sink.writer !== null) await (await sink.writer).close();
+      } catch {
+        // this one's stream is already broken — there is nothing to salvage
       }
     }
     throw e;

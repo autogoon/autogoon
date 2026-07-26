@@ -98,10 +98,18 @@ function mediaEntry(
     // persists this ref and rendering resolves it.
     ref: `goonpack:${key}/${m.name}`,
     load: () =>
-      (pending ??= source.mediaUrl(key, m).then((url) => {
-        entry.src = url;
-        return url;
-      })),
+      (pending ??= source.mediaUrl(key, m).then(
+        (url) => {
+          entry.src = url;
+          return url;
+        },
+        (e: unknown) => {
+          // Forget a failed open: one unreadable moment shouldn't pin the item
+          // as missing for the rest of the session — the next render retries.
+          pending = null;
+          throw e;
+        },
+      )),
   };
   return entry;
 }
