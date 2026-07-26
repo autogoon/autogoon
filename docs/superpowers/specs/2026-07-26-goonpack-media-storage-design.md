@@ -45,8 +45,8 @@ the plan from the start.
 needs a seekable source. A zip entry cannot be range-read when deflated — and
 packs will usually be deflated, since most are zipped with Finder or 7-Zip
 rather than [`goonpack-build.ts`](../../../scripts/goonpack-build.ts). Playing a
-clip out of a stored zip means inflating the entire clip into memory first.
-Extracted to OPFS, a clip is a `File` the browser streams and seeks natively.
+video out of a stored zip means inflating the entire video into memory first.
+Extracted to OPFS, a video is a `File` the browser streams and seeks natively.
 
 ## What OPFS buys, precisely
 
@@ -65,20 +65,30 @@ not fix repeated inflation or give video a seekable source.
 
 ## Pack format
 
-**`pictures/` becomes `media/`**, holding stills and clips together. Captions
-keep the existing sidecar convention — `clip.mp4` → `clip.txt` — described in
+**`pictures/` becomes `media/`**, holding stills and videos together. Captions
+keep the existing sidecar convention — `video.mp4` → `video.txt` — described in
 [GOONPACKS.md](../../../GOONPACKS.md).
 
 - **Stills:** `.jpg`, `.jpeg`, `.png`, `.webp`, as now.
-- **Clips:** `.mp4` and `.webm`. **`.mov` is rejected** with a message saying so
-  — it plays in Safari and unreliably elsewhere, so accepting it yields packs
+- **Videos:** `.mp4` and `.webm`. **`.mov` is rejected** with a message saying
+  so — it plays in Safari and unreliably elsewhere, so accepting it yields packs
   that work on their author's machine and not on a stranger's.
 - **`noPictures` becomes `noMedia`**, with the same meaning.
 - **`{{PICTURES_SECTION}}` becomes `{{MEDIA_SECTION}}`**, its text covering
-  clips as well as stills.
+  videos as well as stills.
 - **`format` becomes `2`.** Not for compatibility — see below — but so a pack
   written to the old layout fails with "this pack uses the old `pictures/`
   layout" instead of the misleading "no media found".
+
+**A format 1 pack is still accepted when it used neither of those two things.**
+The formats differ in exactly the media folder's name and `noPictures`; a pack
+with no `pictures/` folder and no `noPictures` field — the pictureless example
+pack, any voice-only or colour-only overlay — already _is_ a format 2 pack, and
+telling its author to rebuild it would be telling them to change nothing. This
+is not the compatibility the next paragraph rules out: nothing old is read in an
+old way. It costs the format gate its manifest-only purity, since whether a
+`pictures/` folder exists is a fact about the tree, so that half of the check
+lives in `parsePack` and the `noPictures` half stays in `parseManifest`.
 
 **No backwards compatibility.** Installed packs are not carried over, and
 existing threads' picture references are not preserved. Both were considered and
@@ -177,14 +187,14 @@ is removed or re-imported. `resolveVariant`'s created/winning/losers bookkeeping
 goes with it: a base and an overlay each have their own entries, so choosing a
 variant is picking which list to read rather than building one set and
 discarding another. The stable thread reference `goonpack:<key>/<name>`
-(`use-goonpack-library.ts`) is what a rendered picture or clip resolves through,
-as now.
+(`use-goonpack-library.ts`) is what a rendered picture or video resolves
+through, as now.
 
-**Clips are chosen and sent exactly as stills are** — the same caption-driven
-selection over the same pool, with a clip rendering as a `<video>` rather than
+**Videos are chosen and sent exactly as stills are** — the same caption-driven
+selection over the same pool, with a video rendering as a `<video>` rather than
 an `<img>`. Playback needs no special handling: the concern in
 [roadmap/KEYWORD-DETECTION.md](../../../roadmap/KEYWORD-DETECTION.md) is media
-playing on a _different_ device, not the app's own output. Clip captions are
+playing on a _different_ device, not the app's own output. Video captions are
 hand-written for now.
 
 ## Reconciliation
@@ -212,21 +222,21 @@ treatment, no migrations and no special cases.
 - [`src/lib/goonpacks/resolve.ts`](../../../src/lib/goonpacks/resolve.ts) —
   `noMedia`; references and kinds in place of eager `src`.
 - [`src/lib/companions/shared-prompt.ts`](../../../src/lib/companions/shared-prompt.ts)
-  — `{{MEDIA_SECTION}}`, its text covering clips.
+  — `{{MEDIA_SECTION}}`, its text covering videos.
 - [`src/hooks/use-goonpack-library.ts`](../../../src/hooks/use-goonpack-library.ts)
   — the in-memory index built at load, lazy URLs, the clean pass.
 - [`src/components/goonpacks-panel.tsx`](../../../src/components/goonpacks-panel.tsx)
   — import progress; media counts.
 - [`src/components/play-modes/companions-panel/index.tsx`](../../../src/components/play-modes/companions-panel/index.tsx)
-  — `<video>` for clip references in the thread.
-- [`GOONPACKS.md`](../../../GOONPACKS.md) — `media/`, clips, `noMedia`,
+  — `<video>` for video references in the thread.
+- [`GOONPACKS.md`](../../../GOONPACKS.md) — `media/`, videos, `noMedia`,
   `format: 2`.
 - `.gitignore` — `/goonpacks/elise/pictures/` becomes `media/`.
 - [`scripts/goonpack-build.ts`](../../../scripts/goonpack-build.ts) — zips
   `media/`, validates against the new rules.
 - [`scripts/describe-missing.mjs`](../../../scripts/describe-missing.mjs) and
   [`scripts/describe-image.mjs`](../../../scripts/describe-image.mjs) — walk
-  `media/`, and skip clips rather than mis-handle them (clip captions are
+  `media/`, and skip videos rather than mis-handle them (video captions are
   hand-written for now).
 - [`goonpacks/elise/`](../../../goonpacks/elise/) and the local packs — rebuilt
   to the new layout.
