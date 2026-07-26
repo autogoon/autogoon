@@ -15,9 +15,14 @@ import { join, dirname } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
+import { describeMedia, type MediaCount } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
 import { isJunkPath } from '../src/lib/goonpacks/media';
-import { parsePack, type PackTree } from '../src/lib/goonpacks/pack';
+import {
+  parsePack,
+  type ParsedPack,
+  type PackTree,
+} from '../src/lib/goonpacks/pack';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
@@ -76,6 +81,7 @@ for (const entry of entries) {
     names: Object.keys(files),
     readText: (path) => Promise.resolve(readFileSync(join(dir, path), 'utf8')),
   };
+  let parsed: ParsedPack;
   try {
     // Only media/ is zipped, so a source still holding pictures/ would build
     // into a pack with no media at all — and validate, since the zip has no
@@ -89,7 +95,7 @@ for (const entry of entries) {
         'This pack source still has a pictures/ folder — rename it to media/.',
       );
     }
-    await parsePack(tree);
+    parsed = await parsePack(tree);
   } catch (e) {
     const problems =
       e instanceof PackError
@@ -105,8 +111,15 @@ for (const entry of entries) {
   // directories can hold two versions of the same id without clobbering.
   const out = join(packsDir, `${entry.name}.zip`);
   writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
+  const media: MediaCount = {
+    images: parsed.media.filter((m) => m.kind === 'image').length,
+    videos: parsed.media.filter((m) => m.kind === 'video').length,
+  };
+  const counts = describeMedia(media);
   console.log(green(`${entry.name}: 0 errors`));
-  console.log(`  built, ${entry.name}.zip`);
+  console.log(
+    `  built, ${entry.name}.zip${counts === '' ? '' : `, ${counts}`}`,
+  );
   built++;
 }
 console.log(`${built} pack(s) built`);
