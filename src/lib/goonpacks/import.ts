@@ -51,12 +51,13 @@ function extractInWorker(
       else {
         worker.terminate();
         if (m.type === 'done') resolve();
-        else reject(new PackError("The zip couldn't be read."));
+        else reject(new PackError(`The zip couldn't be read: ${m.message}`));
       }
     };
-    worker.onerror = () => {
+    worker.onerror = (event) => {
+      event.preventDefault();
       worker.terminate();
-      reject(new PackError("The zip couldn't be read."));
+      reject(new PackError(`Extraction couldn't start: ${event.message}`));
     };
     worker.postMessage({ file, dir } satisfies ExtractRequest);
   });

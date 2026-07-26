@@ -287,6 +287,18 @@ Goonpacks — importing a companion as a portable pack — has shipped; see
   a companion working from a collected set (rather than a set of one woman)
   needs before she can take a request for them.
 
+  **Reading text in the image** is worth testing alongside, and is a different
+  kind of ask. A watermark or overlay is often the cheapest possible signal for
+  "more of her" — grouping a set by it, and letting a companion take a request
+  for one of them. Two things to work out: telling a watermark from incidental
+  text (interface chrome, a burned-in caption, a photographer's mark rather than
+  the model's), and where the answer goes, since it isn't about the moment.
+  A sidecar is one line today and is read straight in as the media's
+  description, so a watermark either gets stirred into a sentence a companion
+  may then say out loud, or the sidecar format grows somewhere for metadata.
+  Face clustering is the general answer to identity — a watermark is a free seed
+  for it, exactly as the person-sorted folders in the same doc are.
+
   The defined work is the experiment, not its outcome: fix a set of the hard
   images, run candidate models and prompt variants against it, and compare by
   hand. The levers and the order to try them in are already written up in

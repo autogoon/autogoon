@@ -160,7 +160,8 @@ export const importLock = (key: string): string => `goonpack-import:${key}`;
 // being written, here or in another tab, and is left alone. The delete runs
 // inside the lock callback — not after it releases — so a tree only ever goes
 // once this pass holds the lock for it; the marker is re-checked inside the
-// callback too, in case an import completed while the lock was waited on.
+// callback too, because an import can start and finish in the gap between the
+// listing's `hasMarker` above and this `ifAvailable` grant being scheduled.
 export async function sweepIncomplete(): Promise<string[]> {
   const removed: string[] = [];
   for (const key of await listPackKeys()) {
@@ -170,7 +171,7 @@ export async function sweepIncomplete(): Promise<string[]> {
       { ifAvailable: true },
       async (lock) => {
         if (lock === null) return; // held elsewhere: an import owns it
-        if (await hasMarker(key)) return; // completed while we waited
+        if (await hasMarker(key)) return; // completed since the listing above
         await removePackTree(key);
         removed.push(key);
       },
