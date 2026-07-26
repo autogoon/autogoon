@@ -13,7 +13,10 @@ import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 
 export const MANIFEST = 'manifest.json';
 export const PROMPT = 'system-prompt.md';
-export const MEDIA_DIR = 'media/';
+// The media folder, twice over: its own name (what opens it in a tree) and the
+// prefix its files carry in a '/'-separated listing (what validation matches).
+export const MEDIA_NAME = 'media';
+export const MEDIA_DIR = `${MEDIA_NAME}/`;
 
 // What a pack looks like to validation: the file names it holds (relative to
 // the pack root, '/'-separated) and a way to read one as text. OPFS backs it in

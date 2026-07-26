@@ -9,33 +9,59 @@ declare global {
 }
 
 // Build a pack tree directly in OPFS, optionally marked complete. Returns
-// nothing — the assertions read the tree back the same way.
+// nothing — the assertions read the tree back the same way. `files` is the
+// tree's contents, '/'-separated; the default is the least a tree can hold
+// while still being one.
 async function makeTree(
   page: import('@playwright/test').Page,
   key: string,
   marked: boolean,
+  files: Record<string, string> = { 'manifest.json': '{}' },
 ) {
   await page.evaluate(
-    async ([k, m]) => {
+    async ({ key, marked, files }) => {
       const root = await navigator.storage.getDirectory();
       const packs = await root.getDirectoryHandle('goonpacks', {
         create: true,
       });
-      const dir = await packs.getDirectoryHandle(k as string, { create: true });
-      const manifest = await dir.getFileHandle('manifest.json', {
-        create: true,
-      });
-      const w = await manifest.createWritable();
-      await w.write('{}');
-      await w.close();
-      if (m === true) {
+      const dir = await packs.getDirectoryHandle(key, { create: true });
+      for (const [path, text] of Object.entries(files)) {
+        const parts = path.split('/');
+        let at = dir;
+        for (const part of parts.slice(0, -1)) {
+          at = await at.getDirectoryHandle(part, { create: true });
+        }
+        const handle = await at.getFileHandle(parts[parts.length - 1]!, {
+          create: true,
+        });
+        const w = await handle.createWritable();
+        await w.write(text);
+        await w.close();
+      }
+      if (marked) {
         const marker = await dir.getFileHandle('.complete', { create: true });
         await (await marker.createWritable()).close();
       }
     },
-    [key, marked] as const,
+    { key, marked, files },
   );
 }
+
+// A tree that passes validation whole: manifest, prompt, and one still with its
+// caption. Media bytes are never read, so an empty file is a picture as far as
+// everything under test is concerned.
+const validPack = (key: string): Record<string, string> => ({
+  'manifest.json': JSON.stringify({
+    format: 2,
+    id: key.slice(0, key.indexOf('@')),
+    version: key.slice(key.indexOf('@') + 1),
+    aboutThePack: 'a storage test pack',
+    companion: { name: 'Storey', voiceId: 'v-e2e' },
+  }),
+  'system-prompt.md': 'You are Storey.',
+  'media/one.png': '',
+  'media/one.txt': 'a still',
+});
 
 async function packKeys(page: import('@playwright/test').Page) {
   return page.evaluate(async () => {
@@ -129,12 +155,11 @@ test('the clean pass spares a tree another tab is still importing', async ({
   const other = await context.newPage();
   await other.goto('/');
   await other.getByRole('button', { name: 'Goonpacks' }).click();
-  // The tree survives, so the second tab lists it — as an incompatible pack,
-  // since a half-written tree is not a valid one. Waiting for that row is what
-  // proves the sweep has been and gone.
-  await expect(
-    other.getByText('busy.pack 1.0.0', { exact: true }),
-  ).toBeVisible();
+  // The list settles empty — a markerless tree is nobody's installed pack, so
+  // survival is read off disk rather than off the screen. Waiting for the empty
+  // list is what proves the sweep has been and gone: the panel says "Checking
+  // packs…" until the load, sweep included, has finished.
+  await expect(other.getByText('No packs imported.')).toBeVisible();
   expect(await packKeys(other)).toEqual(['busy.pack@1.0.0']);
 
   // The importing tab goes away — a crash, a closed tab, or simply the end of
@@ -146,4 +171,39 @@ test('the clean pass spares a tree another tab is still importing', async ({
   await other.getByRole('button', { name: 'Goonpacks' }).click();
   await expect(other.getByText('No packs imported.')).toBeVisible();
   expect(await packKeys(other)).toEqual([]);
+});
+
+test('a tree another tab is still writing is not offered as an installed pack', async ({
+  context,
+  page,
+}) => {
+  await page.goto('/');
+  await skipWithoutOpfs(page);
+  await page.getByRole('button', { name: 'Goonpacks' }).click();
+  await expect(page.getByText('No packs imported.')).toBeVisible();
+
+  // An import part-way through: everything the load reads — manifest, prompt,
+  // captions — has landed, so the tree validates, and the media list is
+  // whatever arrived before the interruption. Nothing about it says "partial"
+  // except the missing marker.
+  await makeTree(page, 'half.pack@1.0.0', false, validPack('half.pack@1.0.0'));
+  await holdImportLock(page, 'half.pack@1.0.0');
+
+  // Another tab loads while that import is running.
+  const other = await context.newPage();
+  await other.goto('/');
+  await other.getByRole('button', { name: 'Goonpacks' }).click();
+  await expect(other.getByText('No packs imported.')).toBeVisible();
+  // The sweep spared the tree — it is still on disk — so the marker check on
+  // the load path is the only thing keeping a half-written pack out of the
+  // library.
+  expect(await packKeys(other)).toEqual(['half.pack@1.0.0']);
+
+  // And it reaches the chooser no more than it reached the list. Aimee is
+  // there whatever happens, so waiting for her card is what makes the absence
+  // below an absence rather than an unrendered screen.
+  await other.getByRole('button', { name: 'Home' }).click();
+  await other.getByRole('button', { name: 'Companions' }).click();
+  await expect(other.getByText('Aimee', { exact: true })).toBeVisible();
+  await expect(other.getByText('Storey', { exact: true })).toHaveCount(0);
 });

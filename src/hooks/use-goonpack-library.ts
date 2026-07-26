@@ -24,7 +24,7 @@ import {
 } from '@/lib/goonpacks/resolve';
 import { PackError } from '@/lib/goonpacks/manifest';
 import {
-  listPackKeys,
+  listCompletePackKeys,
   openPackTree,
   purgeLegacyDatabase,
   readMediaFile,
@@ -35,7 +35,7 @@ import {
 export type { LibraryEntry, PackOption, PackRow, PendingImport };
 
 const source: LibrarySource = {
-  listKeys: listPackKeys,
+  listKeys: listCompletePackKeys,
   openTree: openPackTree,
   mediaUrl: async (key, media) => {
     const file = await readMediaFile(key, media.file);

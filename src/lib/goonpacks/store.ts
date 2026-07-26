@@ -13,7 +13,7 @@
 // and one clean pass at load covers both.
 import { PackError } from './manifest';
 import { isJunkPath } from './media';
-import { MEDIA_DIR, type PackTree } from './pack';
+import { MEDIA_NAME, type PackTree } from './pack';
 
 export const PACKS_DIR = 'goonpacks';
 export const MARKER = '.complete';
@@ -46,6 +46,20 @@ export async function listPackKeys(): Promise<string[]> {
   const keys: string[] = [];
   for await (const [name, handle] of packs.entries()) {
     if (isDirectory(handle)) keys.push(name);
+  }
+  return keys;
+}
+
+// What the library builds from: the trees that carry the marker, and only
+// those. Surviving the clean pass is not the same as being complete — the
+// sweep deliberately spares a markerless tree whose import lock is held, which
+// is a tree another tab is writing right now. Reading one would index a
+// half-extracted pack as installed: validation goes on names, so it would list
+// as valid with whatever media had landed so far.
+export async function listCompletePackKeys(): Promise<string[]> {
+  const keys: string[] = [];
+  for (const key of await listPackKeys()) {
+    if (await hasMarker(key)) keys.push(key);
   }
   return keys;
 }
@@ -190,7 +204,7 @@ export async function readMediaFile(
   if (packs === null) return null;
   try {
     const dir = await packs.getDirectoryHandle(key);
-    const media = await dir.getDirectoryHandle(MEDIA_DIR.replace('/', ''));
+    const media = await dir.getDirectoryHandle(MEDIA_NAME);
     return await (await media.getFileHandle(file)).getFile();
   } catch {
     return null;
