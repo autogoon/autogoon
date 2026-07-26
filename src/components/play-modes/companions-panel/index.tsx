@@ -103,14 +103,10 @@ export function CompanionsPanel({
 }) {
   const device = vacuglide.player;
 
+  // One index per session, shared with the Goonpacks tab: an import or removal
+  // there rebuilds it and this chooser is told, so there is nothing to re-sync
+  // when the screen comes back into view.
   const library = useGoonpackLibrary();
-  // Panels are always mounted (hidden by CSS), and pack admin lives on the
-  // Goonpacks tab with its own hook instance — re-sync the chooser whenever
-  // this screen comes back into view so imports/removals made there show.
-  const { refresh: refreshLibrary } = library;
-  useEffect(() => {
-    if (active) void refreshLibrary();
-  }, [active, refreshLibrary]);
 
   // The picked, fully-resolved companion (variant applied, prompt sections
   // filled). Chosen in the setup view and fixed for the play session (the nav

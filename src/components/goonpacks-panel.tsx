@@ -176,6 +176,11 @@ export function GoonpacksPanel() {
         <div className="mt-2 flex flex-col gap-2">
           {library.status === 'loading' ? (
             <p>Checking packs…</p>
+          ) : library.status === 'error' ? (
+            <p>
+              Browser storage couldn&apos;t be read, so packs can&apos;t be
+              listed — reloading usually clears it.
+            </p>
           ) : library.packs.length === 0 ? (
             <p>No packs imported.</p>
           ) : (
@@ -188,6 +193,9 @@ export function GoonpacksPanel() {
                   <Button
                     onClick={() => void library.removePack(row.id)}
                     className="text-sm"
+                    // Removing a pack while another is unpacking would rebuild
+                    // the index out from under the import.
+                    disabled={progress !== null}
                   >
                     Remove
                   </Button>
