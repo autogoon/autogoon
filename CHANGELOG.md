@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-07-26
+
+- feature: **Companions can send you videos** — A goonpack can now carry video
+  as well as stills: `.mp4` and `.webm` files sit alongside pictures with the
+  same one-line captions, and a companion picks between them the same way — one
+  numbered list, each entry marked picture or video. A video plays inline in the
+  conversation and full-size when you open it. Authoring moved with it: media
+  lives in a `media/` folder rather than `pictures/`, `noPictures` is now
+  `noMedia`, the prompt token is `{{MEDIA_SECTION}}`, and the pack format is
+  `2`. A pack still saying `1` that had neither a `pictures/` folder nor a
+  `noPictures` field already is a format 2 pack and imports unchanged; one that
+  had either is rejected, saying what to fix.
+
+- enhancement: **Packs are unpacked, not stored whole** — Importing a pack now
+  unzips it into your browser's storage once, showing its progress as it goes,
+  instead of keeping the zip and re-reading it on every start. Packs of hundreds
+  of megabytes — or gigabytes, with video — now list without the app reading a
+  single picture: it reads the captions and nothing else, and only opens a file
+  when it's about to show it. Packs installed before this change don't carry
+  over, so re-import their zips; the storage the old copies held is reclaimed on
+  the next start.
+
+- internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
+  directory tree keyed `id@version`, extracted in a worker from a streamed zip,
+  validated over names alone, and made real by a marker file written last. A
+  markerless tree is an interrupted import or removal, and one clean pass at
+  load deletes it — unless the Web Lock an import holds for that key is still
+  taken, which is what stops one tab's load sweeping away another's import.
+  Nothing derived is persisted anywhere: the library index is rebuilt from the
+  trees at every load, so "installed" is one live verdict against the current
+  rules.
+
 ## 2026-07-25
 
 - feature: **A companion keeps the conversation going** — Companions no longer

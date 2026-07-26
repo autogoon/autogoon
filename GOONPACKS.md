@@ -1,19 +1,21 @@
 # Goonpacks
 
 A **goonpack** is one companion in a zip file: who they are, how they talk,
-their voice, their colour, and (optionally) their pictures. You import a pack on
-the app's Goonpacks tab, and they appear on the Companions screen like any
-built-in. The app only ever imports packs — it never ships, hosts, or points at
-them (see the [content policy](./DEVELOPERS.md#content-policy)).
+their voice, their colour, and (optionally) their pictures and videos. You
+import a pack on the app's Goonpacks tab, and they appear on the Companions
+screen like any built-in. The app only ever imports packs — it never ships,
+hosts, or points at them (see the
+[content policy](./DEVELOPERS.md#content-policy)).
 
-Imported packs live in your browser's storage, so keep your zips: if the browser
-ever clears its storage the app just forgets the pack, and importing the zip
-brings it back.
+Importing **unpacks** the zip into your browser's storage; the zip itself isn't
+kept, so keep your own copy. If the browser ever clears its storage the app just
+forgets the pack, and importing the zip again brings it back.
 
 You don't need to be a developer to make one. A pack is at most three things,
 zipped: a `manifest.json` (a few lines describing the pack), a
-`system-prompt.md` (their persona, written in plain English), and a `pictures/`
-folder if they send pictures. This page is the reference for all of it.
+`system-prompt.md` (their persona, written in plain English), and a `media/`
+folder if they send pictures or videos. This page is the reference for all of
+it.
 
 ## The two kinds of pack
 
@@ -25,7 +27,7 @@ screen.
 an imported complete pack. It names its base companion and includes only what
 changes; everything else stays the base's. An overlay can:
 
-- add pictures (or strip the base's, with `noPictures`)
+- add pictures or videos (or strip the base's, with `noMedia`)
 - replace their voice
 - replace their persona prompt
 - change their card colour or description
@@ -45,14 +47,14 @@ the zip root, not inside a folder):
 
     manifest.json       who they are — every field explained below
     system-prompt.md    their persona (complete packs; optional on overlays)
-    pictures/           optional. Their pictures, with a caption file each
+    media/              optional. Their pictures and videos, with a caption file each
 
 For a complete worked example, see [`goonpacks/elise/`](./goonpacks/elise/) —
 Elise, the app's former built-in companion, as a complete pack: a real manifest
-and a full persona prompt to crib from. She ships without pictures; the repo
+and a full persona prompt to crib from. She ships with no media at all; the repo
 never distributes imagery (see the
-[content policy](./DEVELOPERS.md#content-policy)) — pictures are always yours to
-add.
+[content policy](./DEVELOPERS.md#content-policy)) — pictures and videos are
+always yours to add.
 
 ## manifest.json — every field
 
@@ -62,7 +64,7 @@ The manifest is a small JSON file in two halves: the top level describes the
 separated by commas:
 
     {
-      "format": 1,
+      "format": 2,
       "id": "yourname.luna",
       "version": "1.0.0",
       "aboutThePack": "Luna, a sleepy-voiced artist. 12 pictures.",
@@ -77,8 +79,14 @@ separated by commas:
 
 ### Every pack needs
 
-- **`format`** — always `1`. This is the version of the _pack format_ (so the
-  app knows how to read it), not the version of your pack.
+- **`format`** — always `2`. This is the version of the _pack format_ (so the
+  app knows how to read it), not the version of your pack. Formats 1 and 2
+  differ over exactly two things: the media folder is `media/` rather than
+  `pictures/`, and the field that strips a base's media is `noMedia` rather than
+  `noPictures`. A pack still saying `1` that used **neither** — a pack that
+  carried no pictures, a voice-only or colour-only overlay — already _is_ a
+  format 2 pack, and imports unchanged. One that used either is genuinely on the
+  old layout: importing rejects it and tells you to rebuild.
 - **`id`** — the pack's identity, as `publisher.packname`: your publisher name,
   a dot, the pack name — lowercase letters, numbers and hyphens only
   (`g00ner.luna`, `my-packs.luna-beach`). The id is permanent: new versions of a
@@ -162,19 +170,19 @@ it changes.
 - **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
   companion this overlay changes: a built-in's id or a complete pack's id, never
   another overlay's.
-- Then include **only what changes**: `pictures/`, `system-prompt.md`, and any
+- Then include **only what changes**: `media/`, `system-prompt.md`, and any
   `companion` fields — each one replaces the base's while the overlay is
   selected; anything left out stays the base's.
-- **`noPictures`** (top-level) — `true` means the overlay deliberately strips
-  the base's pictures, so the combination has none. (Simply omitting `pictures/`
-  keeps the base's set — `noPictures` is for when "none" is the point.)
+- **`noMedia`** (top-level) — `true` means the overlay deliberately strips the
+  base's pictures and videos, so the combination has none. (Simply omitting
+  `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
   memory, as above.
 
 An overlay that changes only the companion's colour is just:
 
     {
-      "format": 1,
+      "format": 2,
       "id": "yourname.luna-cyan",
       "version": "1.0.0",
       "aboutThePack": "Luna in cyan.",
@@ -190,7 +198,7 @@ to the model as their instructions, so write it _to_ them ("You're 21, a
 painter…").
 
 The app owns the mechanical rules — reply formatting, how the toy is driven, how
-pictures are sent — as ready-made sections you pull in with `{{PLACEHOLDER}}`
+media is sent — as ready-made sections you pull in with `{{PLACEHOLDER}}`
 tokens. Put a token on its own line where that section should land:
 
 - **`{{OUTPUT_FORMAT_SECTION}}`** — the reply-format rules (speech only, no
@@ -201,22 +209,30 @@ tokens. Put a token on its own line where that section should land:
   mid-persona placement.
 - **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once, near
   the end.
-- **`{{PICTURES_SECTION}}`** — how they choose and send pictures. Only filled in
-  when they actually have pictures, so it's safe to include either way.
+- **`{{MEDIA_SECTION}}`** — how they choose and send pictures and videos. Only
+  filled in when they actually have some, so it's safe to include either way.
 
 Omit a token and that section is simply absent — a persona with no
-`{{PICTURES_SECTION}}` never gets picture instructions. The section texts live
-in the app (`src/lib/companions/shared-prompt.ts`, for the curious), so they
-stay current as the app changes without packs having to.
+`{{MEDIA_SECTION}}` never gets the instructions for sending. The section texts
+live in the app (`src/lib/companions/shared-prompt.ts`, for the curious), so
+they stay current as the app changes without packs having to.
 
-## pictures/
+## media/
 
-The companion's pictures, as `.jpg`, `.jpeg`, `.png` or `.webp` files, directly
-in `pictures/` (no subfolders). Beside each picture goes a `.txt` file with the
-same name (`beach.jpg` → `beach.txt`) holding a one-line caption — they read the
-captions to choose which picture fits the moment, so a good caption says what's
-actually in the shot. A picture without a caption still works; they just know
-nothing about it.
+The companion's pictures and videos, directly in `media/` (no subfolders).
+
+- **Pictures:** `.jpg`, `.jpeg`, `.png` or `.webp`.
+- **Videos:** `.mp4` or `.webm`. `.mov` is rejected — it plays in Safari and
+  unreliably everywhere else, so a `.mov` pack would work on your machine and
+  not on someone else's. Re-encode it as MP4.
+
+Beside each one goes a `.txt` file with the same name (`beach.jpg` →
+`beach.txt`) holding a one-line caption — they read the captions to choose what
+fits the moment, so a good caption says what's actually in the shot. Something
+without a caption still works; they just know nothing about it.
+
+Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
+conversation refers to them by name, so one name means one thing.
 
 ## Building the zip
 
@@ -224,17 +240,20 @@ Any zip tool works — zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` zips every
 pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
 first with the app's own import checks — a pack that builds is a pack that
-imports. Two helper scripts caption pictures for you using your configured LLM:
-`npm run goonpack:describe-missing` (every picture lacking a `.txt`) and
-`npm run goonpack:describe <path-to-image>` (one picture).
+imports. Two helper scripts caption **pictures** for you using your configured
+LLM: `npm run goonpack:describe-missing` (every picture lacking a `.txt`) and
+`npm run goonpack:describe <path-to-image>` (one picture). Videos are left alone
+— write their captions by hand.
 
 ## Importing and versions
 
-Goonpacks tab → **Import pack**. The pack's card is shown before anything is
-stored — exactly what the installed list will show. Versions install side by
-side; only re-importing the exact same id + version replaces one. Each installed
-version lists on the Goonpacks tab with what it brings; Remove takes out just
-that version, and conversation threads always stay.
+Goonpacks tab → **Import pack**. The pack's card is shown from its manifest
+before anything is written, so you see what you're about to install; the unpack
+runs once you confirm, with a progress line, and the installed row that follows
+adds what the pack turned out to hold. Versions install side by side; only
+re-importing the exact same id + version replaces one. Each installed version
+lists on the Goonpacks tab with what it brings; Remove takes out just that
+version, and conversation threads always stay.
 
 On the Companions screen, a companion's card carries the pack pickers: the
 version (newest first, and the default) and an overlay to lay on top. The card's
@@ -245,7 +264,7 @@ that fails — its base was removed, or the pack format has moved on — stays o
 the Goonpacks tab marked incompatible with the reasons, and simply isn't offered
 on the chooser; fix the cause (or re-import a corrected zip) and it comes back.
 
-A sent picture stays in the conversation as a stable reference, not a copy: it
-resolves against whichever pack is currently loaded, so if you switch away from
-the pack it came from it shows a terse placeholder rather than someone else's
-picture — re-select the pack and it's back.
+A sent picture or video stays in the conversation as a stable reference, not a
+copy: it resolves against whichever pack is currently loaded, so if you switch
+away from the pack it came from it shows a terse placeholder rather than someone
+else's — re-select the pack and it's back.

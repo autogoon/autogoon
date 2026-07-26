@@ -240,13 +240,12 @@ placeholder.)
 ### Persona-driven picture feed
 
 You don't pre-declare a mood; you **converse, and she reads the room.** The
-persona is already an LLM agent with tools (`send_picture` exists) — so the
-tagged library becomes something she **searches from the conversation**,
-filtering by person, by the attributes you're after, and by a "heat" band she
-raises over the session (like a play mode owns its ramp), steered live: "more
-legs" → bias the legs/tights attributes; "her again" / "someone new" → filter by
-person; "softer" / "not yet" → drop the heat back down; silence / building →
-keep climbing.
+persona is already an LLM agent with tools (`send_media` exists) — so the tagged
+library becomes something she **searches from the conversation**, filtering by
+person, by the attributes you're after, and by a "heat" band she raises over the
+session (like a play mode owns its ramp), steered live: "more legs" → bias the
+legs/tights attributes; "her again" / "someone new" → filter by person; "softer"
+/ "not yet" → drop the heat back down; silence / building → keep climbing.
 
 **Two ways her request could get matched** (flagged, not settled): _fixed
 attribute fields_ — filter/sort on the pre-computed panel, no runtime ML — vs

@@ -77,15 +77,15 @@ content, host or index goonpacks, or recommend where content can be acquired.
 Users bring their own files; everything stays on their own machine, and the app
 stays dumb about where it came from.
 
-The issue is the content — imagery — not the pack format itself: the repo
-carries one deliberately pictureless example pack
+The issue is the content — imagery, still or moving — not the pack format
+itself: the repo carries one deliberately media-free example pack
 ([`goonpacks/elise/`](./goonpacks/elise/), the worked example in
 [GOONPACKS.md](./GOONPACKS.md)), and that is the only pack it will ever carry.
 
 Contributions must keep it that way. Don't submit features that:
 
-- bundle, host, or download content (the pictureless example pack above is the
-  one exception, and it stays pictureless);
+- bundle, host, or download content (the media-free example pack above is the
+  one exception, and it stays media-free);
 - index, list, or link to packs or content sources (no "browse packs", curated
   lists, or in-app galleries of third-party content);
 - point users at places to acquire content — in the app or its docs.
@@ -127,12 +127,14 @@ tests never use the real mic, but the browsers still request the permission.)
 
 `goonpacks/` (gitignored — it's where your own content lives, per the
 [content policy](#content-policy) — except the committed example pack `elise/`)
-holds one source directory per pack you're assembling, plus the `.zip` files
+holds one source directory per pack you're assembling — with that pack's
+pictures and videos in `goonpacks/<dir>/media/` — plus the `.zip` files
 `goonpack:build` produces from them. The authoring workflow (directory layout,
 manifest fields, the two pack kinds) is user-facing and lives in
 [GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*` npm scripts that operate
 on it (`describe`, `describe-missing`, `build`) are commented at their
-definitions in `scripts/`.
+definitions in `scripts/`. The two captioning scripts are vision-model work and
+so cover stills only — a video's caption is written by hand.
 
 ## Adding a play mode
 
@@ -246,8 +248,9 @@ the entry, so there is nothing else to wire up. The fields are commented on the
    companions. Pick an ElevenLabs `voiceId` (not a secret) and a model that
    suits the persona — explicit-content suitability and reliable tool-calling
    are properties of the model, so test the one you choose before settling. The
-   new companion ships **pictureless**, like the other built-ins — pictures
-   reach them via an [overlay goonpack](./GOONPACKS.md), not the repo.
+   new companion ships with **no media**, like the other built-ins — pictures
+   and videos reach them via an [overlay goonpack](./GOONPACKS.md), not the
+   repo.
 3. **Test** — the registry test already enforces id = record key for every
    entry; add a config `describe` block for them alongside Aimee's and Miley's
    (`src/lib/companions/companions.test.ts`).

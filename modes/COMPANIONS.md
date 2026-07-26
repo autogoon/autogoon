@@ -84,7 +84,7 @@ blocks.
 ## Device control
 
 A companion **drives the device through LLM tools** — start/stop, the intensity
-and variety knobs, (for a companion with pictures) `send_picture`, and
+and variety knobs, (for a companion with media) `send_media`, and
 `wait_for_user`, which is how a run of unprompted turns is ended (see
 [Filling a silence](#filling-a-silence)). When one is called, the panel runs
 **the same transport and knobs the on-screen controls use** — there is one path,
@@ -133,22 +133,27 @@ can still keep up a running commentary once things are underway. The picker
 cards show both, and [GOONPACKS.md](../GOONPACKS.md) explains what the numbers
 buy.
 
-## Pictures
+## Pictures and videos
 
-A companion **with pictures** gets the `send_picture` tool; its description
-lists their pictures numbered, one caption each, and they pick the one that fits
-the moment by number — they choose on the _caption_, so the vision work happens
-offline, never during play. Sending pops the picture open in a lightbox and
-leaves it in the transcript as a thumbnail, stored on the thread turn so a sent
-picture survives a reload. While the lightbox is open, a badge in its top corner
-shows the conversation live: you speaking, the companion thinking, their reply
-streaming in, their voice loading, them speaking. A companion with no pictures
-never sees the tool, and the shared pictures prompt block is only interpolated
-into a persona that has some.
+A companion **with media** gets the `send_media` tool. Its description is one
+numbered list over everything they have — each entry marked picture or video,
+with its one-line caption — and they pick what fits the moment by number. They
+choose on the _caption_, so the vision work happens offline, never during play.
+They can also say which sort they meant; if that disagrees with the number they
+picked, the call is refused with a correction rather than sending the wrong
+thing.
 
-Pictures are **bring-your-own** — they arrive via a [goonpack](../GOONPACKS.md),
-never bundled with the app. The built-in companions ship pictureless; give one
-pictures by importing an overlay pack for them.
+Sending pops it open in a lightbox and leaves it in the transcript as a
+thumbnail — a video plays there inline, and full-size in the lightbox — stored
+on the thread turn so what was sent survives a reload. While the lightbox is
+open, a badge in its top corner shows the conversation live: you speaking, the
+companion thinking, their reply streaming in, their voice loading, them
+speaking. A companion with nothing to send never sees the tool, and the shared
+media prompt block is only interpolated into a persona that has some.
+
+Pictures and videos are **bring-your-own** — they arrive via a
+[goonpack](../GOONPACKS.md), never bundled with the app. The built-in companions
+ship with none; give one media by importing an overlay pack for them.
 
 ## Goonpacks
 

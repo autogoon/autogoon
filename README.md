@@ -33,20 +33,22 @@ There's a fourth mode: **[Companions](./modes/COMPANIONS.md)** — talk to an AI
 companion who chats back in their own voice, remembers the conversation, and
 drives the toy themselves. They don't wait to be spoken to either: go quiet and
 the conversation keeps going, so you can lie back mid-session and let them run
-it. Given pictures (bring your own), a companion will send you one that fits the
-moment, picked by its caption — no image ever goes to a vision model mid-play.
+it. Given pictures and videos (bring your own), a companion will send you one
+that fits the moment, picked by its caption — nothing ever goes to a vision
+model mid-play.
 
 **Companions isn't usable on the public app.** Their chat, voice and hearing are
 paid cloud services, so on a deploy the mode sits behind an access key and stays
 hidden without one. Run the app yourself with your own keys and it just works —
 locally, no access key needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
-covers setup and pictures.
+covers setup, pictures and videos.
 
 **Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
-zip — persona, voice, colour and pictures — imported straight into the app: a
-complete new companion, or an overlay that changes one you have (add pictures,
-swap their voice or persona). Assembling one is plain-text work, no coding —
-[GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in the repo.
+zip — persona, voice, colour, pictures and videos — imported straight into the
+app: a complete new companion, or an overlay that changes one you have (add
+media, swap their voice or persona). Assembling one is plain-text work, no
+coding — [GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in
+the repo.
 
 ## Privacy
 
