@@ -29,6 +29,97 @@ Concrete, intended work. Speculative direction and design thinking lives in
   change at speed 10 is felt far more than the same change at speed 90. Goon,
   Groove and Companions each carry their own copy of the constants.
 
+## Media descriptions and retrieval
+
+**The next thing.** A companion with a collected set of a couple of thousand
+pictures can't use them: every item's description goes into the `send_media`
+schema and she picks by number, which stops working long before the window fills
+— a model choosing between two thousand near-identical descriptions chooses
+badly. And the descriptions themselves are written for one woman alone in a
+pose, so a second body, a man, and anything happening between people have
+nowhere to go.
+
+The target design — what she's asked for, who does the searching, what gets
+stored per item — is
+[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md). The short of it:
+she asks in words, the app searches, and the tool result tells her what actually
+went. What's below is the work, staged so each stage answers one question and
+the next depends on it. Stages 0–2 are worth doing even if the retrieval half
+slips.
+
+### Stage 0 — the yardstick
+
+A yardstick of around a hundred images, deliberately loaded with the hard cases:
+sheer versus opaque, nipples through fabric, topless versus covered, a cock in
+frame, penetration, oral, more than one person, watermarks, near duplicates.
+Hand-write the ground truth once.
+
+It's a dull afternoon's work and nothing else should start first — without it
+every later comparison is an impression rather than a number, which is exactly
+how the current prompt got to be confidently wrong in a few places.
+
+### Stage 1 — what a description should contain
+
+Two texts per item, not one: a long description of everything in the picture,
+and a one-line caption condensed from it. `scripts/describe-image.mjs` already
+works this way — it has the model observe at length and then condense — and
+currently throws the observations away, so this is mostly plumbing rather than
+new inference.
+
+The schema needs rescoping. Establish the scene first — how many people, which
+sexes, what is happening between them — then describe each person, then any text
+in the image. Two specific errors to chase while here: bare breasts called
+covered and covered called bare, which is a discrimination the prompt already
+asks for explicitly; and nipples through fabric missed, where the suspect is
+that prompt's own anti-false-positive wording over-correcting into false
+negatives — a one-line change with a measurable answer.
+
+**Blocking decision:** two texts plus an attribute panel outgrows the one-line
+`.txt` sidecar that `parsePack` reads straight in as a description. Settle the
+sidecar's shape before anything writes captions at scale, since it's a pack
+format change.
+
+### Stage 2 — model and resolution
+
+Same yardstick, same prompt. Vary resolution and tiling first — that's the
+bigger lever for fine detail and it's a config rather than a model swap — then
+compare three or four models with a frontier one as the ceiling. Settles whether
+the remaining errors are the model or the prompt, and picks the model for the
+bulk pass.
+
+### Stage 3 — retrieval, offline
+
+Thirty to fifty realistic requests in a companion's own words ("her on her knees
+looking up", "something with a man in it", "topless but not explicit", "filthier
+than the last one"), scored by hand against four implementations: a cheap LLM
+reading all the captions; caption-embedding top-k; top-k plus an LLM rerank over
+the long descriptions; and the same with an image embedding added.
+
+The output is the minimum that works and where it breaks — which is what decides
+the shape of the tool. Also settled here: whether hard constraints (no nudes
+ever; must contain a man) need the structured attribute filters or fall out of
+ranking.
+
+### Stage 4 — the set summary
+
+An LLM over all the captions, producing a paragraph on what the collection is —
+proportions, who's in it, which acts appear, the range of undress. Test whether
+a companion given only that asks answerable questions and stops offering what
+isn't there.
+
+Open while testing: whether one neutral summary serves every persona, or whether
+it wants generating per persona — different companions care about different
+dimensions of the same facts, and a neutral one stays cacheable.
+
+### Stage 5 — wire it in
+
+Only now: the tool takes a description instead of a number, the summary goes
+into the prompt like the other app-owned sections, and the index gets somewhere
+to live. Two things fall out for free at this point — `send_media`'s argument
+stops being a positional index, which today means a historical call in a thread
+can denote a different picture once a pack version or overlay changes the set;
+and the search owns "don't send the same thing twice", which nothing does today.
+
 ## Companions
 
 Remaining companion features — largely independent, picked off in any order,
@@ -265,47 +356,7 @@ never refuses to play because it's 4am where she lives.
 ## Goonpacks
 
 Goonpacks — importing a companion as a portable pack — has shipped; see
-[GOONPACKS.md](./GOONPACKS.md). Three follow-ups remain:
-
-- **Better image descriptions — experiment with models and the prompt.** A
-  caption is the only thing a companion reads to choose a picture, so a wrong
-  one makes her send the wrong thing at the wrong moment; and a pack of a few
-  thousand collected images can't be read through and hand-fixed the way a
-  curated fifty can. That combination is what makes this a priority now.
-
-  Two of the known misses are errors, and two are gaps. **Errors:** bare breasts
-  called covered and covered called bare, which is the sheer-vs-opaque
-  discrimination `scripts/describe-image.mjs` already asks for explicitly and
-  still gets wrong often enough to matter; and nipples standing out through
-  fabric missed, where the suspect is that prompt's own anti-false-positive
-  wording (a fitted garment's shape is not a nipple) over-correcting into false
-  negatives. **Gaps:** the prompt is built around one woman alone in a pose —
-  every question says "she" — so a cock in frame has nowhere to go beyond a
-  single "genitals" line, and nothing asks what is happening _between_ people,
-  so penetration, oral and the rest never reach the caption at all. Extending
-  the schema to a second body and to acts is the substantial half, and it's what
-  a companion working from a collected set (rather than a set of one woman)
-  needs before she can take a request for them.
-
-  **Reading text in the image** is worth testing alongside, and is a different
-  kind of ask. A watermark or overlay is often the cheapest possible signal for
-  "more of her" — grouping a set by it, and letting a companion take a request
-  for one of them. Two things to work out: telling a watermark from incidental
-  text (interface chrome, a burned-in caption, a photographer's mark rather than
-  the model's), and where the answer goes, since it isn't about the moment.
-  A sidecar is one line today and is read straight in as the media's
-  description, so a watermark either gets stirred into a sentence a companion
-  may then say out loud, or the sidecar format grows somewhere for metadata.
-  Face clustering is the general answer to identity — a watermark is a free seed
-  for it, exactly as the person-sorted folders in the same doc are.
-
-  The defined work is the experiment, not its outcome: fix a set of the hard
-  images, run candidate models and prompt variants against it, and compare by
-  hand. The levers and the order to try them in are already written up in
-  [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md) — resolution
-  and tiling before reaching for a bigger model, compliance over parameter
-  count, and a specialist model where a VLM is weak on explicit parts — so start
-  there rather than re-deriving them.
+[GOONPACKS.md](./GOONPACKS.md). Two follow-ups remain:
 
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in
   it, and today import rejects it as an unsupported file. The reason `.mov` is

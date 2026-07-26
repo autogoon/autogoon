@@ -14,18 +14,23 @@ model said about it.
 
 Captioning is good but never perfect, and it can't be — a single frame is
 sometimes genuinely ambiguous, and a model that gets a pose right on one run
-gets it wrong on the next. Reading every caption and correcting the few that are
-wrong is the correct workflow at pack scale, not a fallback for a bad prompt
-(the same conclusion [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md) reaches
-about scale). Doing that in a terminal means running one script per picture; the
-inline-image preview the describe scripts print is a workaround for not having a
-screen.
+gets it wrong on the next. So there will always be captions to correct and small
+tweaks to make, whatever the pack's size, and doing that in a terminal means
+running one script per picture; the inline-image preview the describe scripts
+print is a workaround for not having a screen.
 
 So the first piece is a review surface: pick a pack, leaf through its pictures,
 see each one beside its caption and the model's full observations, jump into the
 caption with a keystroke, and save. Fast leafing and keyboard editing are the
-whole point — the value is in how quickly you can get through a few hundred
-pictures.
+whole point — the value is in how quickly you can get through a lot of pictures.
+
+**What changes as a pack grows.** Reading every caption is the right workflow
+while a pack is a curated few hundred. Past that nobody will read them all — see
+the two regimes in [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md) — and the
+kit's centre of gravity moves to the jobs that scale: running the description
+pass over a whole pack and watching it work, creating the voice, and packaging
+the result. Review doesn't go away, it stops being exhaustive: you go to the
+pictures a sampling pass or a search flags, rather than to all of them.
 
 ## The pieces
 
@@ -33,8 +38,15 @@ Each is a spec's worth of work on its own, roughly in the order they earn their
 keep:
 
 - **Caption review** — leaf, compare, edit, save.
+- **Describing a whole pack** — run the description pass over everything without
+  a caption, with progress, cost and failures on screen, and the model choice in
+  front of you. This is the job that dominates once a pack is collected rather
+  than curated.
 - **Manifest authoring** — the fields in [GOONPACKS.md](../GOONPACKS.md), edited
   against a live preview of the card the pack will show.
+- **Voice** — choosing a companion's voice, and eventually designing one from a
+  written description rather than pasting an id (the Phase 2 follow-up in
+  [TODO.md](../TODO.md#goonpacks)).
 - **Persona editing** — `system-prompt.md`, with the shared scaffolding the app
   wraps around it visible so you can see what she's actually sent.
 - **Picture management** — add, remove, and spot near-duplicates (an embedding
@@ -60,7 +72,10 @@ Open questions:
 - **Where the observations live.** The sidecar holds one caption line; the
   model's full notes are printed and thrown away. Reviewing a caption is far
   easier with them, so they'd need storing — a second sidecar, or a change to
-  the pack format, which is a compatibility question.
+  the pack format, which is a compatibility question. Being decided elsewhere:
+  retrieval wants the long description stored for its own reasons, so the
+  sidecar's shape is settled in
+  [TODO.md](../TODO.md#media-descriptions-and-retrieval) rather than here.
 - **What happens to the scripts.** `describe`, `describe-missing` and `build`
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the
