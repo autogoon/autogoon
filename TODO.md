@@ -265,7 +265,35 @@ never refuses to play because it's 4am where she lives.
 ## Goonpacks
 
 Goonpacks — importing a companion as a portable pack — has shipped; see
-[GOONPACKS.md](./GOONPACKS.md). Two follow-ups remain:
+[GOONPACKS.md](./GOONPACKS.md). Three follow-ups remain:
+
+- **Better image descriptions — experiment with models and the prompt.** A
+  caption is the only thing a companion reads to choose a picture, so a wrong
+  one makes her send the wrong thing at the wrong moment; and a pack of a few
+  thousand collected images can't be read through and hand-fixed the way a
+  curated fifty can. That combination is what makes this a priority now.
+
+  Two of the known misses are errors, and two are gaps. **Errors:** bare breasts
+  called covered and covered called bare, which is the sheer-vs-opaque
+  discrimination `scripts/describe-image.mjs` already asks for explicitly and
+  still gets wrong often enough to matter; and nipples standing out through
+  fabric missed, where the suspect is that prompt's own anti-false-positive
+  wording (a fitted garment's shape is not a nipple) over-correcting into false
+  negatives. **Gaps:** the prompt is built around one woman alone in a pose —
+  every question says "she" — so a cock in frame has nowhere to go beyond a
+  single "genitals" line, and nothing asks what is happening _between_ people,
+  so penetration, oral and the rest never reach the caption at all. Extending
+  the schema to a second body and to acts is the substantial half, and it's what
+  a companion working from a collected set (rather than a set of one woman)
+  needs before she can take a request for them.
+
+  The defined work is the experiment, not its outcome: fix a set of the hard
+  images, run candidate models and prompt variants against it, and compare by
+  hand. The levers and the order to try them in are already written up in
+  [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md) — resolution
+  and tiling before reaching for a bigger model, compliance over parameter
+  count, and a specialist model where a VLM is weak on explicit parts — so start
+  there rather than re-deriving them.
 
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in
   it, and today import rejects it as an unsupported file. The reason `.mov` is
