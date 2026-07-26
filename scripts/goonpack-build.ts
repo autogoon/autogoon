@@ -77,6 +77,18 @@ for (const entry of entries) {
     readText: (path) => Promise.resolve(readFileSync(join(dir, path), 'utf8')),
   };
   try {
+    // Only media/ is zipped, so a source still holding pictures/ would build
+    // into a pack with no media at all — and validate, since the zip has no
+    // pictures/ folder for the format gate to catch. Refuse it here instead.
+    if (
+      statSync(join(dir, 'pictures'), {
+        throwIfNoEntry: false,
+      })?.isDirectory() === true
+    ) {
+      throw new PackError(
+        'This pack source still has a pictures/ folder — rename it to media/.',
+      );
+    }
     await parsePack(tree);
   } catch (e) {
     const problems =
