@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { skipWithoutOpfs } from './opfs';
 
 // Build a pack tree directly in OPFS, optionally marked complete. Returns
 // nothing — the assertions read the tree back the same way.
@@ -50,6 +51,7 @@ test('the load-time clean pass removes markerless trees only', async ({
   page,
 }) => {
   await page.goto('/');
+  await skipWithoutOpfs(page);
   await makeTree(page, 'kept.pack@1.0.0', true);
   await makeTree(page, 'crashed.pack@1.0.0', false);
   expect(await packKeys(page)).toEqual([

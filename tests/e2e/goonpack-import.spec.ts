@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
+import { skipWithoutOpfs } from './opfs';
 
 // 1x1 transparent PNG.
 const TINY_PNG = Buffer.from(
@@ -51,21 +52,32 @@ const v1Manifest = (extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+// The Import card's error lines. A <p>, where an incompatible row's problems
+// are <span>s — so this is the import's own feedback and nothing else's.
+const importErrors = (page: import('@playwright/test').Page) =>
+  page.locator('p.text-red-500');
+
 // Import a zip and return the error lines the panel showed, or [] on success.
 async function importZip(
   page: import('@playwright/test').Page,
   name: string,
   buffer: Buffer,
 ): Promise<string[]> {
+  const errors = importErrors(page);
+  const confirm = page.getByRole('button', { name: 'Import', exact: true });
   await page
     .getByTestId('goonpack-file-input')
     .setInputFiles({ name, mimeType: 'application/zip', buffer });
-  const confirm = page.getByRole('button', { name: 'Import', exact: true });
+  // prepareImport streams the zip, so neither outcome is synchronous: wait for
+  // whichever arrives — the confirm sheet, or the errors shown in its place.
+  await expect(confirm.or(errors).first()).toBeVisible();
   if ((await confirm.count()) > 0) {
     await confirm.click();
+    // The sheet closes only once commit() has settled, and the library is
+    // rebuilt before that — so the installed row, or the error, is on screen.
     await expect(confirm).toHaveCount(0);
   }
-  return page.locator('.text-red-500').allTextContents();
+  return errors.allTextContents();
 }
 
 // Does OPFS hold a tree for this key?
@@ -83,6 +95,7 @@ const treeExists = (page: import('@playwright/test').Page, key: string) =>
 
 test('import, persist, and remove a goonpack', async ({ page }) => {
   await page.goto('/');
+  await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
 
   // Import → confirm sheet shows the manifest info → commit. The pack then
@@ -93,9 +106,11 @@ test('import, persist, and remove a goonpack', async ({ page }) => {
     mimeType: 'application/zip',
     buffer: Buffer.from(completePack),
   });
-  // The sheet renders the same card the installed row will: id heading, her
-  // name on the info line.
-  await expect(page.getByText('e2e.testy', { exact: true })).toBeVisible();
+  // The sheet renders the same card the installed row will, before anything is
+  // stored: the id and version head it, her name is on the info line.
+  await expect(
+    page.getByText('e2e.testy 1.0.0', { exact: true }),
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   // The confirm sheet closes only after the store commit lands — wait for it,
   // or its card and the new list row's coexist and the locators go strict.
@@ -148,6 +163,7 @@ test('the version gate accepts and refuses format 1 packs by what they use', asy
   page,
 }) => {
   await page.goto('/');
+  await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
 
   // A format 1 pack with no media is a format 2 pack in every respect.
