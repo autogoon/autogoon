@@ -11,22 +11,39 @@ export type ExtractRequest = {
 export type ExtractMessage =
   | { type: 'progress'; bytes: number }
   | { type: 'done' }
-  | { type: 'error'; message: string };
+  // `name` is the error's own name — QuotaExceededError is a different story
+  // for the user than a zip that won't parse, and only the name tells them
+  // apart.
+  | { type: 'error'; name: string; message: string };
+
+// The zip is read a chunk at a time, so a gigabyte-scale pack fires this
+// thousands of times over to move a percentage with a hundred distinct values —
+// and every message is a state change and a render on the main thread. Ten a
+// second is more than the eye asks for.
+const PROGRESS_MS = 100;
 
 self.onmessage = (event: MessageEvent<ExtractRequest>) => {
   const { file, dir } = event.data;
   const post = (m: ExtractMessage) => {
     self.postMessage(m);
   };
+  let lastPost = 0;
   void extractZip(file, dir, (bytes) => {
+    const now = Date.now();
+    if (now - lastPost < PROGRESS_MS) return;
+    lastPost = now;
     post({ type: 'progress', bytes });
   }).then(
     () => {
+      // Whatever the throttle swallowed, the finished total is posted before
+      // done, so the bar never stops short of the end.
+      post({ type: 'progress', bytes: file.size });
       post({ type: 'done' });
     },
     (e: unknown) => {
       post({
         type: 'error',
+        name: e instanceof Error ? e.name : '',
         message: e instanceof Error ? e.message : 'failed',
       });
     },
