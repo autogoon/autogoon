@@ -18,6 +18,11 @@ import { VoiceStageBadge } from './voice-stage';
 // classes below so the unmount waits for the exit animation to finish.
 const LIGHTBOX_ANIM_MS = 200;
 
+// A video opens unannounced mid-session and autoplays with sound — starting
+// at full volume is a jolt, so it opens low and the `controls` bar lets the
+// user raise it.
+const LIGHTBOX_VIDEO_START_VOLUME = 0.2;
+
 export function Lightbox({
   media,
   stage,
@@ -96,6 +101,9 @@ export function Lightbox({
         {url.status === 'ready' ? (
           media.kind === 'video' ? (
             <video
+              ref={(el) => {
+                if (el !== null) el.volume = LIGHTBOX_VIDEO_START_VOLUME;
+              }}
               src={url.src}
               controls
               autoPlay
