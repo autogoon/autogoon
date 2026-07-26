@@ -6,7 +6,7 @@ import { parsePack, peekPack } from './pack';
 const manifest = (extra: object = {}) =>
   strToU8(
     JSON.stringify({
-      format: 1,
+      format: 2,
       id: 'test.pack',
       version: '1.0.0',
       aboutThePack: 'a test pack',
@@ -51,16 +51,16 @@ describe('parsePack', () => {
     });
     expect(() => parsePack(zip)).toThrow(/aboutThePack/);
   });
-  it('rejects noPictures alongside a pictures/ folder', () => {
+  it('rejects noMedia alongside a pictures/ folder', () => {
     const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee', noPictures: true }),
+      'manifest.json': manifest({ base: 'autogoon.aimee', noMedia: true }),
       'pictures/a.jpg': new Uint8Array([1]),
     });
-    expect(() => parsePack(zip)).toThrow(/noPictures/);
+    expect(() => parsePack(zip)).toThrow(/noMedia/);
     const clean = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee', noPictures: true }),
+      'manifest.json': manifest({ base: 'autogoon.aimee', noMedia: true }),
     });
-    expect(parsePack(clean).manifest.noPictures).toBe(true);
+    expect(parsePack(clean).manifest.noMedia).toBe(true);
   });
   it('rejects a complete pack missing prompt/name/voiceId', () => {
     expect(() => parsePack(zipSync({ 'manifest.json': complete() }))).toThrow(

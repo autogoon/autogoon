@@ -3,13 +3,7 @@
 // script has its own Node-side zip writer.
 import { strFromU8, unzipSync } from 'fflate';
 import { PackError, parseManifest, type PackManifest } from './manifest';
-
-const IMAGE_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-};
+import { MEDIA_TYPES, isJunkPath, splitName } from './media';
 
 export type ParsedPicture = {
   name: string;
@@ -23,15 +17,6 @@ export type ParsedPack = {
   systemPrompt?: string;
   pictures: ParsedPicture[];
 };
-
-// Zip housekeeping entries that hand-made (Finder) zips accumulate.
-function isJunk(path: string): boolean {
-  return (
-    path.startsWith('__MACOSX/') ||
-    path.endsWith('/') ||
-    path.split('/').pop() === '.DS_Store'
-  );
-}
 
 // Best-effort look inside a zip that failed validation, so the admin row can
 // still say what the pack claims to be (name, version, what it overlays).
@@ -80,7 +65,7 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
   } catch {
     throw new PackError('Not a readable zip file.');
   }
-  const files = Object.entries(entries).filter(([path]) => !isJunk(path));
+  const files = Object.entries(entries).filter(([path]) => !isJunkPath(path));
 
   const manifestEntry = files.find(([path]) => path === 'manifest.json');
   if (manifestEntry === undefined) {
@@ -113,22 +98,23 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       problems.push(`pictures/ can't contain subfolders — found ${path}.`);
       continue;
     }
-    const dot = file.lastIndexOf('.');
-    const stem = dot === -1 ? file : file.slice(0, dot);
-    const ext = dot === -1 ? '' : file.slice(dot + 1).toLowerCase();
+    const { stem, ext } = splitName(file);
     if (ext === 'txt') {
       sidecars.set(stem, strFromU8(bytes).trim());
-    } else if (IMAGE_TYPES[ext]) {
-      pictures.push({
-        name: stem,
-        description: '',
-        bytes,
-        mimeType: IMAGE_TYPES[ext],
-      });
     } else {
-      problems.push(
-        `Unsupported file in pictures/: ${file} — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.`,
-      );
+      const type = MEDIA_TYPES[ext];
+      if (type?.kind === 'image') {
+        pictures.push({
+          name: stem,
+          description: '',
+          bytes,
+          mimeType: type.mimeType,
+        });
+      } else {
+        problems.push(
+          `Unsupported file in pictures/: ${file} — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.`,
+        );
+      }
     }
   }
   const stems = new Set<string>();
@@ -164,9 +150,9 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
         );
       }
     }
-    if (manifest.noPictures === true && pictures.length > 0) {
+    if (manifest.noMedia === true && pictures.length > 0) {
       problems.push(
-        'noPictures is set but the pack has a pictures/ folder — remove one or the other.',
+        'noMedia is set but the pack has a media/ folder — remove one or the other.',
       );
     }
   }

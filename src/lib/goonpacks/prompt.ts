@@ -5,8 +5,8 @@
 import {
   CONTROL_SECTION,
   CONTROL_SUMMARY_SECTION,
+  MEDIA_SECTION,
   OUTPUT_FORMAT_SECTION,
-  PICTURES_SECTION,
   SHARED_STYLE_BULLETS,
 } from '@/lib/companions/shared-prompt';
 
@@ -17,7 +17,7 @@ const SECTIONS: Record<string, string> = {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
-  PICTURES_SECTION,
+  MEDIA_SECTION,
   CONTROL_SECTION,
 };
 
@@ -26,11 +26,11 @@ const LIVE_MARKERS = new Set(['TOY_STATUS', 'NOW']);
 
 export function fillSharedSections(
   prompt: string,
-  opts: { includePictures: boolean },
+  opts: { includeMedia: boolean },
 ): string {
   return prompt.replace(/\{\{([A-Z0-9_]+)\}\}/g, (token, name: string) => {
     if (LIVE_MARKERS.has(name)) return token;
-    if (name === 'PICTURES_SECTION' && !opts.includePictures) return '';
+    if (name === 'MEDIA_SECTION' && !opts.includeMedia) return '';
     return SECTIONS[name] ?? ''; // unknown tokens are dropped, per spec
   });
 }

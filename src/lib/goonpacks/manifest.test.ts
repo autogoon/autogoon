@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { PackError, parseManifest } from './manifest';
 
 const good = {
-  format: 1,
+  format: 2,
   id: 'g00ner.aimee',
   version: '1.0.0',
   aboutThePack: 'a test pack',
@@ -15,7 +15,17 @@ describe('parseManifest', () => {
     );
   });
   it('rejects a newer format', () => {
-    expect(() => parseManifest({ ...good, format: 2 })).toThrow(PackError);
+    expect(() => parseManifest({ ...good, format: 3 })).toThrow(PackError);
+  });
+  it('names the old layout when a format 1 pack is imported', () => {
+    expect(() => parseManifest({ format: 1, id: 'a.b', version: '1' })).toThrow(
+      /old pictures\/ layout/,
+    );
+  });
+  it('still asks for a newer app on a future format', () => {
+    expect(() => parseManifest({ format: 3, id: 'a.b', version: '1' })).toThrow(
+      /newer version of the app/,
+    );
   });
   it('rejects missing/invalid format', () => {
     expect(() => parseManifest({ ...good, format: undefined })).toThrow(
@@ -46,15 +56,13 @@ describe('parseManifest', () => {
       parseManifest({ ...overlay, companion: { gender: 'female' } }),
     ).toThrow(/can't change a companion's gender/);
   });
-  it('accepts noPictures on an overlay, rejects it elsewhere', () => {
+  it('accepts noMedia on an overlay, rejects it elsewhere', () => {
     const overlay = { ...good, base: 'autogoon.aimee' };
-    expect(parseManifest({ ...overlay, noPictures: true }).noPictures).toBe(
-      true,
-    );
-    expect(() => parseManifest({ ...good, noPictures: true })).toThrow(
+    expect(parseManifest({ ...overlay, noMedia: true }).noMedia).toBe(true);
+    expect(() => parseManifest({ ...good, noMedia: true })).toThrow(
       /for overlay packs/,
     );
-    expect(() => parseManifest({ ...overlay, noPictures: 'yes' })).toThrow(
+    expect(() => parseManifest({ ...overlay, noMedia: 'yes' })).toThrow(
       PackError,
     );
   });
@@ -102,7 +110,7 @@ describe('parseManifest', () => {
   it('collects every problem, not just the first', () => {
     let thrown: unknown;
     try {
-      parseManifest({ format: 1, id: 'g00ner.aimee', base: 'autogoon.aimee' });
+      parseManifest({ format: 2, id: 'g00ner.aimee', base: 'autogoon.aimee' });
     } catch (e) {
       thrown = e;
     }

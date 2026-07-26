@@ -16,21 +16,26 @@ import {
   type PendingImport,
 } from '@/hooks/use-goonpack-library';
 import { COMPANIONS } from '@/lib/companions/companions';
-import { keyId, keyVersion, packKey } from '@/lib/goonpacks/entries';
+import {
+  describeMedia,
+  keyId,
+  keyVersion,
+  packKey,
+} from '@/lib/goonpacks/entries';
 import { PackError } from '@/lib/goonpacks/manifest';
 
-// What a pack brings, from its manifest plus the zip-derived summary:
-// pictures and prompt live in the zip; the rest are manifest fields. For an
-// overlay these are the base's overridden parts; for a complete pack, simply
-// its contents.
+// What a pack brings, from its manifest plus the zip-derived summary: media
+// and prompt live in the zip; the rest are manifest fields. For an overlay
+// these are the base's overridden parts; for a complete pack, simply its
+// contents.
 function contents(row: PackRow): string {
   const parts: string[] = [];
   const s = row.summary;
   const m = row.manifest;
-  if (s !== undefined && s.pictures > 0) {
-    parts.push(`${s.pictures} picture${s.pictures === 1 ? '' : 's'}`);
+  if (s !== undefined && describeMedia(s.media) !== '') {
+    parts.push(describeMedia(s.media));
   }
-  if (m?.noPictures === true) parts.push('no pictures');
+  if (m?.noMedia === true) parts.push('no media');
   if (s?.hasPrompt === true) parts.push('prompt');
   if (m?.companion.voiceId !== undefined) parts.push('voice');
   if (m?.companion.model !== undefined) parts.push('model');

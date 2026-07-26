@@ -2,7 +2,8 @@ import { describe, expect, it } from '@jest/globals';
 import { companionList } from '@/lib/companions/companions';
 import {
   buildEntries,
-  effectivePictures,
+  describeMedia,
+  effectiveMedia,
   keyId,
   keyVersion,
   newestFirst,
@@ -20,14 +21,14 @@ const manifest = (
   version: string,
   e: Extra = {},
 ): PackManifest => ({
-  format: 1,
+  format: 2,
   id,
   version,
   aboutThePack: 'a test pack',
   companion: e.companion ?? {},
   ...e.top,
 });
-const NO_EXTRAS = { pictures: 0, hasPrompt: false };
+const NO_EXTRAS = { media: { images: 0, clips: 0 }, hasPrompt: false };
 const complete = (
   id: string,
   version: string,
@@ -81,21 +82,45 @@ describe('publisher', () => {
   });
 });
 
-describe('effectivePictures', () => {
+describe('effectiveMedia', () => {
+  const none = { images: 0, clips: 0 };
   const opt = (extra: object) => ({
     key: 'pub.o@1',
     label: 'pub',
-    pictures: 0,
+    media: none,
     changed: [],
     ...extra,
   });
-  it("no overlay, or a pictureless overlay, plays the base's set", () => {
-    expect(effectivePictures(null, 9)).toBe(9);
-    expect(effectivePictures(opt({}), 9)).toBe(9);
+  it("no overlay, or a medialess overlay, plays the base's set", () => {
+    expect(effectiveMedia(null, { images: 9, clips: 1 })).toEqual({
+      images: 9,
+      clips: 1,
+    });
+    expect(effectiveMedia(opt({}), { images: 9, clips: 1 })).toEqual({
+      images: 9,
+      clips: 1,
+    });
   });
-  it("an overlay's own set wins; noPictures strips to zero", () => {
-    expect(effectivePictures(opt({ pictures: 4 }), 9)).toBe(4);
-    expect(effectivePictures(opt({ noPictures: true }), 9)).toBe(0);
+  it("an overlay's own set wins; noMedia strips to zero", () => {
+    expect(
+      effectiveMedia(opt({ media: { images: 4, clips: 2 } }), {
+        images: 9,
+        clips: 0,
+      }),
+    ).toEqual({ images: 4, clips: 2 });
+    expect(
+      effectiveMedia(opt({ noMedia: true }), { images: 9, clips: 0 }),
+    ).toEqual(none);
+  });
+});
+
+describe('describeMedia', () => {
+  it('names stills and clips separately, singular and plural', () => {
+    expect(describeMedia({ images: 0, clips: 0 })).toBe('');
+    expect(describeMedia({ images: 1, clips: 0 })).toBe('1 picture');
+    expect(describeMedia({ images: 3, clips: 0 })).toBe('3 pictures');
+    expect(describeMedia({ images: 0, clips: 1 })).toBe('1 clip');
+    expect(describeMedia({ images: 3, clips: 2 })).toBe('3 pictures · 2 clips');
   });
 });
 
@@ -106,7 +131,12 @@ describe('buildEntries', () => {
     for (const e of entries) {
       expect(e.builtIn).toBe(true);
       expect(e.bases).toEqual([
-        { key: null, label: 'default', pictures: 0, changed: [] },
+        {
+          key: null,
+          label: 'default',
+          media: { images: 0, clips: 0 },
+          changed: [],
+        },
       ]);
       expect(e.overlays).toEqual([]);
     }
@@ -118,13 +148,13 @@ describe('buildEntries', () => {
         'pub.comp',
         '1.0.0',
         { companion: { description: 'old' } },
-        { pictures: 3, hasPrompt: true },
+        { media: { images: 3, clips: 0 }, hasPrompt: true },
       ),
       complete(
         'pub.comp',
         '1.10.0',
         { companion: { description: 'new' } },
-        { pictures: 5, hasPrompt: true },
+        { media: { images: 5, clips: 0 }, hasPrompt: true },
       ),
     ];
     const entries = buildEntries(packs);
@@ -140,7 +170,7 @@ describe('buildEntries', () => {
     expect(entry.bases[0]).toMatchObject({
       label: 'pub',
       version: '1.10.0',
-      pictures: 5,
+      media: { images: 5, clips: 0 },
     });
     expect(entry.overlays).toEqual([]);
   });
@@ -154,7 +184,7 @@ describe('buildEntries', () => {
         '1.1.0',
         base,
         { companion: { voiceId: 'v2', accentColour: 'violet' } },
-        { pictures: 4, hasPrompt: false },
+        { media: { images: 4, clips: 0 }, hasPrompt: false },
       ),
     ];
     const entry = buildEntries(packs).find((e) => e.companion.id === base)!;
@@ -164,26 +194,31 @@ describe('buildEntries', () => {
     ]);
     expect(entry.overlays[0]).toMatchObject({
       accent: 'violet',
-      pictures: 4,
-      changed: ['pictures', 'voice', 'colour'],
+      media: { images: 4, clips: 0 },
+      changed: ['media', 'voice', 'colour'],
     });
     expect(entry.overlays[1]!.changed).toEqual(['voice']);
   });
 
-  it('noPictures flags the overlay option', () => {
+  it('noMedia flags the overlay option', () => {
     const base = BUILT_IN_IDS[0]!;
     const entry = buildEntries([
-      overlay('pub.quiet', '1.0.0', base, { top: { noPictures: true } }),
+      overlay('pub.quiet', '1.0.0', base, { top: { noMedia: true } }),
     ]).find((e) => e.companion.id === base)!;
     expect(entry.overlays[0]).toMatchObject({
-      noPictures: true,
-      changed: ['pictures'],
+      noMedia: true,
+      changed: ['media'],
     });
   });
 
   it('overlays on a complete pack attach to its entry', () => {
     const packs = [
-      complete('pub.comp', '1.0.0', {}, { pictures: 7, hasPrompt: true }),
+      complete(
+        'pub.comp',
+        '1.0.0',
+        {},
+        { media: { images: 7, clips: 0 }, hasPrompt: true },
+      ),
       overlay('pub.voice', '1.0.0', 'pub.comp', {
         companion: { voiceId: 'v2' },
       }),
@@ -192,9 +227,10 @@ describe('buildEntries', () => {
       (e) => e.companion.id === 'pub.comp',
     )!;
     expect(entry.overlays.map((o) => o.key)).toEqual(['pub.voice@1.0.0']);
-    // A pictureless overlay inherits the selected base version's set.
-    expect(
-      effectivePictures(entry.overlays[0]!, entry.bases[0]!.pictures),
-    ).toBe(7);
+    // A medialess overlay inherits the selected base version's set.
+    expect(effectiveMedia(entry.overlays[0]!, entry.bases[0]!.media)).toEqual({
+      images: 7,
+      clips: 0,
+    });
   });
 });

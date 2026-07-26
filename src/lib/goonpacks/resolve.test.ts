@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { PICTURES_SECTION } from '@/lib/companions/shared-prompt';
+import { MEDIA_SECTION } from '@/lib/companions/shared-prompt';
 import {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MODEL,
@@ -22,7 +22,7 @@ const base: Companion = {
   gender: 'female',
   accentColour: 'emerald',
   voiceId: 'v-base',
-  systemPrompt: 'hi\n{{PICTURES_SECTION}}',
+  systemPrompt: 'hi\n{{MEDIA_SECTION}}',
   model: 'm',
   contextWindow: 10,
   passesReasoning: true,
@@ -30,16 +30,16 @@ const base: Companion = {
   playfulness: 4,
 };
 const overlay = (
-  extra: { companion?: object; noPictures?: boolean } = {},
+  extra: { companion?: object; noMedia?: boolean } = {},
   pictures = [] as Companion['pictures'],
 ) => ({
   manifest: {
-    format: 1,
+    format: 2,
     id: 'g00ner.aimee',
     version: '1.0.0',
     base: 'autogoon.aimee',
     aboutThePack: 'test overlay',
-    noPictures: extra.noPictures,
+    noMedia: extra.noMedia,
     companion: extra.companion ?? {},
   },
   pictures: pictures ?? [],
@@ -68,19 +68,19 @@ describe('applyOverlay', () => {
     const out = applyOverlay(base, overlay({ companion: { name: 'Amy' } }));
     expect(out.name).toBe('Aimee');
   });
-  it('fills PICTURES_SECTION when the overlay brings pictures', () => {
+  it('fills MEDIA_SECTION when the overlay brings pictures', () => {
     const pics = [{ src: 'blob:x', description: 'd' }];
     expect(applyOverlay(base, overlay({}, pics)).systemPrompt).toBe(
-      `hi\n${PICTURES_SECTION}`,
+      `hi\n${MEDIA_SECTION}`,
     );
     expect(applyOverlay(base, overlay()).systemPrompt).toBe('hi\n');
   });
-  it("noPictures strips the base's pictures and the section", () => {
+  it("noMedia strips the base's pictures and the section", () => {
     const basePics: Companion = {
       ...base,
       pictures: [{ src: 'blob:b', description: 'd' }],
     };
-    const out = applyOverlay(basePics, overlay({ noPictures: true }));
+    const out = applyOverlay(basePics, overlay({ noMedia: true }));
     expect(out.pictures).toBeUndefined();
     expect(out.systemPrompt).toBe('hi\n');
   });
@@ -89,24 +89,24 @@ describe('applyOverlay', () => {
 describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
   // A non-built-in base must go through the overlay resolve unfilled
   // (packToCompanionRaw), so applyOverlay's fill is the only one — filling
-  // twice would strip {{PICTURES_SECTION}} for good on the first (pictureless)
+  // twice would strip {{MEDIA_SECTION}} for good on the first (pictureless)
   // pass, before the overlay's own pictures ever get a say.
   const pictureLessBase = () =>
     packToCompanionRaw({
       manifest: {
-        format: 1,
+        format: 2,
         id: 'some.base',
         version: '1',
         aboutThePack: 'a base pack',
         companion: { name: 'Base', voiceId: 'v' },
       },
-      systemPrompt: 'hi\n{{PICTURES_SECTION}}',
+      systemPrompt: 'hi\n{{MEDIA_SECTION}}',
       pictures: [],
     });
-  it('restores PICTURES_SECTION when the overlay brings pictures over a pictureless base', () => {
+  it('restores MEDIA_SECTION when the overlay brings pictures over a pictureless base', () => {
     const pics = [{ src: 'blob:overlay', description: 'd' }];
     const out = applyOverlay(pictureLessBase(), overlay({}, pics));
-    expect(out.systemPrompt).toBe(`hi\n${PICTURES_SECTION}`);
+    expect(out.systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
   });
   it('stays dropped when neither the base nor the overlay bring pictures', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
@@ -118,7 +118,7 @@ describe('packToCompanion', () => {
   it('builds a companion with app defaults for omitted fields', () => {
     const c = packToCompanion({
       manifest: {
-        format: 1,
+        format: 2,
         id: 'some.one',
         version: '1',
         aboutThePack: 'a complete pack',

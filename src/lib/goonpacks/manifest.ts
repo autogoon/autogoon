@@ -43,7 +43,7 @@ const ACCENT_COLOURS = new Set([
 const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
-export const PACK_FORMAT = 1;
+export const PACK_FORMAT = 2;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
@@ -52,7 +52,7 @@ const TOP_FIELDS = new Set([
   'version',
   'base',
   'aboutThePack',
-  'noPictures',
+  'noMedia',
   'companion',
 ]);
 
@@ -94,9 +94,9 @@ export type PackManifest = {
   // What the pack adds or changes — about the PACK, not the companion
   // (that's `companion.description`).
   aboutThePack: string;
-  // Overlay only: the resolved variant has NO pictures, deliberately —
-  // distinct from omitting pictures/, which keeps the base's set.
-  noPictures?: boolean;
+  // Overlay only: the resolved variant has NO media, deliberately — distinct
+  // from omitting media/, which keeps the base's set.
+  noMedia?: boolean;
   // Always present after parsing — {} when the manifest carries none.
   companion: CompanionConfig;
 };
@@ -116,11 +116,18 @@ export function parseManifest(raw: unknown): PackManifest {
   // field rules may not apply, so any further "problems" could be junk.
   if (typeof m.format !== 'number') {
     throw new PackError(
-      'manifest.json is missing the format field — add "format": 1.',
+      'manifest.json is missing the format field — add "format": 2.',
     );
   }
   if (m.format > PACK_FORMAT) {
     throw new PackError('This pack needs a newer version of the app.');
+  }
+  // A format 1 pack is a real pack written to the pictures/ layout — say so,
+  // rather than letting it fail later as a pack with no media.
+  if (m.format === 1) {
+    throw new PackError(
+      'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
+    );
   }
   if (m.format !== PACK_FORMAT) {
     throw new PackError(
@@ -174,13 +181,13 @@ export function parseManifest(raw: unknown): PackManifest {
       );
     }
   }
-  if (m.noPictures !== undefined) {
-    if (typeof m.noPictures !== 'boolean') {
-      problems.push('The noPictures field must be true or false (no quotes).');
+  if (m.noMedia !== undefined) {
+    if (typeof m.noMedia !== 'boolean') {
+      problems.push('The noMedia field must be true or false (no quotes).');
     }
     if (m.base === undefined) {
       problems.push(
-        'noPictures is only for overlay packs — remove it from manifest.json.',
+        'noMedia is only for overlay packs — remove it from manifest.json.',
       );
     }
   }
@@ -268,7 +275,7 @@ export function parseManifest(raw: unknown): PackManifest {
     version: m.version as string,
     base: m.base as string | undefined,
     aboutThePack: m.aboutThePack as string,
-    noPictures: m.noPictures as boolean | undefined,
+    noMedia: m.noMedia as boolean | undefined,
     companion: {
       name,
       description,

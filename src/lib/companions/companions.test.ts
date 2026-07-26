@@ -34,7 +34,7 @@ describe('COMPANIONS registry', () => {
   // between turns moves the point where a cached prefix stops matching to the
   // very top — costing the whole conversation behind it, not just the prompt.
   // The live values ride a trailing system message instead (liveStateMessage).
-  // {{PICTURES_SECTION}} is fine — it resolves once, when a companion is
+  // {{MEDIA_SECTION}} is fine — it resolves once, when a companion is
   // assembled. Only the per-turn markers cost anything.
   it('builds prompts with nothing that changes between turns', () => {
     for (const companion of Object.values(COMPANIONS)) {

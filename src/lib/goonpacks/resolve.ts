@@ -23,7 +23,7 @@ export type PackContent = {
 
 function fill(prompt: string, pictures: CompanionPicture[] | undefined) {
   return fillSharedSections(prompt, {
-    includePictures: (pictures?.length ?? 0) > 0,
+    includeMedia: (pictures?.length ?? 0) > 0,
   });
 }
 
@@ -35,7 +35,7 @@ export function resolveDefault(base: Companion): Companion {
 // Pack → Companion with the prompt left UNFILLED — for a pack used as an
 // overlay's base, where applyOverlay does the (single) fill against the
 // merged picture set. Filling here too would fill twice: the first pass
-// drops {{PICTURES_SECTION}} for good when the base itself is pictureless,
+// drops {{MEDIA_SECTION}} for good when the base itself is pictureless,
 // so an overlay bringing pictures could never restore it.
 export function packToCompanionRaw(pack: PackContent): Companion {
   const m = pack.manifest;
@@ -81,11 +81,11 @@ export function resolvePictureRef(
 export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const m = overlay.manifest;
   const c = m.companion;
-  // noPictures strips the base's set outright; a pictures/ folder replaces
+  // noMedia strips the base's set outright; a pictures/ folder replaces
   // it; neither keeps it. name and gender are never the overlay's to change
   // (the manifest rejects them; the spread keeps the base's regardless).
   const pictures =
-    m.noPictures === true
+    m.noMedia === true
       ? undefined
       : overlay.pictures.length > 0
         ? overlay.pictures

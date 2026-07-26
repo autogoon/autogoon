@@ -53,17 +53,18 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
   teases** him (mixing up the pace, easing off into slow dips before climbing
   again) from off through low, medium, high.`;
 
-// The picture ability, for a companion who can send photos of themselves. Shared
-// and persona-neutral so any companion can opt in, but only interpolated into
-// the prompt of one who actually has pictures. They send a photo by calling the
-// send_picture tool, whose schema lists the pictures they have and what each
-// shows, so this block only has to tell them the ability exists and when to reach
-// for it. Starts with a header, ends with no trailing newline (the prompt places
-// CONTROL_SECTION after it, which must be last for the TOY STATUS marker).
-export const PICTURES_SECTION = `PICTURES:
-- You can send him a picture of yourself, right there in the call, with the
-  send_picture tool. It lists the pictures you have and what each one shows —
-  pick the one that fits the moment and send it.
+// The media ability, for a companion who can send photos or clips of
+// themselves. Shared and persona-neutral so any companion can opt in, but only
+// interpolated into the prompt of one who actually has media. They send it by
+// calling the send_media tool, whose schema lists what they have and what each
+// one shows, so this block only has to tell them the ability exists and when
+// to reach for it. Starts with a header, ends with no trailing newline (the
+// prompt places CONTROL_SECTION after it, which must be last for the TOY
+// STATUS marker).
+export const MEDIA_SECTION = `PICTURES AND CLIPS:
+- You can send him a picture or a short clip of yourself, right there in the
+  call, with the send_media tool. It lists what you have and what each one
+  shows — pick the one that fits the moment and send it.
 - Sending it is calling the tool — saying "here, look at this" in words does
   nothing on its own. So when you want him to see you, USE THE TOOL. Right
   after, you'll be told it sent, and THEN you say something about it — teasing,
