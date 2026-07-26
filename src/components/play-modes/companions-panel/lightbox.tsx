@@ -29,7 +29,7 @@ export function Lightbox({
   stage: VoiceStage;
   onClose: () => void;
 }) {
-  const src = useMediaUrl(media);
+  const url = useMediaUrl(media);
   const [closing, setClosing] = useState(false);
   const timerRef = useRef<number | null>(null);
 
@@ -63,8 +63,6 @@ export function Lightbox({
     return () => window.removeEventListener('keydown', onKey);
   }, [requestClose]);
 
-  if (src === null) return null;
-
   return (
     <div
       role="dialog"
@@ -92,25 +90,30 @@ export function Lightbox({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {media.kind === 'video' ? (
-          <video
-            src={src}
-            controls
-            autoPlay
-            loop
-            playsInline
-            className="absolute inset-0 size-full object-contain"
-          />
-        ) : (
-          <Image
-            src={src}
-            alt=""
-            fill
-            sizes="92vw"
-            priority
-            className="object-contain"
-          />
-        )}
+        {/* The chrome (backdrop, close button, badge) renders while the file
+            opens, so the box appears at once and Escape works before it's
+            ready — only the frame's contents wait. */}
+        {url.status === 'ready' ? (
+          media.kind === 'video' ? (
+            <video
+              src={url.src}
+              controls
+              autoPlay
+              loop
+              playsInline
+              className="absolute inset-0 size-full object-contain"
+            />
+          ) : (
+            <Image
+              src={url.src}
+              alt=""
+              fill
+              sizes="92vw"
+              priority
+              className="object-contain"
+            />
+          )
+        ) : null}
       </div>
     </div>
   );

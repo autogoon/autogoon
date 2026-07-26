@@ -1,36 +1,48 @@
 'use client';
 // A media entry's object URL, minted on first use. The entry memoises the URL
-// on itself, so a re-render (or a second bubble showing the same item) is
-// synchronous from then on — the null return is only ever the very first paint.
+// on itself, so a re-render — or a second bubble showing the same item — is
+// ready on its first paint; only the very first use of a file is `loading`.
+// `missing` means the file is not in the loaded set (or has gone from storage):
+// the caller renders a placeholder, never a substitute.
 
 import { useEffect, useState } from 'react';
 import type { CompanionMedia } from '@/lib/companions/companions';
 
-export function useMediaUrl(media: CompanionMedia | null): string | null {
-  const [src, setSrc] = useState<string | null>(media?.src ?? null);
+export type MediaUrl =
+  | { status: 'loading' }
+  | { status: 'ready'; src: string }
+  | { status: 'missing' };
+
+export function useMediaUrl(media: CompanionMedia | null): MediaUrl {
+  const [state, setState] = useState<MediaUrl>(() =>
+    media === null
+      ? { status: 'missing' }
+      : media.src !== undefined
+        ? { status: 'ready', src: media.src }
+        : { status: 'loading' },
+  );
   useEffect(() => {
     if (media === null) {
-      setSrc(null);
+      setState({ status: 'missing' });
       return;
     }
     if (media.src !== undefined) {
-      setSrc(media.src);
+      setState({ status: 'ready', src: media.src });
       return;
     }
     let live = true;
+    setState({ status: 'loading' });
     void media.load().then(
-      (url) => {
-        if (live) setSrc(url);
+      (src) => {
+        if (live) setState({ status: 'ready', src });
       },
       () => {
-        // The file is gone from storage — render the placeholder rather than a
-        // broken element.
-        if (live) setSrc(null);
+        if (live) setState({ status: 'missing' });
       },
     );
     return () => {
       live = false;
     };
   }, [media]);
-  return src;
+  return state;
 }

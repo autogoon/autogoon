@@ -22,12 +22,13 @@ import {
   keyVersion,
   packKey,
 } from '@/lib/goonpacks/entries';
+import type { ImportStage } from '@/lib/goonpacks/import';
 import { PackError } from '@/lib/goonpacks/manifest';
 
-// What a pack brings, from its manifest plus the zip-derived summary: media
-// and prompt live in the zip; the rest are manifest fields. For an overlay
-// these are the base's overridden parts; for a complete pack, simply its
-// contents.
+// What a pack brings, from its manifest plus the tree-derived summary: media
+// and prompt live in the pack's tree; the rest are manifest fields. For an
+// overlay these are the base's overridden parts; for a complete pack, simply
+// its contents.
 function contents(row: PackRow): string {
   const parts: string[] = [];
   const s = row.summary;
@@ -145,6 +146,9 @@ export function GoonpacksPanel() {
     null,
   );
   const [importError, setImportError] = useState<string[] | null>(null);
+  // Non-null while a commit is running — extraction has no cancel, so the
+  // sheet's buttons are held until it finishes.
+  const [progress, setProgress] = useState<ImportStage | null>(null);
   const onPickFile = useCallback(
     (file: File) => {
       setImportError(null);
@@ -195,7 +199,9 @@ export function GoonpacksPanel() {
       </Card>
 
       <Card title="Import">
-        <p>Packs live in browser storage; keep your zips.</p>
+        <p>
+          Packs are unpacked into your browser&apos;s storage; keep your zips.
+        </p>
 
         <input
           ref={fileRef}
@@ -225,7 +231,6 @@ export function GoonpacksPanel() {
             const sheetRow: PackRow = {
               id: packKey(pendingImport.manifest),
               manifest: pendingImport.manifest,
-              summary: pendingImport.summary,
             };
             return (
               <PackCard
@@ -239,26 +244,48 @@ export function GoonpacksPanel() {
                 )}
                 <div className="mt-2 flex gap-2">
                   <Button
-                    onClick={() =>
+                    onClick={() => {
+                      setProgress({
+                        phase: 'extracting',
+                        bytes: 0,
+                        total: 1,
+                      });
                       void pendingImport
-                        .commit()
-                        .then(() => setPendingImport(null))
-                        .catch((e: unknown) => {
-                          // A failed store (quota, IDB error) must not strand the
-                          // sheet with no feedback.
+                        .commit(setProgress)
+                        .then(() => {
                           setPendingImport(null);
+                          setProgress(null);
+                        })
+                        .catch((e: unknown) => {
+                          // A failed import (quota, a bad tree) must not strand
+                          // the sheet with no feedback.
+                          setPendingImport(null);
+                          setProgress(null);
                           setImportError(
                             e instanceof PackError
                               ? e.problems
                               : ['Import failed.'],
                           );
-                        })
-                    }
+                        });
+                    }}
+                    disabled={progress !== null}
                   >
                     {pendingImport.replaces ? 'Replace' : 'Import'}
                   </Button>
-                  <Button onClick={() => setPendingImport(null)}>Cancel</Button>
+                  <Button
+                    onClick={() => setPendingImport(null)}
+                    disabled={progress !== null}
+                  >
+                    Cancel
+                  </Button>
                 </div>
+                {progress !== null && (
+                  <p className="mt-1 text-sm">
+                    {progress.phase === 'checking'
+                      ? 'Checking the pack…'
+                      : `Unpacking… ${Math.round((progress.bytes / Math.max(progress.total, 1)) * 100)}%`}
+                  </p>
+                )}
               </PackCard>
             );
           })()}

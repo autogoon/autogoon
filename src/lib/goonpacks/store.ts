@@ -28,12 +28,17 @@ export async function packsRoot(
   }
 }
 
+// `kind` distinguishes the two handle types at runtime, but they're related by
+// inheritance rather than a union, so TypeScript needs telling.
+const isDirectory = (h: FileSystemHandle): h is FileSystemDirectoryHandle =>
+  h.kind === 'directory';
+
 export async function listPackKeys(): Promise<string[]> {
   const packs = await packsRoot();
   if (packs === null) return [];
   const keys: string[] = [];
   for await (const [name, handle] of packs.entries()) {
-    if (handle.kind === 'directory') keys.push(name);
+    if (isDirectory(handle)) keys.push(name);
   }
   return keys;
 }
@@ -48,7 +53,7 @@ async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
   ): Promise<void> => {
     for await (const [name, entry] of handle.entries()) {
       const path = `${prefix}${name}`;
-      if (entry.kind === 'directory') {
+      if (isDirectory(entry)) {
         await walk(entry, `${path}/`);
       } else if (!isJunkPath(path)) {
         names.push(path);

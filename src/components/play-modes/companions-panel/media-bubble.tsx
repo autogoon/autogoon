@@ -17,8 +17,17 @@ export function MediaBubble({
   media: CompanionMedia;
   onOpen: () => void;
 }) {
-  const src = useMediaUrl(media);
-  if (src === null) return <MissingMediaBubble />;
+  const url = useMediaUrl(media);
+  if (url.status === 'missing') return <MissingMediaBubble />;
+  // The placeholder occupies the thumbnail's space, so the transcript doesn't
+  // jump when the file opens.
+  if (url.status === 'loading') {
+    return (
+      <div className="flex justify-start">
+        <div className="ring-foreground/10 bg-foreground/5 h-44 w-44 animate-pulse rounded-2xl ring-1" />
+      </div>
+    );
+  }
   return (
     <div className="flex justify-start">
       <button
@@ -29,7 +38,7 @@ export function MediaBubble({
       >
         {media.kind === 'video' ? (
           <video
-            src={src}
+            src={url.src}
             muted
             loop
             autoPlay
@@ -37,7 +46,13 @@ export function MediaBubble({
             className="absolute inset-0 size-full object-cover"
           />
         ) : (
-          <Image src={src} alt="" fill sizes="176px" className="object-cover" />
+          <Image
+            src={url.src}
+            alt=""
+            fill
+            sizes="176px"
+            className="object-cover"
+          />
         )}
       </button>
     </div>
