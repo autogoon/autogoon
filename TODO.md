@@ -362,7 +362,7 @@ Goonpacks — importing a companion as a portable pack — has shipped; see
   it, and today import rejects it as an unsupported file. The reason `.mov` is
   excluded — it plays in Safari and unreliably elsewhere — doesn't apply: a gif
   animates in an `<img>` everywhere. It's an entry in `MEDIA_TYPES`
-  (`src/lib/goonpacks/media.ts`, whose only non-test consumer is `parsePack`),
+  (`src/lib/goonpacks/media.ts`), whose only non-test consumer is `parsePack`,
   plus `IMAGE_RE` in `scripts/describe-missing.mjs`, which would otherwise skip
   gifs and leave them silently uncaptioned; `scripts/describe-image.mjs` already
   accepts one and describes its first frame. Two things to settle: the `kind`

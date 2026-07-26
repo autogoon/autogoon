@@ -20,7 +20,8 @@
   single picture: it reads the captions and nothing else, and only opens a file
   when it's about to show it. Packs installed before this change don't carry
   over, so re-import their zips; the storage the old copies held is reclaimed on
-  the next start.
+  the next start. Pictures sent in conversations before this change no longer
+  show in the transcript — the conversations themselves are untouched.
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
   directory tree keyed `id@version`, extracted in a worker from a streamed zip,

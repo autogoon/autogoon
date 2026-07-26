@@ -115,7 +115,7 @@ test('import, persist, and remove a goonpack', async ({ page }) => {
     buffer: Buffer.from(completePack),
   });
   // The sheet renders the same card the installed row will, before anything is
-  // stored: the id and version head it, her name is on the info line.
+  // stored: the id and version head it, the companion's name is on the info line.
   await expect(
     page.getByText('e2e.testy 1.0.0', { exact: true }),
   ).toBeVisible();
