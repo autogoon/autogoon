@@ -104,20 +104,24 @@ you say you're cumming. The persona decides, so the ending stops being a setting
 and becomes something she does to you. And because she can choose, she can say
 she will without saying which.
 
-### Pick built packs up off disk in dev
+### Pick packs up off disk in dev
 
 Iterating on a pack means: edit, `npm run goonpack:build`, open the Goonpacks
 tab, pick the zip, confirm the replace. Every time. The build is the only step
 doing anything the app couldn't do itself.
 
-On a locally-run server, have the app ask a route on load what `.zip` files are
-sitting in `goonpacks/`, and import each one exactly as though it had been
-chosen in the picker and replaced — the same `importPack` path, the same
-validation, the same storage. Reload becomes the whole loop.
+On a locally-run server, have the app ask a route on load what pack directories
+are sitting in `goonpacks/`, and import each one exactly as though it had been
+chosen in the picker and replaced — the same validation, the same storage.
+Reload becomes the whole loop.
 
-Deliberately not watching for changes: load-time only, and still the built zip
-rather than the source directory, so the thing imported is the thing that would
-ship. A reload is a small enough ask, and polling can come later if it isn't.
+The source directory rather than a built zip, because validation now runs on the
+extracted tree: the tree is the thing that ships, and the zip only carries it,
+so importing the directory imports what would ship. That also drops the build
+step from the loop entirely.
+
+Deliberately not watching for changes: load-time only. A reload is a small
+enough ask, and polling can come later if it isn't.
 
 **Dev-server only, and it has to be enforced server-side.** The route reads the
 developer's own filesystem, which is exactly what a deploy must not do —
