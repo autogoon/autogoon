@@ -4,13 +4,12 @@ import {
   stripTextualToolCalls,
 } from './textual-tool-calls';
 
-// Verbatim from a live turn: the model narrated, then wrote the call out
-// instead of making it. The picture never arrived and the markup was committed
-// as speech.
+// A live turn's shape: the model narrated, then wrote the call out instead of
+// making it. The picture never arrived and the markup was committed as speech.
 const OBSERVED = `Don't move. Not yet.
 
 <tool_call>
-<function=send_picture>
+<function=send_media>
 <parameter=which>504</parameter>
 </function>
 </tool_call>`;
@@ -20,9 +19,9 @@ describe('parseTextualToolCalls', () => {
     expect(parseTextualToolCalls(OBSERVED)).toEqual([
       {
         id: 'textual-0',
-        name: 'send_picture',
+        name: 'send_media',
         // A number, not "504": the tools are schema-typed and check what they
-        // get — send_picture falls back to the first picture on a string, so a
+        // get — send_media falls back to the first item on a string, so a
         // string here would silently send the wrong one.
         arguments: JSON.stringify({ which: 504 }),
       },

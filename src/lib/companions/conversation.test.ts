@@ -20,7 +20,7 @@ describe('isSilentAssistantTurn', () => {
       isSilentAssistantTurn({
         role: 'assistant',
         content: '',
-        toolCalls: [{ id: 'call_1', name: 'send_picture', arguments: '{}' }],
+        toolCalls: [{ id: 'call_1', name: 'send_media', arguments: '{}' }],
       }),
     ).toBe(true);
     expect(isSilentAssistantTurn({ role: 'assistant', content: '  ' })).toBe(
