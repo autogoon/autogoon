@@ -212,6 +212,15 @@ things worth knowing up front:
   sharing a module — a chosen boundary, so don't refactor engines into a shared
   module without asking. The boundary is only about _generation_ code; shared
   infrastructure like the Player is fine.
+- **One path for every browser**: the app targets Chromium, Firefox and WebKit,
+  and a browser-specific branch is a last resort, not a first fix — it doubles
+  the paths, and Playwright can't always reach the one that needs it (its WebKit
+  has no working OPFS, so nothing Safari-only gets tested by anything but a
+  human). When an API fails in one engine, look for the shape that works
+  everywhere before writing a fallback: extraction sends the worker a pack key
+  rather than a directory handle because WebKit won't structured-clone the
+  handle, and that costs the other engines nothing. Take the branch only once no
+  common path exists, and say in a comment which engine forced it.
 - **Keyword spotting drives the device**: there is **one** vosk recognizer,
   owned by `KeywordSpotterProvider` (`src/components/keyword-spotter.tsx`) at
   the top of `src/app/page.tsx` so it keeps running across screen changes. Its
