@@ -45,6 +45,11 @@ const GENDERS = new Set(['female', 'male', 'nonbinary']);
 // The pack-format version this app understands. Bump only with a format change.
 export const PACK_FORMAT = 2;
 
+// Formats 1 and 2 differ only in the media folder's name and this field, so
+// this is what "written for the old format" concretely means.
+export const OLD_LAYOUT_PROBLEM =
+  'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.';
+
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
   'format',
@@ -102,9 +107,10 @@ export type PackManifest = {
 };
 
 // Validate a decoded manifest.json. Completeness rules that depend on the rest
-// of the zip (a complete pack needing system-prompt.md, name, voiceId) live in
-// parsePack — this checks only the manifest's own fields. Field problems are
-// collected and thrown together, so a bad manifest reports everything wrong
+// of the pack's tree (a complete pack needing system-prompt.md, name, voiceId)
+// live in parsePack — this checks only the manifest's own fields. Field
+// problems are collected and thrown together, so a bad manifest reports
+// everything wrong
 // with it at once; only a manifest we can't judge at all (not an object, a
 // format this app doesn't know) fails alone.
 export function parseManifest(raw: unknown): PackManifest {
@@ -122,17 +128,16 @@ export function parseManifest(raw: unknown): PackManifest {
   if (m.format > PACK_FORMAT) {
     throw new PackError('This pack needs a newer version of the app.');
   }
-  // A format 1 pack is a real pack written to the pictures/ layout — say so,
-  // rather than letting it fail later as a pack with no media.
-  if (m.format === 1) {
-    throw new PackError(
-      'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
-    );
-  }
-  if (m.format !== PACK_FORMAT) {
+  if (m.format !== PACK_FORMAT && m.format !== 1) {
     throw new PackError(
       "This pack uses a format version this app doesn't recognise.",
     );
+  }
+  // A format 1 pack that used noPictures is genuinely written to the old
+  // format; one that didn't may still be a format 2 pack in every respect,
+  // which only the tree can say — parsePack finishes the judgement.
+  if (m.format === 1 && m.noPictures !== undefined) {
+    throw new PackError(OLD_LAYOUT_PROBLEM);
   }
 
   const problems: string[] = [];

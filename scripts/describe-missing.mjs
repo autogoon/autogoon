@@ -2,12 +2,13 @@
 //
 //   npm run goonpack:describe-missing
 //
-// Scans goonpacks/<dir>/pictures/ for images whose sidecar <basename>.txt is
+// Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.txt is
 // missing or empty, and captions each one (writing the .txt) via the same
-// describeImage() the single-image `npm run goonpack:describe` uses. Images
-// that already have a description are left untouched, so it's safe to re-run
-// after dropping in more. Reads OPENROUTER_API_KEY / LLM_URL from the
-// environment (the npm script loads .env via --env-file-if-exists), and
+// describeImage() the single-image `npm run goonpack:describe` uses. Videos are
+// left alone — their captions are hand-written — as are stills that already
+// have a description, so it's safe to re-run after dropping in more. Reads
+// OPENROUTER_API_KEY / LLM_URL from the environment (the npm script loads .env
+// via --env-file-if-exists), and
 // honours MODEL the same as `npm run goonpack:describe`, so you can pick the
 // model for a bulk run:
 //
@@ -26,7 +27,9 @@ import {
   dim,
 } from './describe-image.mjs';
 
-const IMAGE_RE = /\.(jpe?g|png|webp|gif|avif)$/i;
+// The pack format's still types only. Videos are skipped: their captions are
+// hand-written.
+const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const goonpacksDir = join(root, 'goonpacks');
@@ -37,7 +40,7 @@ function missingImages() {
   if (!existsSync(goonpacksDir)) return out;
   for (const entry of readdirSync(goonpacksDir, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
-    const dir = join(goonpacksDir, entry.name, 'pictures');
+    const dir = join(goonpacksDir, entry.name, 'media');
     if (!existsSync(dir)) continue;
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;

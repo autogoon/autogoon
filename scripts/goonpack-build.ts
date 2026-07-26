@@ -1,9 +1,9 @@
 // Zips each goonpacks/<dir>/ into goonpacks/<id>.zip — the id read from the
 // pack's manifest, so directory names stay free. Run: npm run goonpack:build
-// (runs under tsx, so it imports the app's importer directly: every built
-// zip passes parsePack — the same checks importing runs — or the build
-// fails. Only the app-level cross-pack checks, like "is the base
-// installed", can't run here.)
+// (runs under tsx, so it imports the app's validator directly: every pack
+// source passes parsePack — the same checks importing runs — before it is
+// zipped, or the build fails. Only the app-level cross-pack checks, like "is
+// the base installed", can't run here.)
 import {
   readdirSync,
   readFileSync,
@@ -16,7 +16,8 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
 import { PackError } from '../src/lib/goonpacks/manifest';
-import { parsePack } from '../src/lib/goonpacks/pack';
+import { isJunkPath } from '../src/lib/goonpacks/media';
+import { parsePack, type PackTree } from '../src/lib/goonpacks/pack';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
@@ -62,16 +63,21 @@ for (const entry of entries) {
     /* overlays may have no prompt */
   }
   try {
-    for (const f of readdirSync(join(dir, 'pictures')).sort()) {
-      if (f === '.DS_Store') continue;
-      add(join('pictures', f));
+    for (const f of readdirSync(join(dir, 'media')).sort()) {
+      if (isJunkPath(f)) continue;
+      add(join('media', f));
     }
   } catch {
-    /* no pictures dir */
+    /* no media dir */
   }
-  const zip = zipSync(files, { level: 0 }); // jpegs don't recompress
+  // The pack source as a PackTree — the same name-level validation the app runs
+  // over an extracted tree, so a pack that builds is a pack that imports.
+  const tree: PackTree = {
+    names: Object.keys(files),
+    readText: (path) => Promise.resolve(readFileSync(join(dir, path), 'utf8')),
+  };
   try {
-    parsePack(zip);
+    await parsePack(tree);
   } catch (e) {
     const problems =
       e instanceof PackError
@@ -86,7 +92,7 @@ for (const entry of entries) {
   // The zip is named after the source directory, not the pack id — two
   // directories can hold two versions of the same id without clobbering.
   const out = join(packsDir, `${entry.name}.zip`);
-  writeFileSync(out, zip);
+  writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
   console.log(green(`${entry.name}: 0 errors`));
   console.log(`  built, ${entry.name}.zip`);
   built++;

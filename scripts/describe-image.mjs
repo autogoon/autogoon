@@ -1,10 +1,10 @@
 // Describe an image with a vision model and write the caption to a sidecar
 // <basename>.txt — the description a goonpack carries beside each picture. So
-// the flow is: drop an image in goonpacks/<dir>/pictures/, run
+// the flow is: drop an image in goonpacks/<dir>/media/, run
 // `npm run goonpack:describe <path>`, then `npm run goonpack:build` bundles it
 // into the pack.
 //
-//   npm run goonpack:describe goonpacks/aimee/pictures/whatever.jpg
+//   npm run goonpack:describe goonpacks/aimee/media/whatever.jpg
 //
 // (npm runs the script from the repo root, so the path is relative to there,
 // not to your shell's directory.)

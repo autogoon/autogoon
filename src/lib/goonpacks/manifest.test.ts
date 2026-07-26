@@ -17,10 +17,28 @@ describe('parseManifest', () => {
   it('rejects a newer format', () => {
     expect(() => parseManifest({ ...good, format: 3 })).toThrow(PackError);
   });
-  it('names the old layout when a format 1 pack is imported', () => {
-    expect(() => parseManifest({ format: 1, id: 'a.b', version: '1' })).toThrow(
-      /old pictures\/ layout/,
-    );
+  it('accepts a format 1 manifest that used no old-format feature', () => {
+    expect(
+      parseManifest({
+        format: 1,
+        id: 'a.b',
+        version: '1',
+        aboutThePack: 'x',
+        base: 'autogoon.aimee',
+      }).format,
+    ).toBe(1);
+  });
+  it('names the old layout when a format 1 pack used noPictures', () => {
+    expect(() =>
+      parseManifest({
+        format: 1,
+        id: 'a.b',
+        version: '1',
+        aboutThePack: 'x',
+        base: 'autogoon.aimee',
+        noPictures: true,
+      }),
+    ).toThrow(/old pictures\/ layout/);
   });
   it('still asks for a newer app on a future format', () => {
     expect(() => parseManifest({ format: 3, id: 'a.b', version: '1' })).toThrow(
