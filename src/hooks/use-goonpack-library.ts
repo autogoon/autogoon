@@ -62,7 +62,7 @@ export type PackRow = {
 };
 
 const summarize = (parsed: ParsedPack): PackSummary => ({
-  media: { images: parsed.pictures.length, clips: 0 },
+  media: { images: parsed.pictures.length, videos: 0 },
   hasPrompt: parsed.systemPrompt !== undefined,
 });
 

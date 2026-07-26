@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { MEDIA_TYPES, isJunkPath, splitName } from './media';
 
 describe('MEDIA_TYPES', () => {
-  it('maps stills and clips to their kind and MIME type', () => {
+  it('maps stills and videos to their kind and MIME type', () => {
     expect(MEDIA_TYPES.jpg).toEqual({ kind: 'image', mimeType: 'image/jpeg' });
     expect(MEDIA_TYPES.jpeg).toEqual({ kind: 'image', mimeType: 'image/jpeg' });
     expect(MEDIA_TYPES.png).toEqual({ kind: 'image', mimeType: 'image/png' });

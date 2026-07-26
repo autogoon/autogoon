@@ -325,11 +325,11 @@ export function CompanionsPanel({
             {
               name: 'send_media',
               description:
-                'Send him a picture or a clip of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. What you can send:\n' +
+                'Send him a picture or a video of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. Optionally pass `kind` to say which sort you mean; the call is refused if it disagrees with the number. What you can send:\n' +
                 items
                   .map(
                     (m, i) =>
-                      `${i + 1} — ${m.kind === 'video' ? '(clip) ' : ''}${m.description}`,
+                      `${i + 1} — (${m.kind === 'video' ? 'video' : 'picture'}) ${m.description}`,
                   )
                   .join('\n'),
               parameters: {
@@ -341,6 +341,12 @@ export function CompanionsPanel({
                     maximum: items.length,
                     description: 'the number of the one to send',
                   },
+                  kind: {
+                    type: 'string',
+                    enum: ['picture', 'video'],
+                    description:
+                      'optional: the sort you mean to send, checked against the number',
+                  },
                 },
                 required: ['which'],
               },
@@ -351,9 +357,18 @@ export function CompanionsPanel({
                     ? Math.min(Math.max(Math.round(n), 1), items.length) - 1
                     : 0;
                 const item = items[idx]!;
+                const named = item.kind === 'video' ? 'video' : 'picture';
+                // `kind` is a stated intent, not a filter — the list is one
+                // numbering over everything. Refusing a mismatch turns a
+                // misread number into a correction the companion can act on,
+                // rather than the wrong thing arriving on his screen.
+                const wanted = args.kind;
+                if (typeof wanted === 'string' && wanted !== named) {
+                  return `number ${idx + 1} is a ${named}, not a ${wanted} — check the list and pick again`;
+                }
                 showMedia(item);
                 return {
-                  result: `Sent him the ${item.kind === 'video' ? 'clip' : 'picture'}: ${item.description}`,
+                  result: `Sent him the ${named}: ${item.description}`,
                   mediaRef: item.ref,
                 };
               },

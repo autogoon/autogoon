@@ -11,21 +11,24 @@ import type { PackManifest } from './manifest';
 import { packToCompanion } from './resolve';
 
 // What a pack's tree holds that the manifest can't say — the media it carries,
-// split by kind (the chooser and the admin row name stills and clips
+// split by kind (the chooser and the admin row name stills and videos
 // separately), and whether it has a prompt.
-export type MediaCount = { images: number; clips: number };
+export type MediaCount = { images: number; videos: number };
 export type PackSummary = { media: MediaCount; hasPrompt: boolean };
 
-export const totalMedia = (c: MediaCount): number => c.images + c.clips;
+export const totalMedia = (c: MediaCount): number => c.images + c.videos;
 
-// "3 pictures · 2 clips" — one phrase, used by both the chooser card's feature
-// line and the Goonpacks row, so a pack reads the same on either screen.
+// "3 pictures · 2 videos" — one phrase, used by both the chooser card's
+// feature line and the Goonpacks row, so a pack reads the same on either
+// screen.
 export function describeMedia(c: MediaCount): string {
   const parts: string[] = [];
   if (c.images > 0) {
     parts.push(`${c.images} picture${c.images === 1 ? '' : 's'}`);
   }
-  if (c.clips > 0) parts.push(`${c.clips} clip${c.clips === 1 ? '' : 's'}`);
+  if (c.videos > 0) {
+    parts.push(`${c.videos} video${c.videos === 1 ? '' : 's'}`);
+  }
   return parts.join(' · ');
 }
 
@@ -92,7 +95,7 @@ export function effectiveMedia(
   base: MediaCount,
 ): MediaCount {
   if (overlay === null) return base;
-  if (overlay.noMedia === true) return { images: 0, clips: 0 };
+  if (overlay.noMedia === true) return { images: 0, videos: 0 };
   return totalMedia(overlay.media) > 0 ? overlay.media : base;
 }
 
@@ -138,7 +141,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
         label: 'default',
         media: {
           images: c.media?.filter((m) => m.kind === 'image').length ?? 0,
-          clips: c.media?.filter((m) => m.kind === 'video').length ?? 0,
+          videos: c.media?.filter((m) => m.kind === 'video').length ?? 0,
         },
         changed: [],
       },

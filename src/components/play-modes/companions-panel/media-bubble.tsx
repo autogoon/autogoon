@@ -1,8 +1,9 @@
 'use client';
 
 // Something the companion sent, inline in the transcript — left-aligned like
-// their bubbles. A still is a thumbnail; a clip plays inline, muted and looping,
-// as its own preview. Either one opens full-size in the lightbox on click.
+// their bubbles. A still is a thumbnail; a video plays inline, muted and
+// looping, as its own preview. Either one opens full-size in the lightbox on
+// click.
 
 import Image from 'next/image';
 import type { CompanionMedia } from '@/lib/companions/companions';
@@ -23,7 +24,7 @@ export function MediaBubble({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={media.kind === 'video' ? 'Open clip' : 'Open picture'}
+        aria-label={media.kind === 'video' ? 'Open video' : 'Open picture'}
         className="ring-foreground/10 relative h-44 w-44 overflow-hidden rounded-2xl ring-1 transition hover:opacity-90"
       >
         {media.kind === 'video' ? (

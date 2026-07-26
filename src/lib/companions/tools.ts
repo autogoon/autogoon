@@ -6,7 +6,7 @@ import type { RequestTool, ToolParameterSchema } from '@/lib/llm/client';
 
 // What a tool's `run` may return. A plain string is the common case (the result
 // text logged + fed back to the model). The object form lets a tool also attach
-// a still or clip to the transcript turn (send_media): `result` is the
+// a still or video to the transcript turn (send_media): `result` is the
 // model-facing text, `mediaRef` the stable reference the transcript renders and
 // the lightbox opens.
 export type ToolRunResult = { result: string; mediaRef?: string };

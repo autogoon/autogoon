@@ -2,7 +2,7 @@
 
 // Near-fullscreen overlay for sent media. The backdrop or the ✕ closes it, as
 // does Escape. It's rendered with the current lightbox media, so sending a new
-// still or clip while it's open simply swaps to the newest. Closing plays an
+// still or video while it's open simply swaps to the newest. Closing plays an
 // exit fade-zoom before unmounting: requestClose flips to `closing` (swapping
 // the enter animation for the exit one) and unmounts after the animation.
 

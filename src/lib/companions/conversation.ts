@@ -26,7 +26,7 @@ export type ThreadTurn =
   // chip text and what we feed back to the model. Unlike before, these ARE
   // replayed to the LLM (see toLlmMessages) so the companion sees their own prior tool use.
   // mediaRef is set only for a media-sending tool (send_media): it's the
-  // still or clip the transcript renders inline and the lightbox opens. It's
+  // still or video the transcript renders inline and the lightbox opens. It's
   // display-only — never sent to the model (only `result` is) — and persists
   // with the thread, so sent media stays in the log across a reload.
   | {

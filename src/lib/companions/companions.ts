@@ -11,7 +11,7 @@ import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// One thing a companion can send: a still or a clip. `description` is what the
+// One thing a companion can send: a still or a video. `description` is what the
 // model reads to pick a fitting one, from the pack's <basename>.txt sidecar, or
 // "" when there's none. `ref` is the thread-stable reference — object URLs die
 // with the session, so a sent item persists as `ref` and rendering resolves it

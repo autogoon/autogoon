@@ -4,7 +4,7 @@
 
 export type MediaKind = 'image' | 'video';
 
-// Stills and clips a pack may carry, by lowercased extension. .mov is
+// Stills and videos a pack may carry, by lowercased extension. .mov is
 // deliberately absent: it plays in Safari and unreliably elsewhere, so
 // accepting it yields packs that work on their author's machine and not on a
 // stranger's — parsePack rejects it by name with a message saying so.
