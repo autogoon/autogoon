@@ -1,10 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 import { strToU8, zipSync } from 'fflate';
-import { peekZip } from './extract';
+import { extractZip, peekZip } from './extract';
 
-// extractZip needs OPFS and is covered by tests/e2e/goonpack-import.spec.ts.
-// peekZip only needs a File, so the message an import opens with — named pack,
-// wrapper folder, unreadable zip — is decided here.
+// A real extraction needs OPFS and is covered by
+// tests/e2e/goonpack-import.spec.ts; the fake below stands in only for WHICH
+// entries get written. peekZip needs no more than a File, so the message an
+// import opens with — named pack, wrapper folder, unreadable zip — is decided
+// here.
 const zipFile = (files: Record<string, Uint8Array>): File =>
   new File([zipSync(files)], 'pack.zip', { type: 'application/zip' });
 
@@ -25,6 +27,45 @@ const bulky = (() => {
   }
   return bytes;
 })();
+
+// A directory handle that records the paths written under it — enough of the
+// shape extractZip uses (nested directories, one writable per file) to say what
+// landed and what didn't.
+function fakeDir(written: Set<string>, prefix = ''): FileSystemDirectoryHandle {
+  return {
+    getDirectoryHandle: (name: string) =>
+      Promise.resolve(fakeDir(written, `${prefix}${name}/`)),
+    getFileHandle: (name: string) =>
+      Promise.resolve({
+        createWritable: () => {
+          written.add(`${prefix}${name}`);
+          return Promise.resolve({
+            write: () => Promise.resolve(),
+            close: () => Promise.resolve(),
+          });
+        },
+      }),
+  } as unknown as FileSystemDirectoryHandle;
+}
+
+describe('extractZip', () => {
+  it('drops junk and any forged completion marker on the way in', async () => {
+    const written = new Set<string>();
+    await extractZip(
+      zipFile({
+        'manifest.json': manifest('test.pack'),
+        // A pack author's own file that happens to share the marker's name.
+        // Written, it would make an interrupted import look finished.
+        '.complete': strToU8('not mine to write'),
+        '.DS_Store': strToU8('junk'),
+        '__MACOSX/._manifest.json': strToU8('junk'),
+        'media/a.jpg': strToU8('x'),
+      }),
+      fakeDir(written),
+    );
+    expect([...written].sort()).toEqual(['manifest.json', 'media/a.jpg']);
+  });
+});
 
 describe('peekZip', () => {
   it("reads the root manifest's text and lists what it saw", async () => {

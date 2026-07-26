@@ -5,6 +5,7 @@
 import { strFromU8, Unzip, UnzipInflate } from 'fflate';
 import { isJunkPath } from './media';
 import { MANIFEST } from './pack';
+import { MARKER } from './store';
 
 // One zip entry's destination, opened lazily (the handle is async; fflate's
 // ondata is not).
@@ -37,7 +38,12 @@ export async function extractZip(
 ): Promise<void> {
   const sinks: Sink[] = [];
   const unzip = new Unzip((entry) => {
-    if (isJunkPath(entry.name)) {
+    // The marker is the import's own signature, written last of all, and a zip
+    // carrying a root file of that name would forge it: written early here, it
+    // would leave an interrupted import looking finished, which the clean pass
+    // then spares forever. Validation ignores extra root files anyway, so
+    // dropping it costs the pack nothing.
+    if (isJunkPath(entry.name) || entry.name === MARKER) {
       entry.ondata = () => {
         // read and discard: junk never lands in a tree
       };
