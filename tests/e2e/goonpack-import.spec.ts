@@ -181,6 +181,12 @@ test('the version gate accepts and refuses format 1 packs by what they use', asy
   await expect(page.getByText('Oldie · complete companion')).toBeVisible();
   expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(true);
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
+  // Wait for the removal to land before the next case, which reuses this key:
+  // an empty list means removePackTree AND the rebuild after it have finished.
+  // Reloading over a removal in flight would leave the markerless tree that a
+  // half-done removal is supposed to leave — correct behaviour, but the next
+  // case would then be asserting about this one's leftovers.
+  await expect(page.getByText('No packs imported.')).toBeVisible();
 
   // A format 1 pack that used noPictures is refused from the zip's manifest
   // alone — nothing is extracted, so no tree is ever created.
