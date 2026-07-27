@@ -62,6 +62,7 @@
   says — move into
   [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), since none of
   them can be measured until the plumbing exists.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 ## 2026-07-26
 
