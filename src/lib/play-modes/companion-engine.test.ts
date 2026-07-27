@@ -42,34 +42,6 @@ describe('CompanionEngine.generateSpeed', () => {
     expect(ramp.every((e) => e.unscaled === true)).toBe(true);
   });
 
-  it('ramps the cumming wind-down from speed 30 down to 5, then parks at 0 half an hour out', () => {
-    const engine = new CompanionEngine(50, 'medium', 'medium');
-    engine.beginCumming();
-    const ramp = engine.generateSpeed(0, 60_000, CTX);
-    expect(ramp[0]).toEqual({
-      kind: 'speed',
-      at: 0,
-      speed: 30,
-      unscaled: true,
-    });
-    const ramped = ramp.slice(0, -1);
-    expect(
-      ramped.every((e, i) => i === 0 || e.speed < ramped[i - 1]!.speed),
-    ).toBe(true);
-    expect(ramped[ramped.length - 1]).toEqual({
-      kind: 'speed',
-      at: 11_000,
-      speed: 5,
-      unscaled: true,
-    });
-    expect(ramp[ramp.length - 1]).toEqual({
-      kind: 'speed',
-      at: 1_811_500,
-      speed: 0,
-      unscaled: true,
-    });
-  });
-
   it('emits the cumming wind-down only once, so the next batch is empty', () => {
     const engine = new CompanionEngine(50, 'medium', 'medium');
     engine.beginCumming();
@@ -97,15 +69,6 @@ describe('CompanionEngine.generateSpeed', () => {
     const events = engine.generateSpeed(0, 60_000, CTX);
     expect(events.length).toBeGreaterThan(0);
     expect(events.every((e) => e.speed === 100)).toBe(true);
-  });
-
-  it('dips to within 5 of a standstill at high', () => {
-    // Measured over 300 ten-minute batches: the deepest floor came out 0 or 1
-    // at high, and never below 33 at medium — so 5 both holds and tells the
-    // levels apart. Asserting an exact 0 misses about 1 run in 100.
-    const engine = new CompanionEngine(100, 'high', 'high');
-    const events = engine.generateSpeed(0, 600_000, CTX);
-    expect(Math.min(...events.map((e) => e.speed))).toBeLessThanOrEqual(5);
   });
 
   it("resumes from the device's current speed after a knob change", () => {

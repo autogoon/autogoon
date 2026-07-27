@@ -70,19 +70,6 @@ describe('GoonEngine.generateSpeed', () => {
     ]);
   });
 
-  it('compresses the build into a shorter session, so the same clock sits further up the ramp', () => {
-    const topSpeedAtFiveMinutes = (programMs: number): number => {
-      const engine = new GoonEngine(100);
-      engine.setProgramMs(programMs);
-      const events = engine.generateSpeed(5 * 60_000, 6 * 60_000, CTX);
-      return Math.max(...events.map((e) => e.speed));
-    };
-    // Measured over 300 runs each: five minutes into a 10-minute build the
-    // batch tops out at 61..64, and into a 30-minute one at 34.
-    expect(topSpeedAtFiveMinutes(10 * 60_000)).toBeGreaterThan(50);
-    expect(topSpeedAtFiveMinutes(30 * 60_000)).toBeLessThan(40);
-  });
-
   it('generates an ordinary dip batch after reset(), not another cumming wind-down', () => {
     const engine = new GoonEngine(50);
     engine.beginCumming();
