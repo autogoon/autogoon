@@ -311,12 +311,12 @@ describe('a browser that refuses a directory', () => {
     });
   });
 
-  it('reads as a library with no packs in it', async () => {
+  it('leaves listPackKeys empty and openPackTree null, so reading is a library with no packs in it', async () => {
     expect(await listPackKeys()).toEqual([]);
     expect(await openPackTree('pub.pack@1.0.0')).toBeNull();
   });
 
-  it('says so when asked to write', async () => {
+  it("fails markComplete with the browser-can't-store-packs message", async () => {
     await expect(markComplete('pub.pack@1.0.0')).rejects.toThrow(
       "This browser can't store packs",
     );
