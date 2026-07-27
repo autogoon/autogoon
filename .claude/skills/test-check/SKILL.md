@@ -134,6 +134,12 @@ comment what flake rate you accepted and how you measured it.
 
 ## Mutation testing
 
+**A mutant is a deliberately broken copy of the code under test** — one specific
+thing changed, nothing else. Run the tests against it. If one fails, the suite
+would catch that bug for real: the mutant is _killed_. If they all pass, the
+code is broken and nothing noticed — the mutant _survived_, and whatever test
+claimed to cover that behaviour does not.
+
 Copy the module to the scratchpad, reintroduce the defect **there**, point a
 copy of the test at it, and confirm the test fails. Then restore and confirm the
 real suite passes.
