@@ -2,8 +2,7 @@
 
 What it takes for a companion to have a large picture library and use it well:
 they know roughly what they've got, you can ask them for something and they find
-it, and they can climb from clothed to explicit over a session. Everything in
-this document is machinery in service of that sentence.
+it, and they can climb from clothed to explicit over a session.
 
 Companion to [goonpacks](../GOONPACKS.md), the shipped pack format — a goonpack
 is a curated zip you can hand to someone today; this is what happens when the
@@ -84,8 +83,8 @@ The two texts are for two passes, and the counter-intuitive half matters:
 
 - **Coarse — embed the captions.** Embedding search gets _worse_ on long text: a
   vector over two hundred words is an average of everything in them, so it
-  matches many things weakly and nothing strongly. A focused one-liner is the
-  shape embedding likes. Embed their request, take the top few dozen.
+  matches many things weakly and nothing strongly. Embed their request, take the
+  top few dozen.
 - **Fine — rerank on the long descriptions.** Hand a cheap LLM their request
   plus the full descriptions of only those candidates and let it choose. Detail
   the caption dropped is unfindable in the coarse pass and present here, which
@@ -100,7 +99,8 @@ measure it, add the rerank when it demonstrably falls short.
 Hard constraints must not be left to similarity. A companion who never sends
 nudes must be _unable_ to; "with a man in it" is a filter, not a vibe; person
 identity is a filter. So each item also carries a structured attribute panel
-(below) and the search applies those as filters before it ranks anything.
+(**What we store per item**) and the search applies those as filters before it
+ranks anything.
 
 ### The search is session-scoped
 
@@ -149,8 +149,7 @@ fine; the default should be derived and regenerated whenever the set changes.
 
 It's a **shape, not a list** — proportions, who's in it, which acts appear, the
 settings, the range of undress, a few hundred tokens. That's what lets them ask
-answerable questions instead of guessing, and it's the difference between a
-companion who knows their own collection and one who's bluffing.
+answerable questions instead of guessing.
 
 **Neutral or persona-aware?** Unsettled. A neutral summary is derived once per
 set and cached, and different personas care about different dimensions of the
@@ -293,7 +292,7 @@ design up front.
 
 - **The sidecar's shape**, now that there are two texts and an attribute panel
   per item. It's a pack-format change, and it blocks captioning at scale.
-- **Whether the summary is neutral or persona-aware**, per above.
+- **Whether the summary is neutral or persona-aware** (**The set summary**).
 - **How long a long description should be**, which trades captioning cost and
   rerank cost against how much detail survives to be searched.
 - **Whether the coarse pass needs the image embedding at all**, or captions

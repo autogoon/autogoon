@@ -107,8 +107,8 @@ What is easy to get wrong about the pair, and not visible from one file:
 
 - **The engine instance is never re-created.** The Player identifies the active
   source by comparing references, so a panel that rebuilds its engine — a
-  `useMemo` with deps, say — stops being the active source, with nothing raised
-  and no error to read. That is what the `useRef` is for.
+  `useMemo` with deps, say — stops being the active source, with nothing raised.
+  That is what the `useRef` is for.
 - **Reset is two layers.** A panel's reset restores its knobs' React state and
   their engine defaults and re-arms; the Player then rebuilds from the start and
   calls `engine.reset()` to clear transient state — a pending `cumming`, say.

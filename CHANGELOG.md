@@ -11,11 +11,11 @@
   that came back with no token counts at all.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
-- enhancement: **Every companion knows the time** — The rules for reading the
+- enhancement: **Every companion knows the time** — The section explaining the
   clock used to sit inside the toy-control section, so a persona that left
   `{{CONTROL_SECTION}}` out was still told the real time and never told it was
-  real. They're their own thing now, added to every persona automatically with
-  no token to place or forget — which also means they survive a companion that
+  real. It's a section of its own now, added to every persona automatically with
+  no token to place or forget — which also means it survives a companion that
   has no toy to control. Nothing changes for a persona that already pulls the
   control section in.
   ([#24](https://github.com/autogoon/autogoon/pull/24))

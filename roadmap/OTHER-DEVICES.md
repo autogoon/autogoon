@@ -23,8 +23,8 @@ Open questions:
   and lower probably travels everywhere. Stroke length travels to some. The
   Vacuglide's valves are its own. So either the abstraction is the small common
   core and richer devices expose extras, or every device gets its own control
-  vocabulary and the layers above have to cope — which is the same question the
-  prompts face below, one level down.
+  vocabulary and the layers above have to cope — which is the same question
+  **One control prompt per device** faces, one level down.
 - **Transport, and whether to hand it off.** The Vacuglide is a cloud HTTP API;
   most other devices are local BLE. Worth evaluating an off-the-shelf normaliser
   (Intiface / buttplug.io already speaks to a long list of devices) against
@@ -66,7 +66,8 @@ Open questions:
   app.
 - **Vocabulary.** The prompts and docs say "the toy", and `CONTROL_SECTION`
   names the hardware outright. Whatever lands has to leave every companion able
-  to refer to what he's using without the app having lied to them about it.
+  to refer to what the user is using without the app having told them something
+  untrue about it.
 - **The safe word** is always on, but with no program running it has nothing to
   stop — which is the same gap the safeword-as-hard-stop item in
   [TODO.md](../TODO.md) is about, reached from a different direction.

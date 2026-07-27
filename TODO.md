@@ -381,9 +381,9 @@ Goonpacks — importing a companion as a portable pack — has shipped; see
   accepts one and describes its first frame. Two things to settle: the `kind`
   has to be `image` either way (`<video>` can't play a gif), so an animated one
   — a gif may equally be a still — arrives labelled a picture, which is a
-  mislabel only worth sniffing frames for if it grates; and whether a widening
-  like this wants a `PACK_FORMAT` bump — an older app rejects the gif by name
-  rather than misreading the pack, which argues it doesn't.
+  mislabel only worth sniffing frames for if it turns out to matter; and whether
+  a widening like this needs a `PACK_FORMAT` bump — an older app rejects the gif
+  by name rather than misreading the pack, which argues it doesn't.
 
 - **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
   account, so a pack's voice doesn't truly travel. The follow-up carries a voice

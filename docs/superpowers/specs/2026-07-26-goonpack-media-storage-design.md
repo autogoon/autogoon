@@ -15,8 +15,7 @@ packs already reach, let alone with video.
 
 **What packs weigh.** The example pack
 ([`goonpacks/elise/`](../../../goonpacks/elise/)) is 5 KB. A real pack of stills
-could run to hundreds of MB, and packs with video could easily enter multiple-GB
-territory.
+could run to hundreds of MB, and packs with video could easily be several GB.
 
 **What the code assumes.** [`pack.ts`](../../../src/lib/goonpacks/pack.ts) opens
 with "packs are a few MB" — off by orders of magnitude before video. The
@@ -76,19 +75,21 @@ keep the existing sidecar convention — `video.mp4` → `video.txt` — describ
 - **`noPictures` becomes `noMedia`**, with the same meaning.
 - **`{{PICTURES_SECTION}}` becomes `{{MEDIA_SECTION}}`**, its text covering
   videos as well as stills.
-- **`format` becomes `2`.** Not for compatibility — see below — but so a pack
-  written to the old layout fails with "this pack uses the old `pictures/`
-  layout" instead of the misleading "no media found".
+- **`format` becomes `2`.** Not for compatibility (**No backwards
+  compatibility**) — but so a pack written to the old layout fails with "this
+  pack uses the old `pictures/` layout" instead of the misleading "no media
+  found".
 
 **A format 1 pack is still accepted when it used neither of those two things.**
 The formats differ in exactly the media folder's name and `noPictures`; a pack
 with no `pictures/` folder and no `noPictures` field — the pictureless example
 pack, any voice-only or colour-only overlay — already _is_ a format 2 pack, and
 telling its author to rebuild it would be telling them to change nothing. This
-is not the compatibility the next paragraph rules out: nothing old is read in an
-old way. It costs the format gate its manifest-only purity, since whether a
-`pictures/` folder exists is a fact about the tree, so that half of the check
-lives in `parsePack` and the `noPictures` half stays in `parseManifest`.
+is not the compatibility **No backwards compatibility** rules out: nothing old
+is read in an old way. It costs the format gate its manifest-only purity, since
+whether a `pictures/` folder exists is a fact about the tree, so that half of
+the check lives in `parsePack` and the `noPictures` half stays in
+`parseManifest`.
 
 **No backwards compatibility.** Installed packs are not carried over, and
 existing threads' picture references are not preserved. Both were considered and
@@ -218,7 +219,7 @@ treatment, no migrations and no special cases.
 - [`src/lib/goonpacks/pack.ts`](../../../src/lib/goonpacks/pack.ts) — validation
   over a tree; `ParsedPicture.bytes` goes.
 - [`src/lib/goonpacks/entries.ts`](../../../src/lib/goonpacks/entries.ts) —
-  `PackSummary` and `VariantSlot` learn media rather than pictures.
+  `PackSummary` and `VariantSlot` carry media rather than pictures.
 - [`src/lib/goonpacks/resolve.ts`](../../../src/lib/goonpacks/resolve.ts) —
   `noMedia`; references and kinds in place of eager `src`.
 - [`src/lib/companions/shared-prompt.ts`](../../../src/lib/companions/shared-prompt.ts)

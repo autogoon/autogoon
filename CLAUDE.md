@@ -11,7 +11,7 @@ code in this repository.
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
 - `npm run format` — Reformats code and markdown documentation; the globs
-  defining what are in `package.json`.
+  defining what it covers are in `package.json`.
 
 ## Editing files
 
@@ -79,8 +79,8 @@ the app in the browser and watching behaviour.
 - **A test that cannot fail is removed**, not patched to keep its name. Delete
   it outright where it is a tautology, a duplicate, or a restatement of its own
   fixture. Where the contract matters, delete it and write a real one named for
-  what that one pins — the result is a new test that bites, not an old one with
-  a patched fixture. Never leave a contract that matters with no coverage.
+  what that one pins — the result is a new test that can fail, not an old one
+  with a patched fixture. Never leave a contract that matters with no coverage.
 - **A fake stands at a boundary** so a test can assert what the code sent across
   it, or so a module needing storage or a clock can run at all. Never fake the
   LLM, TTS or STT — the app always has them, so exercise them in `tests/e2e/`. A

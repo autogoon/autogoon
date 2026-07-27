@@ -60,7 +60,7 @@ The scripts:
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
 - `npm run format` — Reformats code and markdown documentation; the globs
-  defining what are in `package.json`.
+  defining what it covers are in `package.json`.
 - `npm test` — Jest unit tests.
 - `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
 

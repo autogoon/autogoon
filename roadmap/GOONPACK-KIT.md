@@ -27,10 +27,10 @@ whole point — the value is in how quickly you can get through a lot of picture
 **What changes as a pack grows.** Reading every caption is the right workflow
 while a pack is a curated few hundred. Past that nobody will read them all — see
 the two regimes in [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md) — and the
-kit's centre of gravity moves to the jobs that scale: running the description
-pass over a whole pack and watching it work, creating the voice, and packaging
-the result. Review doesn't go away, it stops being exhaustive: you go to the
-pictures a sampling pass or a search flags, rather than to all of them.
+kit's main jobs become the ones that scale: running the description pass over a
+whole pack and watching it work, creating the voice, and packaging the result.
+Review doesn't go away, it stops being exhaustive: you go to the pictures a
+sampling pass or a search flags, rather than to all of them.
 
 ## The pieces
 
@@ -73,9 +73,8 @@ Open questions:
   model's full notes are printed and thrown away. Reviewing a caption is far
   easier with them, so they'd need storing — a second sidecar, or a change to
   the pack format, which is a compatibility question. Being decided elsewhere:
-  retrieval wants the long description stored for its own reasons, so the
-  sidecar's shape is settled in
-  [TODO.md](../TODO.md#media-descriptions-and-retrieval) rather than here.
+  retrieval stores the long description too, so the sidecar's shape is settled
+  in [TODO.md](../TODO.md#media-descriptions-and-retrieval) rather than here.
 - **What happens to the scripts.** `describe`, `describe-missing` and `build`
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the

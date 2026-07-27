@@ -23,8 +23,7 @@ export type ExtractMessage =
 
 // The zip is read a chunk at a time, so a gigabyte-scale pack fires this
 // thousands of times over to move a percentage with a hundred distinct values —
-// and every message is a state change and a render on the main thread. Ten a
-// second is more than the eye asks for.
+// and every message is a state change and a render on the main thread.
 const PROGRESS_MS = 100;
 
 self.onmessage = (event: MessageEvent<ExtractRequest>) => {

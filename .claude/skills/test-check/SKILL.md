@@ -37,7 +37,7 @@ for the author, not something to review a branch against.
 Two techniques, neither of which follows from knowing the rule:
 
 **Would this test fail if the behaviour it names broke?** Mutation testing
-answers it — see below. Reading does not.
+answers it — § Mutation testing. Reading does not.
 
 **Would this test pass if the code under test were a pass-through?** If yes, the
 assertion is on a value the fake supplied. A fake upstream returning a 429 so

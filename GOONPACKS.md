@@ -205,7 +205,7 @@ painter…").
 
 Say **who leads between you** — whether they take charge or follow. The shared
 sections leave that open on purpose, so a take-charge companion and a
-let-him-drive one both work.
+let-you-drive one both work.
 
 Control of the toy is not yours to set. The app settles that for everyone: never
 started without your say-so, theirs to steer once it is running. Contradicting
