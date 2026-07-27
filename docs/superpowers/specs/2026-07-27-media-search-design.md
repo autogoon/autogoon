@@ -2,11 +2,11 @@
 
 **2026-07-27.** A companion stops picking media by number from a list in the
 tool schema. Every item carries two texts — a long description and a caption
-condensed from it — a pack carrying media carries a summary of what that set
-contains, and two tools replace one: `search_media` returns a bounded set of
-matching refs and captions, `send_media` sends one by ref. This is the plumbing
-only. What a good description contains, and how the search ranks, are settled
-afterwards against a yardstick and live in
+condensed from it — a pack with media also carries a summary of that set, and
+two tools replace one: `search_media` returns a bounded set of matching refs and
+captions, `send_media` sends one by ref. This is the plumbing only. What a good
+description contains, and how the search ranks, are settled afterwards against a
+yardstick and live in
 [roadmap/INFERENCE-LIBRARY.md](../../../roadmap/INFERENCE-LIBRARY.md).
 
 ## Why now
@@ -18,7 +18,7 @@ fifty items and fails well before a thousand — not because the context window
 fills, but because a model choosing between hundreds of near-identical captions
 chooses badly.
 
-Three things make the plumbing the part to build first.
+The plumbing is the part to build first.
 
 **The inference work can't be measured until something consumes its output.**
 Rewriting the caption schema so a second person, a man, and what is happening
@@ -55,7 +55,7 @@ The steps are separable, and each is landable except where noted.
 
 ### 0. One pack format, numbered 1
 
-Independent of everything below, and first because it touches the same
+Independent of the steps that follow, and first because it touches the same
 validator: delete the format 1 compatibility path and renumber the current
 format to 1.
 
@@ -88,21 +88,19 @@ Store the long description beside the caption. `describe-image.mjs` writes both;
 The long description is stored **opaquely** — a text blob, whatever the
 describing script emits. Nothing in the format may assume anything about its
 internal structure, because restructuring it is exactly what the roadmap work
-does. A format that encodes today's schema comes back and breaks.
+does. A format encoding today's schema would have to change when the schema
+does.
 
 ### 2. The set summary in the manifest
 
-A pack carrying media carries a summary of that set in `manifest.json`, as a
-text blob for the same reason. An npm script generates it from the captions and
-descriptions of the pack's own media, so regenerating after a change is one
-command.
+A pack with media carries a summary of that set in `manifest.json`, opaque like
+the description and for the same reason: what it should say is the roadmap's
+question. An npm script generates it from the captions and descriptions of the
+pack's own media, so regenerating after a change is one command.
 
-The summary is what replaces the numbered list in the prompt. Its job is
-twofold: so a companion doesn't offer what isn't there, and — the part
-[roadmap/INFERENCE-LIBRARY.md](../../../roadmap/INFERENCE-LIBRARY.md) doesn't
-yet say — so they phrase requests in words the corpus actually uses. That makes
-it partly a vocabulary: the hair colours, garments, settings, acts and names
-present in the set. Enumerate the vocabulary, not the items.
+The summary is what replaces the numbered list in the prompt. What it has to
+carry to do that is **The set summary** in
+[roadmap/INFERENCE-LIBRARY.md](../../../roadmap/INFERENCE-LIBRARY.md).
 
 ### 3. Building and importing
 
@@ -144,8 +142,8 @@ change must not foreclose**.
 One tool taking a description searches on **every send**. Two tools search once
 per **topic**: one `search_media` yields a working set of refs, and the sends
 that follow are lookups against it with no inference at all. Sessions sit on a
-topic, so the two-call shape is cheaper in practice despite the extra call, and
-the extra call is paid once.
+topic, so the extra call is paid once and the two-call shape is cheaper in
+practice.
 
 It also changes what the companion knows when they send. Today they pick blind
 and the tool result tells them what went, which is why the prompt rule exists —
@@ -159,8 +157,8 @@ append-only tool results, so the prefix cache is unaffected.
 **`search_media` cannot send.** A variant that sends its top hit and returns the
 rest would save a turn on a one-off request, and the case for it is a companion
 whose set is a miscellany rather than a themed shoot, asked for something at
-random. Noted, not built — and see the sampling note below, which may serve that
-case without a second tool.
+random. Noted, not built — and the sampling lever in **What the tool change must
+not foreclose** may serve that case without a second tool.
 
 ## The sidecar format
 
@@ -211,7 +209,7 @@ and must be re-imported.
 ## What the tool change must not foreclose
 
 A search returning the top N over a set holding hundreds of similar items
-returns the same N every time. Four levers exist and none is chosen here:
+returns the same N every time. The levers, none of them chosen here:
 
 - **Excluding what has already been sent.** Stops repeated sends; a repeated
   search still returns the same candidates.
@@ -226,7 +224,7 @@ returns the same N every time. Four levers exist and none is chosen here:
 
 What `search_media` does decide, and must decide deliberately, is its **return
 shape**: whether a result carries a cursor, whether its order is deterministic,
-and whether it is a page or a set. Choose a shape that admits all four, then
+and whether it is a page or a set. Choose a shape that admits any of them, then
 pick a lever against a real library.
 
 N itself is a number to tune against a real set, not a constant to fix here.

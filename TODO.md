@@ -58,8 +58,8 @@ two texts per item, a summary of the set in the manifest, and two tools —
 What a description should contain and how the search should rank are
 deliberately not settled there. They belong to
 [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), and none of it
-can be evaluated until the plumbing below exists: a better caption has to be a
-better search result to be better at all.
+can be evaluated until this plumbing exists: a better caption has to be a better
+search result to be better at all.
 
 The order, with each step's reasoning in the spec:
 
@@ -84,7 +84,8 @@ The order, with each step's reasoning in the spec:
   numbered list leaves the prompt, and the summary takes its place.
 
 - **6 — result diversity.** Which lever answers "the same N every time" is
-  deferred to a real set; the return shape that leaves all of them open is not.
+  deferred to a real set; the return shape that keeps the levers available is
+  not.
 
 ## Companions
 
