@@ -25,8 +25,8 @@ Below is where those leaks hide, which the rules alone would not tell you:
   sizes, folder layouts, hardware or workflow, stated as though describing the
   app. Reframe as a generic worked example ("say 40k images", "a 64GB machine")
   or delete.
-- **A sentence about the local picture set that reads as a sentence about the
-  feature.** `public/companions/<id>/` is gitignored and exists on one machine,
+- **A sentence about the local media set that reads as a sentence about the
+  feature.** `goonpacks/<dir>/media/` is gitignored and exists on one machine,
   so anything about its contents is private: a persona note justified by "which
   is what her pictures are", a cost estimate that needs a real count. Both have
   slipped from the feature to the set. **Do not quote the offending sentence

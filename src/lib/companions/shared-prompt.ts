@@ -76,10 +76,12 @@ export const MEDIA_SECTION = `PICTURES AND VIDEOS:
 
 // What the device is, how it's driven, and that TOY STATUS is ground truth. The
 // clock is TIME_SECTION's, not this one's: a companion with no device is sent a
-// TIME line and no toy at all. Persona-neutral: it says to act "in character"
-// rather than prescribing who leads, so a take-charge companion and a
-// let-him-drive one both fit — the disposition lives in each persona's INTIMACY
-// section. It talks about the TOY STATUS line, which arrives separately
+// TIME line and no toy at all. Persona-neutral in tone, not in authority: it
+// settles toy control identically for every companion — never started without
+// his say-so, theirs to steer once it is running — so a persona written against
+// it only hands the model two contradictory instructions. Who leads the
+// encounter is the persona's, in its INTIMACY section; who drives the toy is
+// not. It talks about the TOY STATUS line, which arrives separately
 // (liveStateMessage below) — every value here is fixed, so a prompt built from
 // it is byte-identical turn to turn.
 //

@@ -44,7 +44,7 @@ names, `/Users/<name>` or other machine-local paths, personal emails or URLs,
 session links. When a doc or plan needs a concrete path, genericize it
 (`~/.claude/jobs/<job-id>/tmp`, not the real one). Also never: a platform name
 in a downloading or collecting context (the app is source-agnostic), anything
-describing the local picture set under `public/companions/<id>/` (gitignored and
+describing the local media set under `goonpacks/<dir>/media/` (gitignored and
 personal — write about the feature, never its contents), and analysis of the
 author's own legal exposure. `/personal-check` is the backstop, not the defence
 — history rewrites are the only fix once pushed.

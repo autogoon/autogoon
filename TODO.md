@@ -146,7 +146,7 @@ What's already built is described in
 
 ### Split the voice session and the companions panel
 
-`use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
+`use-voice-session.ts` (~1000 lines, ~20 refs in one closure) and
 `companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
 to hold in the head. The coupling is deliberate rather than careless — the mic
 and STT callbacks are created once and outlive many renders, so everything they

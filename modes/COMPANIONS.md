@@ -76,10 +76,11 @@ tool names, a model guesses — the wrong shape, the wrong sensation, sometimes
 the wrong act — and it guesses mid-scene, where the words are the whole point.
 Written once, no pack author has to know the hardware, and no companion is wrong
 about it. What stays in the persona module is only that companion: their
-character, setup, tone, and disposition (crucially, **who leads** during play —
-the shared control block is neutral on that). Personas are written in the
-**second person** ("You're 21…") so they read as one voice with the shared
-blocks.
+character, setup, tone, and disposition — crucially, **who leads between them**,
+which the shared blocks leave open. Control of the toy is not among them: the
+shared block settles that for everyone, so a persona written against it
+contradicts rather than overrides it. Personas are written in the **second
+person** ("You're 21…") so they read as one voice with the shared blocks.
 
 ## Device control
 

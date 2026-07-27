@@ -333,8 +333,8 @@ shape worth knowing:
   tested without OPFS.
   [`src/hooks/use-goonpack-library.ts`](./src/hooks/use-goonpack-library.ts) is
   the React face of one session-wide index: the Companions chooser and the
-  Goonpacks tab both hold the hook, and a media file's object URL is minted once
-  and lives as long as its index entry.
+  Goonpacks tab both hold the hook, and a media file's object URL is minted on
+  first render and held until its pack is removed or re-imported.
 - **The id means the same companion.** Storage keys carry the version so
   versions install side by side, but a resolved companion keeps the unversioned
   pack id — conversation threads belong to that id, so they survive version
