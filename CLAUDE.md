@@ -138,13 +138,15 @@ invariants, the why, and the cross-file shape. Concretely:
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, `/doc-check` over the branch's diff, and
+  run, the CHANGELOG entry written, `/doc-check` over the branch's diff,
+  `/test-check` over the tests it touched and the code it added, and
   `/personal-check`.
 - **Before merging**, run `/doc-check` and `/personal-check` again — the branch
   has usually gained commits since the PR opened, and the PR's own title, body
   and comments didn't exist for the first run, so this is the only pass that
   ever reads them. Run it even on a branch that hasn't moved. Treat
-  `gh pr merge` as blocked until both have run against the final diff.
+  `gh pr merge` as blocked until both have run against the final diff — and
+  until `/test-check` has, if the branch has gained tests or pure logic since.
 - **Check `main` hasn't moved** before pushing and again before merging:
   `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
   it isn't, merge `origin/main` into the branch and **verify nothing was lost**
