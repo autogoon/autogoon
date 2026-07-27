@@ -2,9 +2,10 @@
 name: code-check
 description:
   Use before opening a PR and again before merging it. Reviews the branch's
-  source against the rules in CLAUDE.md — Architecture, and the key handling in
-  Secrets / environment. Code only — not docs, tests, or whether a feature
-  should exist.
+  source against the rules in CLAUDE.md — Architecture, the key handling in
+  Secrets / environment, and Documentation's precision rule read against the
+  code. Code only — not comments, docs, tests, or whether a feature should
+  exist.
 ---
 
 # Code check
@@ -31,14 +32,20 @@ against how the app is built.
 ## What to check
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Architecture and → Secrets /
-environment → Keys is a check.** The other half of that section, → What must
-never be committed, is `/personal-check`'s.
+environment → Keys is a check**, and so is → Documentation's precision rule read
+against the code itself: a wrapper that carries no information, a type or layer
+naming an abstraction with no referent, a construction that is approximately
+right where the exact one costs nothing. The other half of Secrets /
+environment, → What must never be committed, is `/personal-check`'s.
 
 Read them there. They are not repeated here, so a rule added there is checked
 without this file changing, and there is no second copy to go stale.
 
 § Editing files is deliberately not claimed: which tool made an edit leaves no
 trace in a diff, and the PreToolUse hook enforces it at the point of use.
+
+§ Comments are not claimed either, precision included: `/doc-check` takes every
+comment the diff touched, and reads it against the whole of → Documentation.
 
 Finding a breach is mostly obvious once the rule is in mind — grep for the thing
 the rule forbids. One technique is not obvious, and is worth the minutes: to
