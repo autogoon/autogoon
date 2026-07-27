@@ -63,16 +63,17 @@ disagrees with its source.
 Goon duplicates Groove's generation helpers on purpose. Shared _infrastructure_
 (the Player, program types) is fine; shared _generation_ is the boundary.
 
+**Nothing is built before it's needed.** YAGNI is practised here, so a field,
+hook, option or abstraction added for a feature that does not exist yet is a
+finding, not foresight. Raise it even where the definition site explains why it
+was captured early — that comment is the answer to the finding, not a reason to
+skip it.
+
 ## Reporting
 
 `FILE:LINE — what it does → which want it undercuts → what it costs.` Worst
 first, and each with evidence: a line, a measurement, or a request you actually
 assembled. Reasoning from the code alone is where invented findings come from.
-
-**Something already recorded in [TODO.md](../../../TODO.md) or the roadmap is
-not a finding.** Nor is a field or hook plumbed ahead of the feature that will
-read it. Check TODO.md before reporting anything that looks like a gap rather
-than a mistake.
 
 - **Fix directly:** the change is contained and the intent is unambiguous.
 - **Ask first:** anything that changes behaviour, prompt wording, or what the

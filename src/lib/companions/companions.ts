@@ -36,7 +36,12 @@ export type Companion = {
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
-  contextWindow: number; // model context window, in tokens (for future pruning; not yet read)
+  // The chosen model's context window, in tokens. Nothing reads it yet —
+  // deliberately captured anyway, because it belongs to whoever picked `model`.
+  // Compaction (TODO.md) is what will need it, and a pack authored before then
+  // would otherwise have to be revisited to supply a number its author knew all
+  // along. Cheap to carry, expensive to backfill across every pack in the wild.
+  contextWindow: number;
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
   // How readily this companion fills a silence, 1–5, as two separate appetites:
   // the conversational one and the one for talking over a running program. They
