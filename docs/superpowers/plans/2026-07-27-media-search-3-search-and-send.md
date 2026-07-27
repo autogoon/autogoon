@@ -25,6 +25,12 @@ land together. It depends on
 [two texts and a summary](./2026-07-27-media-search-2-two-texts-and-summary.md)
 having landed: every type it consumes is produced there.
 
+All three land on `media-search-design`, the branch already carrying the design
+and these plans, open as draft PR
+[#25](https://github.com/autogoon/autogoon/pull/25) — no branch is made for
+them, so one plan depending on another means its commits are on that branch, not
+merged to `main`.
+
 ## Global Constraints
 
 - **Change files with Edit and Write only** — never `sed -i`, a heredoc, or a
@@ -803,7 +809,7 @@ still true and now more so.
   wants to show you something, and sends one of the matches. Two things come
   with it: she won't send you the same picture twice in a session, and when
   nothing matches she says so instead of talking about a picture that never
-  arrived. ([#N](https://github.com/autogoon/autogoon/pull/N))
+  arrived. ([#25](https://github.com/autogoon/autogoon/pull/25))
 ```
 
 - [ ] **Step 4: Gates and commit**
@@ -816,10 +822,13 @@ git commit -m "Docs: asking for a picture, not picking one"
 
 ---
 
-## Before the PR
+## Before the PR is ready
 
-Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this order:
-`/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
+PR [#25](https://github.com/autogoon/autogoon/pull/25) is a draft while the
+three plans land on its branch, so this runs before it is marked ready and again
+before merging. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this
+order: `/code-check`, `/test-check`, `/doc-check`, `/style-check`,
+`/personal-check`.
 
 Two things for `/test-check` in particular. The search's tests assert ranking
 over a fixture the test itself wrote, so check each one would fail if the

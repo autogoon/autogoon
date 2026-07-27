@@ -26,6 +26,11 @@ This is Phase 0 of
 [the media search design](../specs/2026-07-27-media-search-design.md), and is
 independent of every step after it. Steps 1–3 and 4–5 get their own plans.
 
+All three land on `media-search-design`, the branch already carrying the design
+and these plans, open as draft PR
+[#25](https://github.com/autogoon/autogoon/pull/25) — no branch is made for
+them.
+
 ## Global Constraints
 
 - **Change files with Edit and Write only** — never `sed -i`, a heredoc, or a
@@ -630,7 +635,7 @@ first, then `internal`, per the tag order:
   could mean losing every picture in the pack. The build reported success and
   wrote the pack anyway, so the first sign of it was a companion with nothing to
   send. Building now refuses a pack that holds anything a pack can't hold,
-  naming the file. ([#N](https://github.com/autogoon/autogoon/pull/N))
+  naming the file. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **One pack format, and one tree** — `goonpack:build` hand-picked the
   files it fed the validator, so the validator judged a different tree from the
@@ -639,11 +644,8 @@ first, then `internal`, per the tag order:
   prompt or something under `media/`. The two accepted pack-format versions
   become one, numbered `1`: the compatibility path for the older layout is gone
   along with the bespoke check that stood in for the validator not seeing it.
-  ([#N](https://github.com/autogoon/autogoon/pull/N))
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 ```
-
-Replace `#N` with the PR number once the PR exists; leave the entries unlinked
-until then rather than guessing.
 
 - [ ] **Step 6: Gates**
 
@@ -662,11 +664,14 @@ git commit -m "Pack format: the example pack and the docs say 1"
 
 ---
 
-## Before the PR
+## Before the PR is ready
 
-Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this order:
-`/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
-All five run even where a branch didn't go near their subject.
+PR [#25](https://github.com/autogoon/autogoon/pull/25) is a draft while the
+three plans land on its branch, so this runs before it is marked ready and again
+before merging. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this
+order: `/code-check`, `/test-check`, `/doc-check`, `/style-check`,
+`/personal-check`. All five run even where a branch didn't go near their
+subject.
 
 `/personal-check` matters more than usual here: Task 4 touches untracked pack
 sources, and the plan and any PR text must describe the tracked example only —

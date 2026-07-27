@@ -27,6 +27,12 @@ because Task 4 here adds rules to a validator Phase 0 restructures. Steps 4–5
 (the two tools) are
 [their own plan](./2026-07-27-media-search-3-search-and-send.md).
 
+All three land on `media-search-design`, the branch already carrying the design
+and these plans, open as draft PR
+[#25](https://github.com/autogoon/autogoon/pull/25) — no branch is made for
+them, so one plan depending on another means its commits are on that branch, not
+merged to `main`.
+
 ## Global Constraints
 
 - **Change files with Edit and Write only** — never `sed -i`, a heredoc, or a
@@ -802,7 +808,7 @@ it, and that a pack with media must have one.
   image. A pack that carries media also carries a summary of what that set
   contains, written by `npm run goonpack:summarise`. Both are required: a pack
   missing either is refused when it is built and when it is imported.
-  ([#N](https://github.com/autogoon/autogoon/pull/N))
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 ```
 
 - [ ] **Step 4: Gates and commit**
@@ -815,10 +821,13 @@ git commit -m "Docs: the sidecar's two texts, and the set summary"
 
 ---
 
-## Before the PR
+## Before the PR is ready
 
-Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this order:
-`/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
+PR [#25](https://github.com/autogoon/autogoon/pull/25) is a draft while the
+three plans land on its branch, so this runs before it is marked ready and again
+before merging. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow, in this
+order: `/code-check`, `/test-check`, `/doc-check`, `/style-check`,
+`/personal-check`.
 
 `/personal-check` matters here for the same reason as Phase 0, and one more:
 Task 3 and Task 4 both run generation over real pack media, and a summary is a
