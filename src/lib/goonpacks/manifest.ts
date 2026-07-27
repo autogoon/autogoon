@@ -56,6 +56,7 @@ const TOP_FIELDS = new Set([
   'version',
   'base',
   'aboutThePack',
+  'mediaSummary',
   'noMedia',
   'companion',
 ]);
@@ -98,6 +99,11 @@ export type PackManifest = {
   // What the pack adds or changes — about the PACK, not the companion
   // (that's `companion.description`).
   aboutThePack: string;
+  // What the pack's media set contains, as one opaque block of text shown to
+  // the companion instead of a list of items. Generated from the pack's own
+  // sidecars (npm run goonpack:summarise); what it should say belongs to
+  // roadmap/INFERENCE-LIBRARY.md, so nothing here reads into it.
+  mediaSummary?: string;
   // Overlay only: the resolved variant has NO media, deliberately — distinct
   // from omitting media/, which keeps the base's set.
   noMedia?: boolean;
@@ -165,6 +171,7 @@ export function parseManifest(raw: unknown): PackManifest {
   } else if (typeof m.aboutThePack !== 'string') {
     problems.push('The aboutThePack field must be text.');
   }
+  const mediaSummary = optionalString(m.mediaSummary, 'mediaSummary');
   if (m.base !== undefined) {
     if (typeof m.base !== 'string' || !PACK_ID_RE.test(m.base)) {
       problems.push(
@@ -273,6 +280,7 @@ export function parseManifest(raw: unknown): PackManifest {
     version: m.version as string,
     base: m.base as string | undefined,
     aboutThePack: m.aboutThePack as string,
+    mediaSummary,
     noMedia: m.noMedia as boolean | undefined,
     companion: {
       name,

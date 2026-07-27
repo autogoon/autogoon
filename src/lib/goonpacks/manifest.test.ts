@@ -107,6 +107,17 @@ describe('parseManifest', () => {
       /aboutThePack/,
     );
   });
+  it('carries a media summary through as written', () => {
+    expect(
+      parseManifest({ ...good, mediaSummary: 'Mostly beach shots.' })
+        .mediaSummary,
+    ).toBe('Mostly beach shots.');
+  });
+  it("rejects a media summary that isn't text", () => {
+    expect(() => parseManifest({ ...good, mediaSummary: 3 })).toThrow(
+      /The mediaSummary field must be text/,
+    );
+  });
   it('rejects an unknown accentColour', () => {
     expect(() =>
       parseManifest({ ...good, companion: { accentColour: 'mauve' } }),

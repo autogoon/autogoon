@@ -7,6 +7,7 @@
   "scripts": {
     "goonpack:describe": "node --env-file-if-exists=.env scripts/describe-image.mjs",
     "goonpack:describe-missing": "node --env-file-if-exists=.env scripts/describe-missing.mjs",
+    "goonpack:summarise": "tsx --env-file-if-exists=.env scripts/summarise-pack.ts",
     "goonpack:build": "tsx scripts/goonpack-build.ts",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "build": "next build",
