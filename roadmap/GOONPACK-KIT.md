@@ -69,12 +69,11 @@ directory or has to assume a zip.
 
 Open questions:
 
-- **Where the observations live.** The sidecar holds one caption line; the
-  model's full notes are printed and thrown away. Reviewing a caption is far
-  easier with them, so they'd need storing — a second sidecar, or a change to
-  the pack format, which is a compatibility question. Being decided elsewhere:
-  retrieval stores the long description too, so the sidecar's shape is settled
-  in [TODO.md](../TODO.md#media-descriptions-and-retrieval) rather than here.
+- **Where the observations live.** Answered elsewhere: the sidecar becomes a
+  `.md` per item carrying the caption in frontmatter and the model's full notes
+  as the body, so reviewing a caption beside what it was condensed from comes
+  free. See
+  [the design](../docs/superpowers/specs/2026-07-27-media-search-design.md).
 - **What happens to the scripts.** `describe`, `describe-missing` and `build`
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the

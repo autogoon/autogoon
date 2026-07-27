@@ -9,9 +9,14 @@ is a curated zip you can hand to someone today; this is what happens when the
 set is far too big to curate. All of it operates on the **user's own images, on
 their own machine** — see the [content policy](../DEVELOPERS.md#content-policy).
 
-The concrete work in flight is the staged investigation in
-[TODO.md](../TODO.md#media-descriptions-and-retrieval); this document is the
-target design it's aiming at.
+The plumbing this needs — what a pack stores per item and about its set, and the
+two tools a companion calls — is settled in
+[docs/superpowers/specs/2026-07-27-media-search-design.md](../docs/superpowers/specs/2026-07-27-media-search-design.md),
+and staged in [TODO.md](../TODO.md#media-descriptions-and-retrieval). What's
+left here is everything that plumbing deliberately doesn't decide: what goes in
+a description, which model writes it, how the search ranks, and what the summary
+says. None of it can be measured until the plumbing lands, because a better
+caption only shows up as a better search result.
 
 ## Two jobs — don't conflate them
 
@@ -50,49 +55,55 @@ before a library reaches any impressive size.
 
 ## How a request gets served
 
-**The companion never searches. They ask, in words, and the app searches.** In
-order:
+**They ask, in words, and the app does the searching.** In order:
 
 1. **Offline.** Every item gets two texts: a long description of everything in
-   the picture, and a one-line caption. (This is already how
+   the picture, and a one-line caption condensed from it. (This is already how
    `scripts/describe-image.mjs` works — it observes at length and then condenses
    — except only the caption is kept today.)
-2. **Offline.** An LLM reads all the captions and writes the set summary — a
-   paragraph on what the collection _is_.
+2. **Offline.** An LLM reads the captions and descriptions and writes the set
+   summary.
 3. **Session start.** Their prompt carries the summary and nothing else about
-   the media. They never see a list of items.
-4. **Mid-conversation.** They call `send_media` with a description of what they
-   want — "me on my knees looking up at him" — not an index.
-5. **The app searches**, puts the winner on his screen, and returns the caption
-   of what actually went. They speak after that, so they describe what arrived
-   rather than what they asked for. The existing rule ("you'll be told it sent,
-   and THEN you say something about it") is what makes this safe, and it costs
-   no extra turn.
-6. **No match is an answer.** When nothing is close the app says so, and they
+   the media.
+4. **Mid-conversation.** They call `search_media` with a description of what
+   they want — "me on my knees looking up at him" — and get back a bounded set
+   of matches, each a ref and its caption.
+5. **They send by ref.** `send_media` takes one of those refs, so the sends
+   after a search cost no inference at all, and they have read the caption of
+   what they chose before it lands.
+6. **No match is an answer.** When nothing is close the search says so, and they
    ask for something else — far better than them announcing a picture that never
    came.
 
 Searching is app code, not theirs, for three reasons: searching means reading
 the corpus, and the corpus is exactly what doesn't fit; their job is character,
 not lookup; and in the app it can use methods a chat turn can't, and be improved
-without touching anybody's persona prompt.
+without touching anybody's persona prompt. The corpus therefore never enters
+their context — a bounded working set does, which is a different thing and small
+enough to be free.
 
 ### Coarse on captions, fine on the long descriptions
 
-The two texts are for two passes, and the counter-intuitive half matters:
+Two texts suggest two passes, and the counter-intuitive half is why the long one
+isn't the thing to search:
 
-- **Coarse — embed the captions.** Embedding search gets _worse_ on long text: a
+- **Coarse, over the captions.** Embedding search gets _worse_ on long text: a
   vector over two hundred words is an average of everything in them, so it
-  matches many things weakly and nothing strongly. Embed their request, take the
-  top few dozen.
-- **Fine — rerank on the long descriptions.** Hand a cheap LLM their request
-  plus the full descriptions of only those candidates and let it choose. Detail
-  the caption dropped is unfindable in the coarse pass and present here, which
-  is what answers "is there a mirror in it", "does he have a condom on", "is he
-  behind her".
+  matches many things weakly and nothing strongly. A short caption is the
+  searchable projection.
+- **Fine, over the long descriptions.** Hand a cheap LLM the request plus the
+  full descriptions of only the coarse pass's candidates and let it choose.
+  Detail the caption dropped is unfindable in the coarse pass and present here,
+  which is what answers "is there a mirror in it", "does he have a condom on",
+  "is he behind her".
 
-The fine pass is optional and should be earned: start with captions alone,
-measure it, add the rerank when it demonstrably falls short.
+Both halves are candidates rather than decisions. The comparison worth running:
+a cheap LLM reading all the captions, caption-embedding top-k, top-k plus the
+rerank, and the same with an image embedding added — scored by hand against
+thirty to fifty requests in a companion's own words ("something with a man in
+it", "topless but not explicit", "filthier than the last one"). The output is
+the least that works and where it breaks. Start with the coarse pass alone and
+earn the rest.
 
 ### Filters are structured, not semantic
 
@@ -112,13 +123,22 @@ Stateless search sends the same best match all evening. It needs:
   relative requests work — and "something filthier than that" is how escalation
   is actually spoken.
 
+The sharper version of the same problem: a search returning the top N over a set
+holding hundreds of similar items returns the same N every time. Four levers,
+none of them chosen — exclusion of what's been sent, near-duplicate collapse, a
+cursor that continues past the last search, and sampling from everything above a
+threshold rather than strict top-N. The last is also what "something at random"
+wants, so it may serve the query-less request too. Which one earns its place is
+a question for a real library; what the tool must not do is foreclose them.
+
 ### One interface, several implementations
 
 They always ask by description; what's underneath scales with the set. At fifty
 items "retrieval" is a cheap model reading all the captions. At thousands it's
 embeddings plus a rerank. At tens of thousands it's the same with attribute
 prefiltering doing more of the work. The tool contract never changes, so none of
-this is visible to a persona.
+this is visible to a persona — which is what lets the first implementation exist
+to make the tools work end to end rather than to be good.
 
 ## What we store per item
 
@@ -137,19 +157,30 @@ this is visible to a persona.
   "more of this person" signal there is, and a free seed for person identity.
 - **A dedup hash / near-duplicate cluster id.**
 
-Two texts per item outgrows the one-line `.txt` sidecar that `parsePack` reads
-straight in as a description, so the sidecar's shape is a decision to settle
-_before_ captions get written at scale.
+Where these live is settled: a `.md` sidecar per item, caption in frontmatter
+and long description as the body, with the later fields joining the frontmatter.
+Embeddings are the exception — they never go in a text file. See the
+[design](../docs/superpowers/specs/2026-07-27-media-search-design.md).
 
 ## The set summary
 
-Generated by an LLM over the captions, not hand-written: authored prose goes
-stale and then lies, which is worse than absent. An author overriding it is
-fine; the default should be derived and regenerated whenever the set changes.
+Generated by an LLM over the captions and descriptions, not hand-written:
+authored prose goes stale and then lies, which is worse than absent. An author
+overriding it is fine; the default should be derived and regenerated whenever
+the set changes. It rides in the manifest, so a pack carries it.
 
-It's a **shape, not a list** — proportions, who's in it, which acts appear, the
-settings, the range of undress, a few hundred tokens. That's what lets them ask
-answerable questions instead of guessing.
+It has two jobs, and the second is easy to miss. The first is so they don't
+offer what isn't there — proportions, who's in it, which acts appear, the
+settings, the range of undress. The second is so they phrase a request in words
+the corpus actually uses, which is what makes the search work: a request built
+from vocabulary the captions don't contain matches nothing however good the
+retrieval is.
+
+That makes it partly an inventory of terms — the hair colours, garments,
+settings, acts and names present in the set — and how long it runs is however
+long that takes. The line to hold is **enumerate the vocabulary, not the
+items**: a companion should be able to tell what kind of request is answerable
+without being handed a catalogue to choose from.
 
 **Neutral or persona-aware?** Unsettled. A neutral summary is derived once per
 set and cached, and different personas care about different dimensions of the
@@ -161,6 +192,36 @@ reusable. Worth testing rather than assuming; it's also per resolved
 pack-plus-overlay either way, since an overlay changes the set.
 
 ## Producing the descriptions
+
+### The yardstick comes first
+
+Around a hundred images, deliberately loaded with the hard cases: sheer versus
+opaque, nipples through fabric, topless versus covered, a cock in frame,
+penetration, oral, more than one person, watermarks, near duplicates. Hand-write
+the ground truth once.
+
+It's a dull afternoon's work and nothing else in this section should start
+without it — every comparison below is otherwise an impression rather than a
+number, which is how the current prompt came to be confidently wrong in a few
+places.
+
+### What a description should contain
+
+The prompt is written around one woman alone in a pose, so a second body, a man,
+and anything happening _between_ people have nowhere to go. That's a schema gap
+rather than an accuracy one, and no model fixes it. The shape to try:
+**establish the scene first** — how many people, which sexes, what is happening
+between them — **then each person, then any text in the image.**
+
+Two specific errors to chase against the yardstick while here. Bare breasts
+called covered and covered called bare, which is a discrimination the prompt
+already asks for outright. And nipples through fabric missed, where the suspect
+is that prompt's own anti-false-positive wording over-correcting into false
+negatives — a one-line change with a measurable answer.
+
+How the caption is condensed out of the description is the other half, and it is
+cheap to iterate: with the long description stored, a new caption re-condenses
+text already on disk, with no image and no vision model.
 
 ### Model, resolution, compliance
 
@@ -183,10 +244,8 @@ pack-plus-overlay either way, since an overlay changes the set.
   config change rather than a model swap. Try it first.
 - **Prompt is a smaller lever than it looks, but not spent.** The two structural
   moves are already made — observe out loud before condensing, and state
-  outright how to tell confusable cases apart. What isn't done is scope: the
-  prompt is written around one woman alone in a pose, so a second body, a man,
-  and anything happening _between_ people have nowhere to go. That's a schema
-  gap, not an accuracy one, and no model fixes it.
+  outright how to tell confusable cases apart. What's left is scope, which is
+  **What a description should contain** above rather than a model question.
 - **Some ambiguity is irreducible.** A single frame sometimes genuinely can't
   say. Don't chase the last few percent.
 
@@ -290,8 +349,6 @@ design up front.
 
 ## Open questions
 
-- **The sidecar's shape**, now that there are two texts and an attribute panel
-  per item. It's a pack-format change, and it blocks captioning at scale.
 - **Whether the summary is neutral or persona-aware** (**The set summary**).
 - **How long a long description should be**, which trades captioning cost and
   rerank cost against how much detail survives to be searched.
@@ -299,3 +356,7 @@ design up front.
   alone carry it.
 - **Where the heat band lives** — a companion's own sense of the session, or a
   number the app tracks and hands them.
+- **Which diversity lever**, and how many results a search returns (**The search
+  is session-scoped**).
+- **Whether hard constraints need the structured attribute filters** or fall out
+  of ranking (**Filters are structured, not semantic**).

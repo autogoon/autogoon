@@ -22,8 +22,9 @@ index.
   use one and a companion can pick.
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — how a companion handles a
   library too big to curate: they ask for a picture in words and the app finds
-  it, from descriptions and a summary generated offline. The target design
-  behind the staged work in [TODO.md](TODO.md#media-descriptions-and-retrieval).
+  it, from descriptions and a summary generated offline. The open questions
+  behind the plumbing staged in
+  [TODO.md](TODO.md#media-descriptions-and-retrieval).
 - [Goonpack kit](roadmap/GOONPACK-KIT.md) — move pack authoring into the app:
   leaf through a pack's pictures fixing captions, edit its manifest and persona,
   and build it, instead of scripts and a text editor.

@@ -50,6 +50,19 @@
   belong to the model, not the prompt.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- internal: **Settle how a companion will find a picture** — The replacement for
+  picking media by number from the tool schema is specified in
+  [docs/superpowers/specs/2026-07-27-media-search-design.md](./docs/superpowers/specs/2026-07-27-media-search-design.md):
+  two texts per item in a `.md` sidecar, a summary of the set in the manifest,
+  and two tools in place of one — `search_media` returning a bounded set of refs
+  and captions, `send_media` sending one by ref. [TODO.md](./TODO.md) stages
+  that plumbing, opening with a pack-format tidy-up that leaves one accepted
+  format value. The questions it deliberately leaves open — what a description
+  should contain, which model writes it, how the search ranks, what the summary
+  says — move into
+  [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), since none of
+  them can be measured until the plumbing exists.
+
 ## 2026-07-26
 
 - feature: **Companions can send you videos** — A goonpack can now carry video
