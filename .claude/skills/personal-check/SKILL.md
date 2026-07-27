@@ -55,11 +55,52 @@ Below is where those leaks hide, which the rules alone would not tell you:
 
 ## Scope
 
-Default: the branch — `git diff main...HEAD` for content, `git log main..HEAD`
-for messages, and the PR's title/body/comments if one is open.
-`/personal-check all`: the whole tree — every committed file, plus filenames of
-untracked files (they may get committed later). Fan out one read-only subagent
-per directory and collect their reports. Expensive; this is not the per-PR mode.
+Default: the branch — **every revision of every file it changed**, plus
+`git log main..HEAD` for messages and the PR's title/body/comments if one is
+open. `/personal-check all`: the whole tree — every committed file, plus
+filenames of untracked files (they may get committed later). Fan out one
+read-only subagent per directory and collect their reports. Expensive; this is
+not the per-PR mode.
+
+### Every revision, not the final diff
+
+`git diff main...HEAD` shows where the branch **landed**, not what it published.
+Text added in one commit and removed in a later one never appears in it, and on
+a branch that is pushed as it goes, every one of those commits was public the
+moment it landed. A long branch with doc churn can rewrite the same paragraph
+five times; the final diff reads one of them.
+
+So the content pass is over the union of every added line in every commit.
+Subtract the lines the final tree already holds, and what remains is exactly the
+material no final-diff pass reads — where a deleted-but-published leak hides.
+
+Two things make that remainder small enough to read rather than skim:
+
+- **Reconstruct each revision whole; don't read the diff.** For each changed
+  `*.md`, walk `git log main..HEAD --format=%h -- <file>`, `git show <c>:<file>`
+  each one, and **strip fenced code blocks** before collecting. A plan or spec
+  doc is mostly code, and a diff-based filter cannot tell a `+` prose line from
+  a `+` line of a code sample — one branch's plan doc went from 3,278 apparently
+  unread lines to 65 once fences were stripped.
+- **Read comments and prose; pattern-scan the rest.** In code files, personal
+  information reaches the reader through comments and string literals. Read
+  every comment the branch ever added; run the identifier patterns (**What to
+  look for**) over everything else.
+
+Deduplicate before reading — a rename or pronoun pass repeats one sentence
+across many revisions.
+
+This is content only. Messages, PR text and history exposure are their own
+passes.
+
+### Do not let the findings so far shape the search
+
+Once a finding exists, the cheap next move is to grep the rest of history for
+its wording — which finds more of what is already known and nothing else. The
+identifier patterns come from **What to look for** and run in full regardless.
+For the categories no regex covers — a set's size, a folder layout, hardware,
+sourcing — reading is the only pass that works, so the remainder above gets
+read, not searched.
 
 ## History — the part that actually matters
 
@@ -95,3 +136,5 @@ claiming complete removal.
 | "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                |
 | "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision. |
 | "The pictures aren't committed"      | Describing them publishes them anyway.                   |
+| "It's not in the final diff"         | A pushed branch published every commit on the way.       |
+| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.          |
