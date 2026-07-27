@@ -65,19 +65,24 @@ rule it already has.
 
 ## File Structure
 
-| File                                 | Responsibility after the change                                                                 |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `src/lib/goonpacks/pack.ts`          | Judges every path in the tree: manifest, prompt, `media/*`, and nothing else. No format branch. |
-| `src/lib/goonpacks/store.ts`         | Keeps its completion marker out of the tree it hands to validation.                             |
-| `src/lib/goonpacks/manifest.ts`      | `PACK_FORMAT = 1`; `parseManifest` accepts that one value. No `OLD_LAYOUT_PROBLEM`.             |
-| `scripts/goonpack-build.ts`          | Walks the source, validates what it walked, zips what it validated.                             |
-| `src/lib/goonpacks/pack.test.ts`     | Tree rules, including unrecognised paths.                                                       |
-| `src/lib/goonpacks/store.test.ts`    | Tree listing, including the marker's absence from it.                                           |
-| `src/lib/goonpacks/manifest.test.ts` | Format contract: 1 accepted, above refused as newer, below unrecognised.                        |
-| `tests/e2e/goonpack-import.spec.ts`  | Import journeys, with no format-1 fixtures.                                                     |
-| `goonpacks/elise/manifest.json`      | The tracked example pack, declaring `1`.                                                        |
-| `GOONPACKS.md`                       | Documents `format` as always `1`, and what a pack may contain.                                  |
-| `CHANGELOG.md`                       | One `bug` entry and one `internal` entry.                                                       |
+| File                                  | Responsibility after the change                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/lib/goonpacks/pack.ts`           | Judges every path in the tree: manifest, prompt, `media/*`, and nothing else. No format branch. |
+| `src/lib/goonpacks/store.ts`          | Keeps its completion marker out of the tree it hands to validation.                             |
+| `src/lib/goonpacks/manifest.ts`       | `PACK_FORMAT = 1`; `parseManifest` accepts that one value. No `OLD_LAYOUT_PROBLEM`.             |
+| `scripts/lib/goonpack-source.ts`      | New. `collectPackFiles` — a pack source directory read whole, as a path → bytes map.            |
+| `scripts/goonpack-build.ts`           | Validates what `collectPackFiles` returned, and zips what it validated.                         |
+| `jest.config.mjs`                     | `testMatch` reaches `scripts/lib/`, so a script's modules are unit-tested like any other.       |
+| `src/lib/goonpacks/pack.test.ts`      | Tree rules, including unrecognised paths.                                                       |
+| `src/lib/goonpacks/store.test.ts`     | Tree listing, including the marker's absence from it.                                           |
+| `src/lib/goonpacks/manifest.test.ts`  | Format contract: 1 accepted, above refused as newer, below unrecognised.                        |
+| `scripts/lib/goonpack-source.test.ts` | New. Which paths in a source on disk reach the validator and the zip.                           |
+| `src/lib/goonpacks/library.test.ts`   | Its manifest fixture and the missing-format message, both on `1`.                               |
+| `tests/e2e/goonpack-import.spec.ts`   | Import journeys, with no format-1 fixtures.                                                     |
+| `tests/e2e/goonpack-storage.spec.ts`  | Its stored-tree fixture, on `1` so it still validates.                                          |
+| `goonpacks/elise/manifest.json`       | The tracked example pack, declaring `1`.                                                        |
+| `GOONPACKS.md`                        | Documents `format` as always `1`, and what a pack may contain.                                  |
+| `CHANGELOG.md`                        | One `bug` entry and one `internal` entry.                                                       |
 
 ---
 
@@ -105,7 +110,7 @@ unrecognised paths refuses **every installed pack** at load unless the store
 stops presenting its own bookkeeping as part of the pack. The store owns the
 marker, so the store hides it; `parsePack` stays ignorant of it.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `src/lib/goonpacks/pack.test.ts`, add to the `parsePack` describe:
 
@@ -133,43 +138,35 @@ it('names a stray folder by the files inside it, since a folder is only paths', 
     ),
   ).rejects.toThrow(/pictures\/a\.jpg/);
 });
-
-it('still names a wrapper folder rather than every path inside it', async () => {
-  await expect(
-    parsePack(
-      tree({
-        'mypack/manifest.json': complete(),
-        'mypack/system-prompt.md': 'You are Testy.',
-      }),
-    ),
-  ).rejects.toThrow(/Everything is inside mypack\//);
-});
 ```
 
-In `src/lib/goonpacks/store.test.ts`, extend the `openPackTree` describe:
+A third test guarding the wrapper-folder message was planned and not written:
+`names the wrapper folder when the folder was zipped instead of its contents`
+already takes the identical path through `parsePack`, so it guards Step 3
+against the same regression and a second one would be a duplicate.
+
+In `src/lib/goonpacks/store.test.ts`, extend the `openPackTree` describe, using
+the `seed` helper the tests there already build trees with:
 
 ```ts
 it('leaves the completion marker out, so validation never sees the store keeping notes', async () => {
-  await createPackDir('pub.pack@1.0.0');
+  seed('pub.pack@1.0.0', { 'manifest.json': '{}' });
   await markComplete('pub.pack@1.0.0');
-  const tree = await openPackTree('pub.pack@1.0.0');
-  expect(tree?.names).not.toContain(MARKER);
+  expect((await openPackTree('pub.pack@1.0.0'))?.names).toEqual([
+    'manifest.json',
+  ]);
 });
 ```
 
-Import `MARKER` from `./store` in that file if it isn't already imported, and
-match the existing tests' setup helpers for creating a tree.
-
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `npx jest src/lib/goonpacks/pack.test.ts src/lib/goonpacks/store.test.ts`
 
 Expected: FAIL on the two new `parsePack` rejection tests (nothing throws — the
-stray paths are skipped) and on the marker test (`.complete` is listed). The
-wrapper-folder test passes already; it is there to pin that Step 3 doesn't
-regress the good message into a pile of per-path complaints.
+stray paths are skipped) and on the marker test (`.complete` is listed). All
+three failed as described.
 
-- [ ] **Step 3: Make the validator judge every path**
+- [x] **Step 3: Make the validator judge every path**
 
 In `src/lib/goonpacks/pack.ts`, the media loop opens with a skip. Replace:
 
@@ -198,7 +195,7 @@ The wrapper-folder throw above this loop is untouched and still fires first,
 because it runs when `manifest.json` is missing from the root and throws rather
 than collecting problems.
 
-- [ ] **Step 4: Keep the marker out of the tree**
+- [x] **Step 4: Keep the marker out of the tree**
 
 In `src/lib/goonpacks/store.ts`, `listTree` pushes every non-junk file. Change
 its filter so the marker never reaches validation:
@@ -218,14 +215,18 @@ of media/":
 // parsePack can reject it by name.
 ```
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `npm test`
 
 Expected: PASS, whole suite. A failure elsewhere means a fixture carries a path
-the validator now refuses — fix the fixture, not the rule.
+the validator now refuses — fix the fixture, not the rule. The unit suite passed
+whole; `npm run test:e2e` does not, and cannot until Task 3 — the two
+`pictures/` import tests now collect a "doesn't belong in a pack" problem per
+file alongside the old-layout one they assert, and Task 3 is what deletes them.
+The e2e suite is green again from Task 3 onwards.
 
-- [ ] **Step 6: Gates and commit**
+- [x] **Step 6: Gates and commit**
 
 ```bash
 npm run typecheck && npm run lint && npm run format
@@ -240,39 +241,67 @@ git commit -m "Packs: the validator judges every path, not just the ones under m
 
 **Files:**
 
+- Create: `scripts/lib/goonpack-source.ts`
+- Create: `scripts/lib/goonpack-source.test.ts`
 - Modify: `scripts/goonpack-build.ts:58-96`
+- Modify: `jest.config.mjs`
 
 **Interfaces:**
 
 - Consumes: `parsePack` from Task 1, which now refuses unrecognised paths.
-- Produces: nothing importable — this is a script.
+- Produces: `collectPackFiles(dir: string): Record<string, Uint8Array>`, the
+  walk on its own, exported from `scripts/lib/goonpack-source.ts`.
 
-- [ ] **Step 1: Replace the hand-picked collection with a walk**
+The walk is the whole of the defect, so it is the unit under test, and a
+top-level script that runs on import is not one. `scripts/` holds what is run
+and `scripts/lib/` what those import, which is where it goes: it imports
+`node:fs`, and nothing under `src/` does — `PackTree`'s own comment already puts
+the fs-backed side of that type in the authoring script rather than the app.
+Jest's `testMatch` covers `src/**` only, so it gains `scripts/lib/**/*.test.ts`.
+
+- [x] **Step 1: Extract the walk into a module of its own**
 
 The current collection names three things explicitly and reads media with a
 `readFileSync` that throws on a directory. Replace the `add` helper and the
-three collection blocks with one recursive walk:
+three collection blocks with `collectPackFiles(dir)`, whose body is one
+recursive walk:
 
 ```ts
-const files: Record<string, Uint8Array> = {};
-// Walk the source whole: what the validator sees and what the zip carries are
-// then the same tree, so a file that has no place in a pack is refused rather
-// than silently left behind.
-const collect = (rel: string): void => {
-  const entries = readdirSync(join(dir, rel === '' ? '.' : rel), {
-    withFileTypes: true,
-  }).sort((a, b) => a.name.localeCompare(b.name));
-  for (const e of entries) {
-    const path = rel === '' ? e.name : `${rel}/${e.name}`;
-    if (isJunkPath(path)) continue;
-    if (e.isDirectory()) collect(path);
-    else files[path] = new Uint8Array(readFileSync(join(dir, path)));
-  }
-};
-collect('');
+export function collectPackFiles(dir: string): Record<string, Uint8Array> {
+  const files: Record<string, Uint8Array> = {};
+  // A directory is recursed into, never read: readFileSync throws EISDIR on
+  // one, and the paths below it are what lets parsePack name a folder that has
+  // no place in a pack.
+  const collect = (rel: string): void => {
+    const entries = readdirSync(join(dir, rel === '' ? '.' : rel), {
+      withFileTypes: true,
+    }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const e of entries) {
+      const path = rel === '' ? e.name : `${rel}/${e.name}`;
+      if (isJunkPath(path)) continue;
+      if (e.isDirectory()) collect(path);
+      else files[path] = new Uint8Array(readFileSync(join(dir, path)));
+    }
+  };
+  collect('');
+  return files;
+}
 ```
 
-- [ ] **Step 2: Delete the `pictures/` special case**
+- [x] **Step 1a: Test it against a real directory**
+
+The walk's job is the filesystem, so `scripts/lib/goonpack-source.test.ts`
+builds a source under `mkdtempSync` and asserts the paths that come back:
+
+- every file the source holds, including one that has no place in a pack — what
+  the validator judges and what the zip carries are the same map;
+- the media files that sort after a subfolder, plus the subfolder's own
+  contents, which is the defect itself;
+- macOS junk left out.
+
+Judging those paths stays `parsePack`'s, and `pack.test.ts`'s.
+
+- [x] **Step 2: Delete the `pictures/` special case**
 
 It exists only because the validator could not see the folder. Delete the whole
 block, including its comment:
@@ -296,34 +325,22 @@ A source still holding `pictures/` now fails through `parsePack`, naming each
 file in it. Keep the `statSync` import: the "a directory without a manifest
 isn't a pack source" guard above still uses it.
 
-- [ ] **Step 3: Verify the bug is fixed**
+- [x] **Step 3: Verify the bug is fixed end to end**
 
-Build a throwaway source with a subfolder sorting before the media files, and
-confirm it is refused rather than silently emptied:
+Step 1a pins the walk; this pins the build the walk feeds. A throwaway source
+with a subfolder sorting before the media files, built with the old script and
+the new one:
 
-```bash
-mkdir -p goonpacks/zz-scratch/media/aaa-sub
-cp goonpacks/elise/manifest.json goonpacks/zz-scratch/manifest.json
-cp goonpacks/elise/system-prompt.md goonpacks/zz-scratch/system-prompt.md
-npm run goonpack:build
-```
+- old script: `zz-scratch: 0 errors`, `built, zz-scratch.zip` — a zip with no
+  media in it, reported as a success. This is the shipped defect.
+- new script: `zz-scratch: 1 error`,
+  `media/ can't contain subfolders — found media/aaa-sub/x.jpg.`, and no zip
+  written.
 
-Expected: `zz-scratch` reports an error naming `media/aaa-sub/…` or, with the
-folder empty, builds clean — an empty directory contributes no paths. Put a file
-in it to see the refusal:
+An empty subfolder builds clean under both — an empty directory contributes no
+paths, so there is nothing for `parsePack` to refuse.
 
-```bash
-touch goonpacks/zz-scratch/media/aaa-sub/x.jpg
-npm run goonpack:build
-```
-
-Expected: `zz-scratch: 1 error` naming `media/ can't contain subfolders`, and no
-`zz-scratch.zip` written. Before this task the same source built clean with an
-empty media set.
-
-Then remove it: `rm -rf goonpacks/zz-scratch goonpacks/zz-scratch.zip`
-
-- [ ] **Step 4: Verify every real pack still builds**
+- [x] **Step 4: Verify every real pack still builds**
 
 Run: `npm run goonpack:build`
 
@@ -331,11 +348,12 @@ Expected: a green status line per pack. A pack that now fails is carrying a file
 that was never shipping anyway — read the message and remove the file rather
 than loosening the rule.
 
-- [ ] **Step 5: Gates and commit**
+- [x] **Step 5: Gates and commit**
 
 ```bash
 npm run typecheck && npm run lint && npm run format
-git add scripts/goonpack-build.ts
+git add scripts/goonpack-build.ts scripts/lib/goonpack-source.ts \
+  scripts/lib/goonpack-source.test.ts jest.config.mjs
 git commit -m "goonpack:build: walk the source, validate it, ship what was validated"
 ```
 
@@ -353,7 +371,15 @@ mean neither task ends on a green gate.
 - Modify: `src/lib/goonpacks/pack.ts` — the import block and the format branch
 - Test: `src/lib/goonpacks/manifest.test.ts:4-9`, `:25-67`, `:171`
 - Test: `src/lib/goonpacks/pack.test.ts:5-12`, and the two format-1 tests
+- Test: `src/lib/goonpacks/library.test.ts` — its manifest fixture and the
+  missing-format message it asserts
 - Test: `tests/e2e/goonpack-import.spec.ts:11-52`, `:185-241`, `:242-257`
+- Test: `tests/e2e/goonpack-storage.spec.ts` — the `validPack` fixture
+
+The fixtures beyond `manifest.test.ts` and `pack.test.ts` are the ones a
+`format: 2` grep finds. Only these two of them break: a fixture that never
+reaches `parseManifest` — `entries`, `extract`, `import`, `resolve`,
+`use-goonpack-library` — declares a format nothing reads, and passes either way.
 
 **Interfaces:**
 
@@ -363,7 +389,7 @@ mean neither task ends on a green gate.
   `src/lib/goonpacks/manifest.ts` with its current name and type.
   `OLD_LAYOUT_PROBLEM` stops being exported.
 
-- [ ] **Step 1: Rewrite the unit format contract**
+- [x] **Step 1: Rewrite the unit format contract**
 
 In `src/lib/goonpacks/manifest.test.ts`, change the shared fixture:
 
@@ -405,7 +431,7 @@ it('rejects a format written as a string in quotes', () => {
 And at `manifest.test.ts:171`, change the inline manifest from `format: 2` to
 `format: 1`.
 
-- [ ] **Step 2: Rewrite the tree-side tests**
+- [x] **Step 2: Rewrite the tree-side tests**
 
 In `src/lib/goonpacks/pack.test.ts`, change the fixture builder's `format: 2` to
 `format: 1`, and delete both format-1 tests:
@@ -416,7 +442,7 @@ In `src/lib/goonpacks/pack.test.ts`, change the fixture builder's `format: 2` to
 The second is covered by Task 1's stray-folder test, which refuses
 `pictures/a.jpg` whatever the manifest declares.
 
-- [ ] **Step 3: Run the unit tests to verify they fail**
+- [x] **Step 3: Run the unit tests to verify they fail**
 
 Run:
 `npx jest src/lib/goonpacks/manifest.test.ts src/lib/goonpacks/pack.test.ts`
@@ -433,7 +459,7 @@ Everything else passes, including
 the "doesn't recognise" branch. That one is retargeted rather than new, so it
 passing here is correct.
 
-- [ ] **Step 4: Make the change in `manifest.ts`**
+- [x] **Step 4: Make the change in `manifest.ts`**
 
 Set the constant:
 
@@ -472,7 +498,7 @@ if (m.format !== PACK_FORMAT) {
 That deletes the `m.format !== PACK_FORMAT && m.format !== 1` compound and the
 whole `noPictures` branch beneath it, including its two-line comment.
 
-- [ ] **Step 5: Make the change in `pack.ts`**
+- [x] **Step 5: Make the change in `pack.ts`**
 
 Drop `OLD_LAYOUT_PROBLEM` from the import so it reads:
 
@@ -493,16 +519,21 @@ if (manifest.format === 1 && names.some((n) => n.startsWith('pictures/'))) {
 }
 ```
 
-- [ ] **Step 6: Run the unit tests to verify they pass**
+- [x] **Step 6: Run the unit tests to verify they pass**
 
 Run: `npm test`
 
-Expected: PASS, whole suite.
+Expected: PASS, whole suite. `library.test.ts` fails first: its manifest fixture
+still declares `2`, so every pack it builds is now refused as needing a newer
+app, and one test asserts the missing-format message by its text. Both are the
+one-line fixture changes above.
 
-- [ ] **Step 7: Rewrite the e2e fixtures**
+- [x] **Step 7: Rewrite the e2e fixtures**
 
 In `tests/e2e/goonpack-import.spec.ts`, change `completePack`'s manifest from
-`format: 2` to `format: 1`, and delete the `v1Manifest` helper entirely.
+`format: 2` to `format: 1`, and delete the `v1Manifest` helper entirely. In
+`tests/e2e/goonpack-storage.spec.ts`, `validPack` needs the same change — a
+stored tree that no longer validates is no longer the fixture that file needs.
 
 Delete these three tests, whose behaviour no longer exists:
 
@@ -544,20 +575,22 @@ with:
 // A pack zip built to order: the manifest, a system prompt, and any media given.
 ```
 
-- [ ] **Step 8: Run the e2e suite**
+- [x] **Step 8: Run the e2e suite**
 
 Run: `npm run test:e2e -- goonpack-import`
 
 Expected: PASS on Chromium, Firefox and WebKit. WebKit skips the OPFS-dependent
-tests via `skipWithoutOpfs` — a skip there is expected, not a failure.
+tests via `skipWithoutOpfs` — a skip there is expected, not a failure. This is
+also where the suite goes green again after Task 1 left it red.
 
-- [ ] **Step 9: Gates and commit**
+- [x] **Step 9: Gates and commit**
 
 ```bash
 npm run typecheck && npm run lint && npm run format
 git add src/lib/goonpacks/manifest.ts src/lib/goonpacks/pack.ts \
   src/lib/goonpacks/manifest.test.ts src/lib/goonpacks/pack.test.ts \
-  tests/e2e/goonpack-import.spec.ts
+  src/lib/goonpacks/library.test.ts tests/e2e/goonpack-import.spec.ts \
+  tests/e2e/goonpack-storage.spec.ts
 git commit -m "Pack format: one accepted value, and the old layout path deleted"
 ```
 
@@ -578,11 +611,11 @@ git commit -m "Pack format: one accepted value, and the old layout path deleted"
   refused by the validator that `goonpack:build` runs.
 - Produces: nothing code-facing.
 
-- [ ] **Step 1: Update the tracked pack source**
+- [x] **Step 1: Update the tracked pack source**
 
 In `goonpacks/elise/manifest.json`, change `"format": 2` to `"format": 1`.
 
-- [ ] **Step 2: Update the untracked pack sources**
+- [x] **Step 2: Update the untracked pack sources**
 
 `goonpacks/` holds pack sources beyond the tracked example; they are gitignored
 and exist only on the author's machine. Each has a `manifest.json` needing the
@@ -594,7 +627,7 @@ grep -l '"format": 2' goonpacks/*/manifest.json
 
 Change each with Edit. Nothing here is committed except the tracked example.
 
-- [ ] **Step 3: Verify every pack still builds**
+- [x] **Step 3: Verify every pack still builds**
 
 Run: `npm run goonpack:build`
 
@@ -602,7 +635,7 @@ Expected: a green status line per pack. The build runs `parsePack`, so a
 manifest still declaring `2` fails here with "This pack needs a newer version of
 the app." — that is the missed-file signal, not a bug.
 
-- [ ] **Step 4: Update GOONPACKS.md**
+- [x] **Step 4: Update GOONPACKS.md**
 
 Change `"format": 2` to `"format": 1` in both JSON examples (`:67` and `:191`).
 
@@ -615,16 +648,18 @@ exists:
   anything else is refused on import.
 ```
 
-Read the `## media/` section (`:241`) and say there what is now enforced: a pack
-holds `manifest.json`, `system-prompt.md` and `media/`, and anything else in the
-zip is refused by name on import. That rule is new in Task 1 and a pack author
-needs to know it.
+Say what is now enforced: a pack holds `manifest.json`, `system-prompt.md` and
+`media/`, and anything else in the zip is refused by name on import. That rule
+is new in Task 1 and a pack author needs to know it. It went at the head of
+`## Building the zip`, which is where an author reads what goes into the zip;
+`## media/` already carries the no-subfolders half and stating the rule in both
+places would be two copies to drift.
 
 Leave `:284` alone. It says a stored pack is re-checked at every load and marked
 incompatible when "the pack format has moved on" — that describes a future bump,
 not the path being deleted, and stays true with one accepted value.
 
-- [ ] **Step 5: Add the changelog entries**
+- [x] **Step 5: Add the changelog entries**
 
 Under today's `## YYYY-MM-DD` heading in `CHANGELOG.md`. The `bug` entry comes
 first, then `internal`, per the tag order:
@@ -647,7 +682,7 @@ first, then `internal`, per the tag order:
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 ```
 
-- [ ] **Step 6: Gates**
+- [x] **Step 6: Gates**
 
 Run: `npm run format && npm test`
 
@@ -655,7 +690,7 @@ Expected: format clean, tests pass. `src/lib/changelog.ts` parses CHANGELOG.md
 strictly and `changelog.test.ts` covers the parser, so a malformed entry shows
 up there.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add goonpacks/elise/manifest.json GOONPACKS.md CHANGELOG.md
