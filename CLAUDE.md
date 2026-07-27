@@ -235,17 +235,25 @@ invariants, the why, and the cross-file shape. Concretely:
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, and the four checks — `/doc-check`,
-  `/test-check`, `/code-check`, `/personal-check`. All four run on every branch:
-  a check that only runs when someone judges it relevant is a check that never
-  runs, and each one reports "nothing found" cheaply when a branch didn't go
-  near its subject.
-- **Before merging**, run all four again — the branch has usually gained commits
-  since the PR opened, and the PR's own title, body and comments didn't exist
-  for the first run, so this is the only pass that ever reads them. Run them
-  even on a branch that hasn't moved, and for the same reason as above: a re-run
-  skipped on judgement is a re-run that never happens. Treat `gh pr merge` as
-  blocked until all four have run against the final diff.
+  run, the CHANGELOG entry written, and the four checks, **in this order**:
+  `/code-check`, `/test-check`, `/doc-check`, `/personal-check`. All four run on
+  every branch: a check that only runs when someone judges it relevant is a
+  check that never runs, and each one reports "nothing found" cheaply when a
+  branch didn't go near its subject.
+- **The order is load-bearing**, because each check changes what the next one
+  reads. `/code-check` settles what the code does, so the tests and docs are
+  judged against code that is finished rather than code still moving.
+  `/test-check` comes next because a test it rewrites is itself something the
+  docs may describe. `/doc-check` then reads every doc and comment against a
+  settled branch. `/personal-check` is last so it sees the final text of
+  everything the other three wrote — it is the only check whose miss can't be
+  fixed after a push.
+- **Before merging**, run all four again, in the same order — the branch has
+  usually gained commits since the PR opened, and the PR's own title, body and
+  comments didn't exist for the first run, so this is the only pass that ever
+  reads them. Run them even on a branch that hasn't moved, and for the same
+  reason as above: a re-run skipped on judgement is a re-run that never happens.
+  Treat `gh pr merge` as blocked until all four have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and

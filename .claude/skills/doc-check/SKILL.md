@@ -24,12 +24,13 @@ acquires padding, hedging and sentences that carry nothing.
   mentions any of them: the docs are `*.md` at the root, `modes/*.md`,
   `roadmap/*.md`, and `.env.example` (its comments are the documented env
   contract).
-- **Code comments are docs too.** A code comment that contradicts the code
-  around it — or references something that no longer exists — is a finding.
-  **Every comment the diff touched is in scope**, whatever file it sits in: if
-  the branch wrote or edited it, read it as a doc. Comments are where drift
-  hides, because nothing else checks them. Beyond the diff, code files still
-  aren't swept — flag those opportunistically, while verifying something else.
+- **Code comments are docs too.** **Every comment the diff touched is in
+  scope**, whatever file it sits in: if the branch wrote or edited it, read it
+  as a doc — how it is written, what it names, and whether it still describes
+  the repo around it. Whether it tells the truth about the code directly beneath
+  it is `/code-check`'s, which reads that hunk anyway; everything else about it
+  is here. Beyond the diff, code files still aren't swept — flag those
+  opportunistically, while verifying something else.
 - **`/doc-check all`: full sweep.** Every doc in the set above, against the
   whole codebase. Fan out one read-only subagent per cluster and collect their
   reports; cover the set exactly, with no doc in two clusters and none left out.

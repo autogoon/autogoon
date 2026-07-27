@@ -4,15 +4,16 @@ description:
   Use before opening a PR and again before merging it. Reviews the branch's
   source against the rules in CLAUDE.md — Architecture, the key handling in
   Secrets / environment, and Documentation's precision rule read against the
-  code. Code only — not comments, docs, tests, or whether a feature should
-  exist.
+  code — and checks that each comment the diff touched still tells the truth
+  about the code beneath it. Not docs, tests, or whether a feature should exist.
 ---
 
 # Code check
 
 `/doc-check` reads the docs, `/test-check` reads the tests, `/personal-check`
 reads for leaks. This one reads the code against the rules CLAUDE.md sets for
-it.
+it, and the comments on it against the code. It runs first of the four — the
+order, and why, are in [CLAUDE.md](../../../CLAUDE.md) → Git workflow.
 
 **It is about code, not features.** Whether something should exist is a product
 question and lives in [TODO.md](../../../TODO.md). This asks whether what does
@@ -41,11 +42,20 @@ environment, → What must never be committed, is `/personal-check`'s.
 Read them there. They are not repeated here, so a rule added there is checked
 without this file changing, and there is no second copy to go stale.
 
+**A comment that lies about the code beneath it is a finding here.** Every
+comment the diff touched, read against the code it sits on — because this is the
+check with that hunk open, and the two can only be judged against each other by
+whoever is reading both. A comment describing a branch that has gone, a
+condition inverted since it was written, or a mechanism that now works another
+way costs more than no comment at all: it is believed.
+
 § Editing files is deliberately not claimed: which tool made an edit leaves no
 trace in a diff, and the PreToolUse hook enforces it at the point of use.
 
-§ Comments are not claimed either, precision included: `/doc-check` takes every
-comment the diff touched, and reads it against the whole of → Documentation.
+§ How a comment is _written_ is `/doc-check`'s — precision, naming something
+renamed, describing the past or the future, and the cross-file drift no single
+hunk shows. Accuracy against the code in front of you is this check's; the rest
+of → Documentation is that one's.
 
 Finding a breach is mostly obvious once the rule is in mind — grep for the thing
 the rule forbids. One technique is not obvious, and is worth the minutes: to
