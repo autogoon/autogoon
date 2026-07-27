@@ -253,8 +253,8 @@ conversation refers to them by name, so one name means one thing.
 ## Building the zip
 
 A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
-and `media/`. Anything else in the zip — a scratch file, a folder of unsorted
-pictures — is refused on import, named so you can see which file it was.
+and `media/`. Anything else in the zip — a leftover `notes.md`, a subfolder
+inside `media/` — is refused on import, named so you can see which file it was.
 
 Any zip tool works — zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` zips every
