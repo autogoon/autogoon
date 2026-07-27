@@ -51,6 +51,7 @@ import {
   isSilentAssistantTurn,
   sameLocalDay,
 } from '@/lib/companions/conversation';
+import { describeMediaList, pickMedia } from '@/lib/companions/send-media';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
 import { voiceStage } from '@/lib/voice/session-policy';
@@ -322,12 +323,7 @@ export function CompanionsPanel({
               name: 'send_media',
               description:
                 'Send him a picture or a video of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. Optionally pass `kind` to say which sort you mean; the call is refused if it disagrees with the number. What you can send:\n' +
-                items
-                  .map(
-                    (m, i) =>
-                      `${i + 1} — (${m.kind === 'video' ? 'video' : 'picture'}) ${m.description}`,
-                  )
-                  .join('\n'),
+                describeMediaList(items),
               parameters: {
                 type: 'object',
                 properties: {
@@ -347,26 +343,9 @@ export function CompanionsPanel({
                 required: ['which'],
               },
               run: (args: Record<string, unknown>) => {
-                const n = args.which;
-                const idx =
-                  typeof n === 'number' && Number.isFinite(n)
-                    ? Math.min(Math.max(Math.round(n), 1), items.length) - 1
-                    : 0;
-                const item = items[idx]!;
-                const named = item.kind === 'video' ? 'video' : 'picture';
-                // `kind` is a stated intent, not a filter — the list is one
-                // numbering over everything. Refusing a mismatch turns a
-                // misread number into a correction the companion can act on,
-                // rather than the wrong thing arriving on his screen.
-                const wanted = args.kind;
-                if (typeof wanted === 'string' && wanted !== named) {
-                  return `number ${idx + 1} is a ${named}, not a ${wanted} — check the list and pick again`;
-                }
-                showMedia(item);
-                return {
-                  result: `Sent him the ${named}: ${item.description}`,
-                  mediaRef: item.ref,
-                };
+                const pick = pickMedia(items, args);
+                if (pick.show !== null) showMedia(pick.show);
+                return pick.sent;
               },
             } satisfies CompanionTool,
           ]
