@@ -57,7 +57,7 @@ swallows it, storage that loses it — is a safety finding, not a polish one.
 **Nothing derived is persisted.** One notion of a valid pack, rebuilt from the
 trees at every load, so there is no second store to drift out of step. A cache,
 index or summary written to disk is a drift source: ask what happens the day it
-disagrees with the thing it was derived from.
+disagrees with its source.
 
 **Engines stay independent.** The play-mode engines don't import each other —
 Goon duplicates Groove's generation helpers on purpose. Shared _infrastructure_
@@ -70,16 +70,15 @@ first, and each with evidence: a line, a measurement, or a request you actually
 assembled. Reasoning from the code alone is where invented findings come from.
 
 **Something already recorded in [TODO.md](../../../TODO.md) or the roadmap is
-not a finding** — the project knows, and saying so again is noise dressed as
-rigour. The same goes for a field or hook plumbed ahead of the feature that will
-read it: unused is not unwanted. Check the TODO before reporting anything that
-looks like a gap rather than a mistake.
+not a finding.** Nor is a field or hook plumbed ahead of the feature that will
+read it. Check TODO.md before reporting anything that looks like a gap rather
+than a mistake.
 
 - **Fix directly:** the change is contained and the intent is unambiguous.
 - **Ask first:** anything that changes behaviour, prompt wording, or what the
   model is told. Take those one at a time and ask about one change, not five.
 
-A clean run says "no findings". Don't manufacture some to look thorough.
+A clean run says "no findings". Don't invent any.
 
 ## Red flags
 
