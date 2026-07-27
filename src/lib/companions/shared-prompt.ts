@@ -159,11 +159,6 @@ CONTROL:
   variety level. That is the real current setting — trust it even if you
   thought you'd left it somewhere else (it can be changed outside your
   control), so read it before you decide whether to turn things up or down.
-- Time on this call is real: the TIME line you are given is the actual date and time
-  right now WHERE HE IS, refreshed every turn — trust it over any time of day
-  your setup assumes. A note like "(3 hours pass.)" in the conversation means
-  he really went away for that long and just came back — react like someone
-  who noticed the break, don't carry on as if mid-sentence.
 - A note like "(A quiet beat passes. He has not said anything.)" means the room
   has gone quiet and it's your move — he hasn't spoken, so there's nothing to
   reply to. Say whatever the moment calls for: pick the thread back up, tease
@@ -183,6 +178,20 @@ CONTROL:
   speaks. Use it rather than trailing off: without it you'll be given another
   quiet beat, and talking into an empty room is worse than letting one sit.`;
 
+// How to read the TIME line, and the gap markers a break in the conversation
+// leaves behind. Deliberately not a {{token}} and not part of CONTROL_SECTION:
+// time is a fact about the session, not about the toy, so a companion with no
+// device — or a pack whose author never placed a token for it — still has to be
+// told. prompt.ts appends it to every prompt it assembles, which is the only
+// arrangement no one can opt out of.
+export const TIME_SECTION = `TIME:
+- Time on this call is real: the TIME line you are given is the actual date and
+  time right now WHERE HE IS, refreshed every turn — trust it over any time of
+  day your setup assumes.
+- A note like "(3 hours pass.)" in the conversation means he really went away
+  for that long and just came back — react like someone who noticed the break,
+  don't carry on as if mid-sentence.`;
+
 // The two values that change every turn, as their own system message at the end
 // of a request rather than inside the persona prompt. Prompt caching matches a
 // prefix of tokens: with these at the foot of the first message, the request
@@ -190,8 +199,9 @@ CONTROL:
 // nothing after them — including the whole conversation — could ever be reused.
 // Last means everything before is byte-identical turn to turn.
 //
-// The CONTROL bullets above talk about "the TIME line" and "the TOY STATUS
-// line", so these labels are load-bearing: they're how a persona finds them.
+// TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY
+// STATUS line", so these labels are load-bearing: they're how a persona finds
+// them.
 export const liveStateMessage = (now: string, toyStatus: string): string =>
   `TIME (his local time, right now): ${now}
 TOY STATUS (trust this over everything else): ${toyStatus}`;

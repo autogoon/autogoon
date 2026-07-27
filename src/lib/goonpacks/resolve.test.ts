@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { MEDIA_SECTION } from '@/lib/companions/shared-prompt';
+import { MEDIA_SECTION, TIME_SECTION } from '@/lib/companions/shared-prompt';
 import {
   DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
@@ -55,6 +55,11 @@ const still = (src: string): CompanionMedia => ({
   load: () => Promise.resolve(src),
 });
 
+// fillSharedSections appends the time rules to every prompt it assembles; that
+// append is prompt.test.ts's to pin, and only noise in these media cases.
+const body = (prompt: string): string =>
+  prompt.replace(`\n\n${TIME_SECTION}`, '');
+
 describe('applyOverlay', () => {
   it("keeps the base's id, not the overlay pack's own id", () => {
     expect(applyOverlay(base, overlay()).id).toBe('autogoon.aimee');
@@ -89,7 +94,7 @@ describe('applyOverlay', () => {
   });
   it("uses the overlay's system prompt in place of the base's", () => {
     const out = applyOverlay(base, { ...overlay(), systemPrompt: 'yo' });
-    expect(out.systemPrompt).toBe('yo');
+    expect(body(out.systemPrompt)).toBe('yo');
   });
   it("never takes the overlay's name — the base's is kept", () => {
     // The base's name survives only by omission: `name` is absent from the
@@ -101,7 +106,7 @@ describe('applyOverlay', () => {
   });
   it('fills MEDIA_SECTION when the overlay brings pictures', () => {
     const pics = [still('blob:x')];
-    expect(applyOverlay(base, overlay({}, pics)).systemPrompt).toBe(
+    expect(body(applyOverlay(base, overlay({}, pics)).systemPrompt)).toBe(
       `hi\n${MEDIA_SECTION}`,
     );
   });
@@ -125,7 +130,7 @@ describe('applyOverlay', () => {
       { ...base, media: [still('blob:b')] },
       overlay({ noMedia: true }),
     );
-    expect(out.systemPrompt).toBe('hi\n');
+    expect(body(out.systemPrompt)).toBe('hi\n');
   });
 });
 
@@ -147,11 +152,11 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
   it('restores MEDIA_SECTION when the overlay brings pictures over a pictureless base', () => {
     const pics = [still('blob:overlay')];
     const out = applyOverlay(pictureLessBase(), overlay({}, pics));
-    expect(out.systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
+    expect(body(out.systemPrompt)).toBe(`hi\n${MEDIA_SECTION}`);
   });
   it('leaves MEDIA_SECTION out when neither the pack-shaped base nor the overlay bring pictures', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
-    expect(out.systemPrompt).toBe('hi\n');
+    expect(body(out.systemPrompt)).toBe('hi\n');
   });
 });
 
@@ -180,7 +185,7 @@ describe('packToCompanion', () => {
   });
   it('fills MEDIA_SECTION for a pack that ships media of its own', () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
-    expect(c.systemPrompt).toBe(`p\n${MEDIA_SECTION}`);
+    expect(body(c.systemPrompt)).toBe(`p\n${MEDIA_SECTION}`);
   });
   it("falls back to the pack's aboutThePack when the companion section carries no description", () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
@@ -194,11 +199,13 @@ describe('packToCompanion', () => {
 
 describe('resolveDefault', () => {
   it('drops MEDIA_SECTION for a built-in with no pictures', () => {
-    expect(resolveDefault(base).systemPrompt).toBe('hi\n');
+    expect(body(resolveDefault(base).systemPrompt)).toBe('hi\n');
   });
   it('fills MEDIA_SECTION for a built-in that has pictures of its own', () => {
     const withPics: Companion = { ...base, media: [still('blob:builtin')] };
-    expect(resolveDefault(withPics).systemPrompt).toBe(`hi\n${MEDIA_SECTION}`);
+    expect(body(resolveDefault(withPics).systemPrompt)).toBe(
+      `hi\n${MEDIA_SECTION}`,
+    );
   });
 });
 

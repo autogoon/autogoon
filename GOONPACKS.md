@@ -216,9 +216,14 @@ tokens. Put a token on its own line where that section should land:
   filled in when they actually have some, so it's safe to include either way.
 
 Omit a token and that section is simply absent — a persona with no
-`{{MEDIA_SECTION}}` never gets the instructions for sending. The section texts
-live in the app (`src/lib/companions/shared-prompt.ts`, for the curious), so
-they stay current as the app changes without packs having to.
+`{{MEDIA_SECTION}}` never gets the instructions for sending. Misspell one and it
+stays in your prompt as you typed it, which is how you'll spot it. The section
+texts live in the app (`src/lib/companions/shared-prompt.ts`, for the curious),
+so they stay current as the app changes without packs having to.
+
+One set of rules needs no token and can't be left out: your companion is always
+told the real date and time where he is, so the rules for reading that are added
+to every persona automatically.
 
 ## media/
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-07-27
+
+- enhancement: **Every companion knows the time** — The rules for reading the
+  clock used to sit inside the toy-control section, so a persona that left
+  `{{CONTROL_SECTION}}` out was still told the real time and never told it was
+  real. They're their own thing now, added to every persona automatically with
+  no token to place or forget — which also means they survive a companion that
+  has no toy to control. Nothing changes for a persona that already pulls the
+  control section in.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- enhancement: **A misspelled placeholder shows up instead of vanishing** —
+  Writing `{{MEDIA_SECTON}}` in a persona used to leave nothing at all behind,
+  so the section was simply missing with no sign why. An unrecognised
+  placeholder now stays in the prompt exactly as typed.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
 ## 2026-07-26
 
 - feature: **Companions can send you videos** — A goonpack can now carry video
