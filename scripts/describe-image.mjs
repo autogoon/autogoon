@@ -1,6 +1,7 @@
-// Describe an image with a vision model and write the caption to a sidecar
-// <basename>.txt — the description a goonpack carries beside each picture. So
-// the flow is: drop an image in goonpacks/<dir>/media/, run
+// Describe an image with a vision model and write a sidecar <basename>.md — the
+// two texts a goonpack carries beside each picture, the one-line caption in YAML
+// frontmatter and the model's full observations as the body. So the flow is:
+// drop an image in goonpacks/<dir>/media/, run
 // `npm run goonpack:describe <path>`, then `npm run goonpack:build` bundles it
 // into the pack.
 //
@@ -16,12 +17,12 @@
 // sending, so this script is macOS-only.
 //
 // The model is asked to observe the picture out loud before condensing to the
-// caption line (see PROMPT); only the caption reaches the sidecar, but both
-// scripts print the observations so you can see what it based the caption on.
+// caption line (see PROMPT). Both reach the sidecar, and both scripts print
+// them, so you can see what the caption was based on.
 //
-// describeImage(), sidecarPath() and the colour helpers are exported so
-// describe-missing.mjs can reuse them; the CLI below runs only when this file is
-// the entry point.
+// describeImage(), sidecarPath(), renderSidecar() and the colour helpers are
+// exported so describe-missing.mjs can reuse them; the CLI below runs only when
+// this file is the entry point.
 //
 // Strong vision models on OpenRouter (set MODEL to one of these) —
 // verify the exact slug + pricing at https://openrouter.ai/models (filter
@@ -106,10 +107,10 @@ function resizedJpeg(imagePath) {
 //
 // Two-step on purpose: the model observes out loud first, then condenses. Asking
 // for the caption alone forbids the reasoning that rescues an ambiguous pose —
-// so the observations are scratch space, parsed off and thrown away (only the
-// CAPTION line reaches the sidecar). The confusable poses get explicit
-// discriminators rather than "take care", because that is the part a model gets
-// wrong by guessing from overall impression instead of looking at the legs.
+// so the observations are parsed off the CAPTION line and kept as the sidecar's
+// body. The confusable poses get explicit discriminators rather than "take
+// care", because that is the part a model gets wrong by guessing from overall
+// impression instead of looking at the legs.
 const PROMPT = `This photo is pose/mood metadata for a companion app: she reads the
 caption to pick a picture that fits the moment, so it has to be accurate about pose
 and state of undress, not just evocative.
@@ -178,9 +179,8 @@ OBSERVATIONS:
 CAPTION: <the single caption sentence>`;
 
 // Output colours, shared with describe-missing.mjs: yellow names the picture,
-// dim carries the working-out (the steps and the model's observations), green is
-// the caption that ends up in the sidecar. Colour only on a TTY, so piped output
-// stays clean.
+// dim carries the steps and the model's observations, green is the caption.
+// Colour only on a TTY, so piped output stays clean.
 export const yellow = (s) => (process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s);
 export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
 export const dim = (s) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
@@ -199,19 +199,39 @@ export function inlineImage(base64) {
   return `\x1b]1337;File=inline=1;height=${INLINE_HEIGHT};preserveAspectRatio=1:${base64}\x07`;
 }
 
-// The sidecar description path for an image: <basename>.txt beside it.
+// The sidecar path for an image: <basename>.md beside it, carrying the caption
+// in frontmatter and the model's full observations as the body.
 export function sidecarPath(imagePath) {
   return join(
     dirname(imagePath),
-    `${basename(imagePath, extname(imagePath))}.txt`,
+    `${basename(imagePath, extname(imagePath))}.md`,
   );
 }
 
-// Describe one image with the vision model. Returns `{ caption, observations }`:
-// the one-line caption for the sidecar, and the model's scratch observations
-// (`""` if it skipped them) for a human to eyeball — only the caption is ever
-// written to disk. Throws on any failure (unsupported type, missing key, API
-// error, empty or unusable reply) so callers can decide how to report it.
+// The sidecar's text, matching what src/lib/goonpacks/sidecar.ts parses back —
+// these are .mjs and cannot import the TypeScript module, so sidecar.test.ts is
+// what pins the shape this has to produce.
+//
+// The caption is quoted unconditionally: captions routinely contain a colon,
+// which is YAML's key separator. Empty observations are refused here rather than
+// at the two call sites, because a sidecar with no body is a sidecar that won't
+// parse — a rule about the format, which is what this function owns.
+export function renderSidecar(caption, observations) {
+  if (observations === '') {
+    throw new Error(
+      'The model returned a caption with no observations — the sidecar needs both.',
+    );
+  }
+  // Backslash first, or escaping the quotes would then escape their backslashes.
+  const quoted = `"${caption.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+  return `---\ncaption: ${quoted}\n---\n\n${observations}\n`;
+}
+
+// Describe one image with the vision model. Returns `{ caption, observations }`
+// — the two texts a sidecar carries, the one-line caption and everything the
+// model said before it (`""` if it skipped that step, which renderSidecar
+// refuses). Throws on any failure (unsupported type, missing key, API error,
+// empty or unusable reply) so callers can decide how to report it.
 //
 // The stages are slow enough to be worth narrating, so callers pass `onStep` (a
 // short label as each begins) and `onImage` (the downscaled JPEG as base64, the
@@ -337,8 +357,8 @@ async function main() {
         picture = inlineImage(b64);
       },
     });
-    writeFileSync(sidecarPath(imagePath), `${caption}\n`);
-    if (observations !== '') console.log(dim(observations));
+    writeFileSync(sidecarPath(imagePath), renderSidecar(caption, observations));
+    console.log(dim(observations));
     console.log(green(caption));
     if (picture !== '') console.log(picture);
   } catch (e) {

@@ -2,11 +2,11 @@
 //
 //   npm run goonpack:describe-missing
 //
-// Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.txt is
-// missing or empty, and captions each one (writing the .txt) via the same
+// Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.md is
+// missing or empty, and describes each one (writing the .md) via the same
 // describeImage() the single-image `npm run goonpack:describe` uses. Videos are
-// left alone — their captions are hand-written — as are stills that already
-// have a description, so it's safe to re-run after dropping in more. Reads
+// left alone — their sidecars are hand-written — as are stills that already
+// have one, so it's safe to re-run after dropping in more. Reads
 // OPENROUTER_API_KEY / LLM_URL from the environment (the npm script loads .env
 // via --env-file-if-exists), and
 // honours MODEL the same as `npm run goonpack:describe`, so you can pick the
@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import {
   describeImage,
   sidecarPath,
+  renderSidecar,
   inlineImage,
   green,
   yellow,
@@ -34,7 +35,7 @@ const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const goonpacksDir = join(root, 'goonpacks');
 
-// Every goonpack image with no (non-empty) sidecar description yet, sorted.
+// Every goonpack image with no (non-empty) sidecar yet, sorted.
 function missingImages() {
   const out = [];
   if (!existsSync(goonpacksDir)) return out;
@@ -45,9 +46,9 @@ function missingImages() {
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
-      const txt = sidecarPath(image);
+      const sidecar = sidecarPath(image);
       const described =
-        existsSync(txt) && readFileSync(txt, 'utf8').trim() !== '';
+        existsSync(sidecar) && readFileSync(sidecar, 'utf8').trim() !== '';
       if (!described) out.push(image);
     }
   }
@@ -79,8 +80,8 @@ for (const image of images) {
         picture = inlineImage(b64);
       },
     });
-    writeFileSync(sidecarPath(image), `${caption}\n`);
-    if (observations !== '') console.log(dim(observations));
+    writeFileSync(sidecarPath(image), renderSidecar(caption, observations));
+    console.log(dim(observations));
     console.log(green(caption));
     if (picture !== '') console.log(picture);
     console.log('');
