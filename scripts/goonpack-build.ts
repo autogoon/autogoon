@@ -17,12 +17,12 @@ import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
 import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
-import { isJunkPath } from '../src/lib/goonpacks/media';
 import {
   parsePack,
   type ParsedPack,
   type PackTree,
 } from '../src/lib/goonpacks/pack';
+import { collectPackFiles } from './lib/goonpack-source';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
@@ -56,25 +56,7 @@ for (const entry of entries) {
     console.warn(`skipping ${entry.name}: no manifest.json`);
     continue;
   }
-  const files: Record<string, Uint8Array> = {};
-  const add = (rel: string) => {
-    files[rel] = new Uint8Array(readFileSync(join(dir, rel)));
-  };
-  add('manifest.json');
-  try {
-    statSync(join(dir, 'system-prompt.md'));
-    add('system-prompt.md');
-  } catch {
-    /* overlays may have no prompt */
-  }
-  try {
-    for (const f of readdirSync(join(dir, 'media')).sort()) {
-      if (isJunkPath(f)) continue;
-      add(join('media', f));
-    }
-  } catch {
-    /* no media dir */
-  }
+  const files = collectPackFiles(dir);
   // The pack source as a PackTree — the same name-level validation the app runs
   // over an extracted tree, so a pack that builds is a pack that imports.
   const tree: PackTree = {
@@ -83,18 +65,6 @@ for (const entry of entries) {
   };
   let parsed: ParsedPack;
   try {
-    // Only media/ is zipped, so a source still holding pictures/ would build
-    // into a pack with no media at all — and validate, since the zip has no
-    // pictures/ folder for the format gate to catch. Refuse it here instead.
-    if (
-      statSync(join(dir, 'pictures'), {
-        throwIfNoEntry: false,
-      })?.isDirectory() === true
-    ) {
-      throw new PackError(
-        'This pack source still has a pictures/ folder — rename it to media/.',
-      );
-    }
     parsed = await parsePack(tree);
   } catch (e) {
     const problems =

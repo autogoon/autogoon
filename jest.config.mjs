@@ -10,7 +10,12 @@ const config = {
   // that renders a component or a hook opts out per file with a
   // `@jest-environment jsdom` docblock.
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/src/**/*.test.{ts,tsx}'],
+  // Colocated with what they cover: app code under src/, and the modules the
+  // authoring scripts import from scripts/lib/.
+  testMatch: [
+    '<rootDir>/src/**/*.test.{ts,tsx}',
+    '<rootDir>/scripts/lib/**/*.test.ts',
+  ],
 };
 
 export default createJestConfig(config);
