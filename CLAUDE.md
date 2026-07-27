@@ -142,8 +142,8 @@ invariants, the why, and the cross-file shape. Concretely:
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
   run, the CHANGELOG entry written, `/doc-check` over the branch's diff,
-  `/test-check` over the tests it touched and the code it added, and
-  `/personal-check`.
+  `/test-check` over the tests it touched and the code it added, `/code-check`
+  if it went anywhere near the LLM path, and `/personal-check`.
 - **Before merging**, run `/doc-check` and `/personal-check` again — the branch
   has usually gained commits since the PR opened, and the PR's own title, body
   and comments didn't exist for the first run, so this is the only pass that
