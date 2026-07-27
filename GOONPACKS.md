@@ -203,9 +203,15 @@ character, their setting, how they talk, how they behave during play. It's sent
 to the model as their instructions, so write it _to_ them ("You're 21, a
 painter…").
 
-Say **who leads** during play. The app's own sections are neutral on it, so if
-your persona doesn't settle whether they take charge or wait to be told, nothing
-else will.
+Say **who leads between you** — whether they take charge or follow. The shared
+sections leave that open on purpose, so a take-charge companion and a
+let-him-drive one both work.
+
+Control of the toy is not yours to set. The app settles that for everyone: never
+started without your say-so, theirs to steer once it is running. Contradicting
+it in a persona does not override it; both texts reach the model in the same
+prompt, so all you have done is made it choose — and the rule it might drop is
+the one about consent.
 
 The app owns the mechanical rules — reply formatting, how the toy is driven, how
 media is sent — as ready-made sections you pull in with `{{PLACEHOLDER}}`
