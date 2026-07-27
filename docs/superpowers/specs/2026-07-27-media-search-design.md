@@ -70,8 +70,8 @@ rather than a manifest value, so it stays.
 
 The simplification is deleting the branch; the renumbering is so the first
 format any other author ever sees is `1`. Both the pack sources under
-`goonpacks/` and the `format` section of [GOONPACKS.md](../../../GOONPACKS.md)
-say `1` afterwards.
+`goonpacks/` and the `format` field documented under "Every pack needs" in
+[GOONPACKS.md](../../../GOONPACKS.md) say `1` afterwards.
 
 A pack declaring `"format": 2` then fails the "needs a newer version of the app"
 check, whose message is wrong for that case. It is only reachable by a pack

@@ -13,10 +13,12 @@ The plumbing this needs — what a pack stores per item and about its set, and t
 two tools a companion calls — is settled in
 [docs/superpowers/specs/2026-07-27-media-search-design.md](../docs/superpowers/specs/2026-07-27-media-search-design.md),
 and staged in [TODO.md](../TODO.md#media-descriptions-and-retrieval). What's
-left here is everything that plumbing deliberately doesn't decide: what goes in
-a description, which model writes it, how the search ranks, and what the summary
-says. None of it can be measured until the plumbing lands, because a better
-caption only shows up as a better search result.
+left here is everything that plumbing deliberately doesn't decide — starting
+with what goes in a description, which model writes it, how the search ranks and
+what the summary says, and running on through reviewing the output at scale and
+where a library too big to package lives. None of it can be measured until the
+plumbing lands, because a better caption only shows up as a better search
+result.
 
 ## Two jobs — don't conflate them
 
