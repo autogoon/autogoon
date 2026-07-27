@@ -15,7 +15,7 @@ import { PackError } from './manifest';
 import { isJunkPath } from './media';
 import { MEDIA_NAME, type PackTree } from './pack';
 
-export const PACKS_DIR = 'goonpacks';
+const PACKS_DIR = 'goonpacks';
 export const MARKER = '.complete';
 
 // A browser can present the whole storage API and still refuse to hand over a

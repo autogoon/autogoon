@@ -17,7 +17,7 @@ import { packToCompanion } from './resolve';
 export type MediaCount = { images: number; videos: number };
 export type PackSummary = { media: MediaCount; hasPrompt: boolean };
 
-export const totalMedia = (c: MediaCount): number => c.images + c.videos;
+const totalMedia = (c: MediaCount): number => c.images + c.videos;
 
 // The one tally of a media list, wherever the list comes from: a parsed tree,
 // a built-in companion's own media, or the authoring build script's pack.
