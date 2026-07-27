@@ -31,6 +31,25 @@
   isn't handed the requirements for working on it.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- internal: **Play-mode guidance moves to ARCHITECTURE.md** — DEVELOPERS.md's
+  two feature checklists are gone. Adding a play mode was a five-step procedure
+  that turned out to be almost entirely architecture — the four-method contract,
+  the registration paragraph and the knob-change table were already in
+  ARCHITECTURE.md — so what remained joins the section describing the pair, now
+  called Play modes. Adding a companion is a pointer to GOONPACKS.md instead of
+  a checklist. DEVELOPERS.md's contribution list no longer branches on what you
+  are building. ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **GOONPACKS.md separates who leads from who drives the toy** —
+  Persona guidance said to set "who leads during play" and that the app's
+  sections are neutral on it, which reads as the toy, where they are not neutral
+  at all. It now distinguishes the encounter, which is the persona's to set,
+  from toy control, which every companion is given identically — writing against
+  it doesn't override it, it hands the model two contradictory instructions. The
+  `model` field gains a note that refusal behaviour and reliable tool-calling
+  belong to the model, not the prompt.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
 ## 2026-07-26
 
 - feature: **Companions can send you videos** — A goonpack can now carry video
