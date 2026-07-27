@@ -126,7 +126,10 @@ it changes.
   indigo, violet, purple, fuchsia, pink, rose. Optional (pink if omitted).
 - **`model`** — the OpenRouter model they run on, as a model slug. Optional; the
   app's default model when omitted. Pick a model that suits their persona — and
-  that allows the kind of roleplay you're writing.
+  that allows the kind of roleplay you're writing. Whether it will refuse, and
+  whether it calls tools reliably, are both properties of the model rather than
+  of your prompt, so try one before settling on it: a model that drifts on tool
+  calls gives you a companion who talks about the toy without ever driving it.
 - **`contextWindow`** — the chosen model's context window, in tokens (a number,
   no quotes). Optional; only worth setting alongside `model`.
 - **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
@@ -199,6 +202,10 @@ The system prompt is who the companion is, written in plain English: their
 character, their setting, how they talk, how they behave during play. It's sent
 to the model as their instructions, so write it _to_ them ("You're 21, a
 painter…").
+
+Say **who leads** during play. The app's own sections are neutral on it, so if
+your persona doesn't settle whether they take charge or wait to be told, nothing
+else will.
 
 The app owns the mechanical rules — reply formatting, how the toy is driven, how
 media is sent — as ready-made sections you pull in with `{{PLACEHOLDER}}`

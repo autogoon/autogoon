@@ -5,6 +5,17 @@ together internally — the program/player model, the engine/panel split, the
 shared device layer and single Player, and the keyword spotter — see
 [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+## Adding a companion
+
+Not a code change: a companion is a [goonpack](./GOONPACKS.md), which is the
+form anyone else can install, and [GOONPACKS.md](./GOONPACKS.md) is the guide.
+
+The companions built into the app are a deliberately small set, there to give it
+a range rather than to collect them, so a pull request adding one is unlikely to
+be accepted unless it fills a genuine gap in ethnicity or gender. If you think
+it does, build it as a goonpack and submit that for consideration — writing the
+persona and picking the voice is the same work either way.
+
 ## Running locally
 
 Requirements:
@@ -74,9 +85,11 @@ Then:
   warning, not just the ones your change introduced). Individual commits needn't
   be spotless — the PR as a whole must be clean — and commit anything `format`
   reformats.
-- **Adding a play mode?** See [Adding a play mode](#adding-a-play-mode) below
-  for the full checklist. **Adding a companion?**
-  [Adding a companion](#adding-a-companion).
+- **Document it for whoever it's for** — a user-facing feature needs its
+  user-facing page (`modes/*.md` for a play mode) and a link from
+  [MODES.md](./MODES.md) and `README.md`; something only a developer sees is
+  explained where it lives, or in [ARCHITECTURE.md](./ARCHITECTURE.md) if it
+  spans files.
 - **Respect the [content policy](#content-policy)** — no features that host,
   index, or point at content.
 
@@ -170,127 +183,3 @@ manifest fields, the two pack kinds) is user-facing and lives in
 on it (`describe`, `describe-missing`, `build`) are commented at their
 definitions in `scripts/`. The two captioning scripts are vision-model work and
 so cover stills only — a video's caption is written by hand.
-
-## Adding a play mode
-
-A play mode is a self-contained pair — an **engine** (event generation, no
-React, no device) and a **panel** (the React surface that owns the engine and
-drives the shared Player) — registered in `src/app/page.tsx`. Read the
-engine/panel split in [ARCHITECTURE.md](./ARCHITECTURE.md) first.
-
-**Copy an existing play mode as your starting point.** `goon-engine.ts` +
-`goon-panel/` exercise the full feature set (an automatic build curve, a setup
-view with per-concern option cards, a live-scaled magnitude knob, valve teases,
-time dilation, and a bespoke `cumming` wind-down), so Goon is the richest
-template. For a simpler _manual-knob_ mode, `groove-engine.ts` +
-`groove-panel.tsx` are the leaner model.
-
-### The steps
-
-1. **Engine** — `src/lib/play-modes/<name>-engine.ts`, a plain `PlayModeEngine`
-   (no React, no device).
-   - Implement the four methods from
-     [`src/lib/program.ts`](./src/lib/program.ts): `reset`, `generateSpeed`,
-     `generateValves`, `scale`. That interface is the contract and the
-     best-commented file to read first.
-   - Engines are **self-contained** — they never import from each other. If you
-     reuse another play mode's pattern (as Goon reuses Groove's dip),
-     **duplicate** the helper, don't share it.
-2. **Panel** — `src/components/play-modes/<name>-panel.tsx` (or a
-   `<name>-panel/` directory with the panel in `index.tsx`, once it has enough
-   pieces — Goon splits its setup option cards out this way). Copy Goon's or
-   Groove's structure; what's play-mode-specific is only your knob cards and
-   their commands. Whether a play mode has a **setup view** before its play view
-   is the panel's own choice — Goon has one, Groove and Autopilot don't. The
-   parts to copy:
-   - a `useRef` engine — **stable identity matters**: the Player identifies the
-     active source by reference, so never re-create it (no `useMemo` with deps);
-   - `isCurrent` / `state` derived from the Player view;
-   - an effect that arms the preview when the screen becomes active (skip this
-     if your panel gates arming behind a setup view, as Goon does);
-   - `start` / `stop` / `reset`, and a `Command[]` handed to `useVoiceCommands`;
-   - the shared scaffolding: `SessionControls`, `Sparkline`, `StrokeCard`,
-     `LogCard`.
-
-   Two things to copy deliberately:
-   - **Reset is two layers.** Your `reset` restores the knobs' React state and
-     their engine defaults, then re-arms — the Player rebuilds the program from
-     the start and calls `engine.reset()` to clear transient state (e.g. a
-     pending `cumming`).
-   - **Endings belong to the panel, not `StrokeCard`** (which is just the shared
-     stroke ± buttons). If your play mode has an ending, render a `FinishButton`
-     and/or a `CummingButton` — **Finish** (a _pre_-ending: reach/hold the
-     climax point) and **Cumming** (the send-off) are distinct actions. Have
-     both, one, or neither.
-
-3. **Register it in `src/app/page.tsx`** — three edits:
-   - import the panel;
-   - add a `PLAY_MODES` entry — the fields are commented at the registry; the
-     `id` doubles as the voice switch word and the screen, so this one entry is
-     the whole registration;
-   - render `<YourPanel …>` in its `hidden`-toggled `<div>` alongside the
-     others, passing `active={screen === "<name>"}`.
-4. **User-facing copy:** add `modes/<NAME>.md` (high-level and experiential,
-   like the others — not an implementation spec), and link it from
-   [MODES.md](./MODES.md) and `README.md`'s mode list.
-5. **Changelog** — add a `feature` line to [CHANGELOG.md](./CHANGELOG.md).
-
-### Which knob-change method to call
-
-When a knob changes, how it reaches the device depends on _what_ changed. Pick
-by where the change lives (see the `Player` methods in
-[`src/lib/player.ts`](./src/lib/player.ts)):
-
-| Knob affects…                         | Method                      | Example                                |
-| ------------------------------------- | --------------------------- | -------------------------------------- |
-| A **magnitude** applied in `scale()`  | `device.refresh()`          | Goon Intensity, Groove Speed           |
-| The **shape** of the speed script     | `device.invalidateFuture()` | Groove Variability; `cumming`/`finish` |
-| **Valves only**, over unchanged speed | `device.invalidateValves()` | Autopilot Vacuum Maintenance           |
-
-Why it matters for _feel_: generation has random elements, so regenerating for a
-mere magnitude change would jump the rider onto a fresh pattern instead of
-smoothly rescaling the one they're already feeling. The mechanics — pattern
-space, scale-at-send-time, what each invalidation drops — are commented on the
-methods themselves in [`src/lib/player.ts`](./src/lib/player.ts); read those
-before picking.
-
-### `generateSpeed` pitfalls
-
-The easy-to-get-wrong parts — each batch must extend **past `fromTime`** (or the
-Player's look-ahead spins), returning **`[]` parks** the program, and send-off
-ramps emit **`unscaled`** so an intensity ceiling can't shrink them — are all
-spelled out in the contract comments in
-[`src/lib/program.ts`](./src/lib/program.ts) (`generateSpeed`,
-`SpeedEvent.unscaled`). Read that file first; it's the contract.
-
-## Adding a companion
-
-A companion is **pure data** — one `Companion` entry plus a persona module. The
-picker, the play session, the saved thread and the voice switch all derive from
-the entry, so there is nothing else to wire up. The fields are commented on the
-`Companion` type in
-[`src/lib/companions/companions.ts`](./src/lib/companions/companions.ts).
-
-1. **Persona module** — `src/lib/companions/<name>-prompt.ts`, exporting the
-   system prompt. Copy `aimee-prompt.ts`'s shape: interpolate the shared
-   sections from `shared-prompt.ts` (each export is commented with where it
-   slots in; `CONTROL_SECTION` goes near the end), write the companion in the
-   **second person**, and keep only what is _theirs_ in the module: character,
-   setup, tone, and disposition — crucially, **who leads** during play, which
-   the shared blocks are neutral on.
-2. **Register them** — add the `COMPANIONS` entry (id, model, context window,
-   voice, prompt). Give them an `autogoon.<name>` id, matching the stock
-   companions. Pick an ElevenLabs `voiceId` (not a secret) and a model that
-   suits the persona — explicit-content suitability and reliable tool-calling
-   are properties of the model, so test the one you choose before settling. The
-   new companion ships with **no media**, like the other built-ins — pictures
-   and videos reach them via an [overlay goonpack](./GOONPACKS.md), not the
-   repo.
-3. **Test** — cover what this companion brings that the others don't; the bar is
-   [CLAUDE.md](./CLAUDE.md) under
-   [What a test is for](./CLAUDE.md#what-a-test-is-for). The registry-wide
-   invariants are already held by
-   [`companions.test.ts`](./src/lib/companions/companions.test.ts), which sweeps
-   `COMPANIONS` rather than naming companions, so there is no per-companion
-   block to add alongside.
-4. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).

@@ -63,6 +63,11 @@ and it's why the overlay must not keep cadence state.
   and only re-lays the valve overlay. Regeneration only ever rewrites the
   future, never the past.
 
+Which of the three a knob takes is a question about feel, not plumbing.
+Generation has random elements, so regenerating for a mere magnitude change
+would throw the rider onto a fresh pattern instead of rescaling the one they are
+already feeling.
+
 **Position = the clock.** Goon's build is a _position_, and that position **is**
 the Player's clock; time dilation is the Player's rate. So
 `forward`/`back`/`finish`/`faster`/`slower` are just the Player moving or
@@ -97,7 +102,32 @@ engine and panel sit on a whole voice/LLM subsystem; see below.) Adding a play
 mode is a new engine + panel, then registering it in `page.tsx` (a `PLAY_MODES`
 entry and its panel rendered) — the registry is the single source of truth, so
 the home listing, the voice switch word and the screen all follow automatically.
-The step-by-step lives in [DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
+
+Four things about the pair are easy to get wrong, and none of them are visible
+from one file:
+
+- **The engine instance is never re-created.** The Player identifies the active
+  source by comparing references, so a panel that rebuilds its engine — a
+  `useMemo` with deps, say — stops being the active source, with nothing raised
+  and no error to read. That is what the `useRef` is for.
+- **Reset is two layers.** A panel's reset restores its knobs' React state and
+  their engine defaults and re-arms; the Player then rebuilds from the start and
+  calls `engine.reset()` to clear transient state — a pending `cumming`, say.
+  Neither layer does the other's half.
+- **An ending belongs to the panel.** `StrokeCard` is only the shared stroke ±
+  buttons; a play mode with an ending renders `FinishButton` and/or
+  `CummingButton` itself. **Finish** (a _pre_-ending — reach and hold the climax
+  point) and **Cumming** (the send-off) are distinct actions, and a play mode
+  may have both, one or neither.
+- **A setup view is the panel's own choice**, not part of the shape: Goon has
+  one and defers arming to it, Groove and Autopilot arm as soon as their screen
+  is active.
+
+Read a working pair before writing one. `goon-engine.ts` + `goon-panel/`
+exercise the full set — an automatic build curve, a setup view with per-concern
+option cards, a live-scaled magnitude knob, valve teases, time dilation and a
+bespoke `cumming` wind-down. `groove-engine.ts` + `groove-panel.tsx` are the
+leaner model, for a play mode driven by manual knobs.
 
 **Commands are declared once.** Each action is a `Command`
 (`src/hooks/use-voice-commands.ts`), so the on-screen button and the spoken

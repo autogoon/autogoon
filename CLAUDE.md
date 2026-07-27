@@ -310,8 +310,9 @@ things worth knowing up front:
   replaces whoever was there, so "starting one stops the others" is a Player
   invariant, not a coordinator. Navigation, the global voice words and the
   play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
-  new engine + panel + one `PLAY_MODES` entry — full checklist in
-  [DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
+  new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy to
+  get wrong about the pair, are in
+  [ARCHITECTURE.md](./ARCHITECTURE.md#two-layers-per-play-mode).
 - **Commands are declared once**: each action is a `Command` (the type is
   commented in `src/hooks/use-voice-commands.ts`) — the button and the spoken
   word share one run handler and one enabled flag, so a disabled control is also
