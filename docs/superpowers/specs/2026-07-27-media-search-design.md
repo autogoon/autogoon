@@ -39,8 +39,8 @@ That stops being true the moment someone else has authored a pack.
 
 ## Scope
 
-In scope: what a pack stores per item, what it stores about the set, the two
-tools, and the validation that keeps them honest.
+In scope: what a pack may contain, what it stores per item and about the set,
+the two tools, and the validation that keeps all of it honest.
 
 Out of scope, and moving wholesale to
 [roadmap/INFERENCE-LIBRARY.md](../../../roadmap/INFERENCE-LIBRARY.md): the
@@ -53,29 +53,48 @@ implementation exists to make the tools work end to end, not to be good.
 
 The steps are separable, and each is landable except where noted.
 
-### 0. One pack format, numbered 1
+### 0. One validator, one tree, one format
 
-Independent of the steps that follow, and first because it touches the same
-validator: delete the format 1 compatibility path and renumber the current
-format to 1.
+Independent of the steps that follow, and first because everything after it adds
+rules to the same validator. Three changes, in order.
 
-The two formats differ only over the media folder's name and the field that
-strips a base's media, and no pack in circulation uses the old spelling of
-either. Deleting that path leaves `parseManifest` accepting exactly one value —
-`OLD_LAYOUT_PROBLEM` goes, with the `pictures/` and `noPictures` branches in
-[`manifest.ts`](../../../src/lib/goonpacks/manifest.ts) and
-[`pack.ts`](../../../src/lib/goonpacks/pack.ts). The source-tree check in
-`goonpack-build.ts` that refuses a `pictures/` folder is about a source layout
-rather than a manifest value, so it stays.
+**`parsePack` judges every path.** It walks the tree's names and skips anything
+outside `media/`, so a pack may carry files it never declared and nothing says
+so. That skip is why a `pictures/` folder needed a bespoke check outside the
+validator, and why a rule that already exists — `media/` can't contain
+subfolders — never fires on a pack built from a source directory. Replace the
+skip: the manifest, the prompt and `media/*` are recognised, and every other
+path is named as one that doesn't belong.
+
+One thing has to move with it. `store.ts` writes a completion marker inside the
+pack directory and `listTree` returns it like any other file, so the store has
+to keep its own bookkeeping out of the tree it hands to validation — otherwise
+the new rule refuses every installed pack at load. The marker belongs to the
+store, so the store hides it rather than the validator learning its name.
+
+**The build validates the tree it ships.** `goonpack-build.ts` hand-picks the
+manifest, the prompt and the contents of `media/`, builds a `PackTree` from that
+list, and validates it — so the tree it judges is not the tree an author has.
+Walk the source instead, validate what was walked, and zip what was validated.
+The `pictures/` check then deletes itself, and a live defect goes with it: the
+collection loop reads media with a call that throws on a directory, inside a
+`catch` that reads the throw as "no media dir", so a subfolder in `media/` drops
+every file sorting after it and the build still reports success.
+
+**One format, numbered 1.** The two formats differ only over the media folder's
+name and the field that strips a base's media, and no pack in circulation uses
+the old spelling of either. Deleting that path leaves `parseManifest` accepting
+exactly one value — `OLD_LAYOUT_PROBLEM` goes, with the `pictures/` and
+`noPictures` branches in [`manifest.ts`](../../../src/lib/goonpacks/manifest.ts)
+and [`pack.ts`](../../../src/lib/goonpacks/pack.ts). The tree half is already
+redundant by then, since an unrecognised folder is refused whatever the manifest
+declares.
 
 The simplification is deleting the branch; the renumbering is so the first
 format any other author ever sees is `1`. Both the pack sources under
 `goonpacks/` and the `format` field documented under "Every pack needs" in
-[GOONPACKS.md](../../../GOONPACKS.md) say `1` afterwards.
-
-A pack declaring `"format": 2` then fails the "needs a newer version of the app"
-check, whose message is wrong for that case. It is only reachable by a pack
-built before this change, and it is not worth a special case.
+[GOONPACKS.md](../../../GOONPACKS.md) say `1` afterwards, and that document
+gains the rule the validator now enforces: what a pack may contain.
 
 ### 1. Two texts per item
 
@@ -238,9 +257,13 @@ pipeline produces a pack, not about app state.
 
 ## Testing
 
-- Phase 0 deletes behaviour, so the tests covering the old layout go with it
-  rather than being retargeted. What remains is that an unrecognised format
-  value is refused.
+- `parsePack` names a path that has no place in a pack, and still names a
+  wrapper folder as a wrapper folder rather than complaining about every path
+  inside it. The tree a pack's store hands to validation carries no marker.
+- Phase 0 also deletes behaviour, so the tests covering the old layout go with
+  it rather than being retargeted. What remains of the format contract is that a
+  value above the one the app reads asks for a newer app, and anything else is
+  refused as unrecognised.
 - `parsePack` rejects media missing either text, and a pack with media and no
   summary, each with its own message.
 - Frontmatter parsing: an unknown key is a problem naming the key; a caption
