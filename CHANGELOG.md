@@ -25,6 +25,11 @@
   placeholder now stays in the prompt exactly as typed.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- internal: **Split the developer docs by task** — DEVELOPERS.md separates
+  running the app from changing it, so someone who only wants to run Autogoon
+  isn't handed the requirements for working on it.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
 ## 2026-07-26
 
 - feature: **Companions can send you videos** — A goonpack can now carry video
