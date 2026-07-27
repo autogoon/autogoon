@@ -286,7 +286,11 @@ the entry, so there is nothing else to wire up. The fields are commented on the
    new companion ships with **no media**, like the other built-ins — pictures
    and videos reach them via an [overlay goonpack](./GOONPACKS.md), not the
    repo.
-3. **Test** — the registry test already enforces id = record key for every
-   entry; add a config `describe` block for them alongside Aimee's and Miley's
-   (`src/lib/companions/companions.test.ts`).
+3. **Test** — cover what this companion brings that the others don't; the bar is
+   [CLAUDE.md](./CLAUDE.md) under
+   [What a test is for](./CLAUDE.md#what-a-test-is-for). The registry-wide
+   invariants are already held by
+   [`companions.test.ts`](./src/lib/companions/companions.test.ts), which sweeps
+   `COMPANIONS` rather than naming companions, so there is no per-companion
+   block to add alongside.
 4. **Changelog** — a `feature` line in [CHANGELOG.md](./CHANGELOG.md).
