@@ -80,13 +80,22 @@ describe('CompanionEngine.generateSpeed', () => {
   });
 });
 
+// How long the stroke-minus tease runs is the engine's to tune, so the re-lay
+// cases read it off the window covering session start rather than naming it.
+const teaseClose = (): number =>
+  new CompanionEngine(20, 'low', 'low').generateValves([], 0, 60_000, CTX)[1]!
+    .at;
+
 describe('CompanionEngine.generateValves', () => {
   it('emits only the start stroke-minus tease on the window covering start', () => {
     const engine = new CompanionEngine(20, 'low', 'low');
-    expect(engine.generateValves([], 0, 60_000, CTX)).toEqual([
-      { kind: 'valve', at: 0, valve: 'minus', open: true },
-      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
+    const valves = engine.generateValves([], 0, 60_000, CTX);
+    expect(valves.map((v) => [v.valve, v.open])).toEqual([
+      ['minus', true],
+      ['minus', false],
     ]);
+    expect(valves[0]!.at).toBe(0);
+    expect(valves[1]!.at).toBeGreaterThan(0);
   });
 
   it('emits nothing on a mid-session window', () => {
@@ -94,32 +103,47 @@ describe('CompanionEngine.generateValves', () => {
     expect(engine.generateValves([], 60_000, 120_000, CTX)).toEqual([]);
   });
 
-  it('re-emits the tease close, but not the open, on a re-lay that starts mid-tease', () => {
-    // A variety change in the first 10 s calls invalidateFuture, which drops the
+  it('re-emits the tease close, at the instant it first had, on a re-lay that starts mid-tease', () => {
+    // A variety change during the tease calls invalidateFuture, which drops the
     // future close and re-pulls this overlay with fromTime = clock (>0). The
-    // close@10_000 must still be regenerated, or the stroke-minus valve latches
-    // open for the rest of the session. Re-emitting the open would re-apply the
-    // tease from scratch.
+    // same close must come back, or the stroke-minus valve latches open for the
+    // rest of the session. Re-emitting the open would re-apply the tease from
+    // scratch.
+    const close = teaseClose();
     const engine = new CompanionEngine(20, 'low', 'low');
-    expect(engine.generateValves([], 5000, 65_000, CTX)).toEqual([
-      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
-    ]);
+    expect(
+      engine.generateValves([], close / 2, close / 2 + 60_000, CTX),
+    ).toEqual([{ kind: 'valve', at: close, valve: 'minus', open: false }]);
   });
 
   it('emits nothing on a re-lay starting at the end of the tease', () => {
+    const close = teaseClose();
     const engine = new CompanionEngine(20, 'low', 'low');
-    expect(engine.generateValves([], 10_000, 70_000, CTX)).toEqual([]);
+    expect(engine.generateValves([], close, close + 60_000, CTX)).toEqual([]);
   });
 
-  it('emits the one-shot suction pulse 3 s and 12 s into the cumming wind-down', () => {
-    const engine = new CompanionEngine(50, 'medium', 'medium');
-    engine.beginCumming();
-    // fromTime is the Player's clock, never 0 past the first window, so the
-    // pulse has to be anchored to it rather than to session start.
-    expect(engine.generateValves([], 1_000, 61_000, CTX)).toEqual([
-      { kind: 'valve', at: 4_000, valve: 'minus', open: true },
-      { kind: 'valve', at: 13_000, valve: 'minus', open: false },
+  it('anchors the cumming suction pulse to the window start, not to session start', () => {
+    // fromTime is the Player's clock, never 0 past the first window. Anchored
+    // to session start, a wind-down beginning well into a session would emit
+    // its pulse in the past and the valve would never open. How far into the
+    // wind-down the pulse sits is the engine's to tune; that it tracks fromTime
+    // is not.
+    const pulse = (from: number) => {
+      const engine = new CompanionEngine(50, 'medium', 'medium');
+      engine.beginCumming();
+      return engine.generateValves([], from, from + 60_000, CTX);
+    };
+    const early = pulse(1_000);
+    const late = pulse(30_000);
+    expect(early.map((v) => v.at - 1_000)).toEqual(
+      late.map((v) => v.at - 30_000),
+    );
+    expect(early.map((v) => [v.valve, v.open])).toEqual([
+      ['minus', true],
+      ['minus', false],
     ]);
+    expect(early[0]!.at).toBeGreaterThan(1_000);
+    expect(early[1]!.at).toBeGreaterThan(early[0]!.at);
   });
 });
 

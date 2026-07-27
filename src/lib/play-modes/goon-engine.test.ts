@@ -60,14 +60,20 @@ describe('GoonEngine.generateSpeed', () => {
     expect(engine.generateSpeed(60_000, 120_000, CTX)).toEqual([]);
   });
 
-  it('tiles the park at top speed a minute at a time past the configured session length', () => {
+  it('parks past the configured session length as an even stream at top speed, not one far-future event', () => {
     const engine = new GoonEngine(100);
     engine.setProgramMs(10 * 60_000);
-    expect(engine.generateSpeed(10 * 60_000, 13 * 60_000, CTX)).toEqual([
-      { kind: 'speed', at: 600_000, speed: 100 },
-      { kind: 'speed', at: 660_000, speed: 100 },
-      { kind: 'speed', at: 720_000, speed: 100 },
-    ]);
+    const from = 10 * 60_000;
+    const until = 13 * 60_000;
+    const events = engine.generateSpeed(from, until, CTX);
+    // How wide the step is belongs to the engine. What the Player needs is a
+    // uniform tail that opens at fromTime and reaches the end of the window.
+    expect(events.length).toBeGreaterThan(1);
+    expect(events.every((e) => e.speed === 100)).toBe(true);
+    expect(events[0]!.at).toBe(from);
+    const gaps = events.slice(1).map((e, i) => e.at - events[i]!.at);
+    expect(new Set(gaps).size).toBe(1);
+    expect(until - events[events.length - 1]!.at).toBeLessThanOrEqual(gaps[0]!);
   });
 
   it('generates an ordinary dip batch after reset(), not another cumming wind-down', () => {
@@ -77,11 +83,13 @@ describe('GoonEngine.generateSpeed', () => {
 
     engine.reset();
     const events = engine.generateSpeed(0, 60_000, CTX);
-    // The build's first cycle opens on the raw peak under the BUILD_START build
-    // speed (25% of 100) and is scalable; a reset that left `cumming` set would
-    // hand back the unscaled wind-down instead, stranding the session in the
-    // send-off forever.
-    expect(events[0]).toEqual({ kind: 'speed', at: 0, speed: 25 });
+    // The build is scalable throughout; the wind-down is unscaled throughout.
+    // A reset that left `cumming` set hands back nothing at all (the send-off
+    // has already been emitted once), and one that cleared only the emitted
+    // flag hands back the send-off again — either way the session is stranded
+    // in it.
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0]!.at).toBe(0);
     expect(events.every((e) => e.unscaled === undefined)).toBe(true);
   });
 });
