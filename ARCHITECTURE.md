@@ -2,14 +2,14 @@
 
 A single-page app with a sticky header bar and a shallow navigation hierarchy: a
 top-level tab strip of **Home** (the device connection, the play mode chooser
-and the getting-started notes), **Changes** (the changelog) and **Settings**
-(appearance, safe word, Companions access, build info), with one screen per play
-mode below Home — Goon, Groove, Autopilot, and the access-gated Companions.
-`src/app/page.tsx` owns the layout: it wraps everything in the keyword-spotter
-provider, mirrors the one shared Player into React once, and renders every
-screen. Hidden screens stay mounted (only their visibility changes), so the
-recognizer and the running play mode keep going regardless of which screen is
-visible.
+and the getting-started notes), **Goonpacks** (pack admin), **Changes** (the
+changelog) and **Settings** (appearance, safe word, Companions access, build
+info), with one screen per play mode below Home — Goon, Groove, Autopilot, and
+the access-gated Companions. `src/app/page.tsx` owns the layout: it wraps
+everything in the keyword-spotter provider, mirrors the one shared Player into
+React once, and renders every screen. Hidden screens stay mounted (only their
+visibility changes), so the recognizer and the running play mode keep going
+regardless of which screen is visible.
 
 ## The program / player model
 
@@ -27,28 +27,28 @@ with the transport constants.
 **The Player** (`src/lib/player.ts`) plays a program and is the only thing that
 touches the device's motion commands: it owns the program-clock, the tick loop,
 the playback rate, device sends, keeping the future built ahead, and transport.
-It knows nothing about any specific play mode. There is **one** Player, owned by
-the device hook; it plays whichever play mode is active. Its methods and
-constants are commented in place — read `player.ts` and `program.ts` before
-touching either.
+Nothing in it is specific to a play mode. There is **one** Player, owned by the
+device hook; it plays whichever play mode is active. Its methods and constants
+are commented in place — read `player.ts` and `program.ts` before touching
+either.
 
 The Player carries a `state` — `armed` / `playing` / `paused`. The visible play
 mode **arms** the Player (`arm`), building a live preview before Start (Goon
 defers arming to its setup view's Play, which commits the setup first); Start
 (`play`) then **resumes** from the held position rather than restarting, Stop
-(`pause`) holds position, and `reset` restores the play mode's default knobs and
-regenerates from the beginning.
+(`pause`) holds position, and `reset` re-arms the program from the beginning
+(Reset is two layers — see [Play modes](#play-modes)).
 
 **A PlayModeEngine** (`src/lib/play-modes/*-engine.ts`) is what each play mode
 _is_ here: a generation-only object — no React, no device, no clock of its own;
 the Player calls back into it. The four-method contract lives in
 [`src/lib/program.ts`](./src/lib/program.ts) (the best-commented file in the
-repo — start there). The design why: generation is split into two channels,
-`generateSpeed` (the stateful backbone, pulled a batch at a time so looping play
-modes never materialise all at once) and `generateValves` (a **pure** overlay
-laid across a span of already-built speed). Pure matters — it lets the Player
-re-lay the valve overlay over an unchanged speed script for a valve-only knob,
-and it's why the overlay must not keep cadence state.
+repo — start there). Generation is split into two channels: `generateSpeed` (the
+stateful backbone, pulled a batch at a time so looping play modes never
+materialise all at once) and `generateValves` (a **pure** overlay laid across a
+span of already-built speed). Purity lets the Player re-lay the valve overlay
+over an unchanged speed script for a valve-only knob, and is why the overlay
+must not keep cadence state.
 
 **How a change reaches the device** — two directions:
 
@@ -63,10 +63,9 @@ and it's why the overlay must not keep cadence state.
   and only re-lays the valve overlay. Regeneration only ever rewrites the
   future, never the past.
 
-Which of the three a knob takes is a question about feel, not plumbing.
-Generation has random elements, so regenerating for a mere magnitude change
-would throw the rider onto a fresh pattern instead of rescaling the one they are
-already feeling.
+Generation has random elements, so regenerating for a magnitude change would
+switch the user to a fresh pattern instead of rescaling the one they are already
+feeling.
 
 **Position = the clock.** Goon's build is a _position_, and that position **is**
 the Player's clock; time dilation is the Player's rate. So
@@ -79,7 +78,7 @@ program-time — a jump needs no special handling.
 `Player.insertEvent` while something is playing, and drive the device directly
 when nothing is.
 
-## Two layers per play mode
+## Play modes
 
 Each device-driving play mode is an **engine** and a **panel**:
 
@@ -98,13 +97,13 @@ Each device-driving play mode is an **engine** and a **panel**:
 There is no per-play-mode _Player_ hook and no central runner: the panel drives
 the Player directly, and mutual exclusion falls out of the Player holding one
 engine at a time. (Companions is the one mode that's more than the pair — its
-engine and panel sit on a whole voice/LLM subsystem; see below.) Adding a play
-mode is a new engine + panel, then registering it in `page.tsx` (a `PLAY_MODES`
-entry and its panel rendered) — the registry is the single source of truth, so
-the home listing, the voice switch word and the screen all follow automatically.
+engine and panel sit on a whole voice/LLM subsystem; see
+[Companions' voice subsystem](#companions-voice-subsystem).) Adding a play mode
+is a new engine + panel, then registering it in `page.tsx` (a `PLAY_MODES` entry
+and its panel rendered) — the registry is the single source of truth, so the
+home listing, the voice switch word and the screen all follow automatically.
 
-Four things about the pair are easy to get wrong, and none of them are visible
-from one file:
+What is easy to get wrong about the pair, and not visible from one file:
 
 - **The engine instance is never re-created.** The Player identifies the active
   source by comparing references, so a panel that rebuilds its engine — a
@@ -129,13 +128,15 @@ option cards, a live-scaled magnitude knob, valve teases, time dilation and a
 bespoke `cumming` wind-down. `groove-engine.ts` + `groove-panel.tsx` are the
 leaner model, for a play mode driven by manual knobs.
 
-**Commands are declared once.** Each action is a `Command`
-(`src/hooks/use-voice-commands.ts`), so the on-screen button and the spoken
-keyword call the same `run` and share the same `enabled` — a disabled control is
-also out of the grammar. The panel renders a button from each command and hands
-the list to `useVoiceCommands`, which registers the enabled words with the
-recognizer and routes detections back — but only while the panel is the active
-screen. A button flashes when its word is recognized.
+## Commands
+
+**Each action is declared once.** A `Command`
+(`src/hooks/use-voice-commands.ts`) carries one `run` and one `enabled`, and
+both the on-screen button and the spoken keyword go through them — so a disabled
+control is also out of the grammar. The panel renders a button from each command
+and hands the list to `useVoiceCommands`, which registers the enabled words with
+the recognizer and routes detections back, but only while the panel is the
+active screen. A button flashes when its word is recognized.
 
 ## Shared device, one Player, mutual exclusion
 
@@ -156,25 +157,28 @@ live.
 
 `page.tsx` keeps the three genuinely global concerns. First, navigation: the
 top-level tabs and the play mode screens form a strict hierarchy with no
-sideways moves below the top level — `exit` (the word, or a breadcrumb link)
-goes **up one level**, and it's locked while a session runs, so switching play
-modes mid-session simply can't be expressed; stop first. A play mode with a
-setup view gets a play sub-level (`Home › Goon › Play`): Play navigates down
-into it, exit climbs back to setup. Screens mirror into the URL hash (`#goon`,
-`#goon/play`), so the browser back button, reloads and deep-links follow the
-same hierarchy — back is locked mid-session just like exit (the consumed history
-entry is pushed straight back), and a `/play` deep-link lands on its setup
-level, since the session it named didn't survive the reload. One screen opts out
-of the chrome: Companions' play screen hides the header bar and breadcrumb and
-draws its own slim bar — a back-to-picker button under the same lock, the mic,
-and a hamburger for the panel's sub-tabs — so the chat gets the screen. Second,
-the global voice words — `connect` while disconnected; the (unlocked) play mode
-names on home; the sibling tab words (`home`/`changes`/`settings`) on any
-top-level tab; `exit` below the top level while idle — which it sets on the
-recognizer and routes itself. Everything else is a play mode word, owned by the
-active panel. Third, the **safe word**: an always-on hard stop
-(`src/lib/safe-word.ts`) wired at the page level so no play mode can ever gate
-it — it stays in the grammar even for outcomes that deliberately ignore Stop.
+sideways moves below the top level. The Goonpacks tab is in the strip only when
+Companions is available, on the same condition — an access ID, or the dev
+server. `exit` (the word, or a breadcrumb link) goes **up one level**, and it's
+locked while a session runs, so switching play modes mid-session simply can't be
+expressed; stop first. A play mode with a setup view gets a play sub-level
+(`Home › Goon › Play`): Play navigates down into it, exit climbs back to setup.
+Screens mirror into the URL hash (`#goon`, `#goon/play`), so the browser back
+button, reloads and deep-links follow the same hierarchy — back is locked
+mid-session just like exit (the consumed history entry is pushed straight back),
+and a `/play` deep-link lands on its setup level, since the session it named
+didn't survive the reload. One screen opts out of the chrome: Companions' play
+screen hides the header bar and breadcrumb and draws its own slim bar — a
+back-to-picker button under the same lock, the mic, and a hamburger for the
+panel's sub-tabs — so the chat gets the screen. Second, the global voice words —
+`connect` while disconnected; the (unlocked) play mode names on home; the
+sibling tab words (`home`/`changes`/`settings`, plus `packs` while the Goonpacks
+tab shows) on any top-level tab; `exit` below the top level while idle — which
+it sets on the recognizer and routes itself. Everything else is a play mode
+word, owned by the active panel. Third, the **safe word**: an always-on hard
+stop (`src/lib/safe-word.ts`) wired at the page level so no play mode can ever
+gate it — it stays in the grammar even for outcomes that deliberately ignore
+Stop.
 
 ## Controls
 
@@ -223,8 +227,10 @@ commands are ever live.
 Switch words are just the play mode names — say one on home to enter that play
 mode's screen (Companions only once its access ID has unlocked it — or any time
 on the dev server, where the gate is open). The tab words
-(`home`/`changes`/`settings`) move sideways between the top-level tabs; `exit`
-(while nothing runs) goes up one level.
+(`home`/`changes`/`settings`) move sideways between the top-level tabs, joined
+by `packs` whenever the Goonpacks tab shows — it answers to `packs` rather than
+its own name, for the reason given at `TabId` in `page.tsx`. `exit` (while
+nothing runs) goes up one level.
 
 ## Companions' voice subsystem
 
@@ -268,8 +274,8 @@ was found in the first place, and it is the only account we get.
 arms the next as it ends, so nothing polls for a silence to fill; the scheduler
 (`src/lib/companions/ambient-scheduler.ts`) holds only that timer and a latch,
 kept out of the voice session because that hook already carries some twenty refs
-read by callbacks created once and outliving every render. Three rules hold it
-together:
+read by callbacks created once and outliving every render. The rules that keep
+it working:
 
 - **Scheduling is decided once, at the end of a turn, from session state** —
   never from what happened inside a generation. That's why `wait_for_user` sets
@@ -283,8 +289,8 @@ together:
 - **The scheduler is wall-clock and belongs to the session, never the program.**
   Program events are dropped on every regeneration and scale with playback rate,
   and neither should touch the cadence. The Player's state is read for one
-  purpose only — picking which of the two appetites applies — and never gates
-  whether the companion speaks at all.
+  purpose only — whether the delay is drawn from the companion's playfulness or
+  their chattiness — and never gates whether the companion speaks at all.
 
 An ambient turn runs the ordinary turn path with no user turn appended; its cue
 rides that one request as a transient system line, like a gap marker, so it
