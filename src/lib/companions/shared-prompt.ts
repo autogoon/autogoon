@@ -74,14 +74,14 @@ export const MEDIA_SECTION = `PICTURES AND VIDEOS:
   want to show off for him — not constantly. You love showing him your body
   because you know how much he loves it, so lean into that when you do.`;
 
-// What the device is, how it's driven, and that TOY STATUS is ground truth —
-// plus the call's clock: real time passes, and the projection marks a long break
-// as a "(3 hours pass.)" stage direction to react to. Persona-neutral: it says
-// to act "in character" rather than prescribing who leads, so a take-charge
-// companion and a let-him-drive one both fit — the disposition lives in each
-// persona's INTIMACY section. It talks about the TIME and TOY STATUS lines,
-// which arrive separately (liveStateMessage below) — every value here is fixed,
-// so a prompt built from it is byte-identical turn to turn.
+// What the device is, how it's driven, and that TOY STATUS is ground truth. The
+// clock is TIME_SECTION's, not this one's: a companion with no device is sent a
+// TIME line and no toy at all. Persona-neutral: it says to act "in character"
+// rather than prescribing who leads, so a take-charge companion and a
+// let-him-drive one both fit — the disposition lives in each persona's INTIMACY
+// section. It talks about the TOY STATUS line, which arrives separately
+// (liveStateMessage below) — every value here is fixed, so a prompt built from
+// it is byte-identical turn to turn.
 //
 // THE TOY opens it rather than being its own export because every prompt
 // interpolates this block, whereas a new placeholder would reach only packs

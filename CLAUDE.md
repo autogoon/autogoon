@@ -141,9 +141,11 @@ invariants, the why, and the cross-file shape. Concretely:
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, `/doc-check` over the branch's diff,
-  `/test-check` over the tests it touched and the code it added, `/code-check`
-  if it went anywhere near the LLM path, and `/personal-check`.
+  run, the CHANGELOG entry written, and the four checks — `/doc-check`,
+  `/test-check`, `/code-check`, `/personal-check`. All four run on every branch:
+  a check that only runs when someone judges it relevant is a check that never
+  runs, and each one reports "nothing found" cheaply when a branch didn't go
+  near its subject.
 - **Before merging**, run `/doc-check` and `/personal-check` again — the branch
   has usually gained commits since the PR opened, and the PR's own title, body
   and comments didn't exist for the first run, so this is the only pass that

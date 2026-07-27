@@ -1,21 +1,24 @@
 ---
 name: code-check
 description:
-  Use before opening a PR and again before merging it, or whenever a branch
-  touches how the app talks to the model — checks prompt-cache safety, what
-  reaches the model that shouldn't, and what a turn costs. Every turn re-sends
-  the whole conversation, so these are money.
+  Use before opening a PR and again before merging it — the project-specific
+  code checks nothing else performs. Currently the LLM path: prompt-cache
+  safety, what reaches the model that shouldn't, and what a turn costs.
 ---
 
 # Code check
 
-Project-specific review of the LLM path. A companion turn re-sends the entire
-conversation, so the bill is decided by two things: what the prompt is made of,
-and **where the volatile parts sit**. Get the second wrong and every turn pays
-for the whole thread again, silently — nothing fails, it just costs more.
+The checks this repo needs that no general review would think to make. One area
+so far: **the LLM path**. A companion turn re-sends the entire conversation, so
+the bill is decided by two things — what the prompt is made of, and **where the
+volatile parts sit**. Get the second wrong and every turn pays for the whole
+thread again, silently: nothing fails, it just costs more.
 
 ## Scope
 
+- **Run on every branch**, not only ones that look relevant. A check applied
+  when someone judges it worth applying is a check that never runs. If the diff
+  touched nothing below, say "no findings" and stop — that costs a minute.
 - **Default: the branch.** `git diff main...HEAD --name-only`, narrowed to the
   LLM path: `src/lib/companions/**`, `src/lib/llm/**`,
   `src/lib/goonpacks/prompt.ts`, `src/hooks/use-voice-session.ts`,
