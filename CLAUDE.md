@@ -85,6 +85,12 @@ work done.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.
+- **No counts that the next commit invalidates** — test totals, suite counts,
+  file counts, line counts. Any commit moves them, nothing checks them, and a
+  number that has silently gone wrong is worse than no number. This applies to
+  PR descriptions too. Say what changed and why it matters; "the tests that
+  couldn't fail are gone" survives, "262 tests became 413" is wrong by the
+  afternoon.
 
 ## Documentation
 

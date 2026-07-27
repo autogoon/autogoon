@@ -52,7 +52,7 @@
 
 - internal: **Tests that can actually fail** — Reviewed all 32 unit test files
   and the 3 Playwright specs against the code they test, mutation-testing every
-  claim; 262 tests became 413. Tests that passed with the behaviour they named
+  claim. Tests that passed with the behaviour they named
   broken are gone — replaced by real ones where the contract mattered. The two
   engine `reset()` tests and the VAD debounce test asserted only that output was
   non-empty, `library.test.ts` called `rows.every(...)` over arrays a defect

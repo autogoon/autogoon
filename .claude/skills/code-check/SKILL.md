@@ -26,11 +26,14 @@ has failed at its job.
 
 ## What this project wants
 
-**Cost stays flat as a conversation grows.** Every companion turn re-sends the
-whole conversation, so the bill turns on _where_ the volatile parts sit, not how
-big they are: one per-turn value above the conversation re-bills the entire
-thread, every turn. Anything that changes per turn goes after the conversation,
-never into the prompt — `liveStateMessage` in
+**The prompt prefix stays reusable.** Every turn re-sends the whole conversation
+— that is a given, and shortening it is a different question, already recorded
+in [TODO.md](../../../TODO.md) as context compaction. What matters here is that
+the part which has _not_ changed is still recognisable as unchanged. Caching
+matches from the first message and stops at the first difference, so one
+per-turn value above the conversation turns a cheap re-send into a full re-read,
+every turn. Anything that changes per turn goes after the conversation, never
+into the prompt — `liveStateMessage` in
 [shared-prompt.ts](../../../src/lib/companions/shared-prompt.ts) has the
 mechanics. Nothing fails when this breaks; the debug tab's "Prompt cached"
 figure is the only symptom.
@@ -65,6 +68,12 @@ Goon duplicates Groove's generation helpers on purpose. Shared _infrastructure_
 `FILE:LINE — what it does → which want it undercuts → what it costs.` Worst
 first, and each with evidence: a line, a measurement, or a request you actually
 assembled. Reasoning from the code alone is where invented findings come from.
+
+**Something already recorded in [TODO.md](../../../TODO.md) or the roadmap is
+not a finding** — the project knows, and saying so again is noise dressed as
+rigour. The same goes for a field or hook plumbed ahead of the feature that will
+read it: unused is not unwanted. Check the TODO before reporting anything that
+looks like a gap rather than a mistake.
 
 - **Fix directly:** the change is contained and the intent is unambiguous.
 - **Ask first:** anything that changes behaviour, prompt wording, or what the
