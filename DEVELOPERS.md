@@ -133,6 +133,12 @@ Two layers, both local-only for now (no CI):
   probe OPFS and stand down where it is unusable (`tests/e2e/opfs.ts` explains
   which engine that is today, and why the check is a capability probe).
 
+A green E2E run therefore says nothing about pack storage on the engine that
+skipped — there is no OPFS there to run against. That is a standing limitation,
+not a gap to fix or re-report: the unit tests hold the shape, and a change
+touching OPFS needs a pass by hand in real Safari, which does support it. The
+skips disappear on their own if the test browser ever gains OPFS.
+
 The voice test is the reason the E2E layer exists: it proves the whole voice
 pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
 routing — works in each engine. Only the microphone _hardware_ is faked:

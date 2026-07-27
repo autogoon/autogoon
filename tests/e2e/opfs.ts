@@ -8,6 +8,9 @@ import { test, type Page } from '@playwright/test';
 // this is a gap in the test browser, so the check probes the capability rather
 // than naming a project — these specs start running by themselves the day
 // Playwright's WebKit gains OPFS.
+//
+// What a green run consequently leaves uncovered, and why that is accepted
+// rather than outstanding, is in DEVELOPERS.md → Testing.
 export async function skipWithoutOpfs(page: Page): Promise<void> {
   const usable = await page.evaluate(async () => {
     try {
