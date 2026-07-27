@@ -61,7 +61,7 @@ author's own legal exposure. `/personal-check` is the backstop, not the defence
   command routing) is real. Read the Testing section in
   [DEVELOPERS.md](./DEVELOPERS.md#testing) before writing more voice tests: the
   stub's always-on silence source and the pre-pipeline activation click are both
-  load-bearing.
+  required, and the test fails in ways that don't name them if either goes.
 
 Tests are a floor, not the whole gate: the app drives physical hardware, so
 behaviour changes still want `npm run typecheck` + `npm run build` plus driving
@@ -179,31 +179,6 @@ invariants, the why, and the cross-file shape. Concretely:
   (committed/gitignored, generated modules, script internals) — that belongs in
   DEVELOPERS.md, ARCHITECTURE.md, or the code. npm commands a user runs to
   operate a feature are fine.
-- Docs speak the app's vocabulary — play mode, program, play/session — never a
-  persona's fiction ("during a call" is the companions' own call framing), and
-  capabilities belong to features, not to whichever companion has them.
-- A companion is whatever gender their pack's author wrote. Anything describing
-  companions in general — docs, changelog entries, code and field comments —
-  says "they", or is written to need no pronoun. Copy about one named persona
-  keeps that persona's own pronouns; the test is whether the sentence is about
-  the app or about a character in it.
-- **Documentation is precise.** It is instruction and reference, not prose —
-  writing it as prose is what produces padding and hedging. Name the mechanism
-  rather than personifying it: a repo, module, file or app does not want, know,
-  care or try. Prefer the mechanism to a comparison, too. A metaphor that has
-  become a term of art — backpressure, a hot path — is the concept's name and
-  reads as one; use it. Do not coin one for the sentence: the reader decodes it
-  into the mechanism, so write the mechanism. State what is true, not what is
-  approximately true. Cut what carries no information: a sentence that loses
-  nothing when deleted, an abstraction with no referent ("what the project is
-  for", "the right shape"), a phrase restating the one before it. Applies to
-  code comments and skills as much as to `*.md`.
-- **Reference by name, never by position.** "The second paragraph", "checks
-  1-7", "line 40", "the bullet below" — each is wrong as soon as anything is
-  inserted, and nothing reports it. Point at a heading, an identifier or a
-  filename. Where the target has no name, give it a heading rather than counting
-  to it. (A `file:line` in a review finding is fine — it describes one moment,
-  not a standing reference.)
 - **One source of truth.** A rule, list or procedure is stated in exactly one
   place and everywhere else points at it. Two copies drift, and nothing reports
   which one went stale. This file is the source for how work is done here; the
@@ -219,6 +194,38 @@ invariants, the why, and the cross-file shape. Concretely:
 - When code you change is mentioned in a doc, updating the doc is part of the
   change. Run `/doc-check` before opening a PR — and again before merging — to
   catch what slipped.
+
+## Writing style
+
+How a sentence is written, wherever it sits: `*.md`, a code comment, a skill, a
+commit message. Whether the sentence is _true_ belongs to → Documentation and
+the checks that read against code; a sentence can be accurate and still break
+every rule here. `/style-check` is the one that reads for these.
+
+- **Documentation is precise.** It is instruction and reference, not prose —
+  writing it as prose is what produces padding and hedging. Name the mechanism
+  rather than personifying it: a repo, module, file or app does not want, know,
+  care or try. Prefer the mechanism to a comparison, too. A metaphor that has
+  become a term of art — backpressure, a hot path — is the concept's name and
+  reads as one; use it. Do not coin one for the sentence: the reader decodes it
+  into the mechanism, so write the mechanism. State what is true, not what is
+  approximately true. Cut what carries no information: a sentence that loses
+  nothing when deleted, an abstraction with no referent ("what the project is
+  for", "the right shape"), a phrase restating the one before it.
+- **Reference by name, never by position.** "The second paragraph", "checks
+  1-7", "line 40", "the bullet below" — each is wrong as soon as anything is
+  inserted, and nothing reports it. Point at a heading, an identifier or a
+  filename. Where the target has no name, give it a heading rather than counting
+  to it. (A `file:line` in a review finding is fine — it describes one moment,
+  not a standing reference.)
+- Docs speak the app's vocabulary — play mode, program, play/session — never a
+  persona's fiction ("during a call" is the companions' own call framing), and
+  capabilities belong to features, not to whichever companion has them.
+- A companion is whatever gender their pack's author wrote. Anything describing
+  companions in general — docs, changelog entries, code and field comments —
+  says "they", or is written to need no pronoun. Copy about one named persona
+  keeps that persona's own pronouns; the test is whether the sentence is about
+  the app or about a character in it.
 
 ## Git workflow
 
@@ -238,25 +245,31 @@ invariants, the why, and the cross-file shape. Concretely:
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
   `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, and the four checks, **in this order**:
-  `/code-check`, `/test-check`, `/doc-check`, `/personal-check`. All four run on
-  every branch: a check that only runs when someone judges it relevant is a
-  check that never runs, and each one reports "nothing found" cheaply when a
-  branch didn't go near its subject.
-- **The order is load-bearing**, because each check changes what the next one
-  reads. `/code-check` settles what the code does, so the tests and docs are
-  judged against code that is finished rather than code still moving.
-  `/test-check` comes next because a test it rewrites is itself something the
-  docs may describe. `/doc-check` then reads every doc and comment against a
-  settled branch. `/personal-check` is last so it sees the final text of
-  everything the other three wrote — it is the only check whose miss can't be
+  run, the CHANGELOG entry written, and the five checks, **in this order**:
+  `/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
+  All five run on every branch: a check that only runs when someone judges it
+  relevant is a check that never runs, and each one reports "nothing found"
+  cheaply when a branch didn't go near its subject.
+- **A check reports what it finds, including outside its own subject.** The
+  divisions say what each one must not miss, never what it may pass over: two
+  checks reporting one thing costs a duplicate line, and a check staying silent
+  because another one owns it costs the finding. Say it and name whose it is.
+- **The order matters**, because each check changes what the next one reads.
+  `/code-check` settles what the code does, so the tests and docs are judged
+  against code that is finished rather than code still moving. `/test-check`
+  comes next because a test it rewrites is itself something the docs may
+  describe. `/doc-check` then reads every doc and comment against a settled
+  branch, establishing that they are true. `/style-check` follows, because the
+  three before it all write new sentences while fixing what they find, and
+  nothing else reads those. `/personal-check` is last so it sees the final text
+  of everything the other four wrote — it is the only check whose miss can't be
   fixed after a push.
-- **Before merging**, run all four again, in the same order — the branch has
+- **Before merging**, run all five again, in the same order — the branch has
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
   reads them. Run them even on a branch that hasn't moved, and for the same
   reason as above: a re-run skipped on judgement is a re-run that never happens.
-  Treat `gh pr merge` as blocked until all four have run against the final diff.
+  Treat `gh pr merge` as blocked until all five have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and
@@ -315,7 +328,7 @@ things worth knowing up front:
   play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
   new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy to
   get wrong about the pair, are in
-  [ARCHITECTURE.md](./ARCHITECTURE.md#two-layers-per-play-mode).
+  [ARCHITECTURE.md](./ARCHITECTURE.md#play-modes).
 - **Commands are declared once**: each action is a `Command` (the type is
   commented in `src/hooks/use-voice-commands.ts`) — the button and the spoken
   word share one run handler and one enabled flag, so a disabled control is also
