@@ -7,8 +7,9 @@
   before, next to the existing timings. The whole conversation is re-sent every
   turn, so most of it should be cached and the share should climb as you talk;
   a low or zero share means something is being re-read from scratch each time,
-  which until now was only visible on a bill. Shows "not reported" for models
-  that don't say. ([#24](https://github.com/autogoon/autogoon/pull/24))
+  which until now was only visible on a bill. Shows "not reported" for a turn
+  that came back with no token counts at all.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - enhancement: **Every companion knows the time** — The rules for reading the
   clock used to sit inside the toy-control section, so a persona that left
