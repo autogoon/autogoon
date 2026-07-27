@@ -26,6 +26,22 @@
   placeholder now stays in the prompt exactly as typed.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- bug: **Building a pack could silently drop its media** — A folder inside
+  `media/` stopped the build collecting files, and depending on its name that
+  could mean losing every picture in the pack. The build reported success and
+  wrote the pack anyway, so the first sign of it was a companion with nothing to
+  send. Building now refuses a pack that holds anything a pack can't hold,
+  naming the file. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **One pack format, and one tree** — `goonpack:build` hand-picked the
+  files it fed the validator, so the validator judged a different tree from the
+  one that shipped; it now walks the source, validates that, and zips what it
+  validated, with `parsePack` refusing any path that isn't the manifest, the
+  prompt or something under `media/`. The two accepted pack-format versions
+  become one, numbered `1`: the compatibility path for the older layout is gone
+  along with the bespoke check that stood in for the validator not seeing it.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - internal: **Split the developer docs by task** — DEVELOPERS.md separates
   running the app from changing it, so someone who only wants to run Autogoon
   isn't handed the requirements for working on it.

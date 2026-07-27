@@ -64,7 +64,7 @@ The manifest is a small JSON file in two halves: the top level describes the
 separated by commas:
 
     {
-      "format": 2,
+      "format": 1,
       "id": "yourname.luna",
       "version": "1.0.0",
       "aboutThePack": "Luna, a sleepy-voiced artist, complete with voice.",
@@ -79,14 +79,9 @@ separated by commas:
 
 ### Every pack needs
 
-- **`format`** — always `2`. This is the version of the _pack format_ (so the
-  app knows how to read it), not the version of your pack. Formats 1 and 2
-  differ over exactly two things: the media folder is `media/` rather than
-  `pictures/`, and the field that strips a base's media is `noMedia` rather than
-  `noPictures`. A pack still saying `1` that used **neither** — a pack that
-  carried no pictures, a voice-only or colour-only overlay — already _is_ a
-  format 2 pack, and imports unchanged. One that used either is genuinely on the
-  old layout: importing rejects it and tells you to rebuild.
+- **`format`** — always `1`. This is the version of the _pack format_ (so the
+  app knows how to read it), not the version of your pack. A pack declaring
+  anything else is refused on import.
 - **`id`** — the pack's identity, as `publisher.packname`: your publisher name,
   a dot, the pack name — lowercase letters, numbers and hyphens only
   (`g00ner.luna`, `my-packs.luna-beach`). The id is permanent: new versions of a
@@ -188,7 +183,7 @@ it changes.
 An overlay that changes only the companion's colour is just:
 
     {
-      "format": 2,
+      "format": 1,
       "id": "yourname.luna-cyan",
       "version": "1.0.0",
       "aboutThePack": "Luna in cyan.",
@@ -256,6 +251,10 @@ Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
 conversation refers to them by name, so one name means one thing.
 
 ## Building the zip
+
+A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
+and `media/`. Anything else in the zip — a scratch file, a folder of unsorted
+pictures — is refused on import, named so you can see which file it was.
 
 Any zip tool works — zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` zips every
