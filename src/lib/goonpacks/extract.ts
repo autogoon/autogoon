@@ -119,7 +119,8 @@ export async function extractZip(
 // can name the pack before a byte is written. Resolves as soon as the manifest
 // is complete — it sorts before media/ in every zip tool's ordering, so this
 // normally reads a few kilobytes. A zip with no root manifest is read to the
-// end, and `names` is what parsePack needs to name the mistake.
+// end, and `names` — junk stripped, as it is on the way into a tree — is what
+// prepareImport needs to name the mistake.
 export async function peekZip(
   file: File,
 ): Promise<{ manifest: string | null; names: string[] }> {
@@ -127,7 +128,7 @@ export async function peekZip(
   const chunks: Uint8Array[] = [];
   let manifest: string | null = null;
   const unzip = new Unzip((entry) => {
-    names.push(entry.name);
+    if (!isJunkPath(entry.name)) names.push(entry.name);
     entry.ondata = (err, chunk, final) => {
       if (err !== null || entry.name !== MANIFEST) return;
       if (chunk.length > 0) chunks.push(chunk);

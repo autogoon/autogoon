@@ -8,7 +8,7 @@ import type { ExtractMessage, ExtractRequest } from './extract-worker';
 import { packKey } from './entries';
 import { baseError } from './library';
 import { PackError, parseManifest, type PackManifest } from './manifest';
-import { parsePack } from './pack';
+import { parsePack, wrapperFolder } from './pack';
 import {
   createPackDir,
   estimateHeadroom,
@@ -90,12 +90,11 @@ export async function prepareImport(
 ): Promise<PendingImport> {
   const { manifest: raw, names } = await peekZip(file);
   if (raw === null) {
-    const tops = new Set(
-      names.map((n) => (n.includes('/') ? n.slice(0, n.indexOf('/')) : '')),
-    );
-    const wrapper = tops.size === 1 ? [...tops][0]! : '';
+    // The same reading parsePack gives an extracted tree, so a zip and the tree
+    // it would become name the fault identically.
+    const wrapper = wrapperFolder(names);
     throw new PackError(
-      wrapper !== ''
+      wrapper !== null
         ? `Everything is inside ${wrapper}/ — zip the folder's contents, not the folder.`
         : "No manifest.json at the zip root — zip the pack folder's contents, not the folder.",
     );

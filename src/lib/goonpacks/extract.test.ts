@@ -203,6 +203,22 @@ describe('peekZip', () => {
     ]);
   });
 
+  // The names peek returns have to be the names extraction would write, or the
+  // two disagree about the pack's shape. It matters here for wrapperFolder,
+  // which counts top-level folders: __MACOSX/ is a second one, so leaving it in
+  // turns the wrapper case into "no single wrapper" and the advice degrades to
+  // the generic "No manifest.json at the zip root".
+  it('does not return the .DS_Store and __MACOSX/ names a Finder zip carries', async () => {
+    const { names } = await peekZip(
+      zipFile({
+        'yourpack/manifest.json': manifest('test.pack'),
+        'yourpack/.DS_Store': strToU8('junk'),
+        '__MACOSX/._manifest.json': strToU8('junk'),
+      }),
+    );
+    expect(names.sort()).toEqual(['yourpack/manifest.json']);
+  });
+
   // prepareImport turns this empty result into "No manifest.json at the zip
   // root — zip the pack folder's contents, not the folder."
   it('returns an empty result for bytes that are not a zip', async () => {

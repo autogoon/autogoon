@@ -12,7 +12,7 @@ import {
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 
 export const MANIFEST = 'manifest.json';
-export const PROMPT = 'system-prompt.md';
+const PROMPT = 'system-prompt.md';
 // The media folder, twice over: its own name (what opens it in a tree) and the
 // prefix its files carry in a '/'-separated listing (what validation matches).
 export const MEDIA_NAME = 'media';
@@ -81,7 +81,9 @@ export function peekManifest(raw: string): PackPeek {
 
 // The one structural fault worth naming: everything landed under a single
 // top-level folder because the folder was zipped instead of its contents.
-function wrapperFolder(names: string[]): string | null {
+// Takes junk-filtered names — a `__MACOSX/` entry is a second top-level folder
+// to anything counting them, which is how a Finder zip hides the fault.
+export function wrapperFolder(names: string[]): string | null {
   const tops = new Set<string>();
   for (const n of names) {
     const slash = n.indexOf('/');
