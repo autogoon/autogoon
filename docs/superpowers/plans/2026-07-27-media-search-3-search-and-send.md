@@ -22,8 +22,8 @@ set. The search itself is deliberately simple and deliberately replaceable.
 This is steps 4 and 5 of
 [the media search design](../specs/2026-07-27-media-search-design.md), which
 land together. It depends on
-[two texts and a summary](./2026-07-27-pack-two-texts-and-summary.md) having
-landed: every type it consumes is produced there.
+[two texts and a summary](./2026-07-27-media-search-2-two-texts-and-summary.md)
+having landed: every type it consumes is produced there.
 
 ## Global Constraints
 
@@ -97,7 +97,7 @@ all four open:
 
 - Consumes: `CompanionMedia` from `src/lib/companions/companions.ts`, which
   carries `ref`, `caption` and `description` (the long prose) after
-  [the previous plan](./2026-07-27-pack-two-texts-and-summary.md).
+  [the previous plan](./2026-07-27-media-search-2-two-texts-and-summary.md).
 - Produces:
 
 ```ts
@@ -613,7 +613,7 @@ git commit -m "Companions: search for a picture, then send it by ref"
 **Interfaces:**
 
 - Consumes: `Companion.mediaSummary` from
-  [the previous plan](./2026-07-27-pack-two-texts-and-summary.md).
+  [the previous plan](./2026-07-27-media-search-2-two-texts-and-summary.md).
 - Produces:
 
 ```ts

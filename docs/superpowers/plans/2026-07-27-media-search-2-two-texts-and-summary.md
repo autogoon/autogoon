@@ -22,9 +22,10 @@ frontmatter library (new dependency — see Task 1).
 
 This is steps 1–3 of
 [the media search design](../specs/2026-07-27-media-search-design.md). It
-depends on [Phase 0](./2026-07-27-pack-format-one.md) having landed, because
-Task 4 here adds rules to a validator Phase 0 restructures. Steps 4–5 (the two
-tools) are [their own plan](./2026-07-27-media-search-tools.md).
+depends on [Phase 0](./2026-07-27-media-search-1-pack-format.md) having landed,
+because Task 4 here adds rules to a validator Phase 0 restructures. Steps 4–5
+(the two tools) are
+[their own plan](./2026-07-27-media-search-3-search-and-send.md).
 
 ## Global Constraints
 
@@ -84,8 +85,8 @@ Two things are in place and must not be "fixed":
 
 - Consumes: nothing.
 - Produces — every later task and
-  [the tools plan](./2026-07-27-media-search-tools.md) depend on these exact
-  names:
+  [the tools plan](./2026-07-27-media-search-3-search-and-send.md) depend on
+  these exact names:
 
 ```ts
 export type Sidecar = { caption: string; description: string };
@@ -510,8 +511,8 @@ git commit -m "Packs: a summary of the media set, and the script that writes it"
 
 - Consumes: `parseSidecar`, `SIDECAR_EXT`, `SidecarError` from Task 1;
   `PackManifest.mediaSummary` from Task 3.
-- Produces — [the tools plan](./2026-07-27-media-search-tools.md) consumes these
-  exact names:
+- Produces — [the tools plan](./2026-07-27-media-search-3-search-and-send.md)
+  consumes these exact names:
 
 ```ts
 // src/lib/goonpacks/pack.ts
