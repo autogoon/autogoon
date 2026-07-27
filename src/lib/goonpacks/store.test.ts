@@ -16,6 +16,7 @@ import {
   openPackTree,
   readMediaFile,
   removePackTree,
+  requestPersistence,
   sweepIncomplete,
 } from './store';
 
@@ -32,6 +33,9 @@ let removals: string[];
 // change in the gap the sweep's second hasMarker() check exists for.
 let beforeGrant: ((name: string) => void) | null;
 let estimate: () => StorageEstimate;
+// How many times persist() has been asked for, so a test can tell "resolved
+// without waiting" from "never asked at all".
+let persistCalls: number;
 
 function fileHandle(parent: Dir, name: string): FileSystemFileHandle {
   return {
@@ -104,12 +108,20 @@ beforeEach(() => {
   removals = [];
   beforeGrant = null;
   estimate = () => ({ quota: 10_000_000_000, usage: 0 });
+  persistCalls = 0;
   Object.defineProperty(globalThis, 'navigator', {
     configurable: true,
     value: {
       storage: {
         getDirectory: async () => dirHandle(root, ''),
         estimate: async () => estimate(),
+        persisted: async () => false,
+        // Never settles: Firefox resolves persist() only once the user answers
+        // its permission prompt, which they may never do.
+        persist: () => {
+          persistCalls++;
+          return new Promise<boolean>(() => {});
+        },
       },
       locks: {
         request: async (
@@ -294,6 +306,15 @@ describe('estimateHeadroom', () => {
       "This browser can't store packs",
     );
   });
+});
+
+describe('requestPersistence', () => {
+  // The timeout is the assertion: awaiting persist() would leave this pending
+  // until jest gave up, which is what the first import would do on Firefox.
+  it('resolves without waiting for persist() to settle', async () => {
+    await expect(requestPersistence()).resolves.toBeUndefined();
+    expect(persistCalls).toBe(1);
+  }, 1_000);
 });
 
 describe('a browser that refuses a directory', () => {
