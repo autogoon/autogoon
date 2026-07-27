@@ -78,6 +78,23 @@ tell you to perform.
 6. **Behavioural claims** — read the referenced code and confirm the sentence is
    still true.
 
+Each of those six has a right answer sitting in another file: a path resolves or
+it doesn't, a constant matches or it doesn't. The precision rule has nothing to
+check against, which is how a run of green mechanical checks misses it
+completely — and it cannot be caught by asking whether a sentence is true, since
+a sentence carrying nothing is not false. Two questions supply the test, and
+both are cheap over every sentence the branch added or changed:
+
+- **Cut the sentence. Did the paragraph lose anything?** A sentence announcing
+  what the next one is about to say, a phrase restating the one before it, and a
+  flourish all answer no.
+- **Ask what a word means here.** For a metaphor or an abstraction, it either
+  names something the reader can point at, or it is standing where a mechanism
+  should be.
+
+Run both over your own edits before reporting: the fix phase writes new prose,
+and nothing else reads it.
+
 ## Output and fixes
 
 Report findings as `FILE:LINE — claim → what the code actually says → fix`, most
