@@ -148,7 +148,7 @@ What's already built is described in
 
 `use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
 `companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
-to hold in the head. The coupling is load-bearing rather than careless — the mic
+to hold in the head. The coupling is deliberate rather than careless — the mic
 and STT callbacks are created once and outlive many renders, so everything they
 read has to be a ref — which is why "just split it" isn't the fix.
 

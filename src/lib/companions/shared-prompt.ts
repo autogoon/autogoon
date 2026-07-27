@@ -200,8 +200,8 @@ export const TIME_SECTION = `TIME:
 // Last means everything before is byte-identical turn to turn.
 //
 // TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY
-// STATUS line", so these labels are load-bearing: they're how a persona finds
-// them.
+// STATUS line", so renaming a label here leaves those sections pointing at a
+// line the companion is never sent.
 export const liveStateMessage = (now: string, toyStatus: string): string =>
   `TIME (his local time, right now): ${now}
 TOY STATUS (trust this over everything else): ${toyStatus}`;

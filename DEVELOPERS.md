@@ -161,8 +161,9 @@ plays a committed wav of a synthesized play mode name into it once, then asserts
 the app heard it and navigated to that play mode's screen.
 
 Two hard-won details — the stub's always-on silence source, and the pre-pipeline
-activation click — are load-bearing and commented in place in
-`tests/e2e/voice-tab-switch.spec.ts`; read them before writing more voice tests.
+activation click — are required for the test to pass at all, and are commented
+in place in `tests/e2e/voice-tab-switch.spec.ts`; read them before writing more
+voice tests.
 
 Fixtures are committed under `tests/fixtures/`; regenerate them with
 `tests/fixtures/generate.sh` (macOS only — it uses `say`).
