@@ -22,6 +22,7 @@ import {
   type ParsedPack,
   type PackTree,
 } from '../src/lib/goonpacks/pack';
+import { captionWarning } from './lib/goonpack-report';
 import { collectPackFiles } from './lib/goonpack-source';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -33,6 +34,8 @@ const green = (s: string): string =>
   process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
 const red = (s: string): string =>
   process.stderr.isTTY ? `\x1b[31m${s}\x1b[0m` : s;
+const yellow = (s: string): string =>
+  process.stderr.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
 
 let entries: Dirent[];
 try {
@@ -80,12 +83,16 @@ for (const entry of entries) {
   // The zip is named after the source directory, not the pack id — two
   // directories can hold two versions of the same id without clobbering.
   const out = join(packsDir, `${entry.name}.zip`);
-  writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
+  // Deflated, like the `zip -r` an author would run. Stills and video barely
+  // shrink, but a pack's text does, and that is the part that grows.
+  writeFileSync(out, zipSync(files));
   const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${entry.name}: 0 errors`));
   console.log(
     `  built, ${entry.name}.zip${counts === '' ? '' : `, ${counts}`}`,
   );
+  const captions = captionWarning(parsed.media);
+  if (captions !== null) console.warn(yellow(`  warning: ${captions}`));
   built++;
 }
 console.log(`${built} pack(s) built`);

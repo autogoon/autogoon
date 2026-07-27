@@ -4,7 +4,6 @@
 // tree is extract.test.ts's; reading a tree as a pack is pack.test.ts's.
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import {
-  MARKER,
   createPackDir,
   estimateHeadroom,
   hasMarker,
@@ -152,6 +151,29 @@ describe('hasMarker', () => {
   });
 });
 
+describe('markComplete', () => {
+  it('writes the marker beside the tree, so the pack directory holds only the pack', async () => {
+    seed('pub.pack@1.0.0', { 'manifest.json': '{}' });
+    await markComplete('pub.pack@1.0.0');
+    const packs = root.get('goonpacks') as Dir;
+    expect([...packs.keys()].sort()).toEqual([
+      'pub.pack@1.0.0',
+      'pub.pack@1.0.0.complete',
+    ]);
+    expect([...(packs.get('pub.pack@1.0.0') as Dir).keys()]).toEqual([
+      'manifest.json',
+    ]);
+  });
+
+  it('refuses to mark a key with no tree under it', async () => {
+    seed('pub.other@1.0.0', { 'manifest.json': '{}' });
+    await expect(markComplete('pub.missing@1.0.0')).rejects.toThrow();
+    expect(
+      (root.get('goonpacks') as Dir).has('pub.missing@1.0.0.complete'),
+    ).toBe(false);
+  });
+});
+
 describe('listCompletePackKeys', () => {
   it('offers only the trees carrying the marker, so a half-written pack is never read as installed', async () => {
     seed('pub.done@1.0.0', { 'manifest.json': '{}' });
@@ -187,10 +209,7 @@ describe('sweepIncomplete', () => {
     seed('pub.racing@1.0.0', { 'manifest.json': '{}' });
     // The import finishes in the gap the sweep's second hasMarker() covers.
     beforeGrant = () => {
-      ((root.get('goonpacks') as Dir).get('pub.racing@1.0.0') as Dir).set(
-        MARKER,
-        '',
-      );
+      (root.get('goonpacks') as Dir).set('pub.racing@1.0.0.complete', '');
     };
     expect(await sweepIncomplete()).toEqual([]);
     expect(treeExists('pub.racing@1.0.0')).toBe(true);
@@ -203,7 +222,7 @@ describe('removePackTree', () => {
     await markComplete('pub.going@1.0.0');
     await removePackTree('pub.going@1.0.0');
     expect(removals).toEqual([
-      `pub.going@1.0.0/${MARKER}`,
+      'goonpacks/pub.going@1.0.0.complete',
       'goonpacks/pub.going@1.0.0',
     ]);
   });
@@ -213,8 +232,11 @@ describe('removePackTree', () => {
     await markComplete('pub.going@1.0.0');
     const packs = root.get('goonpacks') as Dir;
     const realDelete = packs.delete.bind(packs);
-    // The tab dies after the marker goes but before the tree does.
-    packs.delete = () => true;
+    // The tab dies after the marker goes but before the tree does. Both now
+    // live in this directory, so the fake lets the first delete through — the
+    // marker — and drops the second.
+    let deletes = 0;
+    packs.delete = (k: string) => (deletes++ === 0 ? realDelete(k) : true);
     await removePackTree('pub.going@1.0.0');
     packs.delete = realDelete;
 
@@ -237,6 +259,15 @@ describe('createPackDir', () => {
     await createPackDir('pub.pack@1.0.0');
     const tree = (root.get('goonpacks') as Dir).get('pub.pack@1.0.0') as Dir;
     expect([...tree.keys()]).toEqual([]);
+  });
+
+  it('takes the previous install marker off, so a re-import that dies is not read as complete', async () => {
+    seed('pub.pack@1.0.0', { 'manifest.json': '{}' });
+    await markComplete('pub.pack@1.0.0');
+    // The marker is a sibling now, so removing the tree no longer removes it.
+    await createPackDir('pub.pack@1.0.0');
+    expect(await hasMarker('pub.pack@1.0.0')).toBe(false);
+    expect(await sweepIncomplete()).toEqual(['pub.pack@1.0.0']);
   });
 });
 
@@ -261,14 +292,6 @@ describe('openPackTree', () => {
     });
     const tree = await openPackTree('pub.pack@1.0.0');
     expect(tree?.names.sort()).toEqual(['manifest.json', 'media/a.jpg']);
-  });
-
-  it('leaves the completion marker out, so validation never sees the store keeping notes', async () => {
-    seed('pub.pack@1.0.0', { 'manifest.json': '{}' });
-    await markComplete('pub.pack@1.0.0');
-    expect((await openPackTree('pub.pack@1.0.0'))?.names).toEqual([
-      'manifest.json',
-    ]);
   });
 
   it('reads a file back by its path', async () => {

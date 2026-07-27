@@ -39,7 +39,10 @@ async function makeTree(
         await w.close();
       }
       if (marked) {
-        const marker = await dir.getFileHandle('.complete', { create: true });
+        // Beside the directory, not inside it — a pack's tree holds the pack.
+        const marker = await packs.getFileHandle(`${key}.complete`, {
+          create: true,
+        });
         await (await marker.createWritable()).close();
       }
     },

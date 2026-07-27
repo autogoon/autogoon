@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-28
+
+- enhancement: **A built pack is the directory you built it from** —
+  `npm run goonpack:build` now zips every file in the pack source, compressed
+  the way a zip tool would compress it, so building a pack and zipping the
+  folder yourself produce the same archive. It also says which media files still
+  have no caption instead of building silently over them, naming the first few
+  and counting the rest — a caption is still optional, and the pack still
+  builds. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **The install marker moved out of the pack** — The file marking an
+  extracted tree complete was written inside the pack's own directory, so
+  validation had to be told to ignore it and extraction had to refuse a zip
+  entry that would forge it. It is now a sibling of the directory, which drops
+  both special cases and makes the tree an import validates the same set of
+  names the zip carried. A re-import clears the previous marker before it starts
+  writing, since removing the tree no longer takes it.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-27
 
 - enhancement: **See how much of the prompt was cached** — The debug tab now

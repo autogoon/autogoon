@@ -118,21 +118,20 @@ describe('extractZip', () => {
     expect([...written].sort()).toEqual(['manifest.json', 'media/a.jpg']);
   });
 
-  // `.complete` is the marker markComplete() writes last, after validation, to
-  // mean the tree is installed. A zip entry of that name would land during
-  // extraction instead, so an import that crashed part-way would leave a tree
-  // that sweepIncomplete() spares and listCompletePackKeys() then serves as a
-  // real pack — a half-extracted pack that never heals.
-  it('does not write a .complete entry, which would forge the install marker', async () => {
+  // The install marker is a sibling of the pack directory, so a zip entry named
+  // `.complete` cannot forge it — it is an ordinary file inside the tree, and
+  // parsePack refuses it by name like any other path that isn't the manifest,
+  // the prompt or media/.
+  it('writes a .complete entry like any other file, since the marker lives outside the tree', async () => {
     const written = new Set<string>();
     await extractZip(
       zipFile({
         'manifest.json': manifest('test.pack'),
-        '.complete': strToU8('not mine to write'),
+        '.complete': strToU8('an ordinary file'),
       }),
       fakeDir(written),
     );
-    expect([...written]).toEqual(['manifest.json']);
+    expect([...written].sort()).toEqual(['.complete', 'manifest.json']);
   });
 
   // Found in Safari 27: WebKit's FileSystemWritableFileStream.write() writes a

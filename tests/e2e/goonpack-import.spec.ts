@@ -126,7 +126,8 @@ test('importing a pack puts its tree on disk and offers it on the chooser', asyn
       const root = await navigator.storage.getDirectory();
       const packs = await root.getDirectoryHandle('goonpacks');
       const dir = await packs.getDirectoryHandle('e2e.testy@1.0.0');
-      await dir.getFileHandle('.complete');
+      // The marker is a sibling of the tree, so it is the root that holds it.
+      await packs.getFileHandle('e2e.testy@1.0.0.complete');
       const media = await dir.getDirectoryHandle('media');
       const names: string[] = [];
       for await (const name of media.keys()) names.push(name);

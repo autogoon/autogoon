@@ -11,12 +11,18 @@
 // is the only signal that says so. Removal deletes the marker first and the tree
 // second, so a crash mid-removal leaves exactly what a crash mid-import leaves,
 // and one clean pass at load covers both.
+//
+// The marker sits BESIDE the tree, never inside it: `<key>.complete` next to
+// `<key>/`. A pack's directory therefore holds the pack's own files and nothing
+// else, which is what lets validation judge every path in it — and what makes
+// the tree an import validates the same set of names the zip carries.
 import { PackError } from './manifest';
 import { isJunkPath } from './media';
 import { MEDIA_NAME, type PackTree } from './pack';
 
 const PACKS_DIR = 'goonpacks';
-export const MARKER = '.complete';
+const MARKER_SUFFIX = '.complete';
+const markerName = (key: string): string => `${key}${MARKER_SUFFIX}`;
 
 // A browser can present the whole storage API and still refuse to hand over a
 // directory, so this is what every write path says when it can't get one —
@@ -64,9 +70,9 @@ export async function listCompletePackKeys(): Promise<string[]> {
   return keys;
 }
 
-// Every file in a pack's tree, as validation sees it: the pack's own files,
-// with this module's completion marker left out. Deeper nesting is listed so
-// parsePack can reject it by name.
+// Every file in a pack's tree, as validation sees it — the pack's own files and
+// nothing else, since the marker is a sibling of the directory rather than an
+// entry in it. Deeper nesting is listed so parsePack can reject it by name.
 async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
   const names: string[] = [];
   const walk = async (
@@ -77,7 +83,7 @@ async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
       const path = `${prefix}${name}`;
       if (isDirectory(entry)) {
         await walk(entry, `${path}/`);
-      } else if (!isJunkPath(path) && path !== MARKER) {
+      } else if (!isJunkPath(path)) {
         names.push(path);
       }
     }
@@ -111,12 +117,18 @@ export async function openPackTree(key: string): Promise<PackTree | null> {
 }
 
 // A fresh directory for a pack being imported: any existing tree goes first, so
-// a re-import never merges with what it replaces.
+// a re-import never merges with what it replaces. The marker goes with it, and
+// goes FIRST — it lives outside the directory, so removing the tree no longer
+// takes it. Left behind, it would say "complete" over the half-written tree the
+// re-import is in the middle of laying down.
 export async function createPackDir(
   key: string,
 ): Promise<FileSystemDirectoryHandle> {
   const packs = await packsRoot(true);
   if (packs === null) throw new PackError(NO_STORAGE);
+  await packs.removeEntry(markerName(key)).catch(() => {
+    // not installed, or a previous import never finished
+  });
   await packs.removeEntry(key, { recursive: true }).catch(() => {
     // nothing there — the common case
   });
@@ -143,8 +155,10 @@ export async function openPackDir(
 export async function markComplete(key: string): Promise<void> {
   const packs = await packsRoot(true);
   if (packs === null) throw new PackError(NO_STORAGE);
-  const dir = await packs.getDirectoryHandle(key);
-  const marker = await dir.getFileHandle(MARKER, { create: true });
+  // The tree has to exist to be called complete: without this, marking a key
+  // that was never imported writes a marker with nothing under it.
+  await packs.getDirectoryHandle(key);
+  const marker = await packs.getFileHandle(markerName(key), { create: true });
   await (await marker.createWritable()).close();
 }
 
@@ -152,8 +166,7 @@ export async function hasMarker(key: string): Promise<boolean> {
   const packs = await packsRoot();
   if (packs === null) return false;
   try {
-    const dir = await packs.getDirectoryHandle(key);
-    await dir.getFileHandle(MARKER);
+    await packs.getFileHandle(markerName(key));
     return true;
   } catch {
     return false;
@@ -165,14 +178,9 @@ export async function hasMarker(key: string): Promise<boolean> {
 export async function removePackTree(key: string): Promise<void> {
   const packs = await packsRoot();
   if (packs === null) return;
-  try {
-    const dir = await packs.getDirectoryHandle(key);
-    await dir.removeEntry(MARKER).catch(() => {
-      // already gone
-    });
-  } catch {
-    return; // no tree
-  }
+  await packs.removeEntry(markerName(key)).catch(() => {
+    // already gone
+  });
   await packs.removeEntry(key, { recursive: true }).catch(() => {
     // already gone
   });

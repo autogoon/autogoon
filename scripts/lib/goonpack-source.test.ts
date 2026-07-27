@@ -2,7 +2,13 @@
 // whole job is the filesystem, so it is exercised against a real directory;
 // judging the paths it returns is parsePack's, and pack.test.ts's.
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { collectPackFiles } from './goonpack-source';
@@ -54,14 +60,28 @@ describe('collectPackFiles', () => {
     ]);
   });
 
-  it('leaves macOS junk out, so validation never sees a file the author never made', () => {
+  it('follows a symlinked directory, so a media set stored elsewhere on disk reaches the pack', () => {
+    // The defect: readdirSync reports a symlink as a symlink whatever it points
+    // at, so a symlinked media/ was read as a file and threw EISDIR.
+    write('elsewhere/a.jpg', 'bytes');
+    write('pack/manifest.json', '{}');
+    symlinkSync(join(dir, 'elsewhere'), join(dir, 'pack/media'));
+    const files = collectPackFiles(join(dir, 'pack'));
+    expect(Object.keys(files).sort()).toEqual(['manifest.json', 'media/a.jpg']);
+    expect(Buffer.from(files['media/a.jpg']!).toString()).toBe('bytes');
+  });
+
+  it('keeps macOS junk, so the zip carries what the directory carries', () => {
+    // parsePack drops these before it judges anything, so keeping them costs no
+    // verdict — and it is what makes a built zip match a hand-made one.
     write('manifest.json', '{}');
     write('.DS_Store', 'junk');
     write('media/a.jpg');
     write('media/._a.jpg', 'junk');
-    write('__MACOSX/._manifest.json', 'junk');
     expect(Object.keys(collectPackFiles(dir)).sort()).toEqual([
+      '.DS_Store',
       'manifest.json',
+      'media/._a.jpg',
       'media/a.jpg',
     ]);
   });

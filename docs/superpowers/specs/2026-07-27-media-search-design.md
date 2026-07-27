@@ -67,10 +67,14 @@ skip: the manifest, the prompt and `media/*` are recognised, and every other
 path is named as one that doesn't belong.
 
 One thing has to move with it. `store.ts` writes a completion marker inside the
-pack directory and `listTree` returns it like any other file, so the store has
-to keep its own bookkeeping out of the tree it hands to validation — otherwise
-the new rule refuses every installed pack at load. The marker belongs to the
-store, so the store hides it rather than the validator learning its name.
+pack directory and `listTree` returns it like any other file, so the new rule
+would refuse every installed pack at load. Filtering it back out on the way to
+the validator leaves the store's bookkeeping sitting in the pack's own
+directory, where a zip entry of that name can forge it and where the tree an
+import validates is one file different from the zip it came from. The marker
+moves out instead: `<key>.complete` beside `<key>/`, so a pack's directory holds
+the pack and nothing else. Extraction then needs no special case for the name,
+and the fs walk and the extracted tree hand the validator the same set of names.
 
 **The build validates the tree it ships.** `goonpack-build.ts` hand-picks the
 manifest, the prompt and the contents of `media/`, builds a `PackTree` from that
@@ -259,7 +263,10 @@ pipeline produces a pack, not about app state.
 
 - `parsePack` names a path that has no place in a pack, and still names a
   wrapper folder as a wrapper folder rather than complaining about every path
-  inside it. The tree a pack's store hands to validation carries no marker.
+  inside it.
+- The marker lands beside the pack directory, not in it, and a re-import clears
+  the previous one before it starts writing — otherwise a re-import that dies
+  part-way is read as complete.
 - Phase 0 also deletes behaviour, so the tests covering the old layout go with
   it rather than being retargeted. What remains of the format contract is that a
   value above the one the app reads asks for a newer app, and anything else is
