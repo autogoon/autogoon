@@ -12,39 +12,43 @@ description:
 Verify the repo's documentation still tells the truth about the code, and that
 it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
-**Documentation is instruction and reference, not prose. Precision, not
-flourish.** Deliberately duplicated here due to its importance: it is the rule
-most often broken and the hardest to see — written as prose, documentation
-acquires padding, hedging and sentences that carry nothing.
+What this check must not miss has a right answer in another file: a path that no
+longer resolves, an identifier that was renamed, a claim the code stopped
+supporting. How a sentence is _written_ is another check's subject — a document
+can pass this one and still be badly written.
 
 ## Scope
 
 - **Default: the branch.** `git diff main...HEAD --name-only` plus the
   identifiers the diff renamed, removed, or added. Then find every doc that
-  mentions any of them: the docs are `*.md` at the root, `modes/*.md`,
-  `roadmap/*.md`, and `.env.example` (its comments are the documented env
-  contract).
+  mentions any of them. The documents are the ones classed in
+  [The document set](#the-document-set) below.
 - **Code comments are docs too.** **Every comment the diff touched is in
   scope**, whatever file it sits in: if the branch wrote or edited it, read it
-  as a doc — how it is written, what it names, and whether it still describes
-  the repo around it. Whether it tells the truth about the code directly beneath
-  it is `/code-check`'s, which reads that hunk anyway; everything else about it
-  is here. Beyond the diff, code files still aren't swept — flag those
+  as a doc — what it names, and whether it still describes the repo around it.
+  Matching the code directly beneath it is another check's subject, and so is
+  how it is written. Beyond the diff, code files still aren't swept — flag those
   opportunistically, while verifying something else.
-- **`/doc-check all`: full sweep.** Every doc in the set above, against the
-  whole codebase. Fan out one read-only subagent per cluster and collect their
-  reports; cover the set exactly, with no doc in two clusters and none left out.
+- **`/doc-check all`: full sweep.** Every document in
+  [The document set](#the-document-set), against the whole codebase. Fan out one
+  read-only subagent per cluster and collect their reports; no document in two
+  clusters and none left out.
 
-The set splits three ways, and a doc's place decides how it is read:
+## The document set
+
+A document's class and audience decide how it is read:
 
 |                                           | class         | audience  |
 | ----------------------------------------- | ------------- | --------- |
 | README.md, MODES.md, `modes/*.md`         | current-state | user      |
 | ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md | current-state | developer |
-| CHANGELOG.md                              | current-state | both      |
+| GOONPACKS.md, CHANGELOG.md                | current-state | both      |
 | `.env.example`                            | current-state | developer |
+| `.claude/skills/*/SKILL.md`               | current-state | developer |
 | TODO.md, ROADMAP.md, `roadmap/*.md`       | future        | developer |
 | dated plans and specs under `docs/`       | future        | developer |
+
+`.env.example`'s comments are the documented env contract.
 
 **Current-state** docs describe only what is implemented today. **Future** docs
 describe intent and churn as plans change: check only the claims they make about
@@ -77,23 +81,6 @@ tell you to perform.
    checked against the code for entries added since it was written.
 6. **Behavioural claims** — read the referenced code and confirm the sentence is
    still true.
-
-Each of those six has a right answer sitting in another file: a path resolves or
-it doesn't, a constant matches or it doesn't. The precision rule has nothing to
-check against, which is how a run of green mechanical checks misses it
-completely — and it cannot be caught by asking whether a sentence is true, since
-a sentence carrying nothing is not false. Two questions supply the test, and
-both are cheap over every sentence the branch added or changed:
-
-- **Cut the sentence. Did the paragraph lose anything?** A sentence announcing
-  what the next one is about to say, a phrase restating the one before it, and a
-  flourish all answer no.
-- **Ask what a word means here.** For a metaphor or an abstraction, it either
-  names something the reader can point at, or it is standing where a mechanism
-  should be.
-
-Run both over your own edits before reporting: the fix phase writes new prose,
-and nothing else reads it.
 
 ## Output and fixes
 

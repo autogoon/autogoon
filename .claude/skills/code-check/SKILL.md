@@ -2,18 +2,17 @@
 name: code-check
 description:
   Use before opening a PR and again before merging it. Reviews the branch's
-  source against the rules in CLAUDE.md — Architecture, the key handling in
-  Secrets / environment, and Documentation's precision rule read against the
-  code — and checks that each comment the diff touched still tells the truth
-  about the code beneath it. Not docs, tests, or whether a feature should exist.
+  source against the rules in CLAUDE.md — Architecture and the key handling in
+  Secrets / environment — and checks that each comment the diff touched still
+  tells the truth about the code beneath it. Not docs, tests, or whether a
+  feature should exist.
 ---
 
 # Code check
 
-`/doc-check` reads the docs, `/test-check` reads the tests, `/personal-check`
-reads for leaks. This one reads the code against the rules CLAUDE.md sets for
-it, and the comments on it against the code. It runs first of the four — the
-order, and why, are in [CLAUDE.md](../../../CLAUDE.md) → Git workflow.
+Read the code against the rules CLAUDE.md sets for it, and the comments on it
+against the code. Where this runs among the checks, and why, is in
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow.
 
 **It is about code, not features.** Whether something should exist is a product
 question and lives in [TODO.md](../../../TODO.md). This asks whether what does
@@ -28,16 +27,15 @@ against how the app is built.
 - **Every branch**, `git diff main...HEAD`. A check applied only when someone
   judges it relevant is a check that never runs; where a branch went near none
   of this, "no findings" costs a minute.
-- **`/code-check all`** reads the whole codebase rather than the diff.
+- **`/code-check all`: full sweep.** The whole codebase rather than the diff,
+  and every comment in it rather than the ones a diff touched. Fan out one
+  read-only subagent per directory and collect their reports. Expensive; this is
+  not the per-PR mode.
 
 ## What to check
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Architecture and → Secrets /
-environment → Keys is a check**, and so is → Documentation's precision rule read
-against the code itself: a wrapper that carries no information, a type or layer
-naming an abstraction with no referent, a construction that is approximately
-right where the exact one costs nothing. The other half of Secrets /
-environment, → What must never be committed, is `/personal-check`'s.
+environment → Keys is a check.**
 
 Read them there. They are not repeated here, so a rule added there is checked
 without this file changing, and there is no second copy to go stale.
@@ -51,11 +49,6 @@ way costs more than no comment at all: it is believed.
 
 § Editing files is deliberately not claimed: which tool made an edit leaves no
 trace in a diff, and the PreToolUse hook enforces it at the point of use.
-
-§ How a comment is _written_ is `/doc-check`'s — precision, naming something
-renamed, describing the past or the future, and the cross-file drift no single
-hunk shows. Accuracy against the code in front of you is this check's; the rest
-of → Documentation is that one's.
 
 Finding a breach is mostly obvious once the rule is in mind — grep for the thing
 the rule forbids. One technique is not obvious, and is worth the minutes: to

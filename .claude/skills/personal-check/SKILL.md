@@ -17,8 +17,7 @@ finding is not fixed until the history that contains it is rewritten.
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Secrets / environment → What
 must never be committed is a check.** Read them there; a category added there is
-scanned for without this file changing. The other half of that section, → Keys,
-is `/code-check`'s.
+scanned for without this file changing.
 
 Below is where those leaks hide, which the rules alone would not tell you:
 
@@ -59,7 +58,8 @@ Below is where those leaks hide, which the rules alone would not tell you:
 Default: the branch — `git diff main...HEAD` for content, `git log main..HEAD`
 for messages, and the PR's title/body/comments if one is open.
 `/personal-check all`: the whole tree — every committed file, plus filenames of
-untracked files (they may get committed later).
+untracked files (they may get committed later). Fan out one read-only subagent
+per directory and collect their reports. Expensive; this is not the per-PR mode.
 
 ## History — the part that actually matters
 
