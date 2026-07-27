@@ -10,7 +10,7 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/no-shell-edits.sh\"",
-            "timeout": 10
+            "timeout": 20
           }
         ]
       }

@@ -21,6 +21,13 @@ cmd=$(jq -r '.tool_input.command // ""')
 
 # Interpreters by name, and the in-place flags of the two stream editors.
 # Requiring the flag keeps a plain `sed -n '1,5p' file` off the slow path.
+#
+# This list is short on purpose, and is not the set of ways a shell can write a
+# file: a bare `> file`, `tee` and `git checkout --` all pass it untouched. It
+# holds what Claude has actually reached for, which is python and bash, and a
+# blocked attempt gets a denial message naming Edit — so the first try is the
+# one worth catching. A shape earns a pattern by being used as a workaround,
+# never by being imaginable.
 grep -qiE 'python|bash' <<<"$cmd" ||
   grep -qE '(^|[^[:alnum:]_])sed[^|;&]*[[:space:]]-[[:alnum:]]*i' <<<"$cmd" ||
   grep -qE '(^|[^[:alnum:]_])perl[^|;&]*[[:space:]]-[[:alnum:].]*i' <<<"$cmd" ||
