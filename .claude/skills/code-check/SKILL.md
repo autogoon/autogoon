@@ -51,10 +51,20 @@ way costs more than no comment at all: it is believed.
 trace in a diff, and the PreToolUse hook enforces it at the point of use.
 
 Finding a breach is mostly obvious once the rule is in mind — grep for the thing
-the rule forbids. One technique is not obvious, and is worth the minutes: to
-check the prompt prefix, assemble two consecutive requests and diff them. The
+the rule forbids. Two are not, and both are worth the minutes.
+
+**The prompt prefix.** Assemble two consecutive requests and diff them. The
 first index at which they differ is where caching stops; anything below the
 newest turn is a finding.
+
+**YAGNI.** The cheap pass first: an export with no caller outside its own module
+greps out, and is a real finding. It is not most of them, though — an unexported
+field is invisible to that search, and a value can be read, threaded through
+three layers and rendered while still serving nothing. So also list what the
+branch added that holds or shapes data — a field on a type, an option, a
+parameter, a return value — and for each ask what stops working if it is
+deleted. Where the answer is "nothing yet", the rule allows one case on a
+condition; read the definition site and check it meets it.
 
 ## Reporting
 
@@ -79,3 +89,4 @@ A clean run says "no findings". Don't invent any.
 | "It's only a few tokens"       | Position, not size. One volatile value above the conversation re-bills all. |
 | "No rule covers this"          | The rules are how the app is built, not a checklist. Argue from them.       |
 | "WebKit will probably be fine" | Playwright's WebKit can't test the paths that most need it. A human must.   |
+| "Nothing unused was added"     | Unused is not the test. Ask what breaks without it.                         |
