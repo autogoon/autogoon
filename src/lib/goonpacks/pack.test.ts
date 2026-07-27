@@ -4,7 +4,7 @@ import { parsePack, peekManifest, type PackTree } from './pack';
 
 const manifest = (extra: object = {}) =>
   JSON.stringify({
-    format: 2,
+    format: 1,
     id: 'test.pack',
     version: '1.0.0',
     aboutThePack: 'a test pack',
@@ -190,37 +190,6 @@ describe('parsePack', () => {
     expect(problems).toEqual([
       'A complete pack needs a name field in the companion section of manifest.json.',
     ]);
-  });
-
-  it('accepts a format 1 pack that carries no media', async () => {
-    const pack = await parsePack(
-      tree({
-        'manifest.json': JSON.stringify({
-          format: 1,
-          id: 'test.pack',
-          version: '1.0.0',
-          aboutThePack: 'a colour-only overlay',
-          base: 'autogoon.aimee',
-          companion: { accentColour: 'cyan' },
-        }),
-      }),
-    );
-    expect(pack.media).toEqual([]);
-  });
-
-  it('names the old layout when a format 1 pack has a pictures/ folder', async () => {
-    const t = tree({
-      'manifest.json': JSON.stringify({
-        format: 1,
-        id: 'test.pack',
-        version: '1.0.0',
-        aboutThePack: 'an old pack',
-        base: 'autogoon.aimee',
-      }),
-      'pictures/a.jpg': '',
-      'pictures/a.txt': 'cap',
-    });
-    await expect(parsePack(t)).rejects.toThrow(/old pictures\/ layout/);
   });
 
   it('names the wrapper folder when the folder was zipped instead of its contents', async () => {

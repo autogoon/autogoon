@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { PackError, parseManifest } from './manifest';
 
 const good = {
-  format: 2,
+  format: 1,
   id: 'g00ner.aimee',
   version: '1.0.0',
   aboutThePack: 'a test pack',
@@ -22,36 +22,13 @@ describe('parseManifest', () => {
       'autogoon.aimee',
     );
   });
-  it('accepts a format 1 manifest with no noPictures field', () => {
-    expect(
-      parseManifest({
-        format: 1,
-        id: 'a.b',
-        version: '1',
-        aboutThePack: 'x',
-        base: 'autogoon.aimee',
-      }).format,
-    ).toBe(1);
-  });
-  it('names the old layout when a format 1 pack used noPictures', () => {
-    expect(() =>
-      parseManifest({
-        format: 1,
-        id: 'a.b',
-        version: '1',
-        aboutThePack: 'x',
-        base: 'autogoon.aimee',
-        noPictures: true,
-      }),
-    ).toThrow(/old pictures\/ layout/);
-  });
   it('rejects a format newer than the app understands, asking for a newer version of the app', () => {
-    expect(() => parseManifest({ format: 3, id: 'a.b', version: '1' })).toThrow(
+    expect(() => parseManifest({ format: 2, id: 'a.b', version: '1' })).toThrow(
       /newer version of the app/,
     );
   });
-  it("rejects a format that is neither 1 nor 2 as one it doesn't recognise", () => {
-    expect(() => parseManifest({ ...good, format: 1.5 })).toThrow(
+  it("rejects a format below the one it understands as one it doesn't recognise", () => {
+    expect(() => parseManifest({ ...good, format: 0 })).toThrow(
       "This pack uses a format version this app doesn't recognise.",
     );
   });
@@ -61,8 +38,8 @@ describe('parseManifest', () => {
     );
   });
   it('rejects a format written as a string in quotes', () => {
-    expect(() => parseManifest({ ...good, format: '2' })).toThrow(
-      'manifest.json is missing the format field — add "format": 2.',
+    expect(() => parseManifest({ ...good, format: '1' })).toThrow(
+      'manifest.json is missing the format field — add "format": 1.',
     );
   });
   it("rejects an id that isn't lowercase publisher.packname", () => {
@@ -168,7 +145,7 @@ describe('parseManifest', () => {
   it('collects every problem, not just the first', () => {
     let thrown: unknown;
     try {
-      parseManifest({ format: 2, id: 'g00ner.aimee', base: 'autogoon.aimee' });
+      parseManifest({ format: 1, id: 'g00ner.aimee', base: 'autogoon.aimee' });
     } catch (e) {
       thrown = e;
     }

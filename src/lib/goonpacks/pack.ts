@@ -3,12 +3,7 @@
 // complete-vs-overlay completeness rules are all name rules, so only
 // manifest.json, system-prompt.md and the captions are ever read. Validating a
 // multi-gigabyte pack costs a few hundred kilobytes.
-import {
-  OLD_LAYOUT_PROBLEM,
-  PackError,
-  parseManifest,
-  type PackManifest,
-} from './manifest';
+import { PackError, parseManifest, type PackManifest } from './manifest';
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 
 export const MANIFEST = 'manifest.json';
@@ -196,14 +191,6 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   // Completeness rules need a readable manifest to know overlay from complete —
   // without one, the manifest's own problems already tell the story.
   if (manifest !== undefined) {
-    // The tree half of the format gate (parseManifest holds the other):
-    // formats 1 and 2 differ only in this folder's name and noPictures, so a
-    // format 1 pack with neither is a format 2 pack and passes. With a
-    // pictures/ folder it is genuinely old, and says so rather than reporting
-    // no media.
-    if (manifest.format === 1 && names.some((n) => n.startsWith('pictures/'))) {
-      problems.push(OLD_LAYOUT_PROBLEM);
-    }
     if (manifest.base === undefined) {
       if (systemPrompt === undefined) {
         problems.push('A complete pack needs a system-prompt.md file.');

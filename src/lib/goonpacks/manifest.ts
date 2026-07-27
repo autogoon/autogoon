@@ -47,12 +47,7 @@ const ACCENT_COLOURS = new Set([
 const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
-export const PACK_FORMAT = 2;
-
-// Formats 1 and 2 differ only in the media folder's name and noPictures, so
-// this is what "written for the old format" concretely means.
-export const OLD_LAYOUT_PROBLEM =
-  'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.';
+export const PACK_FORMAT = 1;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
@@ -126,22 +121,16 @@ export function parseManifest(raw: unknown): PackManifest {
   // field rules may not apply, so any further "problems" could be junk.
   if (typeof m.format !== 'number') {
     throw new PackError(
-      'manifest.json is missing the format field — add "format": 2.',
+      'manifest.json is missing the format field — add "format": 1.',
     );
   }
   if (m.format > PACK_FORMAT) {
     throw new PackError('This pack needs a newer version of the app.');
   }
-  if (m.format !== PACK_FORMAT && m.format !== 1) {
+  if (m.format !== PACK_FORMAT) {
     throw new PackError(
       "This pack uses a format version this app doesn't recognise.",
     );
-  }
-  // A format 1 pack that used noPictures is genuinely written to the old
-  // format; one that didn't may still be a format 2 pack in every respect,
-  // which only the tree can say — parsePack finishes the judgement.
-  if (m.format === 1 && m.noPictures !== undefined) {
-    throw new PackError(OLD_LAYOUT_PROBLEM);
   }
 
   const problems: string[] = [];

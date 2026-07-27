@@ -7,7 +7,7 @@ const BUILT_IN = companionList[0]!.id;
 
 const manifest = (extra: object) =>
   JSON.stringify({
-    format: 2,
+    format: 1,
     version: '1.0.0',
     aboutThePack: 'a test pack',
     ...extra,
@@ -160,7 +160,7 @@ describe('buildLibrary', () => {
     );
     expect(lib.rows[0]!.peek).toEqual({ name: 'Broken', version: '1.0.0' });
     expect(lib.rows[0]!.incompatible).toEqual([
-      'manifest.json is missing the format field — add "format": 2.',
+      'manifest.json is missing the format field — add "format": 1.',
     ]);
   });
 

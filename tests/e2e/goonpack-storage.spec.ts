@@ -52,7 +52,7 @@ async function makeTree(
 // everything under test is concerned.
 const validPack = (key: string): Record<string, string> => ({
   'manifest.json': JSON.stringify({
-    format: 2,
+    format: 1,
     id: key.slice(0, key.indexOf('@')),
     version: key.slice(key.indexOf('@') + 1),
     aboutThePack: 'a storage test pack',
