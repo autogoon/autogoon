@@ -51,9 +51,10 @@ author's own legal exposure. `/personal-check` is the backstop, not the defence
 
 ## Verifying changes
 
-- `npm test` — Jest unit tests (`src/**/*.test.ts`, colocated, node environment,
-  import from `@jest/globals`). Cover pure logic: engine contracts,
-  device-client accounting.
+- `npm test` — Jest unit tests (colocated, import from `@jest/globals`). Cover
+  pure logic: engine contracts, device-client accounting. Node is the default
+  environment; a test that renders a hook or component opts into jsdom per file
+  (see the Testing section in [DEVELOPERS.md](./DEVELOPERS.md#testing)).
 - `npm run test:e2e` — Playwright (`tests/e2e/`), running each spec on real
   Chromium, Firefox and WebKit; starts (or reuses) the dev server on :8931. The
   voice test fakes only the microphone (a `MediaDevices.prototype.getUserMedia`

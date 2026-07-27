@@ -135,10 +135,14 @@ Import-your-own-file is the only acquisition path the app knows about.
 
 Two layers, both local-only for now (no CI):
 
-- **Unit tests** — `npm test` (Jest via `next/jest`, node environment). They
-  live next to what they test (`src/**/*.test.ts`) and cover pure logic: engine
-  generation contracts, the device client's rate-limit accounting. Import from
-  `@jest/globals` rather than relying on globals.
+- **Unit tests** — `npm test` (Jest via `next/jest`). They live next to what
+  they test and cover pure logic: engine generation contracts, the device
+  client's rate-limit accounting. Import from `@jest/globals` rather than
+  relying on globals. The environment is node by default, which is why the suite
+  runs in a second or so; a test that renders a hook or a component asks for
+  jsdom in a `@jest-environment jsdom` docblock at the top of the file
+  (`src/hooks/use-media-url.test.ts` is the shortest example). Keep that opt-in
+  per file — a global jsdom would slow every engine test down for nothing.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
   spec runs on real Chromium, Firefox **and** WebKit; the config starts the dev
   server on :8931 (or reuses one already running). The goonpack specs are the
