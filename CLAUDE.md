@@ -245,8 +245,9 @@ every rule here. `/style-check` is the one that reads for these.
   merge**: push with `git push -u origin <branch>`, then open a PR against
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
-  `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, and the five checks, **in this order**:
+  `npm run typecheck`, `lint` and `format` clean, `npm test` and
+  `npm run test:e2e` both run (see Verifying changes for what each covers), the
+  CHANGELOG entry written, and the five checks, **in this order**:
   `/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
   All five run on every branch: a check that only runs when someone judges it
   relevant is a check that never runs, and each one reports "nothing found"
