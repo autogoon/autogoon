@@ -20,7 +20,7 @@ import {
 export function HomePanel({
   vacuglide,
   playModes,
-  onSelect,
+  onSelectAction,
 }: {
   vacuglide: VacuglideDeviceController;
   playModes: ReadonlyArray<{
@@ -35,7 +35,9 @@ export function HomePanel({
     // The Card accent colour name (e.g. "fuchsia").
     accent: string;
   }>;
-  onSelect: (id: string) => void;
+  // Named for the Action suffix Next's client-entry rule wants on a function
+  // prop, not because it is a Server Action — this whole tree is client-side.
+  onSelectAction: (id: string) => void;
 }) {
   const chooser = (
     <Card title="Choose a play mode">
@@ -48,7 +50,7 @@ export function HomePanel({
             button
             accent={a.accent}
             voiceCommand={a.id}
-            onClick={() => onSelect(a.id)}
+            onClick={() => onSelectAction(a.id)}
             icon={<a.icon className={a.iconClass} aria-hidden />}
             title={a.label}
           >
@@ -140,10 +142,8 @@ export function HomePanel({
         </p>
         {process.env.NODE_ENV === 'development' ? (
           <p>
-            <span className="text-foreground font-medium">
-              Companion pictures
-            </span>{' '}
-            are bring-your-own — the{' '}
+            <span className="text-foreground font-medium">Companion media</span>{' '}
+            is bring-your-own — the{' '}
             <a
               href="https://github.com/autogoon/autogoon/blob/main/modes/COMPANIONS.md"
               target="_blank"
@@ -152,7 +152,7 @@ export function HomePanel({
             >
               Companions doc
             </a>{' '}
-            covers adding them.
+            covers adding it.
           </p>
         ) : (
           <p>

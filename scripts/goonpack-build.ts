@@ -1,9 +1,9 @@
-// Zips each goonpacks/<dir>/ into goonpacks/<id>.zip — the id read from the
-// pack's manifest, so directory names stay free. Run: npm run goonpack:build
-// (runs under tsx, so it imports the app's importer directly: every built
-// zip passes parsePack — the same checks importing runs — or the build
-// fails. Only the app-level cross-pack checks, like "is the base
-// installed", can't run here.)
+// Zips each goonpacks/<dir>/ into goonpacks/<dir>.zip (see the naming note
+// where the file is written). Run: npm run goonpack:build
+// (runs under tsx, so it imports the app's validator directly: every pack
+// source passes parsePack — the same checks importing runs — before it is
+// zipped, or the build fails. Only the app-level cross-pack checks, like "is
+// the base installed", can't run here.)
 import {
   readdirSync,
   readFileSync,
@@ -15,8 +15,14 @@ import { join, dirname } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
+import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
-import { parsePack } from '../src/lib/goonpacks/pack';
+import { isJunkPath } from '../src/lib/goonpacks/media';
+import {
+  parsePack,
+  type ParsedPack,
+  type PackTree,
+} from '../src/lib/goonpacks/pack';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
@@ -62,16 +68,34 @@ for (const entry of entries) {
     /* overlays may have no prompt */
   }
   try {
-    for (const f of readdirSync(join(dir, 'pictures')).sort()) {
-      if (f === '.DS_Store') continue;
-      add(join('pictures', f));
+    for (const f of readdirSync(join(dir, 'media')).sort()) {
+      if (isJunkPath(f)) continue;
+      add(join('media', f));
     }
   } catch {
-    /* no pictures dir */
+    /* no media dir */
   }
-  const zip = zipSync(files, { level: 0 }); // jpegs don't recompress
+  // The pack source as a PackTree — the same name-level validation the app runs
+  // over an extracted tree, so a pack that builds is a pack that imports.
+  const tree: PackTree = {
+    names: Object.keys(files),
+    readText: (path) => Promise.resolve(readFileSync(join(dir, path), 'utf8')),
+  };
+  let parsed: ParsedPack;
   try {
-    parsePack(zip);
+    // Only media/ is zipped, so a source still holding pictures/ would build
+    // into a pack with no media at all — and validate, since the zip has no
+    // pictures/ folder for the format gate to catch. Refuse it here instead.
+    if (
+      statSync(join(dir, 'pictures'), {
+        throwIfNoEntry: false,
+      })?.isDirectory() === true
+    ) {
+      throw new PackError(
+        'This pack source still has a pictures/ folder — rename it to media/.',
+      );
+    }
+    parsed = await parsePack(tree);
   } catch (e) {
     const problems =
       e instanceof PackError
@@ -86,9 +110,12 @@ for (const entry of entries) {
   // The zip is named after the source directory, not the pack id — two
   // directories can hold two versions of the same id without clobbering.
   const out = join(packsDir, `${entry.name}.zip`);
-  writeFileSync(out, zip);
+  writeFileSync(out, zipSync(files, { level: 0 })); // jpegs don't recompress
+  const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${entry.name}: 0 errors`));
-  console.log(`  built, ${entry.name}.zip`);
+  console.log(
+    `  built, ${entry.name}.zip${counts === '' ? '' : `, ${counts}`}`,
+  );
   built++;
 }
 console.log(`${built} pack(s) built`);

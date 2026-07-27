@@ -8,9 +8,9 @@ they happen:
   mode and drives you toward climax.
 - **after-play**: From the moment you start to cum.
 
-Autopilot is a faithful implementation of the Vacuglide algorithm, but these
-options are really additive, users can keep that faithful implementation by not
-enabling any of the options.
+The Autopilot play mode is a faithful recreation of Autoblow's Autopilot, but
+these options are really additive, users can keep that faithful implementation
+by not enabling any of the options.
 
 ## Mid-play — during the ride
 

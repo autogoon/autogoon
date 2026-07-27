@@ -15,32 +15,27 @@ finding is not fixed until the history that contains it is rewritten.
 
 ## What to look for
 
-- **Personal use-case framing stated as project fact** — the author's own
-  library sizes, folder layouts, hardware, workflows. Reframe as a generic
-  worked example ("say 40k images", "a 64GB machine") or delete.
-- **Identifying details** — names, emails, locations, accounts, personal URLs,
-  device/setup details that pin down one person.
-- **Content-sourcing references** — platform names in a downloading/collecting
-  context, scraper or downloader tool names, anything implying where content
-  comes from. The app is source-agnostic (see DEVELOPERS.md → Content policy);
-  docs must be too.
-- **The content of a local picture set** — the images under
-  `public/companions/<id>/` and their `.txt` captions are gitignored and exist
-  only on the author's machine. Never describe what is in them: how many there
-  are, who or what they show, what a companion is or isn't pictured wearing,
-  whether a set contains nudes. Write about the **feature** — bring-your-own,
-  the build-time glob, the captions she picks by — never about the set that
-  happens to be sitting on disk. Watch for it hiding inside an otherwise
-  reasonable sentence: a persona note justified by "which is what her pictures
-  are", or a cost estimate that needs a real count, has slipped from describing
-  the app to describing private content. And don't quote the offending sentence
-  when reporting it — restating it is the same leak.
-- **Personal legal/risk discussion** — analysis of the author's own liability
-  belongs outside the repo entirely, kept locally and gitignored.
-- **Secrets** — keys and tokens (should already be impossible via `.env`
-  hygiene, but look anyway).
-- **Leaky meta-files** — a `.gitignore` entry or script name can itself reveal
-  what it hides; weigh the entry's wording.
+**Every rule in [CLAUDE.md](../../../CLAUDE.md) → Secrets / environment → What
+must never be committed is a check.** Read them there; a category added there is
+scanned for without this file changing.
+
+Below is where those leaks hide, which the rules alone would not tell you:
+
+- **A leak wearing the clothes of a project fact** — the author's own library
+  sizes, folder layouts, hardware or workflow, stated as though describing the
+  app. Reframe as a generic worked example ("say 40k images", "a 64GB machine")
+  or delete.
+- **A sentence about the local media set that reads as a sentence about the
+  feature.** `goonpacks/<dir>/media/` is gitignored and exists on one machine,
+  so anything about its contents is private: a persona note justified by "which
+  is what her pictures are", a cost estimate that needs a real count. Both have
+  slipped from the feature to the set. **Do not quote the offending sentence
+  when reporting it** — restating it is the same leak.
+- **Sourcing implied rather than stated** — a platform name in a
+  downloading/collecting context, a scraper or downloader tool name. The app is
+  source-agnostic (DEVELOPERS.md → Content policy).
+- **Leaky meta-files** — a `.gitignore` entry or a script name can reveal what
+  it hides; weigh the wording, not just the file it points at.
 - **Commit messages** — a surface of their own: session links and attribution
   trailers (`Claude-Session:`, tool-generated URLs), personal emails or URLs in
   message bodies. `-S` only searches content — messages need
@@ -60,10 +55,52 @@ finding is not fixed until the history that contains it is rewritten.
 
 ## Scope
 
-Default: the branch — `git diff main...HEAD` for content, `git log main..HEAD`
-for messages, and the PR's title/body/comments if one is open.
-`/personal-check all`: the whole tree — every committed file, plus filenames of
-untracked files (they may get committed later).
+Default: the branch — **every revision of every file it changed**, plus
+`git log main..HEAD` for messages and the PR's title/body/comments if one is
+open. `/personal-check all`: the whole tree — every committed file, plus
+filenames of untracked files (they may get committed later). Fan out one
+read-only subagent per directory and collect their reports. Expensive; this is
+not the per-PR mode.
+
+### Every revision, not the final diff
+
+`git diff main...HEAD` shows where the branch **landed**, not what it published.
+Text added in one commit and removed in a later one never appears in it, and on
+a branch that is pushed as it goes, every one of those commits was public the
+moment it landed. A long branch with doc churn can rewrite the same paragraph
+five times; the final diff reads one of them.
+
+So the content pass is over the union of every added line in every commit.
+Subtract the lines the final tree already holds, and what remains is exactly the
+material no final-diff pass reads — where a deleted-but-published leak hides.
+
+Two things make that remainder small enough to read rather than skim:
+
+- **Reconstruct each revision whole; don't read the diff.** For each changed
+  `*.md`, walk `git log main..HEAD --format=%h -- <file>`, `git show <c>:<file>`
+  each one, and **strip fenced code blocks** before collecting. A plan or spec
+  doc is mostly code, and a diff-based filter cannot tell a `+` prose line from
+  a `+` line of a code sample — one branch's plan doc went from 3,278 apparently
+  unread lines to 65 once fences were stripped.
+- **Read comments and prose; pattern-scan the rest.** In code files, personal
+  information reaches the reader through comments and string literals. Read
+  every comment the branch ever added; run the identifier patterns (**What to
+  look for**) over everything else.
+
+Deduplicate before reading — a rename or pronoun pass repeats one sentence
+across many revisions.
+
+This is content only. Messages, PR text and history exposure are their own
+passes.
+
+### Do not let the findings so far shape the search
+
+Once a finding exists, the cheap next move is to grep the rest of history for
+its wording — which finds more of what is already known and nothing else. The
+identifier patterns come from **What to look for** and run in full regardless.
+For the categories no regex covers — a set's size, a folder layout, hardware,
+sourcing — reading is the only pass that works, so the remainder above gets
+read, not searched.
 
 ## History — the part that actually matters
 
@@ -99,3 +136,5 @@ claiming complete removal.
 | "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                |
 | "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision. |
 | "The pictures aren't committed"      | Describing them publishes them anyway.                   |
+| "It's not in the final diff"         | A pushed branch published every commit on the way.       |
+| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.          |

@@ -1,5 +1,127 @@
 # Changelog
 
+## 2026-07-27
+
+- enhancement: **See how much of the prompt was cached** — The debug tab now
+  shows how many of a turn's prompt tokens the model recognised from the turn
+  before, next to the existing timings. The whole conversation is re-sent every
+  turn, so most of it should be cached and the share should climb as you talk;
+  a low or zero share means something is being re-read from scratch each time,
+  which until now was only visible on a bill. Shows "not reported" for a turn
+  that came back with no token counts at all.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- enhancement: **Every companion knows the time** — The section explaining the
+  clock used to sit inside the toy-control section, so a persona that left
+  `{{CONTROL_SECTION}}` out was still told the real time and never told it was
+  real. It's a section of its own now, added to every persona automatically with
+  no token to place or forget — which also means it survives a companion that
+  has no toy to control. Nothing changes for a persona that already pulls the
+  control section in.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- enhancement: **A misspelled placeholder shows up instead of vanishing** —
+  Writing `{{MEDIA_SECTON}}` in a persona used to leave nothing at all behind,
+  so the section was simply missing with no sign why. An unrecognised
+  placeholder now stays in the prompt exactly as typed.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Split the developer docs by task** — DEVELOPERS.md separates
+  running the app from changing it, so someone who only wants to run Autogoon
+  isn't handed the requirements for working on it.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Play-mode guidance moves to ARCHITECTURE.md** — DEVELOPERS.md's
+  two feature checklists are gone. Adding a play mode was a five-step procedure
+  that turned out to be almost entirely architecture — the four-method contract,
+  the registration paragraph and the knob-change table were already in
+  ARCHITECTURE.md — so what remained joins the section describing the pair, now
+  called Play modes. Adding a companion is a pointer to GOONPACKS.md instead of
+  a checklist. DEVELOPERS.md's contribution list no longer branches on what you
+  are building. ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **GOONPACKS.md separates who leads from who drives the toy** —
+  Persona guidance said to set "who leads during play" and that the app's
+  sections are neutral on it, which reads as the toy, where they are not neutral
+  at all. It now distinguishes the encounter, which is the persona's to set,
+  from toy control, which every companion is given identically — writing against
+  it doesn't override it, it hands the model two contradictory instructions. The
+  `model` field gains a note that refusal behaviour and reliable tool-calling
+  belong to the model, not the prompt.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+## 2026-07-26
+
+- feature: **Companions can send you videos** — A goonpack can now carry video
+  as well as stills: `.mp4` and `.webm` files sit alongside pictures with the
+  same one-line captions, and a companion picks between them the same way — one
+  numbered list, each entry marked picture or video. A video plays inline in the
+  conversation and full-size when you open it. Authoring moved with it: media
+  lives in a `media/` folder rather than `pictures/`, `noPictures` is now
+  `noMedia`, the prompt token is `{{MEDIA_SECTION}}`, and the pack format is
+  `2`. A pack still saying `1` that had neither a `pictures/` folder nor a
+  `noPictures` field already is a format 2 pack and imports unchanged; one that
+  had either is rejected, saying what to fix.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- enhancement: **Packs are unpacked, not stored whole** — Importing a pack now
+  unzips it into your browser's storage once, showing its progress as it goes,
+  instead of keeping the zip and re-reading it on every start. Packs of hundreds
+  of megabytes — or gigabytes, with video — now list without the app reading a
+  single picture: it reads the captions and nothing else, and only opens a file
+  when it's about to show it. Packs installed before this change don't carry
+  over, so re-import their zips; the storage the old copies held is reclaimed on
+  the next start. Pictures sent in conversations before this change no longer
+  show in the transcript — the conversations themselves are untouched.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Hooks and components can be unit-tested** — Jest takes `.tsx`
+  test files, and a test that renders a hook or a component asks for jsdom in a
+  per-file docblock, so the engine and pack-parsing suites keep the node
+  environment and the speed that comes with it. `useMediaUrl` and `MediaBubble`
+  are the first two covered — between them they pin that a bubble whose pack was
+  removed goes back to disk rather than holding a revoked URL, and that a file
+  that has gone renders the placeholder and never a substitute.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **The send_media decision leaves the panel** — Which item a
+  `send_media` call means, the numbered list the model chooses from, and the
+  refusal when a stated kind disagrees with the number now live in
+  `src/lib/companions/send-media.ts`; the panel keeps the tool's schema and
+  opening the lightbox. The list and the pick are numbered in one place, so
+  they can't drift, and all three decisions have tests.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Tests that can actually fail** — Reviewed every unit test file and
+  every Playwright spec against the code they test, mutation-testing each claim.
+  Tests that passed with the behaviour they named broken are gone — replaced by
+  real ones where the contract mattered. The two
+  engine `reset()` tests and the VAD debounce test asserted only that output was
+  non-empty, `library.test.ts` called `rows.every(...)` over arrays a defect
+  empties, `stt-token`'s expectation restated its own fixture, and the voice e2e
+  spec had matched no element since card titles became spans. Comments asserting
+  behaviour the code does not have were corrected throughout, including two in
+  `extract.test.ts`. Contracts that had no test now have one: `mediaRef` —
+  including that `toLlmMessages` never sends it to the model — the Player's
+  one-engine-at-a-time invariant, a rejected access id on each paid route, the
+  `internal` changelog tag, safe words outside a–z, the `PackError` name a
+  storage failure has to keep to avoid being reported as a bad zip, that asking
+  the browser for persistent storage never waits on the permission prompt
+  Firefox raises, and that a pack imported while a removal is still rebuilding
+  the library survives it.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
+  directory tree keyed `id@version`, extracted in a worker from a streamed zip,
+  validated over names alone, and made real by a marker file written last. A
+  markerless tree is an interrupted import or removal, and one clean pass at
+  load deletes it — unless the Web Lock an import holds for that key is still
+  taken, which is what stops one tab's load sweeping away another's import.
+  Nothing derived is persisted anywhere: the library index is rebuilt from the
+  trees at every load, so "installed" is one live verdict against the current
+  rules.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
 ## 2026-07-25
 
 - feature: **A companion keeps the conversation going** — Companions no longer

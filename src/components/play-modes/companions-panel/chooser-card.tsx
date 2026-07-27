@@ -10,8 +10,10 @@ import { Fragment } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Card } from '@/components/card';
 import {
-  effectivePictures,
+  describeMedia,
+  effectiveMedia,
   type LibraryEntry,
+  type MediaCount,
   type VariantSlot,
 } from '@/lib/goonpacks/entries';
 
@@ -22,25 +24,22 @@ export const SELECTED_VARIANT_PREFIX = 'goonpacks:last-variant:';
 export type PackSel = { base: string | null; overlay: string | null };
 
 // The card's feature line: what the selected base+overlay pair actually plays
-// with — the picture count whenever there are any (bold when the overlay
-// supplies or strips them), plus each slot the overlay changes.
+// with — the media it brings whenever there is any (bold when the overlay
+// supplies or strips it), plus each slot the overlay changes.
 function variantFeatures(v: {
-  pictures: number;
+  media: MediaCount;
   changed: VariantSlot[];
 }): { text: string; bold: boolean }[] {
   const changed = v.changed;
   const out: { text: string; bold: boolean }[] = [];
-  const pictures = v.pictures;
-  if (pictures > 0) {
-    out.push({
-      text: `${pictures} picture${pictures === 1 ? '' : 's'}`,
-      bold: changed.includes('pictures'),
-    });
-  } else if (changed.includes('pictures')) {
-    out.push({ text: 'no pictures', bold: true }); // noPictures strips them
+  const media = describeMedia(v.media);
+  if (media !== '') {
+    out.push({ text: media, bold: changed.includes('media') });
+  } else if (changed.includes('media')) {
+    out.push({ text: 'no media', bold: true }); // noMedia strips them
   }
   for (const slot of changed) {
-    if (slot === 'pictures') continue;
+    if (slot === 'media') continue;
     out.push({ text: slot, bold: true });
   }
   return out;
@@ -105,7 +104,7 @@ export function ChooserCard({
   const description =
     overlayOpt?.description ?? baseOpt.description ?? c.description;
   const features = variantFeatures({
-    pictures: effectivePictures(overlayOpt, baseOpt.pictures),
+    media: effectiveMedia(overlayOpt, baseOpt.media),
     changed: overlayOpt?.changed ?? [],
   });
   return (

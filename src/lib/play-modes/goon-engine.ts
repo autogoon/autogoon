@@ -196,8 +196,8 @@ function buildLeg(
     (BASELINE_LEG_MS - shortestMs) * Math.pow(Math.random(), LEG_TIME_SKEW);
   const waypoints: Waypoint[] = [{ speed: from, at: startAt }];
   // A zero-length leg (from === to) still has to consume its leg time, or the
-  // cycle collapses to zero duration and the Player's look-ahead loop spins
-  // forever building empty ones.
+  // cycle collapses to zero duration and generateSpeed's own tiling loop never
+  // returns, building empty cycles at the same instant forever.
   if (from === to) return { waypoints, endAt: startAt + Math.round(legMs) };
   // How many sends the leg is cut into is a function of its duration, not of how
   // far it travels. A leg shorter than one interval collapses to a single jump —

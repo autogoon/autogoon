@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import { parseAccessIds } from './access';
 
 describe('parseAccessIds', () => {
-  it('is empty (gate off) for unset or blank env', () => {
+  it('returns [] for unset or blank env, so nothing validates', () => {
     expect(parseAccessIds(undefined)).toEqual([]);
     expect(parseAccessIds('')).toEqual([]);
     expect(parseAccessIds('  ,  , ')).toEqual([]);

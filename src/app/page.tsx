@@ -438,7 +438,7 @@ function App() {
             <HomePanel
               vacuglide={vacuglide}
               playModes={availablePlayModes}
-              onSelect={(id) => {
+              onSelectAction={(id) => {
                 if (isPlayModeId(id) || id === 'settings') navigate(id);
               }}
             />

@@ -1,157 +1,271 @@
 import { describe, expect, it } from '@jest/globals';
-import { strToU8, zipSync } from 'fflate';
 import { PackError } from './manifest';
-import { parsePack, peekPack } from './pack';
+import { parsePack, peekManifest, type PackTree } from './pack';
 
 const manifest = (extra: object = {}) =>
-  strToU8(
-    JSON.stringify({
-      format: 1,
-      id: 'test.pack',
-      version: '1.0.0',
-      aboutThePack: 'a test pack',
-      ...extra,
-    }),
-  );
+  JSON.stringify({
+    format: 2,
+    id: 'test.pack',
+    version: '1.0.0',
+    aboutThePack: 'a test pack',
+    ...extra,
+  });
 const complete = (extra: object = {}) =>
   manifest({ companion: { name: 'Testy', voiceId: 'v123' }, ...extra });
 
+// An in-memory PackTree: file contents by path. Media files hold '' — parsePack
+// must never read them, and a test that made it read one would still pass on
+// content but is caught by the "never reads a media file" test below.
+function tree(files: Record<string, string>): PackTree & { read: string[] } {
+  const read: string[] = [];
+  return {
+    names: Object.keys(files),
+    read,
+    readText: (path: string) => {
+      read.push(path);
+      const v = files[path];
+      if (v === undefined) return Promise.reject(new Error(`no ${path}`));
+      return Promise.resolve(v);
+    },
+  };
+}
+
 describe('parsePack', () => {
-  it('parses a complete pack with pictures and sidecars', () => {
-    const zip = zipSync({
+  it('parses a complete pack with stills, videos and captions', async () => {
+    // The media is listed out of alphabetical order deliberately: pack.media
+    // comes back sorted by name from parsePack, so the index assertions below
+    // only hold if that sort ran.
+    const t = tree({
       'manifest.json': complete(),
-      'system-prompt.md': strToU8('You are Testy.'),
-      'pictures/a.jpg': new Uint8Array([1, 2, 3]),
-      'pictures/a.txt': strToU8('desc a'),
-      'pictures/b.png': new Uint8Array([4]),
+      'system-prompt.md': 'You are Testy.',
+      'media/c.mp4': '',
+      'media/c.txt': 'a video',
+      'media/b.png': '',
+      'media/a.jpg': '',
+      'media/a.txt': 'desc a\n',
     });
-    const pack = parsePack(zip);
+    const pack = await parsePack(t);
     expect(pack.manifest.id).toBe('test.pack');
     expect(pack.systemPrompt).toBe('You are Testy.');
-    expect(pack.pictures).toHaveLength(2);
-    expect(pack.pictures[0]).toMatchObject({
+    expect(pack.media).toHaveLength(3);
+    expect(pack.media[0]).toEqual({
       name: 'a',
-      description: 'desc a',
+      file: 'a.jpg',
+      kind: 'image',
       mimeType: 'image/jpeg',
+      description: 'desc a',
     });
-    expect(pack.pictures[1]).toMatchObject({ name: 'b', description: '' });
+    expect(pack.media[1]).toMatchObject({ name: 'b', description: '' });
+    expect(pack.media[2]).toMatchObject({
+      name: 'c',
+      kind: 'video',
+      mimeType: 'video/mp4',
+      description: 'a video',
+    });
   });
-  it('accepts an overlay with nothing but a manifest', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+
+  it('never reads a media file', async () => {
+    const t = tree({
+      'manifest.json': complete(),
+      'system-prompt.md': 'x',
+      'media/a.jpg': '',
+      'media/a.txt': 'cap',
+      'media/big.mp4': '',
     });
-    expect(parsePack(zip).pictures).toEqual([]);
+    await parsePack(t);
+    expect(t.read.sort()).toEqual([
+      'manifest.json',
+      'media/a.txt',
+      'system-prompt.md',
+    ]);
   });
-  it('requires aboutThePack at import', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({
-        base: 'autogoon.aimee',
-        aboutThePack: undefined,
-      }),
-    });
-    expect(() => parsePack(zip)).toThrow(/aboutThePack/);
-  });
-  it('rejects noPictures alongside a pictures/ folder', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee', noPictures: true }),
-      'pictures/a.jpg': new Uint8Array([1]),
-    });
-    expect(() => parsePack(zip)).toThrow(/noPictures/);
-    const clean = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee', noPictures: true }),
-    });
-    expect(parsePack(clean).manifest.noPictures).toBe(true);
-  });
-  it('rejects a complete pack missing prompt/name/voiceId', () => {
-    expect(() => parsePack(zipSync({ 'manifest.json': complete() }))).toThrow(
-      /system-prompt/,
+
+  it('accepts an overlay with nothing but a manifest', async () => {
+    const pack = await parsePack(
+      tree({ 'manifest.json': manifest({ base: 'autogoon.aimee' }) }),
     );
-    expect(() =>
+    expect(pack.media).toEqual([]);
+  });
+
+  it('rejects .mov by name, saying why', async () => {
+    const t = tree({
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'media/video.mov': '',
+    });
+    await expect(parsePack(t)).rejects.toThrow(/\.mov/);
+    await expect(parsePack(t)).rejects.toThrow(/mp4 or \.webm/);
+  });
+
+  it('rejects an unsupported extension in media/, naming the file and the allowed types', async () => {
+    const t = tree({
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'media/a.gif': '',
+    });
+    const problems = await parsePack(t).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
+    ]);
+  });
+
+  it('rejects a subfolder under media/, naming the path', async () => {
+    const t = tree({
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'media/sub/b.jpg': '',
+    });
+    const problems = await parsePack(t).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      "media/ can't contain subfolders — found media/sub/b.jpg.",
+    ]);
+  });
+
+  it('rejects duplicate stems across extensions', async () => {
+    const t = tree({
+      'manifest.json': manifest({ base: 'autogoon.aimee' }),
+      'media/a.jpg': '',
+      'media/a.mp4': '',
+    });
+    await expect(parsePack(t)).rejects.toThrow(/share the name/);
+  });
+
+  it('rejects noMedia alongside a media/ folder', async () => {
+    await expect(
       parsePack(
-        zipSync({
-          'manifest.json': manifest({ companion: { voiceId: 'v' } }),
-          'system-prompt.md': strToU8('x'),
+        tree({
+          'manifest.json': manifest({
+            base: 'autogoon.aimee',
+            noMedia: true,
+          }),
+          'media/a.jpg': '',
         }),
       ),
-    ).toThrow(PackError);
+    ).rejects.toThrow(/noMedia/);
   });
-  it('rejects a zip without a root manifest, hinting at folder-zips', () => {
-    const zip = zipSync({ 'pack/manifest.json': complete() });
-    expect(() => parsePack(zip)).toThrow(/root/);
+
+  it('keeps noMedia set on an overlay with no media/ folder', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({ base: 'autogoon.aimee', noMedia: true }),
+      }),
+    );
+    expect(pack.manifest.noMedia).toBe(true);
   });
-  it('rejects duplicate picture stems across extensions', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee' }),
-      'pictures/a.jpg': new Uint8Array([1]),
-      'pictures/a.png': new Uint8Array([2]),
-    });
-    expect(() => parsePack(zip)).toThrow(PackError);
-    expect(() => parsePack(zip)).toThrow(/share the name/);
+
+  it('rejects a complete pack with no system-prompt.md', async () => {
+    await expect(
+      parsePack(tree({ 'manifest.json': complete() })),
+    ).rejects.toThrow(/system-prompt/);
   });
-  it('rejects unsupported files under pictures/', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee' }),
-      'pictures/a.gif': new Uint8Array([1]),
-    });
-    expect(() => parsePack(zip)).toThrow(PackError);
+
+  it('rejects a complete pack whose companion has no name', async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({ companion: { voiceId: 'v' } }),
+        'system-prompt.md': 'x',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'A complete pack needs a name field in the companion section of manifest.json.',
+    ]);
   });
-  it('ignores macOS zip junk', () => {
-    const zip = zipSync({
-      'manifest.json': manifest({ base: 'autogoon.aimee' }),
-      '__MACOSX/._manifest.json': new Uint8Array([0]),
-      '.DS_Store': new Uint8Array([0]),
-      'pictures/.DS_Store': new Uint8Array([0]),
-    });
-    expect(parsePack(zip).pictures).toEqual([]);
-  });
-  it('rejects an unreadable zip', () => {
-    expect(() => parsePack(new Uint8Array([9, 9, 9]))).toThrow(PackError);
-  });
-  it('collects every problem it can determine in one throw', () => {
-    const problems = (zip: Uint8Array): string[] => {
-      try {
-        parsePack(zip);
-        return [];
-      } catch (e) {
-        return (e as PackError).problems;
-      }
-    };
-    // A valid manifest: completeness and zip problems all report together.
-    expect(
-      problems(
-        zipSync({
-          'manifest.json': manifest({ companion: { name: 'Testy' } }),
-          'pictures/a.gif': new Uint8Array([1]),
+
+  it('accepts a format 1 pack that carries no media', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': JSON.stringify({
+          format: 1,
+          id: 'test.pack',
+          version: '1.0.0',
+          aboutThePack: 'a colour-only overlay',
+          base: 'autogoon.aimee',
+          companion: { accentColour: 'cyan' },
         }),
-      ),
-    ).toEqual([
-      'Unsupported file in pictures/: a.gif — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.',
+      }),
+    );
+    expect(pack.media).toEqual([]);
+  });
+
+  it('names the old layout when a format 1 pack has a pictures/ folder', async () => {
+    const t = tree({
+      'manifest.json': JSON.stringify({
+        format: 1,
+        id: 'test.pack',
+        version: '1.0.0',
+        aboutThePack: 'an old pack',
+        base: 'autogoon.aimee',
+      }),
+      'pictures/a.jpg': '',
+      'pictures/a.txt': 'cap',
+    });
+    await expect(parsePack(t)).rejects.toThrow(/old pictures\/ layout/);
+  });
+
+  it('names the wrapper folder when the folder was zipped instead of its contents', async () => {
+    // The __MACOSX/ entry is what a Finder zip of a folder actually carries.
+    // Unless it is filtered as junk, wrapperFolder sees two
+    // top-level names and returns null, and this specific advice degrades to
+    // the generic "No manifest.json at the pack root" message.
+    const t = tree({
+      'yourpack/manifest.json': complete(),
+      'yourpack/media/a.jpg': '',
+      '__MACOSX/._manifest.json': '',
+    });
+    await expect(parsePack(t)).rejects.toThrow(
+      /Everything is inside yourpack\//,
+    );
+  });
+
+  it('asks for a root manifest when there is none and no single wrapper', async () => {
+    await expect(
+      parsePack(tree({ 'a/manifest.json': complete(), 'b/x.txt': '' })),
+    ).rejects.toThrow(/No manifest.json at the pack root/);
+  });
+
+  it('ignores macOS junk inside media/ rather than listing it as media', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({ base: 'autogoon.aimee' }),
+        'media/.DS_Store': '',
+        'media/._a.jpg': '',
+      }),
+    );
+    expect(pack.media).toEqual([]);
+  });
+
+  it('collects every problem it can determine in one throw', async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({ companion: { name: 'Testy' } }),
+        'media/a.gif': '',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
     ]);
-    // A broken manifest: its problems merge with the zip's (completeness
-    // checks need a readable manifest, so those wait).
-    expect(
-      problems(
-        zipSync({
-          'manifest.json': manifest({
-            version: undefined,
-            companion: { name: 'Testy' },
-          }),
-          'pictures/a.gif': new Uint8Array([1]),
+  });
+
+  it("reports the manifest's own problems alongside the tree's", async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          version: undefined,
+          companion: { name: 'Testy' },
         }),
-      ),
-    ).toEqual([
+        'media/a.gif': '',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
       'manifest.json is missing the version field - this is the version number of your pack',
-      'Unsupported file in pictures/: a.gif — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.',
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
     ]);
   });
 });
 
-describe('peekPack', () => {
-  it("reads the manifest's string fields from a zip parsePack rejects", () => {
-    const zip = zipSync({
-      'manifest.json': strToU8(
+describe('peekManifest', () => {
+  it("reads the manifest's string fields from text parsePack rejects", () => {
+    expect(
+      peekManifest(
         JSON.stringify({
           id: 'test.pack',
           version: '0.9.0',
@@ -160,21 +274,28 @@ describe('peekPack', () => {
           format: 'bad',
         }),
       ),
-    });
-    expect(() => parsePack(zip)).toThrow(PackError);
-    expect(peekPack(zip)).toEqual({
+    ).toEqual({
       name: 'Testy',
       version: '0.9.0',
       base: 'autogoon.aimee',
     });
   });
-  it('ignores non-string fields and unreadable input', () => {
-    const zip = zipSync({
-      'manifest.json': strToU8(JSON.stringify({ version: 2, name: 'Testy' })),
+  it("skips a version field that isn't a string", () => {
+    expect(
+      peekManifest(JSON.stringify({ version: 2, base: 'autogoon.aimee' })),
+    ).toEqual({ base: 'autogoon.aimee' });
+  });
+
+  it("returns nothing for input that isn't JSON", () => {
+    expect(peekManifest('nope')).toEqual({});
+  });
+
+  it('reads a top-level name from a pre-companion-section manifest', () => {
+    // Manifests written before the companion section existed carry the name at
+    // the top level; peekManifest stays lenient about that so the admin row can
+    // name a pack parsePack rejects.
+    expect(peekManifest(JSON.stringify({ name: 'Testy' }))).toEqual({
+      name: 'Testy',
     });
-    // A top-level name (the pre-companion-section shape) still peeks.
-    expect(peekPack(zip)).toEqual({ name: 'Testy' });
-    expect(peekPack(new Uint8Array([9, 9, 9]))).toEqual({});
-    expect(peekPack(zipSync({ 'manifest.json': strToU8('nope') }))).toEqual({});
   });
 });

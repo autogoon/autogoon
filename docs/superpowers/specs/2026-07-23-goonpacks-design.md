@@ -59,10 +59,17 @@ sections exported by `src/lib/companions/shared-prompt.ts` (e.g.
 `{{OUTPUT_FORMAT_SECTION}}`). The loader substitutes them with the app's current
 section text at load time, so the mechanical rules stay app-owned and packs
 benefit when they improve. Sections are **optional**: a prompt that omits a
-placeholder simply doesn't get that section — nothing is force-appended. Unknown
-tokens are dropped. The existing live markers (`{{TOY_STATUS}}`, `{{NOW}}`) use
-the same syntax but are **not** touched at load — they pass through for the
-runtime fill that already exists.
+placeholder simply doesn't get that section. Unknown tokens are left in the
+prompt exactly as written, so a misspelled one is visible rather than silently
+becoming nothing. The existing live markers (`{{TOY_STATUS}}`, `{{NOW}}`) use
+the same syntax and pass through the same way, for the runtime fill that already
+exists.
+
+`TIME_SECTION` is the one exception to "optional", and has no token: every
+companion is sent a TIME line, so the loader appends the rules for reading it to
+every prompt it assembles. A pack that never heard of it, or one with no device
+that leaves out `{{CONTROL_SECTION}}` (where the rule used to live), still gets
+them.
 
 ## Library model
 

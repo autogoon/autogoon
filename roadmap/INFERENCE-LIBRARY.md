@@ -1,282 +1,301 @@
-# Inference library — image tagging & mood retrieval
+# Inference library — describing a library, and finding one picture in it
 
-How to auto-tag an image library so a companion/goon feature can pick pictures
-by person and by "how sexy" — running locally where the hardware justifies it,
-cloud where it doesn't. Also covers the **v2 library system** built on this
-pipeline (mood retrieval, storage, two-tier architecture). Companion to
-[goonpacks](../GOONPACKS.md) (the shipped, simpler persona-pack format). All of
-this operates on the **user's own images, on their own machine** — see the
-[content policy](../DEVELOPERS.md#content-policy).
+What it takes for a companion to have a large picture library and use it well:
+they know roughly what they've got, you can ask them for something and they find
+it, and they can climb from clothed to explicit over a session.
 
-## Two distinct jobs — don't conflate them
+Companion to [goonpacks](../GOONPACKS.md), the shipped pack format — a goonpack
+is a curated zip you can hand to someone today; this is what happens when the
+set is far too big to curate. All of it operates on the **user's own images, on
+their own machine** — see the [content policy](../DEVELOPERS.md#content-policy).
 
-The scale changes everything, so keep these separate:
+The concrete work in flight is the staged investigation in
+[TODO.md](../TODO.md#media-descriptions-and-retrieval); this document is the
+target design it's aiming at.
 
-- **The persona picture set (~50, a few hundred absolute max).** The images that
-  belong to one companion (e.g. Aimee), captioned so she can pick "a picture
-  that fits the moment." This is the existing branch functionality.
-- **The large mood-Goon library (say 40k images).** A big personal library, fed
-  to the Goon play mode and picked by mood. This is where all the pipeline
-  machinery below actually earns its keep.
+## Two jobs — don't conflate them
 
-At **50 images**, almost none of the scale discussion applies: cost is pennies
-even on the biggest cloud model, throughput is irrelevant, and you can **read
-all 50 captions and hand-correct the few the model flubs**. Use the best,
-most-compliant model, crank resolution, don't optimise. Human-in-the-loop is the
-correct workflow, not a fallback.
+Almost every wrong turn here comes from trying to do both of these with one
+mechanism:
 
-Everything below is really about the **40k** case unless noted.
+- **Knowing what the set is like.** Small, always in their context, so they
+  reach for plausible things and don't offer what isn't there. This is a
+  **summary**.
+- **Finding one specific item.** On demand, over thousands, and it has no
+  business being in their context at all. This is **retrieval**.
 
-## Scoring "sexiness" — it's a spectrum, and better still, a panel
+The shipped mechanism does neither: it puts every item's description in the
+`send_media` tool schema and has them pick by number. That works at fifty and
+collapses well before a thousand — not because the window fills, but because a
+model choosing between two thousand near-identical descriptions chooses badly.
 
-Three tiers, and the winning move combines them:
+## Two regimes — hand-reviewable, or not
 
-- **Dedicated NSFW models** — literal "how naked." NudeNet (per-part exposure
-  boxes → a coverage scalar; ONNX, trivial), or small ViT classifiers
-  (`Falconsai/nsfw_image_detection`, `marqo/nsfw-image-detection-384`) for a
-  continuous NSFW probability. Measures nudity, which correlates with but isn't
-  identical to _sexy_.
-- **CLIP / SigLIP zero-shot** — the recommended backbone. Embed each image once,
-  then score against an ordered prompt ladder ("fully clothed" → "revealing" →
-  "lingerie" → "nude" → "explicit"). Continuous, tunable, **no labelling**.
-- **VLMs** — semantic 1–10 ratings via prompt. Most flexible to author, but slow
-  (~1–3s/image) and often safety-tuned/prudish on explicit content. Best used to
-  _auto-label a training set_, not to score all 40k.
+The line that matters isn't a number of images, it's whether a human will ever
+read the output. Past a few hundred, reading every caption stops being something
+anyone would do, and that changes what the pipeline is _for_:
 
-### Prefer an attribute panel over a single scalar
+- **Hand-reviewable (up to a few hundred).** Human-in-the-loop is the workflow,
+  not a fallback: use the best, most compliant model, crank the resolution,
+  don't optimise, and fix the few captions the model flubs. Model accuracy is a
+  convenience.
+- **Not hand-reviewable (anything above).** The pipeline's output _is_ the
+  truth, because nobody will ever read most of it. Accuracy has to come from the
+  model and the prompt, review becomes sampling plus tooling, and every quality
+  question below starts to matter.
 
-You don't want one "sexy" number; you want a per-image panel:
-`{bikini: 0.8, bareLegs: 0.9, tights: .., cleavage: .., nude: 0.1, blackHair: 0.95, beautifulFace: 0.7, ...}`.
-Reasons:
+A curated persona set sits in the first regime. A collected set of a couple of
+thousand sits firmly in the second, so captioning quality starts to matter well
+before a library reaches any impressive size.
 
-- **Killer property of CLIP/SigLIP:** embed once, and every _new_ attribute is a
-  text prompt scored in seconds against the cached embeddings — no re-embedding.
-  Adding attributes is ~free, forever. Directly serves "the more
-  classifications, the more flexibility."
-- **"Progressively sexier" becomes a weighted formula** over the panel, tuned at
-  query time (or by the persona live) — see the end-goal section below.
-  Different mood = different weights, no re-tagging.
+## How a request gets served
 
-### Where CLIP is weak, drop in a specialist
+**The companion never searches. They ask, in words, and the app searches.** In
+order:
 
-- Explicit body parts (nude/breasts) → **NudeNet** (calibrated, boxes).
-- Hair colour / "beautiful face" / makeup → a **CelebA-attribute face model** on
-  the InsightFace face crop (face-specific traits beat CLIP).
-- Precise garment/skin regions (legs, tights) → **human-parsing segmentation**
-  (pixel regions) — optional; CLIP's "bare legs" prompt is usually fine.
+1. **Offline.** Every item gets two texts: a long description of everything in
+   the picture, and a one-line caption. (This is already how
+   `scripts/describe-image.mjs` works — it observes at length and then condenses
+   — except only the caption is kept today.)
+2. **Offline.** An LLM reads all the captions and writes the set summary — a
+   paragraph on what the collection _is_.
+3. **Session start.** Their prompt carries the summary and nothing else about
+   the media. They never see a list of items.
+4. **Mid-conversation.** They call `send_media` with a description of what they
+   want — "me on my knees looking up at him" — not an index.
+5. **The app searches**, puts the winner on his screen, and returns the caption
+   of what actually went. They speak after that, so they describe what arrived
+   rather than what they asked for. The existing rule ("you'll be told it sent,
+   and THEN you say something about it") is what makes this safe, and it costs
+   no extra turn.
+6. **No match is an answer.** When nothing is close the app says so, and they
+   ask for something else — far better than them announcing a picture that never
+   came.
 
-### Calibration
+Searching is app code, not theirs, for three reasons: searching means reading
+the corpus, and the corpus is exactly what doesn't fit; their job is character,
+not lookup; and in the app it can use methods a chat turn can't, and be improved
+without touching anybody's persona prompt.
 
-Raw CLIP cosine scores aren't comparable across prompts. Fixes:
+### Coarse on captions, fine on the long descriptions
 
-- **Softmax over alternatives** for mutually-exclusive concepts ("bikini" vs
-  "dress" vs "clothed" vs "nude") → calibrated per-image probabilities.
-- **Rank / percentile within the library** — sort by an attribute, top X% =
-  present. Sidesteps thresholds; fine when you only need an ordering (the ramp).
-- SigLIP's sigmoid makes per-prompt scores more independently meaningful — a
-  reason to lean SigLIP over CLIP here.
+The two texts are for two passes, and the counter-intuitive half matters:
 
-## What embeddings actually are (foundational)
+- **Coarse — embed the captions.** Embedding search gets _worse_ on long text: a
+  vector over two hundred words is an average of everything in them, so it
+  matches many things weakly and nothing strongly. Embed their request, take the
+  top few dozen.
+- **Fine — rerank on the long descriptions.** Hand a cheap LLM their request
+  plus the full descriptions of only those candidates and let it choose. Detail
+  the caption dropped is unfindable in the coarse pass and present here, which
+  is what answers "is there a mirror in it", "does he have a condom on", "is he
+  behind her".
 
-An embedding is **not** a set of named attributes. It's ~512–768 anonymous,
-learned numbers; no single dimension is "the bikini dimension." Meaning is
-**distributed** and lives as **directions** through the space, not individual
-axes — like how "sunset colours" is a region of RGB space, not one channel. The
-whole vector captures the image's gestalt (pose, clothing, colour, framing,
-vibe). Named attributes (bikini, nude) are a _separate derived layer_ you
-compute by projecting onto a text-prompt direction, or via a VLM. This underpins
-the embedding-map visualisation below.
+The fine pass is optional and should be earned: start with captions alone,
+measure it, add the rerank when it demonstrably falls short.
 
-## Person identification
+### Filters are structured, not semantic
 
-- **Embed faces** with InsightFace / ArcFace (512-d per face; ONNX, fast).
-- **Cluster** with HDBSCAN/DBSCAN on cosine distance → identities without
-  pre-specifying counts.
-- **Sorted folders flip clustering → classification.** If the library already
-  has folders sorted by person, those are ground-truth: build a **centroid per
-  known person**, assign unsorted faces to the **nearest centroid** (far more
-  reliable than clustering from scratch), and only cluster the "nobody I know"
-  remainder.
-- **"My type" is nearly free:** the combined centroid of the people a user has
-  collected is a taste vector — rank everyone by distance to it.
+Hard constraints must not be left to similarity. A companion who never sends
+nudes must be _unable_ to; "with a man in it" is a filter, not a vibe; person
+identity is a filter. So each item also carries a structured attribute panel
+(**What we store per item**) and the search applies those as filters before it
+ranks anything.
 
-## Video
+### The search is session-scoped
 
-- **Short clips → same pipeline, ~free.** Extract keyframes (scene-change or 1
-  frame/1–2s), run the identical attribute pass per frame, pool to a per-clip
-  vector (max-pool for "ever shows X", or keep per-frame so she can send the
-  hottest frame / a short loop). 20s clip @ 1fps ≈ 20 images. Drops into the
-  same index with `{sourceVideo, timestamp}`.
-- **Long-form video → defer it.** It's about _actions over time_, not static
-  attributes, and the session never watches a whole one. Materially bigger build
-  (temporal/shot segmentation, action tagging) for lower payoff. When tackled,
-  the unit is **auto-cut clips** treated like short ones — so it collapses back
-  into the clip pipeline; only the clip-mining front-end is extra.
+Stateless search sends the same best match all evening. It needs:
 
-## Sampling & batch strategy (40k)
+- **What they've already sent**, as an exclusion set, plus near-duplicate
+  collapse so the second-best isn't the same shot from an inch to the left.
+- **The last item and the current heat band**, because that's what makes
+  relative requests work — and "something filthier than that" is how escalation
+  is actually spoken.
 
-- **Random ~1–10k is fine for iterating the schema and throughput**, but random
-  **under-samples rare classes**. Given free overnight local compute, **go big
-  and skip manual curation** — let volume surface the niches, then **filter the
-  run's own output** for low-frequency / mid-confidence tags and eyeball those.
-  The output is the review tool.
-- **Stratify across folders** so one huge folder doesn't dominate. Iterate the
-  attribute schema on the folders the app will actually feed from; keep
-  person-sorted folders separate as identity seeds.
-- **Bigger batches don't improve accuracy** — the model is fixed. Scale only
-  buys coverage + more usable data. So: small batch while the schema churns
-  (fast reruns), **full library once the schema settles** (40k @ ~2s ≈ ~one
-  unattended day).
-- **Dedup matters at this scale.** Big libraries are full of near-identical
-  bursts and variants. Compute the CLIP embedding alongside whatever tagger you
-  use — it gives near-duplicate collapse (so she won't send five near-identical
-  shots), plus free future text-search and "my type" search.
+### One interface, several implementations
 
-## Inference backend & local-hardware reality
+They always ask by description; what's underneath scales with the set. At fifty
+items "retrieval" is a cheap model reading all the captions. At thousands it's
+embeddings plus a rerank. At tens of thousands it's the same with attribute
+prefiltering doing more of the work. The tool contract never changes, so none of
+this is visible to a persona.
 
-- **Backend is pluggable.** The `describe-image` script already reads `LLM_URL`
-  and only defaults to OpenRouter — point it at a local OpenAI-compatible server
-  (MLX + LM Studio) and nothing else changes. People without hardware pay
-  OpenRouter pennies for a one-time pass; a capable local machine runs it free.
-- **You don't want a 235B for this anyway.** Captioning pose/undress is not a
-  hard reasoning task. In 64GB of RAM, **Qwen2.5-VL 7B/32B** (7B ~8–16GB, 32B
-  ~20GB 4-bit) is plenty; 72B fits at ~40GB but is the tight, slow ceiling.
-  Alternatives: InternVL (8B/26B/38B), MiniCPM-V (~8B), Gemma 3 (12B/27B). The
-  huge MoE models (235B Qwen, the big MiniMax ones) are cloud-only — a
-  non-issue, since you'd pick smaller regardless.
-- **Smaller is a _feature_ at 40k** — throughput dominates (a 7B is ~1s/image vs
-  several for a 72B; hours vs a day+).
+## What we store per item
+
+- **The long description** — everything in the picture, in prose. The retrieval
+  fine pass and any future re-derivation both read this, so it's worth having
+  even though nothing shows it to a user.
+- **The caption** — one line, the coarse-pass index and the text they're handed
+  when something sends.
+- **A structured attribute panel** —
+  `{nudity, people, acts, garments, person, …}` as scored or enumerated fields,
+  for filters and for the summary's counts.
+- **A caption embedding**, and ideally an **image embedding** too: the caption
+  is a lossy projection, and the image vector catches what the captioner never
+  wrote down.
+- **Text found in the image** — a watermark or overlay is often the cheapest
+  "more of this person" signal there is, and a free seed for person identity.
+- **A dedup hash / near-duplicate cluster id.**
+
+Two texts per item outgrows the one-line `.txt` sidecar that `parsePack` reads
+straight in as a description, so the sidecar's shape is a decision to settle
+_before_ captions get written at scale.
+
+## The set summary
+
+Generated by an LLM over the captions, not hand-written: authored prose goes
+stale and then lies, which is worse than absent. An author overriding it is
+fine; the default should be derived and regenerated whenever the set changes.
+
+It's a **shape, not a list** — proportions, who's in it, which acts appear, the
+settings, the range of undress, a few hundred tokens. That's what lets them ask
+answerable questions instead of guessing.
+
+**Neutral or persona-aware?** Unsettled. A neutral summary is derived once per
+set and cached, and different personas care about different dimensions of the
+same facts — one needs to know nothing here is explicit, another that a third of
+it involves a man. A summary complete over the dimensions serves both and stays
+cacheable, with the persona's own prompt supplying the attitude to it. The
+alternative — generating it per persona — is more pointed and much less
+reusable. Worth testing rather than assuming; it's also per resolved
+pack-plus-overlay either way, since an overlay changes the set.
+
+## Producing the descriptions
+
+### Model, resolution, compliance
+
+- **Backend is pluggable.** `describe-image.mjs` reads `LLM_URL` and only
+  defaults to OpenRouter, so a local OpenAI-compatible server (MLX + LM Studio)
+  is a config change. Without hardware, a one-time cloud pass costs pennies per
+  thousand.
 - **Compliance is the real selection criterion**, not parameter count. Many VLMs
-  soften or refuse explicit description. Qwen tends compliant; test 2–3
-  candidates on a handful of explicit images and keep whichever follows the
-  prompt without moralising. Uncensored/abliterated community fine-tunes exist
-  if the base is coy.
+  soften or refuse explicit description. Test candidates on a handful of
+  explicit images and keep whichever follows the prompt without moralising;
+  abliterated community fine-tunes exist where a base model is coy.
+- **You don't need a frontier model for this.** Captioning pose and undress
+  isn't hard reasoning. Mid-size open VLMs (Qwen-VL, InternVL, MiniCPM-V, Gemma)
+  are the sensible band, and smaller is a _feature_ at scale, where throughput
+  decides whether a full pass is hours or days. The current default model and
+  the alternatives worth trying are listed at the top of `describe-image.mjs`.
+- **Resolution before model.** The known failure — small models unable to tell
+  sitting from kneeling — is mostly resolution: fine spatial detail is what gets
+  destroyed when an image is down-sampled into fewer visual tokens, and it's a
+  config change rather than a model swap. Try it first.
+- **Prompt is a smaller lever than it looks, but not spent.** The two structural
+  moves are already made — observe out loud before condensing, and state
+  outright how to tell confusable cases apart. What isn't done is scope: the
+  prompt is written around one woman alone in a pose, so a second body, a man,
+  and anything happening _between_ people have nowhere to go. That's a schema
+  gap, not an accuracy one, and no model fixes it.
+- **Some ambiguity is irreducible.** A single frame sometimes genuinely can't
+  say. Don't chase the last few percent.
 
-## Model quality — the sitting-vs-kneeling failure
+### Specialists where a VLM is weak
 
-Small VLMs failed to tell sitting from kneeling. That's **diagnostic, and mostly
-a model/resolution issue, not a prompt one**: fine-grained _spatial/relational_
-reasoning is exactly what scales with size, while general caption fluency fakes
-quality convincingly. The distinction hinges on leg geometry that gets blurred
-when a small model down-samples into fewer visual tokens.
+- Explicit body parts → **NudeNet** (per-part exposure boxes, calibrated, ONNX).
+- Face-specific traits (hair colour, "beautiful face", makeup) → a
+  **CelebA-attribute model** on a face crop, which beats CLIP on faces.
+- **CLIP / SigLIP zero-shot** for cheap continuous attributes: embed once, then
+  every _new_ attribute is a text prompt scored against cached embeddings in
+  seconds. Adding attributes is nearly free, forever, which is the whole
+  argument for a panel over a single "heat" score.
+- **Calibrate before comparing.** Raw cosine scores aren't comparable across
+  prompts: softmax over mutually-exclusive alternatives (bikini / dress /
+  clothed / nude) for probabilities, or rank within the library when an ordering
+  is all you need. SigLIP's sigmoid makes per-prompt scores more independently
+  meaningful, which is a reason to prefer it here.
 
-Levers, in order of impact:
+An aside worth keeping straight: an embedding is **not** a set of named
+attributes. It's a few hundred anonymous learned numbers with no "bikini
+dimension" — meaning lives as _directions_ through the space, not axes. Named
+attributes are a derived layer you get by projecting onto a text-prompt
+direction, or from a VLM.
 
-1. **Resolution / tiling** (a config, not a model swap) — often the biggest jump
-   for pose; feeds the model the leg detail it was missing.
-2. **Model** — Qwen2.5-VL (native-res ViT) and InternVL (tiling) are the best
-   small ones for grounded spatial detail; worth one comparison round.
-3. **Prompt** — limited, and largely spent: the two moves it had to offer are
-   already made in `scripts/describe-image.mjs`, which has the model observe the
-   picture out loud before condensing to the caption, and states outright _how_
-   to tell the confusable poses apart. If the pixels aren't there, no prompt
-   fixes it.
-4. **Irreducible ambiguity** — a single frame sometimes genuinely can't say.
-   Don't chase 100%.
+### People, video, duplicates, batches
 
-Bottom line: at 40k, resolution + model matter and a big cloud model at
-"thousands of images per dollar" is a rational one-time spend. At 50 (Aimee),
-just use the best model and hand-fix the odd caption.
+- **Person identity:** embed faces (InsightFace / ArcFace), cluster on cosine
+  distance for identities without pre-specifying counts. Folders already sorted
+  by person turn clustering into classification — build a centroid per known
+  person, assign the rest to the nearest, and only cluster the remainder. "My
+  type" then comes free: the combined centroid of everyone collected is a taste
+  vector.
+- **Short clips ride the same pipeline.** Keyframe them (scene change, or one a
+  second or two), run the identical pass per frame, pool per clip — max-pool for
+  "ever shows X", or keep per-frame so they can send the best frame or a loop.
+  Long-form video is about action over time rather than static attributes and is
+  a materially bigger build; when it comes, the unit is auto-cut clips, which
+  collapses it back into this pipeline.
+- **Dedup matters at scale.** Collected libraries are full of near-identical
+  bursts. The embeddings you're computing anyway give near-duplicate collapse,
+  which retrieval needs regardless.
+- **Batch strategy:** small batches while the schema churns, then one full pass
+  once it settles — bigger batches don't buy accuracy, the model is fixed, they
+  only buy coverage. Stratify across folders so one huge folder doesn't
+  dominate, and expect random sampling to under-represent rare classes.
 
-## Visualising & reviewing the output
+## Reviewing the output
 
-"JSON + jq + opening images" throws away the two things that make this
-visualisable: images are spatial, and the tags give you structure to arrange by.
-Different views answer different questions:
+In the second regime the output can't be read end to end, so reviewing it has to
+be visual and targeted. Different views answer different questions:
 
-- **"Is each tag right?" → sorted, faceted grid.** A grid **sorted by heat**
-  lets you _see the ramp_ (clothed top-left → explicit bottom-right); a wrong
-  jump is a wrong score, spotted instantly. Per-attribute **top-N/bottom-N
-  rows** QA each tag by eye.
-- **"Is the structure right?" → the embedding map.** Project the CLIP/face
-  embeddings to 2D (UMAP/t-SNE), plot each image as a tiny thumbnail on a
-  pan/zoom plane (à la PixPlot). Similar images cluster → the library becomes a
-  _landscape_ you wander. **The axes mean nothing** (all dims squashed to 2 to
-  preserve nearness); you read _regions_. **Recolour** the same map by heat,
-  person, or an attribute — if "tights" lights up a tidy patch it's a real
-  concept; if it's confetti, the tag is meaningless. Also QAs person clusters
-  (merged people = one blob; split person = two).
-- **"What do I even have?" → distributions.** Heat **histogram** (smooth ramp,
-  or bimodal with a hole where the _build_ should be?); attribute **prevalence**
-  (which moods are feasible); attribute **co-occurrence heatmap** (the structure
-  of your taste); **per-person counts** (who can sustain a session).
-- **"Does the experience work?" → storyboard.** Render the sequence the persona
-  _would_ feed, as a scrubbable horizontal filmstrip. Ties to the existing
-  **Sparkline/timeline** UI — draw the picture ramp as a rising heat curve where
-  each point _is_ its thumbnail, matching Goon/Groove's visual language.
-- **Active QA → triage-by-swipe.** Show the _informative_ cases (near-threshold,
-  rare tags, near-dup stacks collapsed) and thumbs them; doubles as label
-  collection for the optional probe.
+- **"Is each tag right?" → a sorted, faceted grid.** Sorted by heat you can
+  _see_ the ramp, and a wrong jump is a wrong score spotted instantly.
+  Per-attribute top-N / bottom-N rows QA each tag by eye.
+- **"Is the structure right?" → the embedding map.** Project the embeddings to
+  2D and plot every image as a thumbnail on a pan/zoom plane. The axes mean
+  nothing; you read regions. Recolour the same map by heat, person or attribute
+  — a real concept lights up a tidy patch, a meaningless tag is confetti. It QAs
+  person clusters at a glance too (merged people are one blob, a split person is
+  two).
+- **"What do I even have?" → distributions.** A heat histogram (a smooth ramp,
+  or bimodal with a hole where the build should be?), attribute prevalence, a
+  co-occurrence heatmap, per-person counts. This is also the human-readable
+  version of the set summary.
+- **"Does the experience work?" → a storyboard.** Render the sequence a persona
+  _would_ feed as a scrubbable filmstrip, drawn as a rising heat curve where
+  each point is its thumbnail — the same visual language as the play modes'
+  timeline.
+- **Active QA → triage by swipe.** Show only the informative cases
+  (near-threshold, rare tags, near-duplicate stacks collapsed) and thumb them.
+  Doubles as label collection.
 
-**Browsing-as-interest.** A folder tree only holds structure you already
-imposed; the embedding map surfaces structure that _emerges_ — a "type" cluster
-you never noticed, forgotten images next to their cousins. Little toys come
-almost free: "more like this" (radiate by similarity), a coherent _walk_ through
-the space, or a **path between two images** that morphs a clothed shot into a
-nude of the same look, every step a real image — a ramp you steer by picking
-endpoints. The library stops being a filing cabinet and becomes a place you get
-lost in.
+**Browsing as its own reward.** A folder tree only holds structure you imposed;
+the embedding map surfaces structure that emerged — a "type" cluster you never
+noticed, forgotten images beside their cousins. "More like this" is free, and so
+is a path between two images that morphs a clothed shot into a nude of the same
+look, every step a real picture.
 
-## Labelling — needed only for the optional probe
+## Where it runs, and what it costs to store
 
-- **Zero-shot needs no labels** — you write ~5 prompts, not 40k labels.
-- **Linear probe** (embed once → hand-label a few hundred on your 0–5 scale →
-  train a Ridge/logistic head in seconds → predict on all) personalises the axis
-  to _your_ taste. It's the _only_ part that needs labels, and it's an **upgrade
-  you reach for after** seeing zero-shot's output, not upfront. Reuses the same
-  embeddings — no heavy rework.
+Pack media already lives in OPFS, one directory tree per installed pack
+(`src/lib/goonpacks/store.ts`), which is the hard part of this problem already
+solved. What's new is the index, and it's the cheap part: embeddings and
+attributes for tens of thousands of images are a few hundred megabytes at most
+and search over them is in-memory top-k in milliseconds — no vector database.
+It's the pixels that were ever expensive.
 
-## The end goal — the inference-driven library ("supergoonpack")
+That leaves the distribution split:
 
-This is the eventual _shippable_ shape of the whole inference project, **not** a
-near-term format. Everything above — the tagging, embeddings, person-ID, dedup,
-sampling, and review — is the substantial body of work that has to happen first;
-the "supergoonpack" is only where it eventually lands. Where a
-[goonpack](../GOONPACKS.md) is a small curated zip you can ship today, this is
-the big inference-powered library: tens of thousands of images, tagged by the
-pipeline above, picked by _mood_. (No settled name yet — "supergoonpack" is the
-placeholder.)
+- **Portable pack.** Self-contained, unpacked into browser storage, works on a
+  hosted build. This is [goonpacks](../GOONPACKS.md) as shipped.
+- **Local library.** The user's own folder, served by their own local dev server
+  from a configured directory, indexed offline, fetched by URL, never
+  distributed.
 
-### Persona-driven picture feed
+So a companion is either _packaged_ or _local-backed_ — the same system with two
+backends, chosen by whether you're running a public build or your own copy.
+Naming for the eventual big-library format is unsettled; "supergoonpack" is a
+placeholder, and it's where all of the above lands rather than something to
+design up front.
 
-You don't pre-declare a mood; you **converse, and she reads the room.** The
-persona is already an LLM agent with tools (`send_picture` exists) — so the
-tagged library becomes something she **searches from the conversation**,
-filtering by person, by the attributes you're after, and by a "heat" band she
-raises over the session (like a play mode owns its ramp), steered live: "more
-legs" → bias the legs/tights attributes; "her again" / "someone new" → filter by
-person; "softer" / "not yet" → drop the heat back down; silence / building →
-keep climbing.
+## Open questions
 
-**Two ways her request could get matched** (flagged, not settled): _fixed
-attribute fields_ — filter/sort on the pre-computed panel, no runtime ML — vs
-_live CLIP text search_ — match a free-text request against stored image
-embeddings; open-ended, but needs the CLIP text encoder at runtime. Retrieval is
-cheap in-memory (40k × ~768 floats ≈ 120MB, top-k in ms) — no vector DB.
-
-### Storage — embeddings tiny, pixels costly
-
-- **localStorage** (~5MB, strings) — manifest / thread only.
-- **IndexedDB** — the home for image blobs; quota is a fraction of free disk
-  (GBs), call `navigator.storage.persist()` to avoid eviction.
-- **OPFS** — newer, faster, file-like; larger blobs, later.
-
-Key insight: you can hold the _index/embeddings_ for a whole 40k library in the
-browser without blinking — it's the **JPEGs** that blow the budget (and
-unzipping GBs in a tab is grim).
-
-### Two-tier: portable vs local
-
-- **Portable goonpack (browser / IndexedDB).** Small, self-contained, runs on a
-  _hosted public_ build. This is the shipped [goonpacks](../GOONPACKS.md)
-  format.
-- **Local library (server-backed).** The user's own library folder served by the
-  app's **own local Next server** (`npm run dev`) from a configured directory,
-  indexed by the offline tagger, images fetched by URL, **never distributed**,
-  on _their own machine_.
-
-A persona is therefore either **"packaged"** (portable) or **"local-backed"**
-(points at your folder) — same system, two backends, decided only by public
-build vs your own local copy. This mirrors the scope split at the top: the
-~50-image curated persona _is_ the portable goonpack; the big local library _is_
-the inference-driven v2.
+- **The sidecar's shape**, now that there are two texts and an attribute panel
+  per item. It's a pack-format change, and it blocks captioning at scale.
+- **Whether the summary is neutral or persona-aware** (**The set summary**).
+- **How long a long description should be**, which trades captioning cost and
+  rerank cost against how much detail survives to be searched.
+- **Whether the coarse pass needs the image embedding at all**, or captions
+  alone carry it.
+- **Where the heat band lives** — a companion's own sense of the session, or a
+  number the app tracks and hands them.

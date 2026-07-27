@@ -8,11 +8,39 @@
 // the card's two selects. Newest first in both, by alphanumeric version sort.
 import { companionList, type Companion } from '@/lib/companions/companions';
 import type { PackManifest } from './manifest';
+import type { MediaKind } from './media';
 import { packToCompanion } from './resolve';
 
-// Zip-level facts the manifest can't tell, derived at load/import from the
-// parsed pack (pictures count, prompt presence).
-export type PackSummary = { pictures: number; hasPrompt: boolean };
+// What a pack's tree holds that the manifest can't say — the media it carries,
+// split by kind (the chooser and the admin row name stills and videos
+// separately), and whether it has a prompt.
+export type MediaCount = { images: number; videos: number };
+export type PackSummary = { media: MediaCount; hasPrompt: boolean };
+
+const totalMedia = (c: MediaCount): number => c.images + c.videos;
+
+// The one tally of a media list, wherever the list comes from: a parsed tree,
+// a built-in companion's own media, or the authoring build script's pack.
+export const countMedia = (
+  media: readonly { kind: MediaKind }[],
+): MediaCount => ({
+  images: media.filter((m) => m.kind === 'image').length,
+  videos: media.filter((m) => m.kind === 'video').length,
+});
+
+// "3 pictures · 2 videos" — one phrase, used by both the chooser card's
+// feature line and the Goonpacks row, so a pack reads the same on either
+// screen.
+export function describeMedia(c: MediaCount): string {
+  const parts: string[] = [];
+  if (c.images > 0) {
+    parts.push(`${c.images} picture${c.images === 1 ? '' : 's'}`);
+  }
+  if (c.videos > 0) {
+    parts.push(`${c.videos} video${c.videos === 1 ? '' : 's'}`);
+  }
+  return parts.join(' · ');
+}
 
 // A pack that passed the full load-time validation.
 export type LoadedPack = { manifest: PackManifest; summary: PackSummary };
@@ -32,7 +60,7 @@ export const newestFirst = (a: string, b: string): number =>
 
 // The overridable slots a variant can change — the chooser's feature line
 // bolds exactly these.
-export type VariantSlot = 'pictures' | 'prompt' | 'voice' | 'colour' | 'model';
+export type VariantSlot = 'media' | 'prompt' | 'voice' | 'colour' | 'model';
 
 // One selectable pack version — an option in the card's base or overlay
 // select. key null = the built-in itself (the base select's only option on
@@ -44,8 +72,8 @@ export type PackOption = {
   // What the card shows while this option is selected:
   description?: string; // override; the card falls back down the chain
   accent?: string; // accentColour override
-  pictures: number; // pictures this option itself brings
-  noPictures?: boolean; // overlay deliberately plays pictureless
+  media: MediaCount; // media this option itself brings
+  noMedia?: boolean; // overlay deliberately plays medialess
   changed: VariantSlot[]; // overlay only: slots it changes/adds — bolded
 };
 export type LibraryEntry = {
@@ -57,11 +85,11 @@ export type LibraryEntry = {
 
 export const publisher = (id: string) => id.split('.')[0]!;
 
-// Which slots an overlay changes, from its manifest + zip summary.
+// Which slots an overlay changes, from its manifest + tree summary.
 function changedSlots(p: LoadedPack): VariantSlot[] {
   const out: VariantSlot[] = [];
-  if (p.summary.pictures > 0 || p.manifest.noPictures === true) {
-    out.push('pictures');
+  if (totalMedia(p.summary.media) > 0 || p.manifest.noMedia === true) {
+    out.push('media');
   }
   if (p.summary.hasPrompt) out.push('prompt');
   if (p.manifest.companion.voiceId !== undefined) out.push('voice');
@@ -70,16 +98,15 @@ function changedSlots(p: LoadedPack): VariantSlot[] {
   return out;
 }
 
-// The picture count a base+overlay selection actually plays with: the
-// overlay's own set when it brings one (or deliberately none), else the
-// base's.
-export function effectivePictures(
+// The media a base+overlay selection actually plays with: the overlay's own set
+// when it brings one (or deliberately none), else the base's.
+export function effectiveMedia(
   overlay: PackOption | null,
-  basePictures: number,
-): number {
-  if (overlay === null) return basePictures;
-  if (overlay.noPictures === true) return 0;
-  return overlay.pictures > 0 ? overlay.pictures : basePictures;
+  base: MediaCount,
+): MediaCount {
+  if (overlay === null) return base;
+  if (overlay.noMedia === true) return { images: 0, videos: 0 };
+  return totalMedia(overlay.media) > 0 ? overlay.media : base;
 }
 
 const baseOption = (p: LoadedPack): PackOption => ({
@@ -88,7 +115,7 @@ const baseOption = (p: LoadedPack): PackOption => ({
   version: p.manifest.version,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
-  pictures: p.summary.pictures,
+  media: p.summary.media,
   changed: [],
 });
 
@@ -98,8 +125,8 @@ const overlayOption = (p: LoadedPack): PackOption => ({
   version: p.manifest.version,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
-  pictures: p.summary.pictures,
-  noPictures: p.manifest.noPictures,
+  media: p.summary.media,
+  noMedia: p.manifest.noMedia,
   changed: changedSlots(p),
 });
 
@@ -122,7 +149,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       {
         key: null,
         label: 'default',
-        pictures: c.pictures?.length ?? 0,
+        media: countMedia(c.media ?? []),
         changed: [],
       },
     ],
@@ -144,7 +171,7 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
     completes.push({
       // The card's identity (name, fallbacks) comes from the newest version;
       // the selects override per pick.
-      companion: packToCompanion({ manifest: newest.manifest, pictures: [] }),
+      companion: packToCompanion({ manifest: newest.manifest, media: [] }),
       builtIn: false,
       bases: versions.map(baseOption),
       overlays: overlaysFor(p.manifest.id),

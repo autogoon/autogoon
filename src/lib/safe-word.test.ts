@@ -1,10 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { DEFAULT_SAFE_WORD, sanitizeSafeWord } from './safe-word';
 
-// The safe word is a single spoken keyword, so a candidate must survive as one
-// lowercase a–z word and must not collide with a word the grammar already
-// routes elsewhere (the caller passes those in as `reserved`).
-
+// `reserved` stands in for the list the caller passes: words the vosk grammar
+// already routes elsewhere, which the safe word must not collide with.
 const RESERVED = ['connect', 'exit', 'settings', 'stop', 'goon'];
 
 describe('sanitizeSafeWord', () => {
@@ -12,7 +10,7 @@ describe('sanitizeSafeWord', () => {
     expect(sanitizeSafeWord('pineapple', RESERVED)).toBe('pineapple');
   });
 
-  it('trims and lowercases', () => {
+  it('accepts a word with surrounding whitespace and capitals, normalized', () => {
     expect(sanitizeSafeWord('  Pineapple \n', RESERVED)).toBe('pineapple');
   });
 
@@ -31,12 +29,16 @@ describe('sanitizeSafeWord', () => {
     expect(sanitizeSafeWord('route66', RESERVED)).toBeNull();
   });
 
-  it('rejects reserved words, case-insensitively', () => {
+  it('rejects letters outside a–z, which the en-us grammar could never match', () => {
+    expect(sanitizeSafeWord('café', RESERVED)).toBeNull();
+  });
+
+  it('rejects a reserved word however the user capitalized it', () => {
     expect(sanitizeSafeWord('stop', RESERVED)).toBeNull();
     expect(sanitizeSafeWord('Goon', RESERVED)).toBeNull();
   });
 
-  it('has a default that passes its own validation', () => {
+  it('accepts DEFAULT_SAFE_WORD', () => {
     expect(sanitizeSafeWord(DEFAULT_SAFE_WORD, RESERVED)).toBe(
       DEFAULT_SAFE_WORD,
     );

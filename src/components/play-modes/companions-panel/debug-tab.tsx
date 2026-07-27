@@ -90,6 +90,15 @@ export function DebugTab({
             <StatRow label="Total">
               {Math.round(status.metrics.llm.totalMs)} ms
             </StatRow>
+            {/* Most of the prompt should be cached, and the share should climb
+                as the conversation grows. A low or zero share means something
+                that changes every turn got in above the conversation. */}
+            <StatRow label="Prompt cached">
+              {status.metrics.llm.promptTokens === null ||
+              status.metrics.llm.cachedTokens === null
+                ? 'not reported'
+                : `${status.metrics.llm.cachedTokens} / ${status.metrics.llm.promptTokens} tokens`}
+            </StatRow>
           </>
         )}
         <p className="text-muted-foreground mt-3 mb-1">TTS</p>

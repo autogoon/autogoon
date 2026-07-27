@@ -1,14 +1,16 @@
 'use client';
 
-// Near-fullscreen overlay for a sent picture. The backdrop or the ✕ closes it,
-// as does Escape. It's rendered with the current lightbox src, so sending a new
-// picture while it's open simply swaps the image to the newest. Closing plays an
-// exit fade-zoom before unmounting: requestClose flips to `closing` (swapping the
-// enter animation for the exit one) and unmounts after the animation.
+// Near-fullscreen overlay for sent media. The backdrop or the ✕ closes it, as
+// does Escape. It's rendered with the current lightbox media, so sending a new
+// still or video while it's open simply swaps to the newest. Closing plays an
+// exit fade-zoom before unmounting: requestClose flips to `closing` (swapping
+// the enter animation for the exit one) and unmounts after the animation.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import type { CompanionMedia } from '@/lib/companions/companions';
+import { useMediaUrl } from '@/hooks/use-media-url';
 import type { VoiceStage } from '@/lib/voice/session-policy';
 import { VoiceStageBadge } from './voice-stage';
 
@@ -16,17 +18,23 @@ import { VoiceStageBadge } from './voice-stage';
 // classes below so the unmount waits for the exit animation to finish.
 const LIGHTBOX_ANIM_MS = 200;
 
+// A video opens unannounced mid-session and autoplays with sound — starting
+// at full volume is a jolt, so it opens low and the `controls` bar lets the
+// user raise it.
+const LIGHTBOX_VIDEO_START_VOLUME = 0.2;
+
 export function Lightbox({
-  src,
+  media,
   stage,
   onClose,
 }: {
-  src: string;
+  media: CompanionMedia;
   // What the voice session is doing right now — the top-left badge. "idle"
   // renders no badge.
   stage: VoiceStage;
   onClose: () => void;
 }) {
+  const url = useMediaUrl(media);
   const [closing, setClosing] = useState(false);
   const timerRef = useRef<number | null>(null);
 
@@ -35,15 +43,15 @@ export function Lightbox({
     timerRef.current = window.setTimeout(onClose, LIGHTBOX_ANIM_MS);
   }, [onClose]);
 
-  // A newly-sent picture reopens the box even mid-close: cancel the pending
-  // unmount and clear the closing state so it animates back in on the new src.
+  // A newly-sent item reopens the box even mid-close: cancel the pending
+  // unmount and clear the closing state so it animates back in on the new one.
   useEffect(() => {
     setClosing(false);
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, [src]);
+  }, [media]);
 
   useEffect(
     () => () => {
@@ -78,7 +86,7 @@ export function Lightbox({
       >
         <X className="size-6" />
       </button>
-      {/* stopPropagation so clicking the image itself doesn't close it. */}
+      {/* stopPropagation so clicking the media itself doesn't close it. */}
       <div
         className={`relative h-[88vh] w-[92vw] duration-200 ease-out ${
           closing
@@ -87,14 +95,33 @@ export function Lightbox({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Image
-          src={src}
-          alt=""
-          fill
-          sizes="92vw"
-          priority
-          className="object-contain"
-        />
+        {/* The chrome (backdrop, close button, badge) renders while the file
+            opens, so the box appears at once and Escape works before it's
+            ready — only the frame's contents wait. */}
+        {url.status === 'ready' ? (
+          media.kind === 'video' ? (
+            <video
+              ref={(el) => {
+                if (el !== null) el.volume = LIGHTBOX_VIDEO_START_VOLUME;
+              }}
+              src={url.src}
+              controls
+              autoPlay
+              loop
+              playsInline
+              className="absolute inset-0 size-full object-contain"
+            />
+          ) : (
+            <Image
+              src={url.src}
+              alt=""
+              fill
+              sizes="92vw"
+              priority
+              className="object-contain"
+            />
+          )
+        ) : null}
       </div>
     </div>
   );

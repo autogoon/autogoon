@@ -2,14 +2,14 @@
 
 A single-page app with a sticky header bar and a shallow navigation hierarchy: a
 top-level tab strip of **Home** (the device connection, the play mode chooser
-and the getting-started notes), **Changes** (the changelog) and **Settings**
-(appearance, safe word, Companions access, build info), with one screen per play
-mode below Home — Goon, Groove, Autopilot, and the access-gated Companions.
-`src/app/page.tsx` owns the layout: it wraps everything in the keyword-spotter
-provider, mirrors the one shared Player into React once, and renders every
-screen. Hidden screens stay mounted (only their visibility changes), so the
-recognizer and the running play mode keep going regardless of which screen is
-visible.
+and the getting-started notes), **Goonpacks** (pack admin), **Changes** (the
+changelog) and **Settings** (appearance, safe word, Companions access, build
+info), with one screen per play mode below Home — Goon, Groove, Autopilot, and
+the access-gated Companions. `src/app/page.tsx` owns the layout: it wraps
+everything in the keyword-spotter provider, mirrors the one shared Player into
+React once, and renders every screen. Hidden screens stay mounted (only their
+visibility changes), so the recognizer and the running play mode keep going
+regardless of which screen is visible.
 
 ## The program / player model
 
@@ -27,28 +27,28 @@ with the transport constants.
 **The Player** (`src/lib/player.ts`) plays a program and is the only thing that
 touches the device's motion commands: it owns the program-clock, the tick loop,
 the playback rate, device sends, keeping the future built ahead, and transport.
-It knows nothing about any specific play mode. There is **one** Player, owned by
-the device hook; it plays whichever play mode is active. Its methods and
-constants are commented in place — read `player.ts` and `program.ts` before
-touching either.
+Nothing in it is specific to a play mode. There is **one** Player, owned by the
+device hook; it plays whichever play mode is active. Its methods and constants
+are commented in place — read `player.ts` and `program.ts` before touching
+either.
 
 The Player carries a `state` — `armed` / `playing` / `paused`. The visible play
 mode **arms** the Player (`arm`), building a live preview before Start (Goon
 defers arming to its setup view's Play, which commits the setup first); Start
 (`play`) then **resumes** from the held position rather than restarting, Stop
-(`pause`) holds position, and `reset` restores the play mode's default knobs and
-regenerates from the beginning.
+(`pause`) holds position, and `reset` re-arms the program from the beginning
+(Reset is two layers — see [Play modes](#play-modes)).
 
 **A PlayModeEngine** (`src/lib/play-modes/*-engine.ts`) is what each play mode
 _is_ here: a generation-only object — no React, no device, no clock of its own;
 the Player calls back into it. The four-method contract lives in
 [`src/lib/program.ts`](./src/lib/program.ts) (the best-commented file in the
-repo — start there). The design why: generation is split into two channels,
-`generateSpeed` (the stateful backbone, pulled a batch at a time so looping play
-modes never materialise all at once) and `generateValves` (a **pure** overlay
-laid across a span of already-built speed). Pure matters — it lets the Player
-re-lay the valve overlay over an unchanged speed script for a valve-only knob,
-and it's why the overlay must not keep cadence state.
+repo — start there). Generation is split into two channels: `generateSpeed` (the
+stateful backbone, pulled a batch at a time so looping play modes never
+materialise all at once) and `generateValves` (a **pure** overlay laid across a
+span of already-built speed). Purity lets the Player re-lay the valve overlay
+over an unchanged speed script for a valve-only knob, and is why the overlay
+must not keep cadence state.
 
 **How a change reaches the device** — two directions:
 
@@ -63,6 +63,10 @@ and it's why the overlay must not keep cadence state.
   and only re-lays the valve overlay. Regeneration only ever rewrites the
   future, never the past.
 
+Generation has random elements, so regenerating for a magnitude change would
+switch the user to a fresh pattern instead of rescaling the one they are already
+feeling.
+
 **Position = the clock.** Goon's build is a _position_, and that position **is**
 the Player's clock; time dilation is the Player's rate. So
 `forward`/`back`/`finish`/`faster`/`slower` are just the Player moving or
@@ -74,7 +78,7 @@ program-time — a jump needs no special handling.
 `Player.insertEvent` while something is playing, and drive the device directly
 when nothing is.
 
-## Two layers per play mode
+## Play modes
 
 Each device-driving play mode is an **engine** and a **panel**:
 
@@ -93,19 +97,46 @@ Each device-driving play mode is an **engine** and a **panel**:
 There is no per-play-mode _Player_ hook and no central runner: the panel drives
 the Player directly, and mutual exclusion falls out of the Player holding one
 engine at a time. (Companions is the one mode that's more than the pair — its
-engine and panel sit on a whole voice/LLM subsystem; see below.) Adding a play
-mode is a new engine + panel, then registering it in `page.tsx` (a `PLAY_MODES`
-entry and its panel rendered) — the registry is the single source of truth, so
-the home listing, the voice switch word and the screen all follow automatically.
-The step-by-step lives in [DEVELOPERS.md](./DEVELOPERS.md#adding-a-play-mode).
+engine and panel sit on a whole voice/LLM subsystem; see
+[Companions' voice subsystem](#companions-voice-subsystem).) Adding a play mode
+is a new engine + panel, then registering it in `page.tsx` (a `PLAY_MODES` entry
+and its panel rendered) — the registry is the single source of truth, so the
+home listing, the voice switch word and the screen all follow automatically.
 
-**Commands are declared once.** Each action is a `Command`
-(`src/hooks/use-voice-commands.ts`), so the on-screen button and the spoken
-keyword call the same `run` and share the same `enabled` — a disabled control is
-also out of the grammar. The panel renders a button from each command and hands
-the list to `useVoiceCommands`, which registers the enabled words with the
-recognizer and routes detections back — but only while the panel is the active
-screen. A button flashes when its word is recognized.
+What is easy to get wrong about the pair, and not visible from one file:
+
+- **The engine instance is never re-created.** The Player identifies the active
+  source by comparing references, so a panel that rebuilds its engine — a
+  `useMemo` with deps, say — stops being the active source, with nothing raised.
+  That is what the `useRef` is for.
+- **Reset is two layers.** A panel's reset restores its knobs' React state and
+  their engine defaults and re-arms; the Player then rebuilds from the start and
+  calls `engine.reset()` to clear transient state — a pending `cumming`, say.
+  Neither layer does the other's half.
+- **An ending belongs to the panel.** `StrokeCard` is only the shared stroke ±
+  buttons; a play mode with an ending renders `FinishButton` and/or
+  `CummingButton` itself. **Finish** (a _pre_-ending — reach and hold the climax
+  point) and **Cumming** (the send-off) are distinct actions, and a play mode
+  may have both, one or neither.
+- **A setup view is the panel's own choice**, not part of the shape: Goon has
+  one and defers arming to it, Groove and Autopilot arm as soon as their screen
+  is active.
+
+Read a working pair before writing one. `goon-engine.ts` + `goon-panel/`
+exercise the full set — an automatic build curve, a setup view with per-concern
+option cards, a live-scaled magnitude knob, valve teases, time dilation and a
+bespoke `cumming` wind-down. `groove-engine.ts` + `groove-panel.tsx` are the
+leaner model, for a play mode driven by manual knobs.
+
+## Commands
+
+**Each action is declared once.** A `Command`
+(`src/hooks/use-voice-commands.ts`) carries one `run` and one `enabled`, and
+both the on-screen button and the spoken keyword go through them — so a disabled
+control is also out of the grammar. The panel renders a button from each command
+and hands the list to `useVoiceCommands`, which registers the enabled words with
+the recognizer and routes detections back, but only while the panel is the
+active screen. A button flashes when its word is recognized.
 
 ## Shared device, one Player, mutual exclusion
 
@@ -126,25 +157,28 @@ live.
 
 `page.tsx` keeps the three genuinely global concerns. First, navigation: the
 top-level tabs and the play mode screens form a strict hierarchy with no
-sideways moves below the top level — `exit` (the word, or a breadcrumb link)
-goes **up one level**, and it's locked while a session runs, so switching play
-modes mid-session simply can't be expressed; stop first. A play mode with a
-setup view gets a play sub-level (`Home › Goon › Play`): Play navigates down
-into it, exit climbs back to setup. Screens mirror into the URL hash (`#goon`,
-`#goon/play`), so the browser back button, reloads and deep-links follow the
-same hierarchy — back is locked mid-session just like exit (the consumed history
-entry is pushed straight back), and a `/play` deep-link lands on its setup
-level, since the session it named didn't survive the reload. One screen opts out
-of the chrome: Companions' play screen hides the header bar and breadcrumb and
-draws its own slim bar — a back-to-picker button under the same lock, the mic,
-and a hamburger for the panel's sub-tabs — so the chat gets the screen. Second,
-the global voice words — `connect` while disconnected; the (unlocked) play mode
-names on home; the sibling tab words (`home`/`changes`/`settings`) on any
-top-level tab; `exit` below the top level while idle — which it sets on the
-recognizer and routes itself. Everything else is a play mode word, owned by the
-active panel. Third, the **safe word**: an always-on hard stop
-(`src/lib/safe-word.ts`) wired at the page level so no play mode can ever gate
-it — it stays in the grammar even for outcomes that deliberately ignore Stop.
+sideways moves below the top level. The Goonpacks tab is in the strip only when
+Companions is available, on the same condition — an access ID, or the dev
+server. `exit` (the word, or a breadcrumb link) goes **up one level**, and it's
+locked while a session runs, so switching play modes mid-session simply can't be
+expressed; stop first. A play mode with a setup view gets a play sub-level
+(`Home › Goon › Play`): Play navigates down into it, exit climbs back to setup.
+Screens mirror into the URL hash (`#goon`, `#goon/play`), so the browser back
+button, reloads and deep-links follow the same hierarchy — back is locked
+mid-session just like exit (the consumed history entry is pushed straight back),
+and a `/play` deep-link lands on its setup level, since the session it named
+didn't survive the reload. One screen opts out of the chrome: Companions' play
+screen hides the header bar and breadcrumb and draws its own slim bar — a
+back-to-picker button under the same lock, the mic, and a hamburger for the
+panel's sub-tabs — so the chat gets the screen. Second, the global voice words —
+`connect` while disconnected; the (unlocked) play mode names on home; the
+sibling tab words (`home`/`changes`/`settings`, plus `packs` while the Goonpacks
+tab shows) on any top-level tab; `exit` below the top level while idle — which
+it sets on the recognizer and routes itself. Everything else is a play mode
+word, owned by the active panel. Third, the **safe word**: an always-on hard
+stop (`src/lib/safe-word.ts`) wired at the page level so no play mode can ever
+gate it — it stays in the grammar even for outcomes that deliberately ignore
+Stop.
 
 ## Controls
 
@@ -193,8 +227,10 @@ commands are ever live.
 Switch words are just the play mode names — say one on home to enter that play
 mode's screen (Companions only once its access ID has unlocked it — or any time
 on the dev server, where the gate is open). The tab words
-(`home`/`changes`/`settings`) move sideways between the top-level tabs; `exit`
-(while nothing runs) goes up one level.
+(`home`/`changes`/`settings`) move sideways between the top-level tabs, joined
+by `packs` whenever the Goonpacks tab shows — it answers to `packs` rather than
+its own name, for the reason given at `TabId` in `page.tsx`. `exit` (while
+nothing runs) goes up one level.
 
 ## Companions' voice subsystem
 
@@ -238,8 +274,8 @@ was found in the first place, and it is the only account we get.
 arms the next as it ends, so nothing polls for a silence to fill; the scheduler
 (`src/lib/companions/ambient-scheduler.ts`) holds only that timer and a latch,
 kept out of the voice session because that hook already carries some twenty refs
-read by callbacks created once and outliving every render. Three rules hold it
-together:
+read by callbacks created once and outliving every render. The rules that keep
+it working:
 
 - **Scheduling is decided once, at the end of a turn, from session state** —
   never from what happened inside a generation. That's why `wait_for_user` sets
@@ -253,8 +289,8 @@ together:
 - **The scheduler is wall-clock and belongs to the session, never the program.**
   Program events are dropped on every regeneration and scale with playback rate,
   and neither should touch the cadence. The Player's state is read for one
-  purpose only — picking which of the two appetites applies — and never gates
-  whether the companion speaks at all.
+  purpose only — whether the delay is drawn from the companion's playfulness or
+  their chattiness — and never gates whether the companion speaks at all.
 
 An ambient turn runs the ordinary turn path with no user turn appended; its cue
 rides that one request as a transient system line, like a gap marker, so it
@@ -265,25 +301,46 @@ prompts the companion without accumulating in the thread.
 Companions arrive as [goonpacks](./GOONPACKS.md) — one companion per zip. The
 shape worth knowing:
 
-- **One import pipeline, run at every load.** The zip bytes are the source of
-  truth, stored per `id@version` in IndexedDB (`src/lib/goonpacks/store.ts` —
-  bytes, not Blobs; some WebKit builds reject Blob puts). Every app load re-runs
-  the same `parsePack` the importer and `goonpack:build` use over every stored
-  zip, so "installed" is re-derived against the current rules, never trusted
-  from a cached index — a pack that fails lists as incompatible with its
-  reasons, and comes back when the cause is fixed.
+- **Extracted once, verified at every load.** A pack is unzipped at import into
+  one OPFS directory tree per `id@version`
+  ([`src/lib/goonpacks/store.ts`](./src/lib/goonpacks/store.ts)); a marker file
+  written last is what makes the tree an installed pack, so an interrupted
+  import and an interrupted removal leave the same state, and one clean pass at
+  load deletes both. Nothing derived is persisted anywhere: every load re-runs
+  the same `parsePack` the importer and `goonpack:build` use over every tree, so
+  "installed" is re-derived against the current rules, never trusted from a
+  cached index — a pack that fails lists as incompatible with its reasons, and
+  comes back when the cause is fixed. Media bytes are never resident: validation
+  is a pass over **names** (only the manifest, the prompt and the captions are
+  ever read), and a file becomes an object URL on first render, not at load.
+- **Import holds a lock; extraction runs in a worker.** The zip is streamed
+  straight to disk with backpressure
+  ([`extract.ts`](./src/lib/goonpacks/extract.ts)), never held whole, off the
+  main thread ([`extract-worker.ts`](./src/lib/goonpacks/extract-worker.ts));
+  the zip is transport and isn't kept. Around the whole of it — extract,
+  validate, then the marker — the importer holds a Web Lock named for the pack's
+  key (`importLock` in `store.ts`), because until the marker lands, a tree being
+  written is indistinguishable on disk from one an interrupted import left
+  behind. The clean pass probes each markerless tree's lock and deletes only
+  from inside the callback, so an import running in another tab survives the
+  sweep; a crashed one needs no timeout, since the browser releases the lock
+  with the tab.
 - **A pure lib under a stateful hook.** `src/lib/goonpacks/` (manifest
-  parsing/validation, zip parsing, shared-prompt fill, pack→`Companion`
-  resolution, chooser entries) is React-free and unit-tested.
-  `src/hooks/use-goonpack-library.ts` owns everything stateful: the reindex, the
-  cross-pack rules a zip can't know about itself (its base being installed, a
-  built-in's id being squatted), and the object-URL lifecycle for pack pictures.
+  parsing/validation, tree validation, the library index and its cross-pack
+  rules, shared-prompt fill, pack→`Companion` resolution, chooser entries) is
+  React-free and unit-tested — [`library.ts`](./src/lib/goonpacks/library.ts)
+  takes its tree source as an argument, which is how the whole load pass is
+  tested without OPFS.
+  [`src/hooks/use-goonpack-library.ts`](./src/hooks/use-goonpack-library.ts) is
+  the React face of one session-wide index: the Companions chooser and the
+  Goonpacks tab both hold the hook, and a media file's object URL is minted on
+  first render and held until its pack is removed or re-imported.
 - **The id means the same companion.** Storage keys carry the version so
   versions install side by side, but a resolved companion keeps the unversioned
   pack id — conversation threads belong to that id, so they survive version
   switches, and an overlay reads and writes its **base's** thread. Sent pictures
-  persist as stable `goonpack:` refs resolved against whatever's loaded, never
-  copied.
+  and videos persist as stable `goonpack:` refs resolved against whatever's
+  loaded, never copied.
 - **Two surfaces.** Pack admin (import, per-version rows, remove) is the
   Goonpacks tab (`src/components/goonpacks-panel.tsx`); choosing what plays is
   the Companions chooser, whose base/overlay pickers feed `resolveVariant` —

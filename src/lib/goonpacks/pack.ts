@@ -1,39 +1,50 @@
-// Zip → ParsedPack. Pure and synchronous (packs are a few MB); used by the
-// browser importer, the Jest tests, and nothing else — the authoring build
-// script has its own Node-side zip writer.
-import { strFromU8, unzipSync } from 'fflate';
-import { PackError, parseManifest, type PackManifest } from './manifest';
+// A pack's tree → ParsedPack. Validation is a pass over NAMES: permitted
+// extensions, no subfolders, no stem collisions, caption pairing and the
+// complete-vs-overlay completeness rules are all name rules, so only
+// manifest.json, system-prompt.md and the captions are ever read. Validating a
+// multi-gigabyte pack costs a few hundred kilobytes.
+import {
+  OLD_LAYOUT_PROBLEM,
+  PackError,
+  parseManifest,
+  type PackManifest,
+} from './manifest';
+import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 
-const IMAGE_TYPES: Record<string, string> = {
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
+export const MANIFEST = 'manifest.json';
+const PROMPT = 'system-prompt.md';
+// The media folder, twice over: its own name (what opens it in a tree) and the
+// prefix its files carry in a '/'-separated listing (what validation matches).
+export const MEDIA_NAME = 'media';
+export const MEDIA_DIR = `${MEDIA_NAME}/`;
+
+// What a pack looks like to validation: the file names it holds (relative to
+// the pack root, '/'-separated) and a way to read one as text. OPFS backs it in
+// the app; node fs backs it in the authoring build script; a plain object backs
+// it in the tests.
+export type PackTree = {
+  names: string[];
+  readText(path: string): Promise<string>;
 };
 
-export type ParsedPicture = {
+// One still or video. `name` is the stem — the thread ref's second half and the
+// caption sidecar's name; `file` is the file inside media/, which is what
+// actually gets opened when the item is first rendered.
+export type ParsedMedia = {
   name: string;
-  description: string;
-  bytes: Uint8Array;
+  file: string;
+  kind: MediaKind;
   mimeType: string;
+  description: string;
 };
 
 export type ParsedPack = {
   manifest: PackManifest;
   systemPrompt?: string;
-  pictures: ParsedPicture[];
+  media: ParsedMedia[];
 };
 
-// Zip housekeeping entries that hand-made (Finder) zips accumulate.
-function isJunk(path: string): boolean {
-  return (
-    path.startsWith('__MACOSX/') ||
-    path.endsWith('/') ||
-    path.split('/').pop() === '.DS_Store'
-  );
-}
-
-// Best-effort look inside a zip that failed validation, so the admin row can
+// Best-effort look at a manifest that failed validation, so the admin row can
 // still say what the pack claims to be (name, version, what it overlays).
 // String fields are taken at face value — this describes, never validates;
 // anything unreadable just comes back empty.
@@ -44,13 +55,11 @@ export type PackPeek = {
   aboutThePack?: string;
 };
 
-export function peekPack(zipBytes: Uint8Array): PackPeek {
+export function peekManifest(raw: string): PackPeek {
   try {
-    const entry = unzipSync(zipBytes)['manifest.json'];
-    if (entry === undefined) return {};
-    const raw: unknown = JSON.parse(strFromU8(entry));
-    if (typeof raw !== 'object' || raw === null) return {};
-    const m = raw as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return {};
+    const m = parsed as Record<string, unknown>;
     const peek: PackPeek = {};
     for (const k of ['version', 'base', 'aboutThePack'] as const) {
       const v = m[k];
@@ -70,28 +79,40 @@ export function peekPack(zipBytes: Uint8Array): PackPeek {
   }
 }
 
-// Like parseManifest, parsePack reports every problem it can determine in
-// one throw: the manifest's problems plus the zip-level ones. Only a zip we
-// can't read at all — or one with no root manifest — fails alone.
-export function parsePack(zipBytes: Uint8Array): ParsedPack {
-  let entries: Record<string, Uint8Array>;
-  try {
-    entries = unzipSync(zipBytes);
-  } catch {
-    throw new PackError('Not a readable zip file.');
+// The one structural fault worth naming: everything landed under a single
+// top-level folder because the folder was zipped instead of its contents.
+// Takes junk-filtered names — a `__MACOSX/` entry is a second top-level folder
+// to anything counting them, which is how a Finder zip hides the fault.
+export function wrapperFolder(names: string[]): string | null {
+  const tops = new Set<string>();
+  for (const n of names) {
+    const slash = n.indexOf('/');
+    if (slash === -1) return null; // a file at the root — not wrapped
+    tops.add(n.slice(0, slash));
   }
-  const files = Object.entries(entries).filter(([path]) => !isJunk(path));
+  const only = [...tops];
+  return only.length === 1 ? only[0]! : null;
+}
 
-  const manifestEntry = files.find(([path]) => path === 'manifest.json');
-  if (manifestEntry === undefined) {
+// Like parseManifest, parsePack reports every problem it can determine in one
+// throw: the manifest's problems plus the tree-level ones. Only a tree with no
+// root manifest fails alone.
+export async function parsePack(tree: PackTree): Promise<ParsedPack> {
+  const names = tree.names.filter((n) => !isJunkPath(n));
+
+  if (!names.includes(MANIFEST)) {
+    const wrapper = wrapperFolder(names);
     throw new PackError(
-      "No manifest.json at the zip root — zip the pack folder's contents, not the folder.",
+      wrapper !== null
+        ? `Everything is inside ${wrapper}/ — zip the folder's contents, not the folder.`
+        : "No manifest.json at the pack root — zip the pack folder's contents, not the folder.",
     );
   }
+
   const problems: string[] = [];
   let manifest: PackManifest | undefined;
   try {
-    manifest = parseManifest(JSON.parse(strFromU8(manifestEntry[1])));
+    manifest = parseManifest(JSON.parse(await tree.readText(MANIFEST)));
   } catch (e) {
     if (e instanceof PackError) problems.push(...e.problems);
     else
@@ -100,55 +121,80 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
       );
   }
 
-  const promptEntry = files.find(([path]) => path === 'system-prompt.md');
-  const systemPrompt =
-    promptEntry !== undefined ? strFromU8(promptEntry[1]) : undefined;
+  const systemPrompt = names.includes(PROMPT)
+    ? await tree.readText(PROMPT)
+    : undefined;
 
-  const pictures: ParsedPicture[] = [];
+  const media: ParsedMedia[] = [];
+  const captions: string[] = [];
   const sidecars = new Map<string, string>();
-  for (const [path, bytes] of files) {
-    if (!path.startsWith('pictures/')) continue;
-    const file = path.slice('pictures/'.length);
+  for (const path of names) {
+    if (!path.startsWith(MEDIA_DIR)) continue;
+    const file = path.slice(MEDIA_DIR.length);
     if (file.includes('/')) {
-      problems.push(`pictures/ can't contain subfolders — found ${path}.`);
+      problems.push(`media/ can't contain subfolders — found ${path}.`);
       continue;
     }
-    const dot = file.lastIndexOf('.');
-    const stem = dot === -1 ? file : file.slice(0, dot);
-    const ext = dot === -1 ? '' : file.slice(dot + 1).toLowerCase();
+    const { stem, ext } = splitName(file);
     if (ext === 'txt') {
-      sidecars.set(stem, strFromU8(bytes).trim());
-    } else if (IMAGE_TYPES[ext]) {
-      pictures.push({
-        name: stem,
-        description: '',
-        bytes,
-        mimeType: IMAGE_TYPES[ext],
-      });
-    } else {
-      problems.push(
-        `Unsupported file in pictures/: ${file} — pictures must be jpg, jpeg, png or webp, with descriptions in matching .txt files.`,
-      );
+      captions.push(path);
+      continue;
     }
-  }
-  const stems = new Set<string>();
-  for (const p of pictures) {
-    // Different extensions, same stem (a.jpg + a.png) would collide to one
-    // thread ref (goonpack:<packId>/a) — reject at import, not silently drop.
-    if (stems.has(p.name)) {
+    if (ext === 'mov') {
       problems.push(
-        `Two pictures share the name ${p.name} — same name with different file types; rename one.`,
+        `${file} is a .mov — videos must be .mp4 or .webm, which play everywhere; .mov doesn't.`,
       );
+      continue;
     }
-    stems.add(p.name);
+    const type = MEDIA_TYPES[ext];
+    if (type === undefined) {
+      problems.push(
+        `Unsupported file in media/: ${file} — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.`,
+      );
+      continue;
+    }
+    media.push({
+      name: stem,
+      file,
+      kind: type.kind,
+      mimeType: type.mimeType,
+      description: '',
+    });
   }
-  for (const p of pictures) p.description = sidecars.get(p.name) ?? '';
-  pictures.sort((a, b) => a.name.localeCompare(b.name));
+  // Captions are the only media-folder files ever read — a few hundred bytes
+  // of sidecar text each, never the media they describe.
+  for (const path of captions) {
+    sidecars.set(
+      splitName(path.slice(MEDIA_DIR.length)).stem,
+      (await tree.readText(path)).trim(),
+    );
+  }
 
-  // Completeness rules need a readable manifest to know overlay from
-  // complete — without one, the manifest's own problems already tell the
-  // story.
+  const stems = new Set<string>();
+  for (const m of media) {
+    // Different extensions, same stem (a.jpg + a.mp4) would collide to one
+    // thread ref (goonpack:<key>/a) — reject at import, not silently drop.
+    if (stems.has(m.name)) {
+      problems.push(
+        `Two media files share the name ${m.name} — same name with different file types; rename one.`,
+      );
+    }
+    stems.add(m.name);
+    m.description = sidecars.get(m.name) ?? '';
+  }
+  media.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Completeness rules need a readable manifest to know overlay from complete —
+  // without one, the manifest's own problems already tell the story.
   if (manifest !== undefined) {
+    // The tree half of the format gate (parseManifest holds the other):
+    // formats 1 and 2 differ only in this folder's name and noPictures, so a
+    // format 1 pack with neither is a format 2 pack and passes. With a
+    // pictures/ folder it is genuinely old, and says so rather than reporting
+    // no media.
+    if (manifest.format === 1 && names.some((n) => n.startsWith('pictures/'))) {
+      problems.push(OLD_LAYOUT_PROBLEM);
+    }
     if (manifest.base === undefined) {
       if (systemPrompt === undefined) {
         problems.push('A complete pack needs a system-prompt.md file.');
@@ -164,14 +210,14 @@ export function parsePack(zipBytes: Uint8Array): ParsedPack {
         );
       }
     }
-    if (manifest.noPictures === true && pictures.length > 0) {
+    if (manifest.noMedia === true && media.length > 0) {
       problems.push(
-        'noPictures is set but the pack has a pictures/ folder — remove one or the other.',
+        'noMedia is set but the pack has a media/ folder — remove one or the other.',
       );
     }
   }
   if (problems.length > 0 || manifest === undefined) {
     throw new PackError(problems);
   }
-  return { manifest, systemPrompt, pictures };
+  return { manifest, systemPrompt, media };
 }

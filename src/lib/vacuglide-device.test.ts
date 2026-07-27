@@ -62,22 +62,36 @@ describe('VacuglideDevice rate-limit accounting', () => {
     });
   });
 
-  it('counts requests and counts down to the window reset', async () => {
+  it('counts each request against the current window', async () => {
     const device = connectedDevice();
     await device.getState();
     await device.getState();
 
-    jest.setSystemTime(T0.getTime() + 30_000);
-    expect(device.rateLimitStatus()).toEqual({
+    expect(device.rateLimitStatus()).toMatchObject({
       used: 2,
       remaining: RATE_LIMIT - 2,
-      limit: RATE_LIMIT,
-      resetSeconds: 30,
     });
+  });
+
+  it('counts resetSeconds down as the window elapses', async () => {
+    const device = connectedDevice();
+    await device.getState();
+
+    // A fractional offset: 30.5 s left rounds up to 31, so the status never
+    // reports a whole second fewer than the window has left to run.
+    jest.setSystemTime(T0.getTime() + 29_500);
+    expect(device.rateLimitStatus().resetSeconds).toBe(31);
+
+    jest.setSystemTime(T0.getTime() + 45_000);
+    expect(device.rateLimitStatus().resetSeconds).toBe(15);
   });
 
   it('resets the whole window at once when it expires', async () => {
     const device = connectedDevice();
+    await device.getState();
+    // Two requests at different points in one window: at T0 + 60 s a sliding
+    // window would still be counting the second one, a fixed window neither.
+    jest.setSystemTime(T0.getTime() + 30_000);
     await device.getState();
 
     jest.setSystemTime(T0.getTime() + 60_000);

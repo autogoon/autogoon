@@ -5,6 +5,20 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 ## General
 
+- **Stop the program when the device disconnects.** A device that drops mid-run
+  leaves the Player ticking against nothing. The speed send throws,
+  `scheduleNextTick` reports the failure and schedules the next tick anyway, and
+  `lastDeviceSpeed` is only updated on a send that succeeded — so every tick
+  re-sends the same speed and logs the same error, several times a second, for
+  as long as the program has left to run. Valve sends don't even report:
+  `setValve` discards its rejection. Stopping belongs in the Player rather than
+  in each engine — it is the single path to the device, so one stop covers Goon,
+  Groove, Autopilot and Companions together, and no engine needs to know the
+  device exists. To settle: whether a disconnect stops or pauses (a pause would
+  let a reconnect carry on where it left off), how many consecutive failures
+  mean gone rather than a blip, and what the screen says — a device that has
+  dropped is the one failure the user can't otherwise see.
+
 - **Show remaining provider credits in the app.** Both providers expose balances
   (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint — character
   quota used/limit), so surface them in the app instead of two dashboards —
@@ -18,16 +32,106 @@ Concrete, intended work. Speculative direction and design thinking lives in
   multiplied by it (they set 100, it lands on 50, and they never see the setting
   or the scaled number); and **the wind-down** starts at it and ramps down.
   Torture and the two ruins don't take it — they're absolute on purpose — and
-  Autopilot doesn't change, being a faithful recreation of the Vacuglide
-  algorithm. A companion picking a number has no idea what it does to you, and
-  the only fix today is saying so in words, every session and every new
-  companion.
+  Autopilot doesn't change, being a faithful recreation of Autoblow's Autopilot.
+  A companion picking a number has no idea what it does to you, and the only fix
+  today is saying so in words, every session and every new companion.
 
 - **Put the wind-down on a curve.** It glides down in two straight-line phases.
   Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it
   approaches a standstill instead of stepping evenly the whole way — a 5-unit
   change at speed 10 is felt far more than the same change at speed 90. Goon,
   Groove and Companions each carry their own copy of the constants.
+
+## Media descriptions and retrieval
+
+**The next thing.** A companion with a collected set of a couple of thousand
+pictures can't use them: every item's description goes into the `send_media`
+schema and they pick by number, which stops working long before the window fills
+— a model choosing between two thousand near-identical descriptions chooses
+badly. And the descriptions themselves are written for one woman alone in a
+pose, so a second body, a man, and anything happening between people have
+nowhere to go.
+
+The target design — what they've asked for, who does the searching, what gets
+stored per item — is
+[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md). The short of it:
+they ask in words, the app searches, and the tool result tells them what
+actually went. What's below is the work, staged so each stage answers one
+question and the next depends on it. Stages 0–2 are worth doing even if the
+retrieval half slips.
+
+### Stage 0 — the yardstick
+
+A yardstick of around a hundred images, deliberately loaded with the hard cases:
+sheer versus opaque, nipples through fabric, topless versus covered, a cock in
+frame, penetration, oral, more than one person, watermarks, near duplicates.
+Hand-write the ground truth once.
+
+It's a dull afternoon's work and nothing else should start first — without it
+every later comparison is an impression rather than a number, which is exactly
+how the current prompt got to be confidently wrong in a few places.
+
+### Stage 1 — what a description should contain
+
+Two texts per item, not one: a long description of everything in the picture,
+and a one-line caption condensed from it. `scripts/describe-image.mjs` already
+works this way — it has the model observe at length and then condense — and
+currently throws the observations away, so this is mostly plumbing rather than
+new inference.
+
+The schema needs rescoping. Establish the scene first — how many people, which
+sexes, what is happening between them — then describe each person, then any text
+in the image. Two specific errors to chase while here: bare breasts called
+covered and covered called bare, which is a discrimination the prompt already
+asks for explicitly; and nipples through fabric missed, where the suspect is
+that prompt's own anti-false-positive wording over-correcting into false
+negatives — a one-line change with a measurable answer.
+
+**Blocking decision:** two texts plus an attribute panel outgrows the one-line
+`.txt` sidecar that `parsePack` reads straight in as a description. Settle the
+sidecar's shape before anything writes captions at scale, since it's a pack
+format change.
+
+### Stage 2 — model and resolution
+
+Same yardstick, same prompt. Vary resolution and tiling first — that's the
+bigger lever for fine detail and it's a config rather than a model swap — then
+compare three or four models with a frontier one as the ceiling. Settles whether
+the remaining errors are the model or the prompt, and picks the model for the
+bulk pass.
+
+### Stage 3 — retrieval, offline
+
+Thirty to fifty realistic requests in a companion's own words ("me on my knees
+looking up", "something with a man in it", "topless but not explicit", "filthier
+than the last one"), scored by hand against four implementations: a cheap LLM
+reading all the captions; caption-embedding top-k; top-k plus an LLM rerank over
+the long descriptions; and the same with an image embedding added.
+
+The output is the minimum that works and where it breaks — which is what decides
+the shape of the tool. Also settled here: whether hard constraints (no nudes
+ever; must contain a man) need the structured attribute filters or fall out of
+ranking.
+
+### Stage 4 — the set summary
+
+An LLM over all the captions, producing a paragraph on what the collection is —
+proportions, who's in it, which acts appear, the range of undress. Test whether
+a companion given only that asks answerable questions and stops offering what
+isn't there.
+
+Open while testing: whether one neutral summary serves every persona, or whether
+it wants generating per persona — different companions care about different
+dimensions of the same facts, and a neutral one stays cacheable.
+
+### Stage 5 — wire it in
+
+Only now: the tool takes a description instead of a number, the summary goes
+into the prompt like the other app-owned sections, and the index gets somewhere
+to live. Two things fall out for free at this point — `send_media`'s argument
+stops being a positional index, which today means a historical call in a thread
+can denote a different picture once a pack version or overlay changes the set;
+and the search owns "don't send the same thing twice", which nothing does today.
 
 ## Companions
 
@@ -42,9 +146,9 @@ What's already built is described in
 
 ### Split the voice session and the companions panel
 
-`use-voice-session.ts` (~850 lines, ~20 refs in one closure) and
+`use-voice-session.ts` (~1000 lines, ~20 refs in one closure) and
 `companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
-to hold in the head. The coupling is load-bearing rather than careless — the mic
+to hold in the head. The coupling is deliberate rather than careless — the mic
 and STT callbacks are created once and outlive many renders, so everything they
 read has to be a ref — which is why "just split it" isn't the fix.
 
@@ -75,11 +179,11 @@ before it stops rather than stopping silently.
 
 Vosk KWS reserved for the safeword → a hard stop that tears down the voice
 session (LLM + TTS), not just the device. Today the safeword only pauses the
-Player, so she keeps talking through it; and it is only in the grammar while a
-program runs, so with the device stopped there is no spoken way to stop her at
+Player, so they keep talking through it; and it is only in the grammar while a
+program runs, so with the device stopped there is no spoken way to stop them at
 all. Also the nav/global-word lockdown a running session needs, and reconciling
 the two concurrent mic captures (vosk vs. ElevenLabs STT) so the word that stops
-her isn't also transcribed as a turn.
+them isn't also transcribed as a turn.
 
 ### Context compaction / rolling window
 
@@ -101,23 +205,27 @@ the system prompts. _(The on-hardware feel tuning remains.)_
 
 The companion gets a tool for each after-play and picks which one to use when
 you say you're cumming. The persona decides, so the ending stops being a setting
-and becomes something she does to you. And because she can choose, she can say
-she will without saying which.
+and becomes something they do to you. And because they can choose, they can say
+they will without saying which.
 
-### Pick built packs up off disk in dev
+### Pick packs up off disk in dev
 
 Iterating on a pack means: edit, `npm run goonpack:build`, open the Goonpacks
 tab, pick the zip, confirm the replace. Every time. The build is the only step
 doing anything the app couldn't do itself.
 
-On a locally-run server, have the app ask a route on load what `.zip` files are
-sitting in `goonpacks/`, and import each one exactly as though it had been
-chosen in the picker and replaced — the same `importPack` path, the same
-validation, the same storage. Reload becomes the whole loop.
+On a locally-run server, have the app ask a route on load what pack directories
+are sitting in `goonpacks/`, and import each one exactly as though it had been
+chosen in the picker and replaced — the same validation, the same storage.
+Reload becomes the whole loop.
 
-Deliberately not watching for changes: load-time only, and still the built zip
-rather than the source directory, so the thing imported is the thing that would
-ship. A reload is a small enough ask, and polling can come later if it isn't.
+The source directory rather than a built zip, because validation now runs on the
+extracted tree: the tree is the thing that ships, and the zip only carries it,
+so importing the directory imports what would ship. That also drops the build
+step from the loop entirely.
+
+Deliberately not watching for changes: load-time only. A reload is a small
+enough ask, and polling can come later if it isn't.
 
 **Dev-server only, and it has to be enforced server-side.** The route reads the
 developer's own filesystem, which is exactly what a deploy must not do —
@@ -207,9 +315,9 @@ talked about in a way "they" twice over does not.
 ### Personas shape their programs
 
 Map a companion's traits onto **Groove's knobs** — `intensity` to the
-speed-percent magnitude, `variety` to the timing/dip-variability level — so her
-program stops being random and becomes **hers**. This is the missing piece for
-the companions' _programs_ (not just their chat) to diverge.
+speed-percent magnitude, `variety` to the timing/dip-variability level — so
+their program stops being random and becomes **theirs**. This is the missing
+piece for the companions' _programs_ (not just their chat) to diverge.
 
 **First settle which of these are code at all.** `chattiness` and `playfulness`
 shipped with ambient chat because they drive a timer. The rest may not need any:
@@ -249,19 +357,33 @@ server keys** — its only job was protecting them.
 
 The personas are located (Riga, Pembrokeshire, Portland) but only the user's
 clock is real — the prompt's TIME line is his browser's time. Give a located
-persona her own: an IANA `timezone` field on `Companion` and a second TIME line
-("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it can
-be the middle of her night in the middle of his day. The app does all the
+persona their own: an IANA `timezone` field on `Companion` and a second TIME
+line ("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it
+can be the middle of their night in the middle of his day. The app does all the
 arithmetic — no LLM offset math (models are passable at offsets and quietly
-wrong about DST); she only roleplays the two clocks.
+wrong about DST); they only roleplay the two clocks.
 
-One rule ships with it: her clock colours the fiction, never gates it — she
-never refuses to play because it's 4am where she lives.
+One rule ships with it: their clock colours the fiction, never gates it — they
+never refuse to play because it's 4am where they live.
 
 ## Goonpacks
 
 Goonpacks — importing a companion as a portable pack — has shipped; see
-[GOONPACKS.md](./GOONPACKS.md). One follow-up remains:
+[GOONPACKS.md](./GOONPACKS.md). Two follow-ups remain:
+
+- **Accept `.gif` as media.** A collected set will have the odd animated gif in
+  it, and today import rejects it as an unsupported file. The reason `.mov` is
+  excluded — it plays in Safari and unreliably elsewhere — doesn't apply: a gif
+  animates in an `<img>` everywhere. It's an entry in `MEDIA_TYPES`
+  (`src/lib/goonpacks/media.ts`), whose only non-test consumer is `parsePack`,
+  plus `IMAGE_RE` in `scripts/describe-missing.mjs`, which would otherwise skip
+  gifs and leave them silently uncaptioned; `scripts/describe-image.mjs` already
+  accepts one and describes its first frame. Two things to settle: the `kind`
+  has to be `image` either way (`<video>` can't play a gif), so an animated one
+  — a gif may equally be a still — arrives labelled a picture, which is a
+  mislabel only worth sniffing frames for if it turns out to matter; and whether
+  a widening like this needs a `PACK_FORMAT` bump — an older app rejects the gif
+  by name rather than misreading the pack, which argues it doesn't.
 
 - **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
   account, so a pack's voice doesn't truly travel. The follow-up carries a voice

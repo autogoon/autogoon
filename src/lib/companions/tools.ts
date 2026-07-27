@@ -6,10 +6,10 @@ import type { RequestTool, ToolParameterSchema } from '@/lib/llm/client';
 
 // What a tool's `run` may return. A plain string is the common case (the result
 // text logged + fed back to the model). The object form lets a tool also attach
-// a picture to the transcript turn (send_picture): `result` is the model-facing
-// text, `imageSrc` the picture to render inline in the conversation and pop into
-// the lightbox.
-export type ToolRunResult = { result: string; imageSrc?: string };
+// a still or video to the transcript turn (send_media): `result` is the
+// model-facing text, `mediaRef` the stable reference the transcript renders and
+// the lightbox opens.
+export type ToolRunResult = { result: string; mediaRef?: string };
 
 export type CompanionTool = {
   name: string; // the model-facing tool name, e.g. "start" | "stop" | "intensity"
@@ -20,7 +20,7 @@ export type CompanionTool = {
   // model must call WITH an argument.
   parameters?: ToolParameterSchema;
   // Executes the action and returns a short result (logged + fed back to the
-  // model). Usually just the result string; a tool that also produces a picture
+  // model). Usually just the result string; a tool that also produces media
   // returns a ToolRunResult. `args` is the parsed tool-call arguments — `{}` for
   // a zero-arg tool, or e.g. `{ percent: 40 }` for a parameterized one.
   run: (args: Record<string, unknown>) => string | ToolRunResult;

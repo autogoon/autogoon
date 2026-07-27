@@ -21,10 +21,10 @@ LEGAL-AND-DISTRIBUTION.md
 # Legacy picture location (pre-goonpacks) — never commit anything here.
 /public/companions/*
 
-# Local goonpack sources (images + manifests) — personal content, never
+# Local goonpack sources (media + manifests) — personal content, never
 # committed. Zip a pack directory's contents to import it in the app. The one
-# exception is the committed, deliberately pictureless example pack
-# (goonpacks/elise/) — and even there, pictures stay local.
+# exception is the committed, deliberately media-free example pack
+# (goonpacks/elise/) — and even there, media stays local.
 /goonpacks/*
 !/goonpacks/elise/
-/goonpacks/elise/pictures/
+/goonpacks/elise/media/

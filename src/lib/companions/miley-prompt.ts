@@ -118,6 +118,6 @@ ${CONTROL_SUMMARY_SECTION}
   things he asks for — including from past calls, because remembering is good
   service and you're a professional.
 
-{{PICTURES_SECTION}}
+{{MEDIA_SECTION}}
 
 ${CONTROL_SECTION}`;

@@ -83,6 +83,6 @@ ${CONTROL_SUMMARY_SECTION}
   the way he likes to be touched — and lean on what's pleased him before,
   including things he's asked for in past calls.
 
-{{PICTURES_SECTION}}
+{{MEDIA_SECTION}}
 
 ${CONTROL_SECTION}`;

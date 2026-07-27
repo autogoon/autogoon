@@ -1,5 +1,5 @@
 // Prompt sections shared across companions. A persona module (aimee-prompt.ts,
-// aimee-prompt.ts) carries only its own character, setup and disposition; the
+// miley-prompt.ts) carries only its own character, setup and disposition; the
 // mechanical rules that are the same for everyone — how a reply is formatted,
 // the baseline style of speech, and how the device is controlled — live here so
 // they can't drift between personas. Each export is a persona-neutral block a
@@ -53,17 +53,19 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
   teases** him (mixing up the pace, easing off into slow dips before climbing
   again) from off through low, medium, high.`;
 
-// The picture ability, for a companion who can send photos of themselves. Shared
-// and persona-neutral so any companion can opt in, but only interpolated into
-// the prompt of one who actually has pictures. They send a photo by calling the
-// send_picture tool, whose schema lists the pictures they have and what each
-// shows, so this block only has to tell them the ability exists and when to reach
-// for it. Starts with a header, ends with no trailing newline (the prompt places
-// CONTROL_SECTION after it, which must be last for the TOY STATUS marker).
-export const PICTURES_SECTION = `PICTURES:
-- You can send him a picture of yourself, right there in the call, with the
-  send_picture tool. It lists the pictures you have and what each one shows —
-  pick the one that fits the moment and send it.
+// The media ability, for a companion who can send photos or videos of
+// themselves. Shared and persona-neutral so any companion can opt in, but only
+// interpolated into the prompt of one who actually has media. They send it by
+// calling the send_media tool, whose schema lists what they have and what each
+// one shows, so this block only has to tell them the ability exists and when
+// to reach for it. Starts with a header and ends with no trailing newline, so
+// the persona prompt's own blank line is the only gap between it and whatever
+// it places next.
+export const MEDIA_SECTION = `PICTURES AND VIDEOS:
+- You can send him a picture or a short video of yourself, right there in the
+  call, with the send_media tool. It lists what you have, each one marked
+  picture or video and what it shows — pick the one that fits the moment and
+  send it.
 - Sending it is calling the tool — saying "here, look at this" in words does
   nothing on its own. So when you want him to see you, USE THE TOOL. Right
   after, you'll be told it sent, and THEN you say something about it — teasing,
@@ -72,14 +74,16 @@ export const PICTURES_SECTION = `PICTURES:
   want to show off for him — not constantly. You love showing him your body
   because you know how much he loves it, so lean into that when you do.`;
 
-// What the device is, how it's driven, and that TOY STATUS is ground truth —
-// plus the call's clock: real time passes, and the projection marks a long break
-// as a "(3 hours pass.)" stage direction to react to. Persona-neutral: it says
-// to act "in character" rather than prescribing who leads, so a take-charge
-// companion and a let-him-drive one both fit — the disposition lives in each
-// persona's INTIMACY section. It talks about the TIME and TOY STATUS lines,
-// which arrive separately (liveStateMessage below) — every value here is fixed,
-// so a prompt built from it is byte-identical turn to turn.
+// What the device is, how it's driven, and that TOY STATUS is ground truth. The
+// clock is TIME_SECTION's, not this one's: a companion with no device is sent a
+// TIME line and no toy at all. Persona-neutral in tone, not in authority: it
+// settles toy control identically for every companion — never started without
+// his say-so, theirs to steer once it is running — so a persona written against
+// it only hands the model two contradictory instructions. Who leads the
+// encounter is the persona's, in its INTIMACY section; who drives the toy is
+// not. It talks about the TOY STATUS line, which arrives separately
+// (liveStateMessage below) — every value here is fixed, so a prompt built from
+// it is byte-identical turn to turn.
 //
 // THE TOY opens it rather than being its own export because every prompt
 // interpolates this block, whereas a new placeholder would reach only packs
@@ -157,11 +161,6 @@ CONTROL:
   variety level. That is the real current setting — trust it even if you
   thought you'd left it somewhere else (it can be changed outside your
   control), so read it before you decide whether to turn things up or down.
-- Time on this call is real: the TIME line you are given is the actual date and time
-  right now WHERE HE IS, refreshed every turn — trust it over any time of day
-  your setup assumes. A note like "(3 hours pass.)" in the conversation means
-  he really went away for that long and just came back — react like someone
-  who noticed the break, don't carry on as if mid-sentence.
 - A note like "(A quiet beat passes. He has not said anything.)" means the room
   has gone quiet and it's your move — he hasn't spoken, so there's nothing to
   reply to. Say whatever the moment calls for: pick the thread back up, tease
@@ -181,6 +180,20 @@ CONTROL:
   speaks. Use it rather than trailing off: without it you'll be given another
   quiet beat, and talking into an empty room is worse than letting one sit.`;
 
+// How to read the TIME line, and the gap markers a break in the conversation
+// leaves behind. Deliberately not a {{token}} and not part of CONTROL_SECTION:
+// time is a fact about the session, not about the toy, so a companion with no
+// device — or a pack whose author never placed a token for it — still has to be
+// told. prompt.ts appends it to every prompt it assembles, which is the only
+// arrangement no one can opt out of.
+export const TIME_SECTION = `TIME:
+- Time on this call is real: the TIME line you are given is the actual date and
+  time right now WHERE HE IS, refreshed every turn — trust it over any time of
+  day your setup assumes.
+- A note like "(3 hours pass.)" in the conversation means he really went away
+  for that long and just came back — react like someone who noticed the break,
+  don't carry on as if mid-sentence.`;
+
 // The two values that change every turn, as their own system message at the end
 // of a request rather than inside the persona prompt. Prompt caching matches a
 // prefix of tokens: with these at the foot of the first message, the request
@@ -188,8 +201,9 @@ CONTROL:
 // nothing after them — including the whole conversation — could ever be reused.
 // Last means everything before is byte-identical turn to turn.
 //
-// The CONTROL bullets above talk about "the TIME line" and "the TOY STATUS
-// line", so these labels are load-bearing: they're how a persona finds them.
+// TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY
+// STATUS line", so renaming a label here leaves those sections pointing at a
+// line the companion is never sent.
 export const liveStateMessage = (now: string, toyStatus: string): string =>
   `TIME (his local time, right now): ${now}
 TOY STATUS (trust this over everything else): ${toyStatus}`;

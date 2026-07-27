@@ -7,7 +7,7 @@ import {
   jest,
 } from '@jest/globals';
 import { Player } from './player';
-import { MIN_RATE } from './program';
+import { MIN_RATE, RATE_STEP } from './program';
 import type {
   PlayModeEngine,
   PlayerContext,
@@ -20,7 +20,11 @@ import type { VacuglideDevice } from './vacuglide-device';
 // milliseconds (a manual stroke pulse keeps its real-world length whatever the
 // playback rate), and scheduled (engine-generated) strokes take precedence
 // over manual ones — a scheduled open releases a running manual stroke first,
-// and manual strokes can't start while a scheduled one is open.
+// and manual strokes can't start while a scheduled one is open. Also the
+// Player's own duties over any engine: arming one displaces whoever was there,
+// regeneration drops and re-pulls the future, and speed is rescaled every tick
+// but sent only when the output changes. What an engine generates is decided in
+// each engine's own test.
 
 // A minimal engine: constant speed 1 every 10 s, plus a fixed valve overlay
 // handed to the constructor. Keeps its own speed cursor so repeated
@@ -53,14 +57,78 @@ class StubEngine implements PlayModeEngine {
   }
 }
 
-type ValveCall = { valve: 'plus' | 'minus'; open: boolean; at: number };
+// An engine with a live knob on each channel the Player pulls separately:
+// `speed` is the raw value newly generated speed events carry, `strokeAt` the
+// offset within each 10 s cycle where a valve opens (null for no overlay), and
+// `intensity` the multiplier scale() applies at send time. Like StubEngine it
+// keeps a speed cursor; knobChanged() moves that cursor back to the generation
+// start, the way the real engines' startFromCurrent does, so a re-pull after
+// invalidateFuture covers the span that was dropped.
+class KnobStubEngine implements PlayModeEngine {
+  speed = 1;
+  strokeAt: number | null = null;
+  intensity = 1;
+  private nextAt = 0;
+  private restart = false;
+  reset(): void {
+    this.nextAt = 0;
+    this.restart = false;
+  }
+  knobChanged(): void {
+    this.restart = true;
+  }
+  generateSpeed(fromTime: number, untilTime: number): SpeedEvent[] {
+    if (this.restart) {
+      this.restart = false;
+      this.nextAt = fromTime;
+    }
+    const out: SpeedEvent[] = [];
+    let t = Math.max(this.nextAt, fromTime);
+    while (t < untilTime) {
+      out.push({ kind: 'speed', at: t, speed: this.speed });
+      t += 10_000;
+    }
+    this.nextAt = t;
+    return out;
+  }
+  generateValves(
+    speedEvents: SpeedEvent[],
+    _fromTime: number,
+    untilTime: number,
+  ): ValveEvent[] {
+    const strokeAt = this.strokeAt;
+    if (strokeAt === null) return [];
+    return speedEvents
+      .map((ev): ValveEvent => ({
+        kind: 'valve',
+        at: ev.at + strokeAt,
+        valve: 'minus',
+        open: true,
+      }))
+      .filter((v) => v.at < untilTime);
+  }
+  scale(event: SpeedEvent): number {
+    return event.speed * this.intensity;
+  }
+}
 
-// A fake device recording valve calls with the fake-timer time they land.
+type ValveCall = { valve: 'plus' | 'minus'; open: boolean; at: number };
+// One speed send, in order: a number is targetSpeedSet(speed), 'stop' is
+// targetSpeedStop().
+type SpeedCall = number | 'stop';
+
+// A fake device recording valve calls with the fake-timer time they land, and
+// speed sends in order.
 const fakeDevice = () => {
   const calls: ValveCall[] = [];
+  const speedSends: SpeedCall[] = [];
   const device = {
-    targetSpeedSet: async () => undefined,
-    targetSpeedStop: async () => undefined,
+    targetSpeedSet: async (speed: number) => {
+      speedSends.push(speed);
+    },
+    targetSpeedStop: async () => {
+      speedSends.push('stop');
+    },
     valveStrokePlusSet: async (open: boolean) => {
       calls.push({ valve: 'plus', open, at: jest.now() });
     },
@@ -68,22 +136,26 @@ const fakeDevice = () => {
       calls.push({ valve: 'minus', open, at: jest.now() });
     },
   } as unknown as VacuglideDevice;
-  return { device, calls };
+  return { device, calls, speedSends };
 };
 
-// A playing Player over a StubEngine, with valve calls timed relative to play.
-const playingPlayer = (valves: ValveEvent[] = []) => {
-  const { device, calls } = fakeDevice();
+// A playing Player over the given engine, with device calls timed relative to
+// play.
+const playing = (engine: PlayModeEngine) => {
+  const { device, calls, speedSends } = fakeDevice();
   const player = new Player({ getDevice: () => device });
-  player.arm(new StubEngine(valves));
+  player.arm(engine);
   const t0 = jest.now();
   player.play();
   const valveCalls = (valve: 'plus' | 'minus') =>
     calls
       .filter((c) => c.valve === valve)
       .map((c) => ({ open: c.open, at: c.at - t0 }));
-  return { player, valveCalls };
+  return { player, valveCalls, speedSends };
 };
+
+const playingPlayer = (valves: ValveEvent[] = []) =>
+  playing(new StubEngine(valves));
 
 const manualStroke = (
   player: Player,
@@ -114,7 +186,7 @@ describe('Player.insertEvent real-time offsets', () => {
     await player.pause();
   });
 
-  it("keeps the pulse's real length under time dilation", async () => {
+  it("keeps the pulse's real length at 0.25× playback rate", async () => {
     const { player, valveCalls } = playingPlayer();
     // Walk the rate down to the MIN_RATE clamp (0.25×) for a deterministic rate.
     for (let i = 0; i < 60; i++) player.slower();
@@ -134,7 +206,7 @@ describe('Player.insertEvent real-time offsets', () => {
 describe('Player scheduled-stroke precedence', () => {
   // A scheduled (engine-generated) minus stroke open over program-time
   // [1000, 2000). At rate 1 its open fires at 1100 real-ms (the first tick
-  // with clock past 1000) and its close at 2100.
+  // whose clock has reached 1000) and its close at 2100.
   const SCHEDULED: ValveEvent[] = [
     { kind: 'valve', at: 1_000, valve: 'minus', open: true },
     { kind: 'valve', at: 2_000, valve: 'minus', open: false },
@@ -176,21 +248,7 @@ describe('Player scheduled-stroke precedence', () => {
     await player.pause();
   });
 
-  it('releases a running manual stroke on a transport jump', async () => {
-    const { player, valveCalls } = playingPlayer();
-    manualStroke(player, 'minus', 4_000);
-    await jest.advanceTimersByTimeAsync(200);
-    player.forward();
-    await jest.advanceTimersByTimeAsync(5_000);
-    // Release fires at the jump; the scheduled close is cancelled.
-    expect(valveCalls('minus')).toEqual([
-      { open: true, at: 100 },
-      { open: false, at: 200 },
-    ]);
-    await player.pause();
-  });
-
-  it('reports strokeBusy while a scheduled stroke is open', async () => {
+  it('reports strokeBusy only while a scheduled stroke is open', async () => {
     const { player } = playingPlayer(SCHEDULED);
     expect(player.getState().strokeBusy).toBe(false);
     await jest.advanceTimersByTimeAsync(1_500);
@@ -198,6 +256,87 @@ describe('Player scheduled-stroke precedence', () => {
     await jest.advanceTimersByTimeAsync(1_000);
     expect(player.getState().strokeBusy).toBe(false);
     await player.pause();
+  });
+});
+
+describe('Player transport', () => {
+  it('releases a running manual stroke when the clock jumps forward', async () => {
+    const { player, valveCalls } = playingPlayer();
+    manualStroke(player, 'minus', 4_000);
+    await jest.advanceTimersByTimeAsync(200);
+    player.forward();
+    await jest.advanceTimersByTimeAsync(5_000);
+    // The release fires at the jump. The pending manual close at 4000 stays in
+    // the program — cancelPendingManual() only scans past the cursor and this
+    // event sits on it — but seek() re-places the cursor beyond it, and
+    // fireValve() drops a manual close with no manual open in effect, so it
+    // never reaches the device.
+    expect(valveCalls('minus')).toEqual([
+      { open: true, at: 100 },
+      { open: false, at: 200 },
+    ]);
+    await player.pause();
+  });
+});
+
+describe('Player.arm', () => {
+  it("displaces the engine already armed, so the new engine's program drives the device", async () => {
+    const { player, speedSends } = playing(new KnobStubEngine());
+    await jest.advanceTimersByTimeAsync(500);
+
+    const replacement = new KnobStubEngine();
+    replacement.speed = 50;
+    player.arm(replacement);
+    player.play();
+    await jest.advanceTimersByTimeAsync(500);
+    expect(speedSends).toEqual([1, 50]);
+    await player.pause();
+  });
+
+  it('sends the speed again for a new program that starts at the same speed', async () => {
+    const { player, speedSends } = playing(new KnobStubEngine());
+    await jest.advanceTimersByTimeAsync(500);
+
+    player.arm(new KnobStubEngine());
+    player.play();
+    await jest.advanceTimersByTimeAsync(500);
+    expect(speedSends).toEqual([1, 1]);
+    await player.pause();
+  });
+
+  it('resets the clock and the playback rate for a fresh session', async () => {
+    const { player } = playing(new StubEngine());
+    await jest.advanceTimersByTimeAsync(1_000);
+    player.faster();
+    expect(player.getState()).toMatchObject({ clock: 1_000, rate: RATE_STEP });
+
+    player.arm(new StubEngine());
+    expect(player.getState()).toMatchObject({ clock: 0, rate: 1 });
+  });
+});
+
+describe('Player device sends', () => {
+  it('rescales the in-effect speed every tick but sends only on a change', async () => {
+    const engine = new KnobStubEngine();
+    const { player, speedSends } = playing(engine);
+    await jest.advanceTimersByTimeAsync(500);
+    expect(speedSends).toEqual([1]);
+
+    engine.intensity = 2;
+    await jest.advanceTimersByTimeAsync(500);
+    expect(speedSends).toEqual([1, 2]);
+    await player.pause();
+  });
+});
+
+describe('Player.pause', () => {
+  it('stops the speed and closes both valves', async () => {
+    const { player, valveCalls, speedSends } = playing(new KnobStubEngine());
+    await jest.advanceTimersByTimeAsync(500);
+    await player.pause();
+    expect(speedSends).toEqual([1, 'stop']);
+    expect(valveCalls('plus')).toEqual([{ open: false, at: 500 }]);
+    expect(valveCalls('minus')).toEqual([{ open: false, at: 500 }]);
   });
 });
 
@@ -256,7 +395,40 @@ describe('Player program-position tracking', () => {
   });
 });
 
-describe('Player regeneration keeps pending manual events', () => {
+describe('Player regeneration', () => {
+  it('drops the not-yet-played tail, so the future carries the new knob', async () => {
+    const engine = new KnobStubEngine();
+    const { player, speedSends } = playing(engine);
+    await jest.advanceTimersByTimeAsync(200);
+
+    engine.speed = 50;
+    engine.knobChanged();
+    player.invalidateFuture();
+    await jest.advanceTimersByTimeAsync(200);
+    expect(speedSends).toEqual([1, 50]);
+    await player.pause();
+  });
+
+  it('re-lays the valve overlay over a byte-identical speed script', async () => {
+    const engine = new KnobStubEngine();
+    engine.strokeAt = 2_000;
+    const { player } = playing(engine);
+    await jest.advanceTimersByTimeAsync(200);
+    const before = player.upcomingWindow(60_000);
+
+    engine.strokeAt = 5_000;
+    player.invalidateValves();
+    const after = player.upcomingWindow(60_000);
+    expect(after.speed).toEqual(before.speed);
+    expect(before.valves.map((v) => v.t)).toEqual([
+      1_800, 11_800, 21_800, 31_800, 41_800, 51_800,
+    ]);
+    expect(after.valves.map((v) => v.t)).toEqual([
+      14_800, 24_800, 34_800, 44_800, 54_800,
+    ]);
+    await player.pause();
+  });
+
   it('keeps a pending manual close across invalidateFuture', async () => {
     const { player, valveCalls } = playingPlayer();
     manualStroke(player, 'minus', 400);
