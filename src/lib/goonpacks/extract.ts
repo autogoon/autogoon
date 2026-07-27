@@ -10,8 +10,7 @@ import { MARKER } from './store';
 // One zip entry's destination, opened lazily (the handle is async; fflate's
 // ondata is not).
 type Sink = {
-  // Each chunk in a buffer of its own, which is what a writable stream takes —
-  // and what it has to be, for the reason given where they are copied.
+  // Each chunk in a buffer of its own, which is what a writable stream takes.
   queue: Uint8Array<ArrayBuffer>[];
   done: boolean;
   writer: Promise<FileSystemWritableFileStream> | null;

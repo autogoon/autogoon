@@ -29,7 +29,12 @@ function source(trees: Record<string, Record<string, string>>): LibrarySource {
       };
       return Promise.resolve(tree);
     },
-    mediaUrl: (key, media) => Promise.resolve(`blob:${key}/${media.file}`),
+    // Rejects for a pack that has left the trees, as the OPFS-backed source
+    // does when the file it would open has gone with its pack.
+    mediaUrl: (key, media) =>
+      trees[key] === undefined
+        ? Promise.reject(new Error(`missing media: ${key}/${media.file}`))
+        : Promise.resolve(`blob:${key}/${media.file}`),
   };
 }
 
@@ -311,6 +316,24 @@ describe('carryMediaOver', () => {
     expect(after.content.get('pub.a@1.0.0')!.media[0]!.src).toBe(
       'blob:pub.a@1.0.0/a.jpg',
     );
+  });
+
+  it('clears the URL it revoked, so a thread still holding the entry re-reads it', async () => {
+    const trees: Record<string, Record<string, string>> = {
+      'pub.a@1.0.0': completePack('pub.a'),
+      'pub.b@1.0.0': completePack('pub.b'),
+    };
+    const shared = source(trees);
+    const before = await buildLibrary(shared);
+    await loadAll(before);
+    // What a Companion resolved before the removal goes on holding.
+    const held = before.content.get('pub.b@1.0.0')!.media[0]!;
+
+    delete trees['pub.b@1.0.0'];
+    carryMediaOver(before, await buildLibrary(shared), new Set());
+
+    expect(held.src).toBeUndefined();
+    await expect(held.load()).rejects.toThrow('missing media');
   });
 
   it('revokes a pack whose tree was just replaced', async () => {

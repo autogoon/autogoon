@@ -83,6 +83,10 @@ const summarize = (media: ParsedMedia[], hasPrompt: boolean): PackSummary => ({
 // a pack can hold thousands of files, most of which are never shown. The URL
 // then lives as long as this entry — and the entry outlives the index it was
 // built for, until its pack is removed or re-imported (carryMediaOver).
+//
+// The memo is `pending`, held for the entry's whole life so load() reads a file
+// once however often it is called. `forget()` is the one way out of that, and
+// what carryMediaOver uses after revoking a URL.
 function mediaEntry(
   source: LibrarySource,
   key: string,
@@ -108,6 +112,10 @@ function mediaEntry(
           throw e;
         },
       )),
+    forget: () => {
+      pending = null;
+      entry.src = undefined;
+    },
   };
   return entry;
 }
@@ -230,8 +238,14 @@ export function carryMediaOver(
     keep?: ReadonlySet<CompanionMedia>,
   ) => {
     for (const m of media) {
-      if (m.src !== undefined && keep?.has(m) !== true)
+      if (m.src !== undefined && keep?.has(m) !== true) {
         URL.revokeObjectURL(m.src);
+        // The entry is still reachable through any Companion resolved before
+        // this rebuild, so the memo goes with the URL: a revoked URL renders as
+        // a blank frame, while an entry holding none goes back to disk and — for
+        // a pack that has gone — settles on the missing placeholder.
+        m.forget();
+      }
     }
   };
   // Every key the new index saw on disk, offered or not: a row is what an

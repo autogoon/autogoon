@@ -53,6 +53,7 @@ const still = (src: string): CompanionMedia => ({
   ref: `goonpack:test.pack@1/${src}`,
   src,
   load: () => Promise.resolve(src),
+  forget: () => {},
 });
 
 // fillSharedSections appends the time rules to every prompt it assembles; that
@@ -216,6 +217,7 @@ describe('resolveMediaRef', () => {
     ref,
     src,
     load: () => Promise.resolve(src),
+    forget: () => {},
   });
   const media: CompanionMedia[] = [
     entry('goonpack:g00ner.aimee@1.0.0/1', 'blob:first'),

@@ -45,9 +45,8 @@ export function extractionError(name: string, message: string): PackError {
       'Browser storage filled up part-way through unpacking this pack — free some space and try again.',
     );
   }
-  // A PackError raised inside the worker — storage it couldn't open, a tree
-  // that went missing — is already in the user's terms, and blaming the zip for
-  // it would send them off to re-zip a pack that is fine.
+  // What the worker raises as a PackError: storage it couldn't open, a tree that
+  // went missing.
   if (name === 'PackError') return new PackError(message);
   return new PackError(`The zip couldn't be read: ${message}.`);
 }

@@ -49,7 +49,7 @@ const GENDERS = new Set(['female', 'male', 'nonbinary']);
 // The pack-format version this app understands. Bump only with a format change.
 export const PACK_FORMAT = 2;
 
-// Formats 1 and 2 differ only in the media folder's name and this field, so
+// Formats 1 and 2 differ only in the media folder's name and noPictures, so
 // this is what "written for the old format" concretely means.
 export const OLD_LAYOUT_PROBLEM =
   'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.';

@@ -18,13 +18,17 @@ export type CompanionId = string;
 // against whatever's currently loaded. `src` is that object URL once it exists:
 // `load()` mints it on first render (a pack's media is thousands of files, most
 // of which are never shown) and memoises it here, and it stays alive as long as
-// this entry does.
+// this entry does — `forget()` is what ends that, for the owner of the URL once
+// it has revoked it.
 export type CompanionMedia = {
   kind: MediaKind;
   description: string;
   ref: string;
   src?: string;
   load(): Promise<string>;
+  // Drop the memoised URL: the next `load()` reads the file again, or fails and
+  // renders as missing if it has gone.
+  forget(): void;
 };
 
 export type Companion = {

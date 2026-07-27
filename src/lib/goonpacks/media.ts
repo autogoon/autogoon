@@ -1,6 +1,5 @@
 // The pack format's media vocabulary: what a media file may be, and what in a
-// pack's file list isn't one. Shared by validation, extraction and the
-// authoring build script — no I/O, no manifest knowledge.
+// pack's file list isn't one.
 
 export type MediaKind = 'image' | 'video';
 
