@@ -13,9 +13,9 @@ Verify the repo's documentation still tells the truth about the code, and that
 it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
 **Documentation is instruction and reference, not prose. Precision, not
-flourish.** Worth repeating here because it is the rule most often broken and
-the hardest to see: written as prose, documentation acquires padding, hedging
-and sentences that carry nothing.
+flourish.** Deliberately duplicated here due to its importance: it is the rule
+most often broken and the hardest to see — written as prose, documentation
+acquires padding, hedging and sentences that carry nothing.
 
 ## Scope
 

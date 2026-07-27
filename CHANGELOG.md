@@ -55,10 +55,10 @@
   show in the transcript — the conversations themselves are untouched.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
-- internal: **Tests that can actually fail** — Reviewed all 32 unit test files
-  and the 3 Playwright specs against the code they test, mutation-testing every
-  claim. Tests that passed with the behaviour they named
-  broken are gone — replaced by real ones where the contract mattered. The two
+- internal: **Tests that can actually fail** — Reviewed every unit test file and
+  every Playwright spec against the code they test, mutation-testing each claim.
+  Tests that passed with the behaviour they named broken are gone — replaced by
+  real ones where the contract mattered. The two
   engine `reset()` tests and the VAD debounce test asserted only that output was
   non-empty, `library.test.ts` called `rows.every(...)` over arrays a defect
   empties, `stt-token`'s expectation restated its own fixture, and the voice e2e

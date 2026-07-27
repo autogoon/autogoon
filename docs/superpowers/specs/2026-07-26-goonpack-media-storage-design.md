@@ -94,7 +94,7 @@ lives in `parsePack` and the `noPictures` half stays in `parseManifest`.
 existing threads' picture references are not preserved. Both were considered and
 deliberately dropped: packs are re-imported from the user's zips (which have
 always been the store of record), and unresolvable thread refs already degrade
-to a placeholder by design (`resolvePictureRef`,
+to a placeholder by design (`resolveMediaRef`,
 [`resolve.ts`](../../../src/lib/goonpacks/resolve.ts)). IndexedDB leaves the
 pack path entirely; all that remains of it is a one-off
 `deleteDatabase('autogoon-goonpacks')` at app load, purely to reclaim the quota

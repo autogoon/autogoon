@@ -29,8 +29,8 @@ const completePack = zipSync({
 });
 
 // A pack zip built to order. The version gate turns on three inputs: `format`
-// and `noPictures` in the manifest (manifest.ts:132-145), and whether the tree
-// holds a pictures/ folder (pack.ts:193).
+// and `noPictures` in the manifest (parseManifest), and whether the tree holds
+// a pictures/ folder (parsePack).
 function packZip(
   manifest: Record<string, unknown>,
   media: Record<string, Uint8Array> = {},

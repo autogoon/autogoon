@@ -222,8 +222,8 @@ texts live in the app (`src/lib/companions/shared-prompt.ts`, for the curious),
 so they stay current as the app changes without packs having to.
 
 One set of rules needs no token and can't be left out: your companion is always
-told the real date and time where he is, so the rules for reading that are added
-to every persona automatically.
+told the real date and time where _you_ are, so the rules for reading that are
+added to every persona automatically.
 
 ## media/
 

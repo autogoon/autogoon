@@ -40,7 +40,7 @@ globalThis.localStorage = {
 
 // A fake of the SDK's streamed response: an async iterable of chat-completion
 // chunks. An `undefined` entry is emitted as a delta with no content key at all,
-// which the client skips (client.ts:204).
+// which the client's stream() skips.
 function fakeStream(deltas: (string | undefined)[]): AsyncIterable<Chunk> {
   return {
     async *[Symbol.asyncIterator]() {

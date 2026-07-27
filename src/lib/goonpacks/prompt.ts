@@ -39,8 +39,8 @@ export function fillSharedSections(
   );
   // Appended rather than offered as a token: every companion is sent a TIME
   // line, so every companion has to be told how to read it. A token can be left
-  // out — by a pack author who never heard of it, or by one with no device who
-  // dropped CONTROL_SECTION, where this rule used to live. Called once per
-  // companion (resolve.ts), so it lands once.
+  // out — by a pack author who never heard of it, or by one with no device that
+  // places no {{CONTROL_SECTION}}. Called once per companion (resolve.ts), so
+  // it lands once.
   return `${filled}\n\n${TIME_SECTION}`;
 }

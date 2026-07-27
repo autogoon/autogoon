@@ -33,7 +33,7 @@ function tree(files: Record<string, string>): PackTree & { read: string[] } {
 describe('parsePack', () => {
   it('parses a complete pack with stills, videos and captions', async () => {
     // The media is listed out of alphabetical order deliberately: pack.media
-    // comes back sorted by name (pack.ts:183), so the index assertions below
+    // comes back sorted by name from parsePack, so the index assertions below
     // only hold if that sort ran.
     const t = tree({
       'manifest.json': complete(),
@@ -201,7 +201,7 @@ describe('parsePack', () => {
 
   it('names the wrapper folder when the folder was zipped instead of its contents', async () => {
     // The __MACOSX/ entry is what a Finder zip of a folder actually carries.
-    // Unless it is filtered as junk, wrapperFolder (pack.ts:84) sees two
+    // Unless it is filtered as junk, wrapperFolder sees two
     // top-level names and returns null, and this specific advice degrades to
     // the generic "No manifest.json at the pack root" message.
     const t = tree({

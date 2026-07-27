@@ -269,8 +269,8 @@ describe('Player transport', () => {
     // The release fires at the jump. The pending manual close at 4000 stays in
     // the program — cancelPendingManual() only scans past the cursor and this
     // event sits on it — but seek() re-places the cursor beyond it, and
-    // fireValve() drops a manual close with no manual open in effect
-    // (player.ts:279), so it never reaches the device.
+    // fireValve() drops a manual close with no manual open in effect, so it
+    // never reaches the device.
     expect(valveCalls('minus')).toEqual([
       { open: true, at: 100 },
       { open: false, at: 200 },

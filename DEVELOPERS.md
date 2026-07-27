@@ -84,12 +84,14 @@ Then:
 
 Edits go through tools that render a reviewable diff, never a shell rewrite —
 the rule, and why, are in [CLAUDE.md](./CLAUDE.md) under Editing files. A
-PreToolUse hook enforces it:
+PreToolUse hook backs it up:
 [`.claude/hooks/no-shell-edits.sh`](./.claude/hooks/no-shell-edits.sh),
 registered in `.claude/settings.json`.
 
-Deciding whether a command that mentions `python` or `bash` is an edit means
-reading the script, so that case asks Claude. A missing dependency, a slow
+Its patterns — an interpreter by name, an in-place `sed` or `perl` — only decide
+what is worth asking about; whether the command actually writes to a file is a
+question about the script it carries, so every match is put to Claude and
+nothing is denied on the shape of the text alone. A missing dependency, a slow
 answer, or anything but a clear verdict lets the command run — a blocked commit
 costs more than the unreviewable edit this catches.
 

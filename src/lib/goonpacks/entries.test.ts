@@ -68,8 +68,8 @@ describe('pack keys', () => {
     expect(keyId('g00ner.aimee@1.0.0')).toBe('g00ner.aimee');
     expect(keyVersion('g00ner.aimee@1.0.0')).toBe('1.0.0');
   });
-  // A version is free text the manifest never validates (manifest.ts:165-171)
-  // while PACK_ID_RE forbids "@" in an id, so the only "@" that splits the key
+  // A version is free text parseManifest checks only for being text, while
+  // PACK_ID_RE forbids "@" in an id, so the only "@" that splits the key
   // is the first one — every later one belongs to the version.
   it('keyVersion returns everything after the first "@", so a version containing "@" survives', () => {
     expect(keyVersion('pub.pack@2.0@beta')).toBe('2.0@beta');

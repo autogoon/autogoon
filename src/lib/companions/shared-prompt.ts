@@ -1,5 +1,5 @@
 // Prompt sections shared across companions. A persona module (aimee-prompt.ts,
-// aimee-prompt.ts) carries only its own character, setup and disposition; the
+// miley-prompt.ts) carries only its own character, setup and disposition; the
 // mechanical rules that are the same for everyone — how a reply is formatted,
 // the baseline style of speech, and how the device is controlled — live here so
 // they can't drift between personas. Each export is a persona-neutral block a

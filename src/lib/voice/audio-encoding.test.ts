@@ -51,10 +51,10 @@ describe('audio-encoding', () => {
   });
 
   // 0x0100 little-endian = bytes [0x00, 0x01]. Nothing writes that order: the
-  // source reinterprets the Int16Array's own buffer (audio-encoding.ts:31), so
-  // the byte order is the host's, and this asserts the host agrees with the
-  // little-endian wire format the socket asks for (`audio_format=pcm_16000`,
-  // stt.ts:145).
+  // source reinterprets the Int16Array's own buffer, so the byte order is the
+  // host's, and this asserts the host agrees with the little-endian wire format
+  // the socket asks for (`audio_format=pcm_16000`, in the realtime STT socket
+  // URL stt.ts builds).
   it('pcm16ToBase64 encodes the samples little-endian', () => {
     expect(pcm16ToBase64(new Int16Array([256]))).toBe(
       Buffer.from([0, 1]).toString('base64'),

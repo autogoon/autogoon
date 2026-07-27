@@ -62,7 +62,7 @@ const storedZipFile = (files: Record<string, Uint8Array>): File =>
 // The zip fflate can't read. It registers a decoder for method 8 and no other,
 // so an entry declaring method 99 (WinZip AES) makes entry.start() throw
 // `TypeError: ctr is not a constructor` out through unzip.push() — the throw
-// peekZip's catch (extract.ts:155) exists for. Bytes that simply aren't a zip
+// peekZip's own catch exists for. Bytes that simply aren't a zip
 // don't throw at all, so a patched header is the only fixture that keeps that
 // catch honest; without it the failure reaches the user as the panel's generic
 // "Import failed." The patch is the compression-method field of the first local

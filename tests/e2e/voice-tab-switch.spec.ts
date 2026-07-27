@@ -88,12 +88,13 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
   await page.evaluate(() => window.__testMic?.speak());
 
   // vosk hears "autopilot" and the app navigates to its screen: navigate()
-  // pushes `#autopilot` (src/app/page.tsx:262-268), and the screen itself is
-  // read off "Edge Control" (autopilot-panel.tsx:217). Every screen stays in
-  // the DOM with the inactive ones CSS-hidden, so a text locator has to name
+  // pushes `#autopilot` (navigate() in src/app/page.tsx), and the screen itself
+  // is read off autopilot-panel.tsx's "Edge Control" card. Every screen stays
+  // in the DOM with the inactive ones CSS-hidden, so a text locator has to name
   // something no other panel holds — "Vacuum Maintenance" would also match the
   // Changelog screen, which renders CHANGELOG.md. Card titles are `<span>`s
-  // (card.tsx:118), so there is no heading to match either.
+  // (card.tsx's interior is spans-only), so there is no heading to match
+  // either.
   await expect(page).toHaveURL(/#autopilot$/, { timeout: 30_000 });
   await expect(page.getByText('Edge Control', { exact: true })).toBeVisible();
 });

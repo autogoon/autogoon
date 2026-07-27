@@ -20,8 +20,8 @@ describe('parseTextualToolCalls', () => {
       {
         id: 'textual-0',
         name: 'send_media',
-        // 504, not "504": send_media silently sends items[0] for a non-number
-        // (companions-panel/index.tsx:352).
+        // 504, not "504": send_media's run() silently sends items[0] for a
+        // non-number (companions-panel/index.tsx).
         arguments: JSON.stringify({ which: 504 }),
       },
     ]);
@@ -119,8 +119,8 @@ describe('stripTextualToolCalls', () => {
   });
 
   // A turn that was nothing but the block leaves nothing to say — the
-  // transcript renders no bubble for it (isSilentAssistantTurn,
-  // conversation.ts:129).
+  // transcript renders no bubble for it (isSilentAssistantTurn in
+  // conversation.ts).
   it('empties a turn that was only a call', () => {
     expect(
       stripTextualToolCalls(
