@@ -55,6 +55,6 @@ describe('fillSharedSections', () => {
       includeMedia: false,
     });
     expect(out).not.toContain(CONTROL_SECTION);
-    expect(out).toContain('the TIME line you are given');
+    expect(out).toContain(TIME_SECTION);
   });
 });

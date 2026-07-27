@@ -23,14 +23,14 @@ const MIN = 0;
 const MAX = 1;
 
 describe('ambientDelayMs', () => {
-  it('out of play, chattiness 1 waits 25–60s and chattiness 5 waits 5–12s', () => {
+  it('maps the ends of the chattiness scale to their delay range out of play', () => {
     expect(ambientDelayMs(companion(1, 3), false, MIN)).toBe(25_000);
     expect(ambientDelayMs(companion(1, 3), false, MAX)).toBe(60_000);
     expect(ambientDelayMs(companion(5, 3), false, MIN)).toBe(5_000);
     expect(ambientDelayMs(companion(5, 3), false, MAX)).toBe(12_000);
   });
 
-  it('in play, playfulness 1 waits 12.5–30s and playfulness 5 waits 2.5–6s', () => {
+  it('maps the ends of the playfulness scale to their delay range in play', () => {
     expect(ambientDelayMs(companion(3, 1), true, MIN)).toBe(12_500);
     expect(ambientDelayMs(companion(3, 1), true, MAX)).toBe(30_000);
     expect(ambientDelayMs(companion(3, 5), true, MIN)).toBe(2_500);
@@ -53,8 +53,11 @@ describe('ambientDelayMs', () => {
   });
 
   // The jitter is deliberately lopsided, so the base delay is NOT the typical
-  // one — a mid sample lands 15% under it. Pinned so a later "tidy-up" to a
-  // symmetric range has to be a deliberate choice.
+  // one — a mid sample lands 15% under it. There is no way to say that in
+  // outputs alone: the delay is linear in `rand`, so a mid sample is the middle
+  // of the range whatever the jitter does, and only the base it is measured
+  // against tells the two apart. Hence the figures. Pinned so a later "tidy-up"
+  // to a symmetric range has to be a deliberate choice.
   it('biases early: a mid sample is 0.85x the base', () => {
     expect(ambientDelayMs(companion(3, 3), false, 0.5)).toBe(25_500);
     expect(ambientDelayMs(companion(3, 3), true, 0.5)).toBe(12_750);
