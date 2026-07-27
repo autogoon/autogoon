@@ -26,110 +26,44 @@ it reads as coverage in exactly the place you would stop looking.
 - **Always read the source.** Never review a test in isolation from the code it
   tests. Most findings only exist in the gap between the two.
 
-## What earns a test
+## What to check
 
-**A test should fail only when something is broken — never merely because you
-changed your mind.** That one line decides most of what follows.
+**Every rule in [CLAUDE.md](../../../CLAUDE.md) → Verifying changes → What a
+test is for is a check.** Read them there. They are not repeated here, so a rule
+added there is checked without this file changing. The rest of § Verifying
+changes — the commands, the zero-warning gate, the pre-commit run — is procedure
+for the author, not something to review a branch against.
 
-| Test                                         | Fails when           | Verdict |
-| -------------------------------------------- | -------------------- | ------- |
-| "the reset button says 'Reset'"              | you rename the label | no      |
-| "pressing reset resets"                      | reset stops working  | yes     |
-| "the program dips to 0"                      | you retune the floor | no      |
-| "generating a program yields a playable one" | generation breaks    | yes     |
+Two techniques, neither of which follows from knowing the rule:
 
-**Test that a unit does its job, not the values it happens to use today.** The
-play-mode engines (`src/lib/play-modes/*-engine.ts`) generate randomised
-programs whose curves are tuned by hand and change often, so their job is that
-building a program works and playing it works: the look-ahead progress
-guarantee, event ordering, state transitions (`reset`, `beginCumming`,
-after-play selection), one-shot guards, `unscaled` bypassing the intensity
-ceiling. Dip floors, ramp curves, speed at a given clock and thresholds measured
-off today's output are detail — they fail when someone tunes a knob, and say
-nothing about whether generation works.
+**Would this test fail if the behaviour it names broke?** Mutation testing
+answers it — see below. Reading does not.
 
-**So assert a value only where you are not free to change it.** User-facing
-strings, wire and file formats, protocol headers and persisted shapes all
-qualify — and so does `autopilot-engine.ts`, which is not an exception but a
-consequence: it reimplements an external algorithm that does not change, so its
-numbers are a specification, recorded in
-[modes/AUTOPILOT.md](../../../modes/AUTOPILOT.md). Testing them makes that
-record executable.
+**Would this test pass if the code under test were a pass-through?** If yes, the
+assertion is on a value the fake supplied. A fake upstream returning a 429 so
+the route can be seen turning it into a 502 is sound — the 502 is the route's
+decision. A fake returning `{ token: 'x' }` where the test asserts
+`{ token: 'x' }` is not. Quieter forms: a fake method that is a pure function of
+its arguments, so a memoised call and an unmemoised one look identical; a fake
+that discards a constructor argument, so the secret it was handed is never
+observed; expected and actual derived from the same source.
 
-**A module with a job and nothing exercising it is a finding** — any new or
-changed module under `src/lib/**`, I/O or not. Doing I/O changes _how_ you test
-something, never _whether_: put a fake at the boundary (`library.test.ts`'s
-in-memory `source()` is the pattern here) or cover it in `tests/e2e/`. This is
-the check most likely to earn its keep on a PR, because nothing else looks for
-it.
+## Where to look
 
-## Fakes
+The rules are in CLAUDE.md. These are the places a breach hides, which reading
+the rules would not tell you:
 
-A fake stands at a boundary for one of two reasons: so the test can assert
-**what the code sent** across it (the API key, the model, the access header, the
-abort signal), or so a module that needs storage or a clock can run at all
-(`library.test.ts`'s in-memory `source()`).
-
-**Never fake the AI services.** The app always has LLM, TTS and STT available,
-so a canned reply standing in for a real one proves nothing about the thing you
-care about — exercise those in `tests/e2e/`.
-
-**A fake may supply the input; the assertion must be on something the code under
-test decided.** The check: _if the code under test were replaced by a
-pass-through, would this still pass?_ If yes, the test is asserting its own
-fixture and is a dud.
-
-The distinction is sharper than it sounds. A fake upstream returning a 429 so
-the route can be seen turning it into a 502 is sound — the status, and the
-decision not to stream an error body, are the route's. A fake returning
-`{ token: 'x' }` where the test asserts `{ token: 'x' }` is not: a route that
-forwarded the whole upstream body unchanged would pass it just as well.
-
-Watch for the quieter forms: a fake whose method is a pure function of its
-arguments, so a memoised call and an unmemoised one are indistinguishable; a
-fake that discards a constructor argument, so the secret it was handed is never
-observed; expected and actual both derived from the same source, so the test
-mirrors whatever that source says.
-
-## Testing LLM responses
-
-Assert the contract, never the prose. A reply's wording is not a contract; its
-shape is. Worth pinning: that a tool call parses and names a real tool, that the
-tool actually ran, that the projected wire messages carry only what the model
-should see, that a cached prompt prefix holds nothing that changes per turn. For
-anything about content, assert only invariants that hold for any sane reply
-(valid JSON, a required field present, a forbidden string absent) and say in a
-comment what flake rate you accepted and how you measured it.
-
-## What to check, per test file
-
-1. **Can it fail?** For any test naming a specific bug or contract, prove it —
-   see Mutation testing below. Prefer proof to reading; this repo has shipped
-   tests that passed identically with and without the fix.
-2. **Vacuity by other means** — assertions inside a loop over a collection that
-   can be empty; `.every(...)` over an array a defect empties; `toBeDefined()` /
-   `toBeTruthy()` where the contract is a value; an assertion restating the
-   arrange step; an assertion entailed by the one above it.
-3. **Names stand alone.** `describe` is the bare exported symbol; `it` is a
-   third-person sentence carrying its condition as a clause, so the two read as
-   prose. Use real identifiers and constants. Never name the assertion's shape.
-   No name defined by exclusion ("otherwise", "anything else", "the rest"), and
-   none that only parses beside a neighbour ("still", "shorter", a mechanism in
-   parentheses).
-4. **"and" in a name** — a signal, not a rule. Split when it joins two unrelated
-   behaviours; leave it when the compound is one behaviour ("trims and
-   lowercases", "401s and never calls upstream").
-5. **Comments earn their place** in four situations: a file header saying what
-   this file decides and what it delegates; a fixture whose odd shape needs
-   justifying; a regression test, naming the defect; a cast inside a fake.
-   Delete any comment that restates the name, narrates the assertion below it,
-   or explains mechanics the code already shows.
-6. **Every factual claim in a comment is true.** Verify against the source and
-   quote `file:line` for each correction. Comments asserting behaviour the code
-   does not have are the failure mode here, and they are always written
-   confidently. Present tense throughout; a regression states the bug's return
-   as a counterfactual ("would forge"), never as history.
-7. **A skip is not a pass.** Where a capability probe can skip a whole suite
+1. **Vacuity that isn't obvious** — an assertion inside a loop over a collection
+   that can be empty; `.every(...)` over an array a defect empties;
+   `toBeDefined()` / `toBeTruthy()` where the contract is a value; an assertion
+   restating the arrange step; an assertion entailed by the one above it.
+2. **A name that only parses beside its neighbour** — read the full `describe` +
+   `it` string alone, as a CI failure list shows it, not in file order where the
+   surrounding tests supply the missing context.
+3. **A comment asserting behaviour the code does not have.** Verify each against
+   the source and quote `file:line`. These are always written confidently, which
+   is why reading past them is easy.
+4. **A skip is not a pass.** Where a capability probe can skip a whole suite
    (`tests/e2e/opfs.ts`), say what a green run did not cover.
 
 ## Mutation testing
@@ -150,15 +84,6 @@ real suite passes.
   dies on an OOM minutes later. Do not rely on one to fail fast.
 - Budget it. Per-PR, mutate only tests the diff added or changed, and tests
   whose named contract the diff touches.
-
-## Removing a test
-
-**If the test is not testing anything, remove it.** Do not nurse a vacuous test
-by patching its fixture to keep the name. Delete outright when it is a
-tautology, a duplicate, or restates its fixture. Where the underlying contract
-genuinely matters, delete it and write a real one named for what it now pins —
-the result is a new test that bites, not an old one with a patch. Never leave a
-contract that matters with no coverage.
 
 ## Output and fixes
 

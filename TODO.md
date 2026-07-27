@@ -32,10 +32,9 @@ Concrete, intended work. Speculative direction and design thinking lives in
   multiplied by it (they set 100, it lands on 50, and they never see the setting
   or the scaled number); and **the wind-down** starts at it and ramps down.
   Torture and the two ruins don't take it — they're absolute on purpose — and
-  Autopilot doesn't change, being a faithful recreation of the Vacuglide
-  algorithm. A companion picking a number has no idea what it does to you, and
-  the only fix today is saying so in words, every session and every new
-  companion.
+  Autopilot doesn't change, being a faithful recreation of Autoblow's Autopilot.
+  A companion picking a number has no idea what it does to you, and the only fix
+  today is saying so in words, every session and every new companion.
 
 - **Put the wind-down on a curve.** It glides down in two straight-line phases.
   Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it

@@ -55,9 +55,9 @@ Open questions:
   (Vacuglide, another stroker, hand only) and see how much genuinely survives in
   common.
 - **The play modes without a device.** Goon, Groove and Autopilot exist to
-  generate a program for hardware, and Autopilot is a faithful recreation of the
-  Vacuglide's own algorithm, so it can't travel to another device either. With
-  no device there's nothing to play at all, which suggests hand mode is
+  generate a program for hardware, and Autopilot is a faithful recreation of
+  Autoblow's Autopilot, so it can't travel to another device either. With no
+  device there's nothing to play at all, which suggests hand mode is
   Companions-only — and then navigation, the play-mode registry and the global
   voice words all have to say so rather than offering modes that can't run.
 - **What the Player is for** when there's no device to send to. It owns the

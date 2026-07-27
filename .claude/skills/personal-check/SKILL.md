@@ -15,32 +15,28 @@ finding is not fixed until the history that contains it is rewritten.
 
 ## What to look for
 
-- **Personal use-case framing stated as project fact** — the author's own
-  library sizes, folder layouts, hardware, workflows. Reframe as a generic
-  worked example ("say 40k images", "a 64GB machine") or delete.
-- **Identifying details** — names, emails, locations, accounts, personal URLs,
-  device/setup details that pin down one person.
-- **Content-sourcing references** — platform names in a downloading/collecting
-  context, scraper or downloader tool names, anything implying where content
-  comes from. The app is source-agnostic (see DEVELOPERS.md → Content policy);
-  docs must be too.
-- **The content of a local picture set** — the images under
-  `public/companions/<id>/` and their `.txt` captions are gitignored and exist
-  only on the author's machine. Never describe what is in them: how many there
-  are, who or what they show, what a companion is or isn't pictured wearing,
-  whether a set contains nudes. Write about the **feature** — bring-your-own,
-  the build-time glob, the captions she picks by — never about the set that
-  happens to be sitting on disk. Watch for it hiding inside an otherwise
-  reasonable sentence: a persona note justified by "which is what her pictures
-  are", or a cost estimate that needs a real count, has slipped from describing
-  the app to describing private content. And don't quote the offending sentence
-  when reporting it — restating it is the same leak.
-- **Personal legal/risk discussion** — analysis of the author's own liability
-  belongs outside the repo entirely, kept locally and gitignored.
-- **Secrets** — keys and tokens (should already be impossible via `.env`
-  hygiene, but look anyway).
-- **Leaky meta-files** — a `.gitignore` entry or script name can itself reveal
-  what it hides; weigh the entry's wording.
+**Every rule in [CLAUDE.md](../../../CLAUDE.md) → Secrets / environment → What
+must never be committed is a check.** Read them there; a category added there is
+scanned for without this file changing. The other half of that section, → Keys,
+is `/code-check`'s.
+
+Below is where those leaks hide, which the rules alone would not tell you:
+
+- **A leak wearing the clothes of a project fact** — the author's own library
+  sizes, folder layouts, hardware or workflow, stated as though describing the
+  app. Reframe as a generic worked example ("say 40k images", "a 64GB machine")
+  or delete.
+- **A sentence about the local picture set that reads as a sentence about the
+  feature.** `public/companions/<id>/` is gitignored and exists on one machine,
+  so anything about its contents is private: a persona note justified by "which
+  is what her pictures are", a cost estimate that needs a real count. Both have
+  slipped from the feature to the set. **Do not quote the offending sentence
+  when reporting it** — restating it is the same leak.
+- **Sourcing implied rather than stated** — a platform name in a
+  downloading/collecting context, a scraper or downloader tool name. The app is
+  source-agnostic (DEVELOPERS.md → Content policy).
+- **Leaky meta-files** — a `.gitignore` entry or a script name can reveal what
+  it hides; weigh the wording, not just the file it points at.
 - **Commit messages** — a surface of their own: session links and attribution
   trailers (`Claude-Session:`, tool-generated URLs), personal emails or URLs in
   message bodies. `-S` only searches content — messages need
