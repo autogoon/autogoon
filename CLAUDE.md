@@ -246,6 +246,13 @@ invariants, the why, and the cross-file shape. Concretely:
   even on a branch that hasn't moved, and for the same reason as above: a re-run
   skipped on judgement is a re-run that never happens. Treat `gh pr merge` as
   blocked until all four have run against the final diff.
+- **A check's report asks one thing at a time.** Never close a report with a
+  blanket "shall I do these?". Take the recommendations in order and, for each,
+  ask a question naming that one change and what it would assert — then stop and
+  wait. Someone who has just read a page of findings cannot hold five decisions
+  at once, and a digest followed by one open question is unanswerable. If the
+  report ran long, restate the single change in the question rather than
+  pointing back at it.
 - **Check `main` hasn't moved** before pushing and again before merging:
   `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
   it isn't, merge `origin/main` into the branch and **verify nothing was lost**

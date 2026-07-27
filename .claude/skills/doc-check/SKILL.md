@@ -87,6 +87,9 @@ serious first. Then:
 - **Ask first:** restructuring a doc (converting duplicated detail to pointers)
   — that changes the doc's shape, not just its accuracy.
 
+Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
+workflow.
+
 Run `npm run format` after edits. A clean run reports "no drift found" — don't
 invent findings to seem useful.
 

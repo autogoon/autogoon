@@ -61,7 +61,10 @@ assembled. Reasoning from the code alone is where invented findings come from.
 
 - **Fix directly:** the change is contained and the intent is unambiguous.
 - **Ask first:** anything that changes behaviour, prompt wording, or what the
-  model is told. Take those one at a time and ask about one change, not five.
+  model is told.
+
+Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
+workflow.
 
 A clean run says "no findings". Don't invent any.
 

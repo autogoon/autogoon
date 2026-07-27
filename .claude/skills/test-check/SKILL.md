@@ -99,12 +99,8 @@ summary: which files are clean, which need work, anything systemic.
 - **Ask first:** splitting tests, and genuinely new coverage — a contract
   nothing pinned before.
 
-**Ask one thing at a time.** Never close a report with a blanket "shall I do
-these?". Take the recommendations in order and, for each, ask a question naming
-that one change and what it would assert — then stop and wait. Someone who has
-just read a page of findings cannot hold five decisions at once, and a digest
-followed by one open question is unanswerable. If the report ran long, restate
-the single change in the question rather than pointing back at it.
+Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
+workflow.
 
 Run `npm run format` after edits, and `npm test` before reporting done. A clean
 run reports "no findings" — don't invent findings to seem useful.
