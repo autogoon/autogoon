@@ -49,7 +49,13 @@ import {
 } from '@/lib/companions/conversation';
 
 export type TurnMetrics = {
-  llm: { ttftMs: number; totalMs: number; tps: number | null } | null;
+  llm: {
+    ttftMs: number;
+    totalMs: number;
+    tps: number | null;
+    promptTokens: number | null;
+    cachedTokens: number | null;
+  } | null;
   tts: { ttfbMs: number | null; totalMs: number } | null;
 };
 
@@ -462,6 +468,8 @@ export function useVoiceSession(opts: {
           let reasoning: unknown[] | undefined;
           let toolCalls: ToolCall[] = [];
           let completionTokens: number | null = null;
+          let promptTokens: number | null = null;
+          let cachedTokens: number | null = null;
           const start = performance.now();
           let ttftMs: number | null = null;
           let deltas = 0;
@@ -473,6 +481,8 @@ export function useVoiceSession(opts: {
               : undefined,
             onUsage: (u) => {
               completionTokens = u.completionTokens;
+              promptTokens = u.promptTokens;
+              cachedTokens = u.cachedTokens;
             },
             onReasoning: (d) => {
               reasoning = d;
@@ -515,7 +525,10 @@ export function useVoiceSession(opts: {
               completionTokens !== null ? completionTokens / decodeSec : null;
             setStatus((s) => ({
               ...s,
-              metrics: { ...s.metrics, llm: { ttftMs: ttft, totalMs, tps } },
+              metrics: {
+                ...s.metrics,
+                llm: { ttftMs: ttft, totalMs, tps, promptTokens, cachedTokens },
+              },
             }));
           }
           // Cut out any tool call the model wrote as text: it has already been

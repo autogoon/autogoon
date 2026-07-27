@@ -15,7 +15,17 @@ export type LlmMessage = {
   toolCallId?: string; // tool only; which call this result answers
 };
 
-export type LlmUsage = { completionTokens: number };
+// promptTokens/cachedTokens are how much of the prefix the provider recognised
+// from the last turn. The whole conversation is re-sent every turn, so a healthy
+// cachedTokens is most of promptTokens and grows with the thread; a zero means
+// something volatile got in above the conversation and every turn is paying for
+// all of it. Null where the provider doesn't report them — not every one behind
+// OpenRouter does, and not reporting is not the same as not caching.
+export type LlmUsage = {
+  completionTokens: number;
+  promptTokens: number | null;
+  cachedTokens: number | null;
+};
 
 // The OpenAI-compatible request tool shape (function tools). Generic LLM wire
 // shape — companions/tools.ts maps its CompanionTools onto this. `parameters`
@@ -212,7 +222,16 @@ export function createLlmClient(model: string): LlmClient {
       if (tc != null) mergeToolCalls(toolCalls, tc);
       const usage = chunk.usage;
       if (usage != null) {
-        opts.onUsage?.({ completionTokens: usage.completion_tokens });
+        // prompt_tokens_details is OpenAI's shape for the cached count and what
+        // OpenRouter passes through from providers that report one.
+        const cached = (
+          usage as { prompt_tokens_details?: { cached_tokens?: number } }
+        ).prompt_tokens_details?.cached_tokens;
+        opts.onUsage?.({
+          completionTokens: usage.completion_tokens,
+          promptTokens: usage.prompt_tokens ?? null,
+          cachedTokens: cached ?? null,
+        });
       }
     }
     // Surface the assembled reasoning/tool calls once, at natural completion only

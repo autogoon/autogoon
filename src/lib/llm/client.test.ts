@@ -58,7 +58,11 @@ function fakeStream(deltas: (string | undefined)[]): AsyncIterable<Chunk> {
 // choices, so `usage` is appended that way rather than onto the last delta.
 function fakeDeltaStream(
   deltas: Delta[],
-  usage?: { completion_tokens: number },
+  usage?: {
+    completion_tokens: number;
+    prompt_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+  },
 ): AsyncIterable<Chunk> {
   return {
     async *[Symbol.asyncIterator]() {
@@ -188,9 +192,13 @@ describe('createLlmClient', () => {
     expect(params.stream_options).toEqual({ include_usage: true });
   });
 
-  it("fires onUsage once with the usage chunk's completion_tokens", async () => {
+  it("fires onUsage once with the usage chunk's token counts", async () => {
     createMock.mockResolvedValue(
-      fakeDeltaStream([{ content: 'ok' }], { completion_tokens: 42 }),
+      fakeDeltaStream([{ content: 'ok' }], {
+        completion_tokens: 42,
+        prompt_tokens: 1200,
+        prompt_tokens_details: { cached_tokens: 1024 },
+      }),
     );
     const { createLlmClient } = await import('./client');
     const client = createLlmClient('test-model');
@@ -201,7 +209,33 @@ describe('createLlmClient', () => {
         onUsage: (u) => seen.push(u),
       }),
     );
-    expect(seen).toEqual([{ completionTokens: 42 }]);
+    expect(seen).toEqual([
+      { completionTokens: 42, promptTokens: 1200, cachedTokens: 1024 },
+    ]);
+  });
+
+  // Not every provider behind OpenRouter reports a cached count, and silence is
+  // not the same as a zero: null keeps "didn't say" apart from "cached nothing",
+  // which is the difference between no data and a broken prefix.
+  it('reports a missing cached count as null rather than zero', async () => {
+    createMock.mockResolvedValue(
+      fakeDeltaStream([{ content: 'ok' }], {
+        completion_tokens: 42,
+        prompt_tokens: 1200,
+      }),
+    );
+    const { createLlmClient } = await import('./client');
+    const client = createLlmClient('test-model');
+    const seen: unknown[] = [];
+    await collect(
+      client.stream([{ role: 'user', content: 'hi' }], {
+        signal: new AbortController().signal,
+        onUsage: (u) => seen.push(u),
+      }),
+    );
+    expect(seen).toEqual([
+      { completionTokens: 42, promptTokens: 1200, cachedTokens: null },
+    ]);
   });
 
   it('never fires onUsage for a stream that ends without a usage chunk', async () => {
