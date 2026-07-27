@@ -128,9 +128,12 @@ invariants, the why, and the cross-file shape. Concretely:
 - **Branch and PR what earns a changelog entry.** Anything a user or another
   developer would want recorded — behaviour, features, fixes, refactors — goes
   on a branch off `main`, one branch/PR per piece of work. Work that earns no
-  entry doesn't earn the ceremony either: docs, comments, working-practice notes
-  and the like are committed straight to `main` once the gates pass. The two
-  rules answer the same question, so they shouldn't disagree.
+  entry doesn't earn the ceremony either: **never create a branch or PR just
+  for** docs, comments, working-practice notes and the like — with no branch in
+  flight they go straight to `main` once the gates pass. This is about not
+  raising ceremony, not about where they land: when a branch already exists,
+  they belong on it like any other commit. Never carve a doc change out of the
+  branch you are working on to put it on `main`.
 - **Process and working-practice rules aren't changelog entries.** How the work
   gets done isn't a change to the app; only code, docs and behaviour are.
 - The flow is **branch → do the work → gates → commit → push → open a PR →
