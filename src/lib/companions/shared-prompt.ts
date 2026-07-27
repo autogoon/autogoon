@@ -58,9 +58,9 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
 // interpolated into the prompt of one who actually has media. They send it by
 // calling the send_media tool, whose schema lists what they have and what each
 // one shows, so this block only has to tell them the ability exists and when
-// to reach for it. Starts with a header, ends with no trailing newline (the
-// prompt places CONTROL_SECTION after it, which must be last for the TOY
-// STATUS marker).
+// to reach for it. Starts with a header and ends with no trailing newline, so
+// the persona prompt's own blank line is the only gap between it and whatever
+// it places next.
 export const MEDIA_SECTION = `PICTURES AND VIDEOS:
 - You can send him a picture or a short video of yourself, right there in the
   call, with the send_media tool. It lists what you have, each one marked
