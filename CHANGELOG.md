@@ -105,9 +105,10 @@
   including that `toLlmMessages` never sends it to the model — the Player's
   one-engine-at-a-time invariant, a rejected access id on each paid route, the
   `internal` changelog tag, safe words outside a–z, the `PackError` name a
-  storage failure has to keep to avoid being reported as a bad zip, and that
-  asking the browser for persistent storage never waits on the permission
-  prompt Firefox raises.
+  storage failure has to keep to avoid being reported as a bad zip, that asking
+  the browser for persistent storage never waits on the permission prompt
+  Firefox raises, and that a pack imported while a removal is still rebuilding
+  the library survives it.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
