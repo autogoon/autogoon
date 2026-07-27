@@ -7,9 +7,13 @@ shared device layer and single Player, and the keyword spotter — see
 
 ## Running locally
 
-You need **[Node.js](https://nodejs.org/) 20.9 or newer** (npm comes with it)
-and **git**. Installing those is beyond this doc's scope — the installers on
-nodejs.org, or your platform's package/version manager, all work.
+Requirements:
+
+- [Node.js](https://nodejs.org/) 20.9 or newer — npm comes with it
+- `git`
+
+Installing these is beyond this doc's scope — the installers on nodejs.org, or
+your platform's package/version manager, all work.
 
 ```sh
 npm install
@@ -27,22 +31,29 @@ broken app (the page renders, nothing is clickable). Set `DEV_ALLOWED_ORIGINS`
 in `.env` (documented in [`.env.example`](./.env.example)) and restart the dev
 server to fix it.
 
-Other scripts:
-
-- `npm run build` — production build (also runs `tsc`, so it catches RSC/Next
-  issues the dev server tolerates).
-- `npm run typecheck` — `tsc --noEmit`.
-- `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over `src`, `tests`, `scripts`, and the repo's
-  config and markdown (root, `docs/`, `roadmap/`, `modes/`).
-- `npm test` — Jest unit tests.
-- `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
+`npm run build` makes a production build — it also runs `tsc`, so it catches
+RSC/Next issues the dev server tolerates.
 
 The ~40MB recognizer model (`public/vosk-model-small-en-us-0.15.tar.gz`) is
 fetched by the page on load and cached by the browser; nothing else is needed
 offline.
 
-## Contributing
+## Making changes
+
+Requirements, on top of those for [running locally](#running-locally):
+
+- `jq` and `claude` — for [the shell-edit guard](#the-shell-edit-guard)
+
+The scripts:
+
+- `npm run typecheck` — `tsc --noEmit`.
+- `npm run lint` — `eslint --max-warnings 0`.
+- `npm run format` — Reformats code and markdown documentation; the globs
+  defining what are in `package.json`.
+- `npm test` — Jest unit tests.
+- `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
+
+Then:
 
 - **Branch off `main`** — never commit to `main` directly. One branch/PR per
   piece of work.
@@ -68,6 +79,19 @@ offline.
   [Adding a companion](#adding-a-companion).
 - **Respect the [content policy](#content-policy)** — no features that host,
   index, or point at content.
+
+## The shell-edit guard
+
+Edits go through tools that render a reviewable diff, never a shell rewrite —
+the rule, and why, are in [CLAUDE.md](./CLAUDE.md) under Editing files. A
+PreToolUse hook enforces it:
+[`.claude/hooks/no-shell-edits.sh`](./.claude/hooks/no-shell-edits.sh),
+registered in `.claude/settings.json`.
+
+Deciding whether a command that mentions `python` or `bash` is an edit means
+reading the script, so that case asks Claude. A missing dependency, a slow
+answer, or anything but a clear verdict lets the command run — a blocked commit
+costs more than the unreviewable edit this catches.
 
 ## Content policy
 

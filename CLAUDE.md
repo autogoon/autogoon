@@ -10,8 +10,8 @@ code in this repository.
   issues the dev server tolerates.
 - `npm run typecheck` — `tsc --noEmit`.
 - `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Prettier over the source, tests, and repo docs (globs in
-  `package.json`).
+- `npm run format` — Reformats code and markdown documentation; the globs
+  defining what are in `package.json`.
 
 ## Editing files
 
