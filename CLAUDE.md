@@ -190,11 +190,14 @@ invariants, the why, and the cross-file shape. Concretely:
 - **Documentation is precise.** It is instruction and reference, not prose —
   writing it as prose is what produces padding and hedging. Name the mechanism
   rather than personifying it: a repo, module, file or app does not want, know,
-  care or try. State what is true, not what is approximately true. Cut what
-  carries no information: a sentence that loses nothing when deleted, an
-  abstraction with no referent ("what the project is for", "the right shape"), a
-  phrase restating the one before it. Applies to code comments and skills as
-  much as to `*.md`.
+  care or try. Prefer the mechanism to a comparison, too. A metaphor that has
+  become a term of art — backpressure, a hot path — is the concept's name and
+  reads as one; use it. Do not coin one for the sentence: the reader decodes it
+  into the mechanism, so write the mechanism. State what is true, not what is
+  approximately true. Cut what carries no information: a sentence that loses
+  nothing when deleted, an abstraction with no referent ("what the project is
+  for", "the right shape"), a phrase restating the one before it. Applies to
+  code comments and skills as much as to `*.md`.
 - **Reference by name, never by position.** "The second paragraph", "checks
   1-7", "line 40", "the bullet below" — each is wrong as soon as anything is
   inserted, and nothing reports it. Point at a heading, an identifier or a
