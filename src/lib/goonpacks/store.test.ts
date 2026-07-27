@@ -263,6 +263,14 @@ describe('openPackTree', () => {
     expect(tree?.names.sort()).toEqual(['manifest.json', 'media/a.jpg']);
   });
 
+  it('leaves the completion marker out, so validation never sees the store keeping notes', async () => {
+    seed('pub.pack@1.0.0', { 'manifest.json': '{}' });
+    await markComplete('pub.pack@1.0.0');
+    expect((await openPackTree('pub.pack@1.0.0'))?.names).toEqual([
+      'manifest.json',
+    ]);
+  });
+
   it('reads a file back by its path', async () => {
     seed('pub.pack@1.0.0', { 'media/a.txt': 'a beach' });
     const tree = await openPackTree('pub.pack@1.0.0');

@@ -118,6 +118,30 @@ describe('parsePack', () => {
     ]);
   });
 
+  it('names a file that has no place in a pack rather than ignoring it', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete(),
+          'system-prompt.md': 'You are Testy.',
+          'notes.md': 'scratch',
+        }),
+      ),
+    ).rejects.toThrow(/notes\.md/);
+  });
+
+  it('names a stray folder by the files inside it, since a folder is only paths', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete(),
+          'system-prompt.md': 'You are Testy.',
+          'pictures/a.jpg': '',
+        }),
+      ),
+    ).rejects.toThrow(/pictures\/a\.jpg/);
+  });
+
   it('rejects duplicate stems across extensions', async () => {
     const t = tree({
       'manifest.json': manifest({ base: 'autogoon.aimee' }),

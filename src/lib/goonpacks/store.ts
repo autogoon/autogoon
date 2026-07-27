@@ -64,8 +64,9 @@ export async function listCompletePackKeys(): Promise<string[]> {
   return keys;
 }
 
-// Every file in a pack's tree, as validation sees it: root files plus one level
-// of media/ (deeper nesting is listed too, so parsePack can reject it by name).
+// Every file in a pack's tree, as validation sees it: the pack's own files,
+// with this module's completion marker left out. Deeper nesting is listed so
+// parsePack can reject it by name.
 async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
   const names: string[] = [];
   const walk = async (
@@ -76,7 +77,7 @@ async function listTree(dir: FileSystemDirectoryHandle): Promise<string[]> {
       const path = `${prefix}${name}`;
       if (isDirectory(entry)) {
         await walk(entry, `${path}/`);
-      } else if (!isJunkPath(path)) {
+      } else if (!isJunkPath(path) && path !== MARKER) {
         names.push(path);
       }
     }

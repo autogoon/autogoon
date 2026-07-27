@@ -128,8 +128,17 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   const media: ParsedMedia[] = [];
   const captions: string[] = [];
   const sidecars = new Map<string, string>();
+  // Every path is either the manifest, the prompt, something under media/, or
+  // something that has no place in a pack. Skipping the last of those is what
+  // let a stray folder ride along unnoticed into a built pack.
   for (const path of names) {
-    if (!path.startsWith(MEDIA_DIR)) continue;
+    if (path === MANIFEST || path === PROMPT) continue;
+    if (!path.startsWith(MEDIA_DIR)) {
+      problems.push(
+        `${path} doesn't belong in a pack — a pack holds manifest.json, system-prompt.md and a media/ folder.`,
+      );
+      continue;
+    }
     const file = path.slice(MEDIA_DIR.length);
     if (file.includes('/')) {
       problems.push(`media/ can't contain subfolders — found ${path}.`);
