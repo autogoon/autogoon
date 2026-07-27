@@ -92,11 +92,8 @@ The order, with each step's reasoning in the spec:
 Remaining companion features — largely independent, picked off in any order,
 with any dependencies noted in place (they began as the numbered phase plans of
 [#13](https://github.com/autogoon/autogoon/pull/13) and
-[#14](https://github.com/autogoon/autogoon/pull/14)). The full design and
-rationale live in the design doc:
-[docs/superpowers/specs/2026-07-18-companions-design.md](./docs/superpowers/specs/2026-07-18-companions-design.md).
-What's already built is described in
-[modes/COMPANIONS.md](./modes/COMPANIONS.md).
+[#14](https://github.com/autogoon/autogoon/pull/14)). What's already built is
+described in [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
 ### Split the voice session and the companions panel
 

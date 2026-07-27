@@ -1,6 +1,6 @@
 // Goonpack manifest: parsing + validation. Pure — no React, no browser APIs.
-// The manifest is the identity/config half of a pack (see
-// docs/superpowers/specs/2026-07-23-goonpacks-design.md for the format).
+// The manifest is the identity/config half of a pack; GOONPACKS.md documents
+// every field for a pack author.
 
 // Terse, user-facing import errors — every message here can surface in the UI.
 // Validation collects everything wrong with a pack, not just the first hit:
