@@ -3,8 +3,8 @@ name: test-check
 description:
   Use before opening a PR and again before merging it, or whenever a branch adds
   or changes tests — checks that each test would fail if the behaviour it names
-  broke, that pure logic the branch added is tested at all, and that no test is
-  really asserting its own fake.
+  broke, that anything the branch added with a job to do is exercised at all,
+  and that no test is really asserting its own fake.
 ---
 
 # Test check
@@ -28,33 +28,51 @@ it reads as coverage in exactly the place you would stop looking.
 
 ## What earns a test
 
-**Functionality, not program shape.** The play-mode engines
-(`src/lib/play-modes/*-engine.ts`) generate randomised programs whose curves are
-tuned by hand and change often. Test that building a program works and that
-playing it works: the look-ahead progress guarantee, event ordering, state
-transitions (`reset`, `beginCumming`, after-play selection), one-shot guards,
-`unscaled` bypassing the intensity ceiling. Do not test dip floors, ramp curves,
-speed at a given clock, or thresholds measured off today's output — those fail
-when someone tunes a knob, and tell you nothing about whether generation works.
+**A test should fail only when something is broken — never merely because you
+changed your mind.** That one line decides most of what follows.
 
-**The rule that decides it: assert a value when it is a contract you do not own;
-never when it is a design choice you tune.** So user-facing strings, wire and
-file formats, protocol headers and persisted shapes are all fair game — and so
-is `autopilot-engine.ts`, which is not an exception but a consequence. It
-reimplements an external algorithm that does not change, so its numbers are a
-specification, recorded in [modes/AUTOPILOT.md](../../../modes/AUTOPILOT.md).
-Testing them makes that record executable.
+| Test                                         | Fails when           | Verdict |
+| -------------------------------------------- | -------------------- | ------- |
+| "the reset button says 'Reset'"              | you rename the label | no      |
+| "pressing reset resets"                      | reset stops working  | yes     |
+| "the program dips to 0"                      | you retune the floor | no      |
+| "generating a program yields a playable one" | generation breaks    | yes     |
 
-**Untested pure functionality is a finding.** A new or changed export under
-`src/lib/**` with no React, no device and no I/O should have a test. This is the
-check most likely to earn its keep on a PR, because nothing else looks for it.
+**Test that a unit does its job, not the values it happens to use today.** The
+play-mode engines (`src/lib/play-modes/*-engine.ts`) generate randomised
+programs whose curves are tuned by hand and change often, so their job is that
+building a program works and playing it works: the look-ahead progress
+guarantee, event ordering, state transitions (`reset`, `beginCumming`,
+after-play selection), one-shot guards, `unscaled` bypassing the intensity
+ceiling. Dip floors, ramp curves, speed at a given clock and thresholds measured
+off today's output are detail — they fail when someone tunes a knob, and say
+nothing about whether generation works.
+
+**So assert a value only where you are not free to change it.** User-facing
+strings, wire and file formats, protocol headers and persisted shapes all
+qualify — and so does `autopilot-engine.ts`, which is not an exception but a
+consequence: it reimplements an external algorithm that does not change, so its
+numbers are a specification, recorded in
+[modes/AUTOPILOT.md](../../../modes/AUTOPILOT.md). Testing them makes that
+record executable.
+
+**A module with a job and nothing exercising it is a finding** — any new or
+changed module under `src/lib/**`, I/O or not. Doing I/O changes _how_ you test
+something, never _whether_: put a fake at the boundary (`library.test.ts`'s
+in-memory `source()` is the pattern here) or cover it in `tests/e2e/`. This is
+the check most likely to earn its keep on a PR, because nothing else looks for
+it.
 
 ## Fakes
 
-A fake stands at a boundary so the test can assert **what the code sent** — the
-API key, the model, the access header, the abort signal. That is its whole job.
-Nothing may fake _behaviour_ to stand in for a real response: the app always has
-LLM, TTS and STT available, so exercising real ones belongs in `tests/e2e/`.
+A fake stands at a boundary for one of two reasons: so the test can assert
+**what the code sent** across it (the API key, the model, the access header, the
+abort signal), or so a module that needs storage or a clock can run at all
+(`library.test.ts`'s in-memory `source()`).
+
+**Never fake the AI services.** The app always has LLM, TTS and STT available,
+so a canned reply standing in for a real one proves nothing about the thing you
+care about — exercise those in `tests/e2e/`.
 
 **A fake may supply the input; the assertion must be on something the code under
 test decided.** The check: _if the code under test were replaced by a
@@ -144,9 +162,18 @@ verdict, `file:line` evidence, rewrite or deletion); the **gap** (what cannot
 fail, or what has no test, and exactly what you did to establish it). Then a
 summary: which files are clean, which need work, anything systemic.
 
-- **Fix directly:** names, comments, deletions of tests that cannot fail.
-- **Ask first:** splitting tests, and any new assertion that changes what the
-  suite pins — that is a coverage decision, not an accuracy one.
+- **Fix directly:** names, comments, deletions of tests that cannot fail, and
+  repairs to a guard that has gone quiet — restoring what a test already claims
+  to pin is accuracy, not new coverage.
+- **Ask first:** splitting tests, and genuinely new coverage — a contract
+  nothing pinned before.
+
+**Ask one thing at a time.** Never close a report with a blanket "shall I do
+these?". Take the recommendations in order and, for each, ask a question naming
+that one change and what it would assert — then stop and wait. Someone who has
+just read a page of findings cannot hold five decisions at once, and a digest
+followed by one open question is unanswerable. If the report ran long, restate
+the single change in the question rather than pointing back at it.
 
 Run `npm run format` after edits, and `npm test` before reporting done. A clean
 run reports "no findings" — don't invent findings to seem useful.
