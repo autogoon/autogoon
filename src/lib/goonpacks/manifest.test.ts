@@ -8,6 +8,14 @@ const good = {
   aboutThePack: 'a test pack',
 };
 
+describe('PackError', () => {
+  it('carries the name the extraction worker sends across to mark a failure already phrased for the user', () => {
+    expect(new PackError('The pack vanished from browser storage.').name).toBe(
+      'PackError',
+    );
+  });
+});
+
 describe('parseManifest', () => {
   it('accepts a minimal overlay manifest', () => {
     expect(parseManifest({ ...good, base: 'autogoon.aimee' }).base).toBe(
