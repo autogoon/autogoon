@@ -75,6 +75,23 @@
   show in the transcript — the conversations themselves are untouched.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- internal: **Hooks and components can be unit-tested** — Jest takes `.tsx`
+  test files, and a test that renders a hook or a component asks for jsdom in a
+  per-file docblock, so the engine and pack-parsing suites keep the node
+  environment and the speed that comes with it. `useMediaUrl` and `MediaBubble`
+  are the first two covered — between them they pin that a bubble whose pack was
+  removed goes back to disk rather than holding a revoked URL, and that a file
+  that has gone renders the placeholder and never a substitute.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **The send_media decision leaves the panel** — Which item a
+  `send_media` call means, the numbered list the model chooses from, and the
+  refusal when a stated kind disagrees with the number now live in
+  `src/lib/companions/send-media.ts`; the panel keeps the tool's schema and
+  opening the lightbox. The list and the pick are numbered in one place, so
+  they can't drift, and all three decisions have tests.
+  ([#24](https://github.com/autogoon/autogoon/pull/24))
+
 - internal: **Tests that can actually fail** — Reviewed every unit test file and
   every Playwright spec against the code they test, mutation-testing each claim.
   Tests that passed with the behaviour they named broken are gone — replaced by
@@ -87,7 +104,10 @@
   `extract.test.ts`. Contracts that had no test now have one: `mediaRef` —
   including that `toLlmMessages` never sends it to the model — the Player's
   one-engine-at-a-time invariant, a rejected access id on each paid route, the
-  `internal` changelog tag, and safe words outside a–z.
+  `internal` changelog tag, safe words outside a–z, the `PackError` name a
+  storage failure has to keep to avoid being reported as a bad zip, and that
+  asking the browser for persistent storage never waits on the permission
+  prompt Firefox raises.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
