@@ -19,12 +19,14 @@ export type LlmMessage = {
 // from the last turn. The whole conversation is re-sent every turn, so a healthy
 // cachedTokens is most of promptTokens and grows with the thread; a zero means
 // something volatile got in above the conversation and every turn is paying for
-// all of it. Null where the provider doesn't report them — not every one behind
-// OpenRouter does, and not reporting is not the same as not caching.
+// all of it. Both counts are required: every model this app has run through
+// OpenRouter reports them, so a usage chunk that arrives carries them. A turn
+// where none arrives at all is the separate case, and it is the caller's to
+// hold — onUsage simply never fires (see stream()).
 export type LlmUsage = {
   completionTokens: number;
-  promptTokens: number | null;
-  cachedTokens: number | null;
+  promptTokens: number;
+  cachedTokens: number;
 };
 
 // The OpenAI-compatible request tool shape (function tools). Generic LLM wire
@@ -222,15 +224,17 @@ export function createLlmClient(model: string): LlmClient {
       if (tc != null) mergeToolCalls(toolCalls, tc);
       const usage = chunk.usage;
       if (usage != null) {
-        // prompt_tokens_details is OpenAI's shape for the cached count and what
-        // OpenRouter passes through from providers that report one.
+        // prompt_tokens_details is OpenAI's shape for the cached count, which is
+        // what OpenRouter passes through. The floor is for the type, not for a
+        // provider: a model that answered without it would read as caching
+        // nothing, which the Companions debug tab shows plainly enough.
         const cached = (
           usage as { prompt_tokens_details?: { cached_tokens?: number } }
         ).prompt_tokens_details?.cached_tokens;
         opts.onUsage?.({
           completionTokens: usage.completion_tokens,
-          promptTokens: usage.prompt_tokens ?? null,
-          cachedTokens: cached ?? null,
+          promptTokens: usage.prompt_tokens,
+          cachedTokens: cached ?? 0,
         });
       }
     }

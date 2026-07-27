@@ -214,30 +214,9 @@ describe('createLlmClient', () => {
     ]);
   });
 
-  // Not every provider behind OpenRouter reports a cached count, and silence is
-  // not the same as a zero: null keeps "didn't say" apart from "cached nothing",
-  // which is the difference between no data and a broken prefix.
-  it('reports a missing cached count as null rather than zero', async () => {
-    createMock.mockResolvedValue(
-      fakeDeltaStream([{ content: 'ok' }], {
-        completion_tokens: 42,
-        prompt_tokens: 1200,
-      }),
-    );
-    const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
-    const seen: unknown[] = [];
-    await collect(
-      client.stream([{ role: 'user', content: 'hi' }], {
-        signal: new AbortController().signal,
-        onUsage: (u) => seen.push(u),
-      }),
-    );
-    expect(seen).toEqual([
-      { completionTokens: 42, promptTokens: 1200, cachedTokens: null },
-    ]);
-  });
-
+  // A turn with no counts at all is a usage chunk that never arrived, not a
+  // chunk with fields missing — so it is onUsage not firing, and the caller's
+  // metrics stay empty for that turn.
   it('never fires onUsage for a stream that ends without a usage chunk', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
