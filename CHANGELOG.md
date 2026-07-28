@@ -41,8 +41,7 @@
   is now what makes a picture or video part of the set. One with nothing written
   about it is one your companion has no way to search for or choose, so it isn't
   offered to her and isn't counted on the Goonpacks row, the chooser card or the
-  build line — where before it was left out of the count but still quietly
-  handed over. A pack part-way through being described climbs towards its full
+  build line. A pack part-way through being described climbs towards its full
   count as the sidecars are written.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
