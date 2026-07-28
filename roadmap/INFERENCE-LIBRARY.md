@@ -10,15 +10,14 @@ set is far too big to curate. All of it operates on the **user's own images, on
 their own machine** — see the [content policy](../DEVELOPERS.md#content-policy).
 
 The plumbing this needs — what a pack stores per item and about its set, and the
-two tools a companion calls — is settled in
-[docs/superpowers/specs/2026-07-27-media-search-design.md](../docs/superpowers/specs/2026-07-27-media-search-design.md),
-and staged in [TODO.md](../TODO.md#media-descriptions-and-retrieval). What's
-left here is everything that plumbing deliberately doesn't decide — starting
-with what goes in a description, which model writes it, how the search ranks and
-what the summary says, and running on through reviewing the output at scale and
-where a library too big to package lives. None of it can be measured until the
-plumbing lands, because a better caption only shows up as a better search
-result.
+two tools a companion calls — has shipped, built to
+[docs/superpowers/specs/2026-07-27-media-search-design.md](../docs/superpowers/specs/2026-07-27-media-search-design.md).
+What's left here is everything that plumbing deliberately doesn't decide —
+starting with what goes in a description, which model writes it, how the search
+ranks and what the summary says, and running on through reviewing the output at
+scale and where a library too big to package lives. None of it can be measured
+without a library big enough to tell one answer from another, because a better
+caption only shows up as a better search result.
 
 ## Two jobs — don't conflate them
 
@@ -31,10 +30,11 @@ mechanism:
 - **Finding one specific item.** On demand, over thousands, and it has no
   business being in their context at all. This is **retrieval**.
 
-The shipped mechanism does neither: it puts every item's description in the
-`send_media` tool schema and has them pick by number. That works at fifty and
-collapses well before a thousand — not because the window fills, but because a
-model choosing between two thousand near-identical descriptions chooses badly.
+Both ship, separately: the summary rides their prompt, and `search_media` does
+the retrieval. Conflating them is what collapses — one list of every item,
+picked by number, works at fifty and fails well before a thousand, not because
+the window fills but because a model choosing between two thousand
+near-identical descriptions chooses badly.
 
 ## Two regimes — hand-reviewable, or not
 
@@ -60,9 +60,9 @@ before a library reaches any impressive size.
 **They ask, in words, and the app does the searching.** In order:
 
 1. **Offline.** Every item gets two texts: a long description of everything in
-   the picture, and a one-line caption condensed from it. (This is already how
-   `scripts/describe-image.ts` works — it observes at length and then condenses
-   — except only the caption is kept today.)
+   the picture, and a one-line caption condensed from it. (This is how
+   `scripts/describe-image.ts` works — it observes at length and then
+   condenses.)
 2. **Offline.** An LLM reads the captions and descriptions and writes the set
    summary.
 3. **Session start.** Their prompt carries the summary and nothing else about
