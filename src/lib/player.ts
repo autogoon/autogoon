@@ -22,7 +22,7 @@ import {
 
 export type { UpcomingWindow };
 
-export interface PlayerOptions {
+interface PlayerOptions {
   getDevice: () => VacuglideDevice | null;
   onError?: (message: string) => void;
 }
