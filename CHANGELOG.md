@@ -2,6 +2,18 @@
 
 ## 2026-07-28
 
+- feature: **Companions find a picture instead of picking one** — A companion
+  used to be handed a numbered list of everything she had and asked to pick by
+  number, which stops working once there are more than a few dozen. She now
+  knows roughly what her set contains, describes what she wants in her own words
+  when she wants to show you something — narrowing it to pictures or videos if
+  she means one — and sends one of the matches. Three things come with it: she
+  won't send you the same picture twice in a conversation, and that holds across
+  a reload; when nothing matches she says so instead of talking about a picture
+  that never arrived; and a companion with no pictures at all is now told so, so
+  asking gets you a straight answer rather than a promise she can't keep.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - enhancement: **Two texts for every picture, and a summary of the set** — Each
   picture or video in a pack now has a `.md` file beside it instead of a `.txt`,
   holding the one-line caption in frontmatter and a fuller description of the

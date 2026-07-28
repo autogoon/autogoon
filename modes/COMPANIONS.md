@@ -86,8 +86,8 @@ blocks.
 ## Device control
 
 A companion **drives the device through LLM tools** — start/stop, the intensity
-and variety knobs, (for a companion with media) `send_media`, and
-`wait_for_user`, which is how a run of unprompted turns is ended (see
+and variety knobs, (for a companion with media) `search_media` and `send_media`,
+and `wait_for_user`, which is how a run of unprompted turns is ended (see
 [Filling a silence](#filling-a-silence)). When one is called, the panel runs
 **the same transport and knobs the on-screen controls use** — there is one path,
 not a parallel one. The tool definitions, argument shapes, and which knob
@@ -137,21 +137,29 @@ buy.
 
 ## Pictures and videos
 
-A companion **with media** gets the `send_media` tool. Its description is one
-numbered list over everything they have — each entry marked picture or video,
-with its one-line caption — and they pick what fits the moment by number. They
-choose on the _caption_, so the vision work happens offline, never during play.
-They can also say which sort they meant; if that disagrees with the number they
-picked, the call is refused with a correction rather than sending the wrong
-thing.
+A companion **with media** asks for a picture rather than picking one off a
+list. Their prompt carries a summary of what their set holds — enough to know
+what there is to ask for — and when they want to show you something they
+describe it in their own words: "me on my knees looking up", "something on a
+beach". That comes back as a handful of matches, each with its one-line caption,
+and they send the one that fits. They can narrow the search to pictures only or
+videos only.
+
+They search and choose on the _captions_, so the vision work happens offline,
+never during play. Nothing matching is an answer they're given, so they ask for
+something else instead of talking about a picture that never arrived. Within one
+conversation they won't send you the same thing twice — what has already been
+sent is left out of later searches, and that survives a reload because it's read
+back off the conversation itself.
 
 Sending pops it open in a lightbox and leaves it in the transcript as a
 thumbnail — a video plays there inline, and full-size in the lightbox — stored
 on the thread turn so what was sent survives a reload. While the lightbox is
 open, a badge in its top corner shows the conversation live: you speaking, the
 companion thinking, their reply streaming in, their voice loading, them
-speaking. A companion with nothing to send never sees the tool, and the shared
-media prompt block is only interpolated into a persona that has some.
+speaking. A companion with nothing to send gets neither tool, and is told
+outright that they have nothing — so if you ask, they say so rather than
+promising a picture that can never arrive.
 
 Pictures and videos are **bring-your-own** — they arrive via a
 [goonpack](../GOONPACKS.md), never bundled with the app. The built-in companions

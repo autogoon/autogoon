@@ -230,8 +230,10 @@ tokens. Put a token on its own line where that section should land:
   mid-persona placement.
 - **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once, near
   the end.
-- **`{{MEDIA_SECTION}}`** — how they choose and send pictures and videos. Only
-  filled in when they actually have some, so it's safe to include either way.
+- **`{{MEDIA_SECTION}}`** — how they search for and send pictures and videos.
+  Safe to include either way: with media it carries your pack's own
+  `mediaSummary`, which is what tells them what their set holds and so what
+  there is to ask for; with none it tells them they have nothing to send.
 
 Omit a token and that section is simply absent — a persona with no
 `{{MEDIA_SECTION}}` never gets the instructions for sending. Misspell one and it
