@@ -57,8 +57,8 @@ export type Companion = {
   playfulness: number; // during play: how much they talk over the device
   // The media they can send during a call — filled by an installed goonpack
   // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
-  // installed: the panel then offers no send_media tool, and their prompt gets
-  // no media section.
+  // installed: the panel then offers neither media tool, and their prompt's
+  // media section is the one saying they have nothing to send.
   media?: CompanionMedia[];
   // What that set holds, as one block of text — present whenever `media` is,
   // because a pack carrying media must carry a summary of it (parsePack).

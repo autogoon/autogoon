@@ -21,22 +21,25 @@ export type PackContent = {
   media: CompanionMedia[];
 };
 
-function fill(prompt: string, media: CompanionMedia[] | undefined) {
-  return fillSharedSections(prompt, {
-    includeMedia: (media?.length ?? 0) > 0,
-  });
+// The summary is what carries the media section, so it is what decides whether
+// there is one. A pack with media always has one (parsePack refuses otherwise),
+// so this is the same rule as "has media" with one input instead of two that
+// could disagree.
+function fill(prompt: string, mediaSummary: string | undefined) {
+  return fillSharedSections(prompt, { mediaSummary });
 }
 
 // A built-in (or complete pack) played as-is — "default" in the variant list.
 export function resolveDefault(base: Companion): Companion {
-  return { ...base, systemPrompt: fill(base.systemPrompt, base.media) };
+  return { ...base, systemPrompt: fill(base.systemPrompt, base.mediaSummary) };
 }
 
 // Pack → Companion with the prompt left UNFILLED — for a pack used as an
 // overlay's base, where applyOverlay does the (single) fill against the
 // merged media set. Filling here too would fill twice: the first pass
-// drops {{MEDIA_SECTION}} for good when the base itself is medialess,
-// so an overlay bringing media could never restore it.
+// spends {{MEDIA_SECTION}} on the base's own set — or, when the base is
+// medialess, on the block saying there is nothing to send — and an overlay
+// bringing media would then have no token left to fill.
 export function packToCompanionRaw(pack: PackContent): Companion {
   const m = pack.manifest;
   const c = m.companion;
@@ -66,7 +69,7 @@ export function packToCompanionRaw(pack: PackContent): Companion {
 // imported complete pack. Fills once, here.
 export function packToCompanion(pack: PackContent): Companion {
   const raw = packToCompanionRaw(pack);
-  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.media) };
+  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.mediaSummary) };
 }
 
 // A thread's persisted media ref → the live entry, or null when the referenced
@@ -112,6 +115,6 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     playfulness: c.playfulness ?? base.playfulness,
     media,
     mediaSummary,
-    systemPrompt: fill(rawPrompt, media),
+    systemPrompt: fill(rawPrompt, mediaSummary),
   };
 }

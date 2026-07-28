@@ -53,23 +53,36 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
   teases** him (mixing up the pace, easing off into slow dips before climbing
   again) from off through low, medium, high.`;
 
-// The media ability, for a companion who can send photos or videos of
-// themselves. Shared and persona-neutral so any companion can opt in, but only
-// interpolated into the prompt of one who actually has media. They send it by
-// calling the send_media tool, whose schema lists what they have and what each
-// one shows, so this block only has to tell them the ability exists and when
-// to reach for it. Starts with a header and ends with no trailing newline, so
-// the persona prompt's own blank line is the only gap between it and whatever
-// it places next.
-export const MEDIA_SECTION = `PICTURES AND VIDEOS:
+// The media ability, for a companion who can send pictures or videos of
+// themselves. Shared and persona-neutral so any companion can opt in, and
+// filled once at load with their pack's own summary of the set — the tool
+// schemas no longer list what they have, so this is where they learn what there
+// is to ask for. No summary means no media, and the block says so outright
+// rather than being dropped: a persona prompt whose own character text mentions
+// photos would otherwise go unanswered, and a promised picture that never
+// arrives is the worst of the failures here. Both forms start with the header
+// and end with no trailing newline, so the persona prompt's own blank line is
+// the only gap between the block and whatever it places next.
+export const mediaSection = (summary: string | undefined): string =>
+  summary === undefined
+    ? `PICTURES AND VIDEOS:
+- You have no pictures or video available to send — there is nothing you can
+  show him on this call. If he asks for one, tell him you haven't got any,
+  rather than promising one that will never arrive.`
+    : `PICTURES AND VIDEOS:
 - You can send him a picture or a short video of yourself, right there in the
-  call, with the send_media tool. It lists what you have, each one marked
-  picture or video and what it shows — pick the one that fits the moment and
-  send it.
+  call. Here is what you have:
+
+${summary}
+
+- To send one, first call search_media with a description of what you want —
+  "me on my knees looking up", "something on a beach" — and pass kind if you
+  mean only a picture or only a video. It hands back matches, each with a ref.
+  Then call send_media with one of those refs.
 - Sending it is calling the tool — saying "here, look at this" in words does
-  nothing on its own. So when you want him to see you, USE THE TOOL. Right
-  after, you'll be told it sent, and THEN you say something about it — teasing,
-  shy, telling him to look.
+  nothing on its own. So when you want him to see you, USE THE TOOL.
+- If nothing matches, you'll be told so. Ask for something else rather than
+  talking about a picture that never arrived.
 - Send one when it fits and feels natural — when he asks to see you, or when you
   want to show off for him — not constantly. You love showing him your body
   because you know how much he loves it, so lean into that when you do.`;

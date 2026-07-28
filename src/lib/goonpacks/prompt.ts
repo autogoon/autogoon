@@ -5,31 +5,35 @@
 import {
   CONTROL_SECTION,
   CONTROL_SUMMARY_SECTION,
-  MEDIA_SECTION,
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
   TIME_SECTION,
+  mediaSection,
 } from '@/lib/companions/shared-prompt';
 
 // Placeholder name = shared-prompt export name, on purpose — but a new
 // shared-prompt export still needs adding to SECTIONS below explicitly; this
 // record is deliberate, not auto-derived from the module's exports.
+// MEDIA_SECTION is not here: it is a function of the companion's own summary
+// — and of its absence — filled from opts below rather than being one fixed
+// block.
 const SECTIONS: Record<string, string> = {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
   CONTROL_SUMMARY_SECTION,
-  MEDIA_SECTION,
   CONTROL_SECTION,
 };
 
 export function fillSharedSections(
   prompt: string,
-  opts: { includeMedia: boolean },
+  opts: { mediaSummary?: string },
 ): string {
   const filled = prompt.replace(
     /\{\{([A-Z0-9_]+)\}\}/g,
     (token, name: string) => {
-      if (name === 'MEDIA_SECTION' && !opts.includeMedia) return '';
+      // A companion with no media has no summary, and gets the section's
+      // other form — the one saying there is nothing to send.
+      if (name === 'MEDIA_SECTION') return mediaSection(opts.mediaSummary);
       // Anything that isn't a shared section is left exactly as written: the
       // live markers {{TOY_STATUS}} and {{NOW}} because the voice session fills
       // them per turn, and everything else so a misspelled token shows up in
