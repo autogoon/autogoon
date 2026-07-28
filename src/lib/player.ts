@@ -1,8 +1,8 @@
 // The shared Player: owns the program-clock, the tick loop, device sends (with
 // duplicate-send suppression), and the 5-minute lookahead. It plays a
-// PlayModeEngine; it knows nothing about any specific play mode. Lives in
-// src/lib (no React) and reaches the device through a getDevice accessor, like
-// the engines it replaces.
+// PlayModeEngine; it knows nothing about any specific play mode. No React, and
+// it takes a getDevice accessor rather than a device because it is constructed
+// before one is connected — every send reads whatever the accessor returns.
 
 import type { VacuglideDevice } from '@/lib/vacuglide-device';
 import {
