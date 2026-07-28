@@ -306,6 +306,12 @@ every rule here. `/style-check` is the one that reads for these.
   at once, and a digest followed by one open question is unanswerable. If the
   report ran long, restate the single change in the question rather than
   pointing back at it.
+- **One finding is carried to a commit before the next is named.** The cycle is
+  propose, wait for a yes or no, fix, then commit on a second yes — and only
+  then does the next finding get mentioned. An edit made ahead of its yes, or a
+  commit question carrying the next proposal, puts two findings in flight at
+  once: every answer then has to say which one it meant, and a change that needs
+  re-doing can't be backed out cleanly.
 - **Check `main` hasn't moved** before pushing and again before merging:
   `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
   it isn't, merge `origin/main` into the branch and **verify nothing was lost**
