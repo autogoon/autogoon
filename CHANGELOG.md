@@ -3,15 +3,11 @@
 ## 2026-07-28
 
 - feature: **Companions find a picture instead of picking one** — A companion
-  used to be handed a numbered list of everything she had and asked to pick by
-  number, which stops working once there are more than a few dozen. She now
-  knows roughly what her set contains, describes what she wants in her own words
-  when she wants to show you something — narrowing it to pictures or videos if
-  she means one — and sends one of the matches. Three things come with it: she
-  won't send you the same picture twice in a conversation, and that holds across
-  a reload; when nothing matches she says so instead of talking about a picture
-  that never arrived; and a companion with no pictures at all is now told so, so
-  asking gets you a straight answer rather than a promise she can't keep.
+  used to pick from a numbered list of everything they had, which stops working
+  past a few dozen. They now describe what they want in their own words and send
+  one of the matches, never the same picture twice in a conversation. Each
+  picture carries a caption and a fuller description in a `.md` sidecar beside
+  it, and a pack carries a summary of the whole set.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - enhancement: **A companion can do two things in one turn** — A tool call used
@@ -19,30 +15,6 @@
   wait for the turn after it. They can now carry on — find a picture and send it
   in the same breath, or move the intensity and the variety together — and the
   turn ends when they have something to say about what they did.
-  ([#25](https://github.com/autogoon/autogoon/pull/25))
-
-- enhancement: **Two texts for every picture, and a summary of the set** — Each
-  picture or video in a pack now has a `.md` file beside it instead of a `.txt`,
-  holding the one-line caption in frontmatter and a fuller description of the
-  shot as the body. `npm run goonpack:describe` writes both: it was already
-  asking the model to look the picture over before condensing to the caption,
-  and then throwing that part away, so a better caption can now be rewritten
-  from text already on disk rather than by going over every image again. A pack
-  that carries media also carries a `mediaSummary` — what the set holds and the
-  words its captions use for it — written by the new
-  `npm run goonpack:summarise`, so a companion can tell what's worth offering
-  without being handed a list of everything. A picture with no sidecar yet
-  doesn't stop the pack building — it simply isn't part of the set until one is
-  written, and the build says how many are left; a sidecar that is there but
-  can't be read is refused, naming the file.
-  ([#25](https://github.com/autogoon/autogoon/pull/25))
-
-- enhancement: **A pack's media is what they can actually send** — The sidecar
-  is now what makes a picture or video part of the set. One with nothing written
-  about it is one your companion has no way to search for or choose, so it isn't
-  offered to her and isn't counted on the Goonpacks row, the chooser card or the
-  build line. A pack part-way through being described climbs towards its full
-  count as the sidecars are written.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - enhancement: **Work on one pack instead of all of them** —
@@ -57,8 +29,7 @@
   the way a zip tool would compress it, so building a pack and zipping the
   folder yourself produce the same archive. It also says which media files still
   have no sidecar instead of building silently over them, naming the first few
-  and counting the rest — a sidecar is still optional, and the pack still
-  builds. ([#25](https://github.com/autogoon/autogoon/pull/25))
+  and counting the rest. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **The install marker moved out of the pack** — The file marking an
   extracted tree complete was written inside the pack's own directory, so

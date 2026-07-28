@@ -141,6 +141,14 @@ work done.
   like) gets a developer-friendly description of _what changed_, tagged
   `internal`. Don't force a user angle onto a pure refactor, and don't drop a
   change just because users won't notice it.
+- **One entry for the branch's feature, not one per piece of it.** The work a
+  feature needed to exist — the format it stores, the validation, the script
+  that writes it — is the feature, and goes in its entry. Something that stands
+  on its own still earns its own entry on the same branch; the test is whether
+  it means anything to someone who doesn't care about the feature.
+- **The entry says what changed; the PR it links carries the detail.** Don't
+  explain the mechanism, list the parts, or narrate how the branch arrived at
+  it. If a sentence would only matter to someone reading the diff, cut it.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.
