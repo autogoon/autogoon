@@ -18,7 +18,8 @@ function entry(
 ): CompanionMedia {
   const media: CompanionMedia = {
     kind: 'image',
-    description: 'a still',
+    caption: 'a still',
+    description: 'a still, described at length',
     ref: 'goonpack:pub.pack@1.0.0/one',
     load: () =>
       open().then((url) => {

@@ -10,7 +10,7 @@ import type { ParsedMedia } from '../../src/lib/goonpacks/pack';
 const NAMED = 3;
 
 export function captionWarning(media: ParsedMedia[]): string | null {
-  const missing = media.filter((m) => m.description === '');
+  const missing = media.filter((m) => m.caption === '');
   if (missing.length === 0) return null;
   const names = missing
     .slice(0, NAMED)

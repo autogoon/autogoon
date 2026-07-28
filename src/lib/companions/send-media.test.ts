@@ -8,11 +8,12 @@ import { describeMediaList, pickMedia } from './send-media';
 
 const item = (
   kind: CompanionMedia['kind'],
-  description: string,
+  caption: string,
 ): CompanionMedia => ({
   kind,
-  description,
-  ref: `goonpack:pub.pack@1.0.0/${description}`,
+  caption,
+  description: `${caption}, at length`,
+  ref: `goonpack:pub.pack@1.0.0/${caption}`,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},
 });

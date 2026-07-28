@@ -13,6 +13,11 @@ const manifest = (extra: object = {}) =>
 const complete = (extra: object = {}) =>
   manifest({ companion: { name: 'Testy', voiceId: 'v123' }, ...extra });
 
+// A sidecar as the describing script writes one: the caption quoted in
+// frontmatter, the long description as the body.
+const sidecar = (caption: string, description: string) =>
+  `---\ncaption: "${caption}"\n---\n\n${description}\n`;
+
 // An in-memory PackTree: file contents by path. Media files hold '' — parsePack
 // must never read them, and a test that made it read one would still pass on
 // content but is caught by the "never reads a media file" test below.
@@ -31,21 +36,23 @@ function tree(files: Record<string, string>): PackTree & { read: string[] } {
 }
 
 describe('parsePack', () => {
-  it('parses a complete pack with stills, videos and captions', async () => {
+  it('parses a complete pack with stills, videos and both sidecar texts', async () => {
     // The media is listed out of alphabetical order deliberately: pack.media
     // comes back sorted by name from parsePack, so the index assertions below
     // only hold if that sort ran.
     const t = tree({
-      'manifest.json': complete(),
+      'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
       'system-prompt.md': 'You are Testy.',
       'media/c.mp4': '',
-      'media/c.txt': 'a video',
+      'media/c.md': sidecar('a video', 'She dances for a while.'),
       'media/b.png': '',
+      'media/b.md': sidecar('cap b', 'Description b.'),
       'media/a.jpg': '',
-      'media/a.txt': 'desc a\n',
+      'media/a.md': sidecar('desc a', 'Description a.'),
     });
     const pack = await parsePack(t);
     expect(pack.manifest.id).toBe('test.pack');
+    expect(pack.manifest.mediaSummary).toBe('Beach shots.');
     expect(pack.systemPrompt).toBe('You are Testy.');
     expect(pack.media).toHaveLength(3);
     expect(pack.media[0]).toEqual({
@@ -53,29 +60,98 @@ describe('parsePack', () => {
       file: 'a.jpg',
       kind: 'image',
       mimeType: 'image/jpeg',
-      description: 'desc a',
+      caption: 'desc a',
+      description: 'Description a.',
     });
-    expect(pack.media[1]).toMatchObject({ name: 'b', description: '' });
+    expect(pack.media[1]).toMatchObject({
+      name: 'b',
+      caption: 'cap b',
+      description: 'Description b.',
+    });
     expect(pack.media[2]).toMatchObject({
       name: 'c',
       kind: 'video',
       mimeType: 'video/mp4',
-      description: 'a video',
+      caption: 'a video',
+      description: 'She dances for a while.',
     });
+  });
+
+  it("reads both texts from a media item's sidecar", async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+        'system-prompt.md': 'You are Testy.',
+        'media/a.jpg': '',
+        'media/a.md': sidecar('A caption.', 'A long description.'),
+      }),
+    );
+    expect(pack.media[0]?.caption).toBe('A caption.');
+    expect(pack.media[0]?.description).toBe('A long description.');
+  });
+
+  it('refuses a media file with no sidecar rather than describing it as nothing', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+          'system-prompt.md': 'You are Testy.',
+          'media/a.jpg': '',
+        }),
+      ),
+    ).rejects.toThrow(/a\.jpg/);
+  });
+
+  it('names the sidecar that failed to parse, not just the pack', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+          'system-prompt.md': 'You are Testy.',
+          'media/a.jpg': '',
+          'media/a.md': 'no frontmatter here\n',
+        }),
+      ),
+    ).rejects.toThrow(/a\.md/);
+  });
+
+  it('refuses a pack that carries media and no summary of it', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete(),
+          'system-prompt.md': 'You are Testy.',
+          'media/a.jpg': '',
+          'media/a.md': sidecar('A caption.', 'A description.'),
+        }),
+      ),
+    ).rejects.toThrow(/mediaSummary/);
+  });
+
+  it('accepts a pack with no media and no summary, which needs none', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': complete(),
+        'system-prompt.md': 'You are Testy.',
+      }),
+    );
+    expect(pack.media).toEqual([]);
   });
 
   it('never reads a media file', async () => {
     const t = tree({
-      'manifest.json': complete(),
+      'manifest.json': complete({ mediaSummary: 'One of each.' }),
       'system-prompt.md': 'x',
       'media/a.jpg': '',
-      'media/a.txt': 'cap',
+      'media/a.md': sidecar('cap', 'Description a.'),
       'media/big.mp4': '',
+      'media/big.md': sidecar('a video', 'Description big.'),
     });
     await parsePack(t);
     expect(t.read.sort()).toEqual([
       'manifest.json',
-      'media/a.txt',
+      'media/a.md',
+      'media/big.md',
       'system-prompt.md',
     ]);
   });
@@ -103,7 +179,7 @@ describe('parsePack', () => {
     });
     const problems = await parsePack(t).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
     ]);
   });
 
@@ -232,7 +308,7 @@ describe('parsePack', () => {
       }),
     ).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
     ]);
@@ -250,7 +326,7 @@ describe('parsePack', () => {
     ).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
       'manifest.json is missing the version field - this is the version number of your pack',
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.',
+      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
     ]);
   });
 });

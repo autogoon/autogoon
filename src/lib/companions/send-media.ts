@@ -12,7 +12,7 @@ const nameKind = (m: CompanionMedia): string =>
 // and is the one pickMedia counts in — they live together so they cannot drift.
 export function describeMediaList(items: readonly CompanionMedia[]): string {
   return items
-    .map((m, i) => `${i + 1} — (${nameKind(m)}) ${m.description}`)
+    .map((m, i) => `${i + 1} — (${nameKind(m)}) ${m.caption}`)
     .join('\n');
 }
 
@@ -52,7 +52,7 @@ export function pickMedia(
   return {
     show: item,
     sent: {
-      result: `Sent him the ${named}: ${item.description}`,
+      result: `Sent him the ${named}: ${item.caption}`,
       mediaRef: item.ref,
     },
   };

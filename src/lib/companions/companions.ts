@@ -11,17 +11,18 @@ import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// One thing a companion can send: a still or a video. `description` is what the
-// model reads to pick a fitting one, from the pack's <basename>.txt sidecar, or
-// "" when there's none. `ref` is the thread-stable reference — object URLs die
-// with the session, so a sent item persists as `ref` and rendering resolves it
-// against whatever's currently loaded. `src` is that object URL once it exists:
-// `load()` mints it on first render (a pack's media is thousands of files, most
-// of which are never shown) and memoises it here, and it stays alive as long as
-// this entry does — `forget()` is what ends that, for the owner of the URL once
-// it has revoked it.
+// One thing a companion can send: a still or a video. Both texts come from the
+// pack's <basename>.md sidecar: `caption` is the one line the model reads to
+// pick a fitting one, `description` the long prose behind it. `ref` is the
+// thread-stable reference — object URLs die with the session, so a sent item
+// persists as `ref` and rendering resolves it against whatever's currently
+// loaded. `src` is that object URL once it exists: `load()` mints it on first
+// render (a pack's media is thousands of files, most of which are never shown)
+// and memoises it here, and it stays alive as long as this entry does —
+// `forget()` is what ends that, for the owner of the URL once it has revoked it.
 export type CompanionMedia = {
   kind: MediaKind;
+  caption: string;
   description: string;
   ref: string;
   src?: string;
@@ -59,6 +60,10 @@ export type Companion = {
   // installed: the panel then offers no send_media tool, and their prompt gets
   // no media section.
   media?: CompanionMedia[];
+  // What that set holds, as one block of text — present whenever `media` is,
+  // because a pack carrying media must carry a summary of it (parsePack).
+  // Written by npm run goonpack:summarise; nothing here reads into it.
+  mediaSummary?: string;
 };
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/

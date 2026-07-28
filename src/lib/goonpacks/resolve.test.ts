@@ -33,7 +33,11 @@ const base: Companion = {
   playfulness: 4,
 };
 const overlay = (
-  extra: { companion?: CompanionConfig; noMedia?: boolean } = {},
+  extra: {
+    companion?: CompanionConfig;
+    noMedia?: boolean;
+    mediaSummary?: string;
+  } = {},
   media = [] as Companion['media'],
 ) => ({
   manifest: {
@@ -42,6 +46,7 @@ const overlay = (
     version: '1.0.0',
     base: 'autogoon.aimee',
     aboutThePack: 'test overlay',
+    mediaSummary: extra.mediaSummary,
     noMedia: extra.noMedia,
     companion: extra.companion ?? {},
   },
@@ -49,7 +54,8 @@ const overlay = (
 });
 const still = (src: string): CompanionMedia => ({
   kind: 'image',
-  description: 'd',
+  caption: 'd',
+  description: 'a longer d',
   ref: `goonpack:test.pack@1/${src}`,
   src,
   load: () => Promise.resolve(src),
@@ -133,6 +139,27 @@ describe('applyOverlay', () => {
     );
     expect(body(out.systemPrompt)).toBe('hi\n');
   });
+  it('takes the summary from whichever pack supplied the media', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ mediaSummary: 'Overlay set.' }, [still('blob:overlay')]),
+    );
+    expect(out.mediaSummary).toBe('Overlay set.');
+  });
+  it('keeps the base summary when an overlay supplies no media', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ mediaSummary: 'Overlay set.' }),
+    );
+    expect(out.mediaSummary).toBe('Base set.');
+  });
+  it('drops the summary with the media when an overlay sets noMedia', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ noMedia: true }),
+    );
+    expect(out.mediaSummary).toBeUndefined();
+  });
 });
 
 describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
@@ -213,7 +240,8 @@ describe('resolveDefault', () => {
 describe('resolveMediaRef', () => {
   const entry = (ref: string, src: string): CompanionMedia => ({
     kind: 'image',
-    description: 'd',
+    caption: 'd',
+    description: 'a longer d',
     ref,
     src,
     load: () => Promise.resolve(src),

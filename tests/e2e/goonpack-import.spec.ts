@@ -15,6 +15,7 @@ const completePack = zipSync({
       id: 'e2e.testy',
       version: '1.0.0',
       aboutThePack: 'an e2e test pack',
+      mediaSummary: 'One test picture.',
       companion: {
         name: 'Testy',
         description: 'e2e import fixture',
@@ -25,7 +26,9 @@ const completePack = zipSync({
   ),
   'system-prompt.md': strToU8('You are Testy.\n{{OUTPUT_FORMAT_SECTION}}'),
   'media/one.png': new Uint8Array(TINY_PNG),
-  'media/one.txt': strToU8('a test picture'),
+  'media/one.md': strToU8(
+    '---\ncaption: "a test picture"\n---\n\nA test picture, described at length.\n',
+  ),
 });
 
 // A pack zip built to order: the manifest, a system prompt, and any media given.
@@ -133,7 +136,7 @@ test('importing a pack puts its tree on disk and offers it on the chooser', asyn
       for await (const name of media.keys()) names.push(name);
       return names.sort();
     }),
-  ).toEqual(['one.png', 'one.txt']);
+  ).toEqual(['one.md', 'one.png']);
 
   // Her card (a clickable div, not a button — the pickers live inside it)
   // shows up on the Companions chooser, which watches the same one index this

@@ -51,7 +51,7 @@ async function makeTree(
 }
 
 // A tree that passes validation whole: manifest, prompt, and one still with its
-// caption. Media bytes are never read, so an empty file is a picture as far as
+// sidecar. Media bytes are never read, so an empty file is a picture as far as
 // everything under test is concerned.
 const validPack = (key: string): Record<string, string> => ({
   'manifest.json': JSON.stringify({
@@ -59,11 +59,12 @@ const validPack = (key: string): Record<string, string> => ({
     id: key.slice(0, key.indexOf('@')),
     version: key.slice(key.indexOf('@') + 1),
     aboutThePack: 'a storage test pack',
+    mediaSummary: 'One still.',
     companion: { name: 'Storey', voiceId: 'v-e2e' },
   }),
   'system-prompt.md': 'You are Storey.',
   'media/one.png': '',
-  'media/one.txt': 'a still',
+  'media/one.md': '---\ncaption: "a still"\n---\n\nA still, at length.\n',
 });
 
 async function packKeys(page: import('@playwright/test').Page) {

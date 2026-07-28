@@ -1,10 +1,11 @@
 // A pack's tree → ParsedPack. Validation is a pass over NAMES: permitted
-// extensions, no subfolders, no stem collisions, caption pairing and the
+// extensions, no subfolders, no stem collisions, sidecar pairing and the
 // complete-vs-overlay completeness rules are all name rules, so only
-// manifest.json, system-prompt.md and the captions are ever read. Validating a
+// manifest.json, system-prompt.md and the sidecars are ever read. Validating a
 // multi-gigabyte pack costs a few hundred kilobytes.
 import { PackError, parseManifest, type PackManifest } from './manifest';
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
+import { parseSidecar, SIDECAR_EXT, type Sidecar } from './sidecar';
 
 export const MANIFEST = 'manifest.json';
 const PROMPT = 'system-prompt.md';
@@ -23,13 +24,16 @@ export type PackTree = {
 };
 
 // One still or video. `name` is the stem — the thread ref's second half and the
-// caption sidecar's name; `file` is the file inside media/, which is what
-// actually gets opened when the item is first rendered.
+// sidecar's name; `file` is the file inside media/, which is what actually gets
+// opened when the item is first rendered. Both texts come from the sidecar and
+// are required: `caption` is the one line the model picks from, `description`
+// the long prose behind it.
 export type ParsedMedia = {
   name: string;
   file: string;
   kind: MediaKind;
   mimeType: string;
+  caption: string;
   description: string;
 };
 
@@ -121,8 +125,8 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     : undefined;
 
   const media: ParsedMedia[] = [];
-  const captions: string[] = [];
-  const sidecars = new Map<string, string>();
+  const sidecarPaths: string[] = [];
+  const sidecars = new Map<string, Sidecar>();
   // Every path is either the manifest, the prompt, something under media/, or
   // something that has no place in a pack. Skipping the last of those is what
   // let a stray folder ride along unnoticed into a built pack.
@@ -140,8 +144,8 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       continue;
     }
     const { stem, ext } = splitName(file);
-    if (ext === 'txt') {
-      captions.push(path);
+    if (ext === SIDECAR_EXT) {
+      sidecarPaths.push(path);
       continue;
     }
     if (ext === 'mov') {
@@ -153,7 +157,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     const type = MEDIA_TYPES[ext];
     if (type === undefined) {
       problems.push(
-        `Unsupported file in media/: ${file} — media must be jpg, jpeg, png, webp, mp4 or webm, with captions in matching .txt files.`,
+        `Unsupported file in media/: ${file} — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .${SIDECAR_EXT} sidecar.`,
       );
       continue;
     }
@@ -162,16 +166,24 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       file,
       kind: type.kind,
       mimeType: type.mimeType,
+      caption: '',
       description: '',
     });
   }
-  // Captions are the only media-folder files ever read — a few hundred bytes
-  // of sidecar text each, never the media they describe.
-  for (const path of captions) {
-    sidecars.set(
-      splitName(path.slice(MEDIA_DIR.length)).stem,
-      (await tree.readText(path)).trim(),
-    );
+  // Sidecars are the only media-folder files ever read — a couple of kilobytes
+  // of text each, never the media they describe. A sidecar that won't parse is
+  // a problem naming the sidecar, so the author knows which file to fix.
+  const sidecarStems = new Set<string>();
+  for (const path of sidecarPaths) {
+    const stem = splitName(path.slice(MEDIA_DIR.length)).stem;
+    sidecarStems.add(stem);
+    try {
+      sidecars.set(stem, parseSidecar(await tree.readText(path)));
+    } catch (e) {
+      problems.push(
+        `${path}: ${e instanceof Error ? e.message : String(e)}`.trim(),
+      );
+    }
   }
 
   const stems = new Set<string>();
@@ -184,7 +196,26 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       );
     }
     stems.add(m.name);
-    m.description = sidecars.get(m.name) ?? '';
+    const parsed = sidecars.get(m.name);
+    if (parsed !== undefined) {
+      m.caption = parsed.caption;
+      m.description = parsed.description;
+    } else if (!sidecarStems.has(m.name)) {
+      // A sidecar that failed to parse already reported itself above; this is
+      // the one that isn't there at all.
+      problems.push(
+        `${m.file} has no ${m.name}.${SIDECAR_EXT} beside it — every media file needs one, holding its caption and description (npm run goonpack:describe-missing writes them).`,
+      );
+    }
+  }
+  // A sidecar with no media file is the pairing seen from the other side: a
+  // rename that moved one and not the other, and nothing else would report it.
+  for (const stem of sidecarStems) {
+    if (!stems.has(stem)) {
+      problems.push(
+        `${stem}.${SIDECAR_EXT} has no media file beside it — remove it, or add the picture or video it describes.`,
+      );
+    }
   }
   media.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -209,6 +240,14 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     if (manifest.noMedia === true && media.length > 0) {
       problems.push(
         'noMedia is set but the pack has a media/ folder — remove one or the other.',
+      );
+    }
+    // The companion is told what the set holds rather than handed a list of it,
+    // so a set with nothing said about it is incomplete in the same way a
+    // complete pack with no name is.
+    if (media.length > 0 && manifest.mediaSummary === undefined) {
+      problems.push(
+        'A pack with media needs a mediaSummary in manifest.json — npm run goonpack:summarise writes it.',
       );
     }
   }

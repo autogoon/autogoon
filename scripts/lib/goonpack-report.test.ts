@@ -4,12 +4,13 @@ import { describe, it, expect } from '@jest/globals';
 import type { ParsedMedia } from '../../src/lib/goonpacks/pack';
 import { captionWarning } from './goonpack-report';
 
-const item = (file: string, description: string): ParsedMedia => ({
+const item = (file: string, caption: string): ParsedMedia => ({
   name: file.slice(0, file.lastIndexOf('.')),
   file,
   kind: 'image',
   mimeType: 'image/jpeg',
-  description,
+  caption,
+  description: `${caption}, at length`,
 });
 
 describe('captionWarning', () => {

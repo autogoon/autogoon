@@ -57,6 +57,8 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
     playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
     media,
+    // The summary describes this pack's own set, so it goes wherever that does.
+    mediaSummary: media === undefined ? undefined : m.mediaSummary,
   };
 }
 
@@ -90,6 +92,13 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
       : overlay.media.length > 0
         ? overlay.media
         : base.media;
+  // The summary describes whichever set won, so it moves with it.
+  const mediaSummary =
+    m.noMedia === true
+      ? undefined
+      : overlay.media.length > 0
+        ? m.mediaSummary
+        : base.mediaSummary;
   const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
   return {
     ...base, // id stays the base's — thread ownership; so do name and gender
@@ -102,6 +111,7 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     chattiness: c.chattiness ?? base.chattiness,
     playfulness: c.playfulness ?? base.playfulness,
     media,
+    mediaSummary,
     systemPrompt: fill(rawPrompt, media),
   };
 }
