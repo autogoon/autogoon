@@ -327,8 +327,8 @@ Goonpacks — importing a companion as a portable pack — has shipped; see
   excluded — it plays in Safari and unreliably elsewhere — doesn't apply: a gif
   animates in an `<img>` everywhere. It's an entry in `MEDIA_TYPES`
   (`src/lib/goonpacks/media.ts`), whose only non-test consumer is `parsePack`,
-  plus `IMAGE_RE` in `scripts/describe-missing.mjs`, which would otherwise skip
-  gifs and leave them silently uncaptioned; `scripts/describe-image.mjs` already
+  plus `IMAGE_RE` in `scripts/describe-missing.ts`, which would otherwise skip
+  gifs and leave them silently uncaptioned; `scripts/describe-image.ts` already
   accepts one and describes its first frame. Two things to settle: the `kind`
   has to be `image` either way (`<video>` can't play a gif), so an animated one
   — a gif may equally be a still — arrives labelled a picture, which is a

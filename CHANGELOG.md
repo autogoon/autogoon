@@ -40,6 +40,14 @@
   writing, since removing the tree no longer takes it.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- internal: **One writer for the sidecar format** — The describing scripts wrote
+  a sidecar's frontmatter themselves, since a `.mjs` can't import the app's
+  format module, leaving a second implementation nothing tested. They are
+  TypeScript run through `tsx` now, like the build and summarise scripts, and
+  call the same `renderSidecar` the round-trip test covers — so the writer and
+  the validator can't drift, and both scripts are typechecked and linted with
+  everything else. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-27
 
 - enhancement: **See how much of the prompt was cached** — The debug tab now

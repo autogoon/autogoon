@@ -5,7 +5,7 @@ npm scripts and a text editor, and into the app itself as a screen you work in.
 
 The app today only _consumes_ packs: import a zip, and it lives in browser
 storage. Everything that goes into making one happens elsewhere — captions come
-from `scripts/describe-image.mjs`, the manifest and `system-prompt.md` are hand-
+from `scripts/describe-image.ts`, the manifest and `system-prompt.md` are hand-
 edited files, and `goonpack:build` zips a directory. That split is the problem:
 the one job that genuinely needs a screen is looking at a picture next to what a
 model said about it.

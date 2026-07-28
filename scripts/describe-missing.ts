@@ -19,15 +19,15 @@ import process from 'node:process';
 import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderSidecar } from '../src/lib/goonpacks/sidecar';
 import {
   describeImage,
   sidecarPath,
-  renderSidecar,
   inlineImage,
   green,
   yellow,
   dim,
-} from './describe-image.mjs';
+} from './describe-image';
 
 // The pack format's still types only. Videos are skipped: their captions are
 // hand-written.
@@ -42,7 +42,7 @@ const goonpacksDir = join(root, 'goonpacks');
 const named = process.argv[2];
 const explicit = named !== undefined && named !== '';
 
-function packDirs() {
+function packDirs(): string[] {
   if (explicit) {
     const dir = resolve(named);
     if (!existsSync(dir)) {
@@ -58,8 +58,8 @@ function packDirs() {
 }
 
 // Every goonpack image with no (non-empty) sidecar yet, sorted.
-function missingImages() {
-  const out = [];
+function missingImages(): string[] {
+  const out: string[] = [];
   for (const packDir of packDirs()) {
     const dir = join(packDir, 'media');
     if (!existsSync(dir)) {
@@ -100,29 +100,29 @@ console.log(`Describing ${images.length} image(s) with no sidecar…\n`);
 // in yellow, each step as it starts, what the model observed, the caption in
 // green, then the picture itself to check it against — so a long bulk run can be
 // watched going past.
-let described = 0;
+let done = 0;
 let failed = 0;
 for (const image of images) {
   console.log(yellow(image));
   try {
     let picture = '';
-    const { caption, observations } = await describeImage(image, {
+    const described = await describeImage(image, {
       onStep: (s) => console.log(dim(s)),
       onImage: (b64) => {
         picture = inlineImage(b64);
       },
     });
-    writeFileSync(sidecarPath(image), renderSidecar(caption, observations));
-    console.log(dim(observations));
-    console.log(green(caption));
+    writeFileSync(sidecarPath(image), renderSidecar(described));
+    console.log(dim(described.description));
+    console.log(green(described.caption));
     if (picture !== '') console.log(picture);
     console.log('');
-    described += 1;
+    done += 1;
   } catch (e) {
     console.error(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
     failed += 1;
   }
 }
 
-console.log(`Done: ${described} described, ${failed} failed.`);
+console.log(`Done: ${done} described, ${failed} failed.`);
 if (failed > 0) process.exit(1);

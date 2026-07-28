@@ -61,7 +61,7 @@ before a library reaches any impressive size.
 
 1. **Offline.** Every item gets two texts: a long description of everything in
    the picture, and a one-line caption condensed from it. (This is already how
-   `scripts/describe-image.mjs` works — it observes at length and then condenses
+   `scripts/describe-image.ts` works — it observes at length and then condenses
    — except only the caption is kept today.)
 2. **Offline.** An LLM reads the captions and descriptions and writes the set
    summary.
@@ -227,7 +227,7 @@ text already on disk, with no image and no vision model.
 
 ### Model, resolution, compliance
 
-- **Backend is pluggable.** `describe-image.mjs` reads `LLM_URL` and only
+- **Backend is pluggable.** `describe-image.ts` reads `LLM_URL` and only
   defaults to OpenRouter, so a local OpenAI-compatible server (MLX + LM Studio)
   is a config change. Without hardware, a one-time cloud pass costs pennies per
   thousand.
@@ -239,7 +239,7 @@ text already on disk, with no image and no vision model.
   isn't hard reasoning. Mid-size open VLMs (Qwen-VL, InternVL, MiniCPM-V, Gemma)
   are the sensible band, and smaller is a _feature_ at scale, where throughput
   decides whether a full pass is hours or days. The current default model and
-  the alternatives worth trying are listed at the top of `describe-image.mjs`.
+  the alternatives worth trying are listed at the top of `describe-image.ts`.
 - **Resolution before model.** The known failure — small models unable to tell
   sitting from kneeling — is mostly resolution: fine spatial detail is what gets
   destroyed when an image is down-sampled into fewer visual tokens, and it's a

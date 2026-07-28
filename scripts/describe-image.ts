@@ -10,6 +10,10 @@
 // (npm runs the script from the repo root, so the path is relative to there,
 // not to your shell's directory.)
 //
+// This is a .ts run through tsx, like goonpack-build.ts and summarise-pack.ts,
+// so it writes sidecars with the same renderSidecar the app's own format module
+// owns rather than hand-rolling a second frontmatter writer.
+//
 // Uses Qwen3-VL on OpenRouter by default; override with MODEL. Reads
 // OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script loads
 // .env via --env-file-if-exists, so the same key the app uses just works. The
@@ -20,9 +24,9 @@
 // caption line (see PROMPT). Both reach the sidecar, and both scripts print
 // them, so you can see what the caption was based on.
 //
-// describeImage(), sidecarPath(), renderSidecar() and the colour helpers are
-// exported so describe-missing.mjs can reuse them; the CLI below runs only when
-// this file is the entry point.
+// describeImage(), sidecarPath() and the colour helpers are exported so
+// describe-missing.ts can reuse them; the CLI below runs only when this file is
+// the entry point.
 //
 // Strong vision models on OpenRouter (set MODEL to one of these) —
 // verify the exact slug + pricing at https://openrouter.ai/models (filter
@@ -51,8 +55,13 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import {
+  renderSidecar,
+  SIDECAR_EXT,
+  type Sidecar,
+} from '../src/lib/goonpacks/sidecar';
 
-const MIME = {
+const MIME: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
@@ -70,7 +79,7 @@ const JPEG_QUALITY = 80;
 // Downscale an image to a temp JPEG (long edge MAX_EDGE, quality JPEG_QUALITY)
 // and return its bytes; the caller deletes nothing — this cleans up its own temp
 // file. Uses macOS `sips` (built in), so this script is macOS-only.
-function resizedJpeg(imagePath) {
+function resizedJpeg(imagePath: string): Buffer {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
     execFileSync(
@@ -178,12 +187,15 @@ OBSERVATIONS:
 
 CAPTION: <the single caption sentence>`;
 
-// Output colours, shared with describe-missing.mjs: yellow names the picture,
+// Output colours, shared with describe-missing.ts: yellow names the picture,
 // dim carries the steps and the model's observations, green is the caption.
 // Colour only on a TTY, so piped output stays clean.
-export const yellow = (s) => (process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s);
-export const green = (s) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
-export const dim = (s) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
+export const yellow = (s: string): string =>
+  process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
+export const green = (s: string): string =>
+  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
+export const dim = (s: string): string =>
+  process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s;
 
 // How many terminal rows an inlined picture takes.
 const INLINE_HEIGHT = 30;
@@ -192,7 +204,7 @@ const INLINE_HEIGHT = 30;
 // a caption can be judged against what it describes without opening the file.
 // Returns "" anywhere else — every other terminal would print the raw escape
 // sequence as garbage — so callers skip an empty string.
-export function inlineImage(base64) {
+export function inlineImage(base64: string): string {
   if (!process.stdout.isTTY || process.env.TERM_PROGRAM !== 'iTerm.app') {
     return '';
   }
@@ -201,46 +213,35 @@ export function inlineImage(base64) {
 
 // The sidecar path for an image: <basename>.md beside it, carrying the caption
 // in frontmatter and the model's full observations as the body.
-export function sidecarPath(imagePath) {
+export function sidecarPath(imagePath: string): string {
   return join(
     dirname(imagePath),
-    `${basename(imagePath, extname(imagePath))}.md`,
+    `${basename(imagePath, extname(imagePath))}.${SIDECAR_EXT}`,
   );
 }
 
-// The sidecar's text, matching what src/lib/goonpacks/sidecar.ts parses back —
-// these are .mjs and cannot import the TypeScript module, so sidecar.test.ts is
-// what pins the shape this has to produce.
-//
-// The caption is quoted unconditionally: captions routinely contain a colon,
-// which is YAML's key separator. Empty observations are refused here rather than
-// at the two call sites, because a sidecar with no body is a sidecar that won't
-// parse — a rule about the format, which is what this function owns.
-export function renderSidecar(caption, observations) {
-  if (observations === '') {
-    throw new Error(
-      'The model returned a caption with no observations — the sidecar needs both.',
-    );
-  }
-  // Backslash first, or escaping the quotes would then escape their backslashes.
-  const quoted = `"${caption.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-  return `---\ncaption: ${quoted}\n---\n\n${observations}\n`;
-}
-
-// Describe one image with the vision model. Returns `{ caption, observations }`
-// — the two texts a sidecar carries, the one-line caption and everything the
-// model said before it (`""` if it skipped that step, which renderSidecar
-// refuses). Throws on any failure (unsupported type, missing key, API error,
-// empty or unusable reply) so callers can decide how to report it.
+// Describe one image with the vision model. Returns the two texts a sidecar
+// carries — the one-line caption and everything the model said before it — so
+// callers hand the result straight to renderSidecar. A reply missing either one
+// throws rather than returning half a sidecar: a sidecar with an empty body is
+// one parseSidecar won't read back. Throws on every other failure too
+// (unsupported type, missing key, API error, unusable reply), so callers can
+// decide how to report it.
 //
 // The stages are slow enough to be worth narrating, so callers pass `onStep` (a
 // short label as each begins) and `onImage` (the downscaled JPEG as base64, the
 // moment it exists) — the picture the model is about to see, not the original,
 // which is the one worth putting on screen next to what it says about it.
 export async function describeImage(
-  imagePath,
-  { onStep = () => {}, onImage = () => {} } = {},
-) {
+  imagePath: string,
+  {
+    onStep = () => {},
+    onImage = () => {},
+  }: {
+    onStep?: (step: string) => void;
+    onImage?: (base64: string) => void;
+  } = {},
+): Promise<Sidecar> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {
     throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
@@ -302,25 +303,27 @@ export async function describeImage(
   }
 
   // Split the two-step reply. The last CAPTION: line wins (the model sometimes
-  // echoes the format template first); everything before it is the scratch
-  // observations. A model that ignored the format still gets read — its last
-  // non-empty line is the caption, since the caption comes last either way.
+  // echoes the format template first); everything before it is the observations.
+  // A model that ignored the format still gets read — its last non-empty line is
+  // the caption, since the caption comes last either way.
   const reply = raw.trim();
   const marked = [...reply.matchAll(/^[ \t]*CAPTION:[ \t]*(.+)$/gim)];
-  let caption;
-  let observations;
-  if (marked.length > 0) {
-    const last = marked[marked.length - 1];
-    caption = last[1];
-    observations = reply
+  const last = marked[marked.length - 1];
+  let caption: string;
+  let description: string;
+  if (last !== undefined) {
+    caption = last[1] ?? '';
+    description = reply
       .slice(0, last.index)
       .replace(/^\s*OBSERVATIONS:[ \t]*/i, '')
       .trim();
   } else {
-    const lines = reply.split('\n').map((l) => l.trim());
-    const nonEmpty = lines.filter((l) => l !== '');
-    caption = nonEmpty[nonEmpty.length - 1];
-    observations = nonEmpty.slice(0, -1).join('\n');
+    const nonEmpty = reply
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l !== '');
+    caption = nonEmpty[nonEmpty.length - 1] ?? '';
+    description = nonEmpty.slice(0, -1).join('\n');
   }
 
   // Collapse to one line and strip any wrapping quotes the model may add.
@@ -332,15 +335,20 @@ export async function describeImage(
   if (caption === '') {
     throw new Error(`No caption could be read from the reply:\n${reply}`);
   }
+  if (description === '') {
+    throw new Error(
+      'The model returned a caption with no observations — the sidecar needs both.',
+    );
+  }
 
-  return { caption, observations };
+  return { caption, description };
 }
 
 // CLI: describe one image and write its sidecar. Runs only when invoked
-// directly (not when imported by describe-missing.mjs). This is the
+// directly (not when imported by describe-missing.ts). This is the
 // one-picture inspection tool, so it prints the model's observations alongside
 // the caption — that's how you tell a better prompt from a luckier one.
-async function main() {
+async function main(): Promise<void> {
   const imagePath = process.argv[2];
   if (imagePath === undefined || imagePath === '') {
     console.error('Usage: npm run goonpack:describe <path-to-image>');
@@ -351,15 +359,15 @@ async function main() {
     // Held back rather than printed as it arrives: the picture reads best under
     // the caption, as the thing you check the words against.
     let picture = '';
-    const { caption, observations } = await describeImage(imagePath, {
+    const described = await describeImage(imagePath, {
       onStep: (s) => console.log(dim(s)),
       onImage: (b64) => {
         picture = inlineImage(b64);
       },
     });
-    writeFileSync(sidecarPath(imagePath), renderSidecar(caption, observations));
-    console.log(dim(observations));
-    console.log(green(caption));
+    writeFileSync(sidecarPath(imagePath), renderSidecar(described));
+    console.log(dim(described.description));
+    console.log(green(described.caption));
     if (picture !== '') console.log(picture);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));

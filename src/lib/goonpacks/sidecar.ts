@@ -60,9 +60,10 @@ export function parseSidecar(text: string): Sidecar {
   return { caption: caption.trim(), description };
 }
 
-// `lineWidth: 0` keeps a caption on one line however long it runs. A folded
-// caption still parses back, but the scripts that write sidecars emit one line,
-// and a sidecar should read the same whichever wrote it.
+// The one writer of the format, used by the describing scripts. `lineWidth: 0`
+// keeps a caption on one line however long it runs: a folded caption still
+// parses back, but a hand-written sidecar has it on one line and the two should
+// read the same.
 export function renderSidecar(s: Sidecar): string {
   const front = stringifyYaml({ caption: s.caption }, { lineWidth: 0 });
   return `---\n${front}---\n\n${s.description}\n`;
