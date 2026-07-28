@@ -67,7 +67,6 @@ export function searchMedia(
   items: readonly CompanionMedia[],
   query: string,
   opts: {
-    limit?: number;
     exclude?: ReadonlySet<string>;
     // Narrows the candidates before scoring, so a companion asking for a video
     // gets the best matching video rather than the best match that happens to
@@ -77,7 +76,6 @@ export function searchMedia(
 ): MediaHit[] {
   const wanted = new Set(terms(query));
   if (wanted.size === 0) return [];
-  const limit = opts.limit ?? SEARCH_LIMIT;
 
   const scored: { item: CompanionMedia; score: number }[] = [];
   for (const item of items) {
@@ -99,7 +97,7 @@ export function searchMedia(
     (a, b) => b.score - a.score || a.item.ref.localeCompare(b.item.ref),
   );
 
-  return scored.slice(0, limit).map(({ item }) => ({
+  return scored.slice(0, SEARCH_LIMIT).map(({ item }) => ({
     ref: item.ref,
     caption: item.caption,
     kind: item.kind,

@@ -51,7 +51,7 @@ import {
   isSilentAssistantTurn,
   sameLocalDay,
 } from '@/lib/companions/conversation';
-import { SEARCH_LIMIT, searchMedia } from '@/lib/companions/media-search';
+import { searchMedia } from '@/lib/companions/media-search';
 import {
   countHits,
   describeHits,
@@ -369,7 +369,6 @@ export function CompanionsPanel({
                       ? 'video'
                       : undefined;
                 const found = searchMedia(items, query, {
-                  limit: SEARCH_LIMIT,
                   exclude: sentRefs.current,
                   kind,
                 });

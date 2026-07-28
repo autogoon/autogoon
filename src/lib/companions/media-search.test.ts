@@ -3,7 +3,7 @@
 // send-media's.
 import { describe, expect, it } from '@jest/globals';
 import type { CompanionMedia } from './companions';
-import { searchMedia } from './media-search';
+import { SEARCH_LIMIT, searchMedia } from './media-search';
 
 const item = (
   ref: string,
@@ -62,8 +62,11 @@ describe('searchMedia', () => {
     expect(searchMedia(SET, 'beach')).toHaveLength(2);
   });
 
-  it('returns at most the limit it was given', () => {
-    expect(searchMedia(SET, 'woman', { limit: 2 })).toHaveLength(2);
+  it('hands back at most SEARCH_LIMIT matches however many the set holds', () => {
+    const many = Array.from({ length: SEARCH_LIMIT + 5 }, (_, n) =>
+      item(`x${n}`, 'A woman on a beach.'),
+    );
+    expect(searchMedia(many, 'beach')).toHaveLength(SEARCH_LIMIT);
   });
 
   it('orders equally-scoring items the same way every time', () => {
