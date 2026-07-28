@@ -2,12 +2,32 @@
 
 ## 2026-07-28
 
+- enhancement: **Two texts for every picture, and a summary of the set** — Each
+  picture or video in a pack now has a `.md` file beside it instead of a `.txt`,
+  holding the one-line caption in frontmatter and a fuller description of the
+  shot as the body. `npm run goonpack:describe` writes both: it was already
+  asking the model to look the picture over before condensing to the caption,
+  and then throwing that part away, so a better caption can now be rewritten
+  from text already on disk rather than by going over every image again. A pack
+  that carries media also carries a `mediaSummary` — what the set holds and the
+  words its captions use for it — written by the new
+  `npm run goonpack:summarise`, so a companion can tell what's worth offering
+  without being handed a list of everything. A picture with no sidecar yet still
+  works and the build still says how many are left; a sidecar that is there but
+  can't be read is refused, naming the file.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- enhancement: **Build or summarise one pack instead of all of them** — Both
+  `npm run goonpack:build` and `npm run goonpack:summarise` now take a pack
+  directory, so a change to one pack doesn't mean waiting for every other.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - enhancement: **A built pack is the directory you built it from** —
   `npm run goonpack:build` now zips every file in the pack source, compressed
   the way a zip tool would compress it, so building a pack and zipping the
   folder yourself produce the same archive. It also says which media files still
-  have no caption instead of building silently over them, naming the first few
-  and counting the rest — a caption is still optional, and the pack still
+  have no sidecar instead of building silently over them, naming the first few
+  and counting the rest — a sidecar is still optional, and the pack still
   builds. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **The install marker moved out of the pack** — The file marking an

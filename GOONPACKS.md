@@ -47,7 +47,7 @@ the zip root, not inside a folder):
 
     manifest.json       who they are — every field explained below
     system-prompt.md    their persona (complete packs; optional on overlays)
-    media/              optional. Their pictures and videos, with a caption file each
+    media/              optional. Their pictures and videos, with a .md sidecar each
 
 For a complete worked example, see [`goonpacks/elise/`](./goonpacks/elise/) —
 Elise, the app's former built-in companion, as a complete pack: a real manifest
@@ -99,6 +99,16 @@ separated by commas:
   it — counts, or that it has none: the app works that out from the pack itself
   and shows it beside this line, so anything hand-written there is a second
   answer waiting to go stale.
+
+### A pack with media also needs
+
+- **`mediaSummary`** — what the media set holds, in one block of text: the sorts
+  of picture in it, roughly in what proportion, and the words the captions use
+  for them. Your companion is given this rather than a list of every item, so
+  they can tell what's worth offering, and ask for a picture in words the
+  captions actually use. A pack that carries media needs one — write it with
+  `npm run goonpack:summarise`, which builds it from the pack's own sidecars,
+  and run that again whenever the set changes so it doesn't drift.
 
 ### The companion section — their fields
 
@@ -242,10 +252,33 @@ The companion's pictures and videos, directly in `media/` (no subfolders).
   unreliably everywhere else, so a `.mov` pack would work on your machine and
   not on someone else's. Re-encode it as MP4.
 
-Beside each one goes a `.txt` file with the same name (`beach.jpg` →
-`beach.txt`) holding a one-line caption — they read the captions to choose what
-fits the moment, so a good caption says what's actually in the shot. Something
-without a caption still works; they just know nothing about it.
+Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
+`beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
+and a longer description of the shot as the body under it.
+
+```markdown
+---
+caption: 'A woman on a beach at sunset, facing away from the camera.'
+---
+
+She stands at the waterline in a white summer dress, the hem wet. Behind her the
+sun is low and the light is warm.
+```
+
+They read the **caption** to choose what fits the moment, so a good caption says
+what's actually in the shot. The **description** is the fuller account behind
+it; nothing shows it to you, and it's what a better caption gets rewritten from
+later without going back over every picture.
+
+`npm run goonpack:describe` writes both, so there's rarely a reason to type one
+by hand — see [Building the zip](#building-the-zip). A picture with no sidecar
+yet still works: the companion simply knows nothing about it, and the build says
+how many are left. A sidecar that _is_ there has to be readable, though — one
+with no caption, an empty body, or a misspelt field is refused, naming the file,
+because that's a description that went wrong rather than one not written yet.
+
+A sidecar with no picture or video beside it is refused too: it means a rename
+took one and left the other.
 
 Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
 conversation refers to them by name, so one name means one thing.
@@ -260,10 +293,16 @@ Any zip tool works — zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` zips every
 pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
 first with the app's own import checks — a pack that builds is a pack that
-imports. Two helper scripts caption **pictures** for you using your configured
-LLM: `npm run goonpack:describe-missing` (every picture lacking a `.txt`) and
-`npm run goonpack:describe <path-to-image>` (one picture). Videos are left alone
-— write their captions by hand.
+imports. Name one to build just that pack:
+`npm run goonpack:build goonpacks/aimee`.
+
+Three helper scripts do the writing for you using your configured LLM. Two
+describe **pictures**: `npm run goonpack:describe-missing` (every picture with
+no sidecar yet) and `npm run goonpack:describe <path-to-image>` (one picture).
+Videos are left alone — write their sidecars by hand. The third,
+`npm run goonpack:summarise`, writes the `mediaSummary` from the sidecars a pack
+already has; name a pack directory to do just that one. Run it again whenever
+you add media, so the summary keeps up with the set.
 
 ## Importing and versions
 
