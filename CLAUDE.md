@@ -3,6 +3,26 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+## Talking to me
+
+Replies in this conversation are held to → Writing style, like any other
+sentence written here. Two things on top of it:
+
+- **Precise, concise, technical.** An assertion carries its evidence: a file and
+  line, a command's output, a measurement. Cut anything that is not information
+  — flourish, a sentence restating the one before it, a summary of something
+  short enough to quote.
+- **Anything proposed comes in four parts**, in this order:
+
+  - the problem;
+  - the current situation, with the evidence for it;
+  - the proposed change, or the options with what each costs;
+  - the resulting text, quoted in full.
+
+  Quote verbatim in the reply itself. A description of a change cannot be judged
+  against the change, and `sed` or `cat` output in a tool call is not reliably
+  shown to you.
+
 ## Commands
 
 - `npm run dev` — Next dev server on http://localhost:8931 (bound to `0.0.0.0`).
@@ -227,9 +247,10 @@ invariants, the why, and the cross-file shape. Concretely:
 ## Writing style
 
 How a sentence is written, wherever it sits: `*.md`, a code comment, a skill, a
-commit message. Whether the sentence is _true_ belongs to → Documentation and
-the checks that read against code; a sentence can be accurate and still break
-every rule here. `/style-check` is the one that reads for these.
+commit message, a reply in this conversation. Whether the sentence is _true_
+belongs to → Documentation and the checks that read against code; a sentence can
+be accurate and still break every rule here. `/style-check` is the one that
+reads for these.
 
 - **Documentation is precise.** It is instruction and reference, not prose —
   writing it as prose is what produces padding and hedging. Name the mechanism
