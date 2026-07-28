@@ -265,7 +265,9 @@ describe('Player transport', () => {
     const { player, valveCalls } = playingPlayer();
     manualStroke(player, 'minus', 4_000);
     await jest.advanceTimersByTimeAsync(200);
-    player.forward();
+    // Anywhere past the pending close at 4000 will do — what matters is that
+    // the cursor lands beyond it, not how far the jump went.
+    player.seekTo(60_000);
     await jest.advanceTimersByTimeAsync(5_000);
     // The release fires at the jump. The pending manual close at 4000 stays in
     // the program — cancelPendingManual() only scans past the cursor and this

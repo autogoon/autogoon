@@ -6,7 +6,6 @@
 
 import type { VacuglideDevice } from '@/lib/vacuglide-device';
 import {
-  JUMP_MS,
   LOOKAHEAD_MS,
   MAX_RATE,
   MIN_RATE,
@@ -151,12 +150,6 @@ export class Player {
     this.ensureLookahead();
     this.state = 'armed';
     this.notify();
-  }
-
-  // Re-arm the current source from scratch (fresh program at position 0). The
-  // hook layer also restores its knobs to defaults; this handles the program.
-  reset(): void {
-    this.arm(this.source);
   }
 
   play(): void {
@@ -350,15 +343,7 @@ export class Player {
     }
   }
 
-  // ---- Transport (generic; a panel chooses whether to surface each) ----
-
-  forward(): void {
-    this.seek(this.clock + JUMP_MS);
-  }
-
-  back(): void {
-    this.seek(Math.max(0, this.clock - JUMP_MS));
-  }
+  // ---- Transport ----
 
   // Jump the clock to an absolute program-time — an play-mode-specific transport
   // (e.g. Goon's "finish" jumping to the end of its build). Clamped to >= 0; the
