@@ -1,18 +1,23 @@
-// The send_media tool's decisions, split from the panel that declares it: the
-// numbered list the model chooses from, which item a choice means, and when to
-// refuse the call. The panel keeps the tool's schema and the one side effect —
-// putting the item on his screen.
+// The two media tools' decisions, split from the panel that declares them: how
+// a search result reads to the model, which item a ref means, and when to
+// refuse. The panel keeps the tools' schemas and the one side effect — putting
+// the item on his screen.
 import type { CompanionMedia } from './companions';
+import type { MediaSearchResult } from './media-search';
 import type { ToolRunResult } from './tools';
 
-const nameKind = (m: CompanionMedia): string =>
+const nameKind = (m: { kind: CompanionMedia['kind'] }): string =>
   m.kind === 'video' ? 'video' : 'picture';
 
-// What the model reads to choose, one line per item. The numbering is 1-based
-// and is the one pickMedia counts in — they live together so they cannot drift.
-export function describeMediaList(items: readonly CompanionMedia[]): string {
-  return items
-    .map((m, i) => `${i + 1} — (${nameKind(m)}) ${m.caption}`)
+// A search result as the model reads it: one line per hit, each opening with
+// the ref that sends it. Nothing matching is an answer in itself — far better
+// than them announcing a picture that never came.
+export function describeHits(result: MediaSearchResult): string {
+  if (result.hits.length === 0) {
+    return 'Nothing in your pictures or videos matches that — try describing something else.';
+  }
+  return result.hits
+    .map((h) => `${h.ref} — (${nameKind(h)}) ${h.caption}`)
     .join('\n');
 }
 
@@ -21,38 +26,32 @@ export function describeMediaList(items: readonly CompanionMedia[]): string {
 export type MediaPick =
   { show: CompanionMedia; sent: ToolRunResult } | { show: null; sent: string };
 
-// `items` is the companion's media, in the order describeMediaList numbered.
-// The panel only offers the tool when there is some, so there is always an item
-// to land on.
+// `items` is the companion's whole set; the ref came from a search over it. A
+// ref that doesn't resolve is refused rather than clamped to something: with an
+// index a wrong number still meant a picture, so standing one in was the kinder
+// failure. A ref is either theirs or invented.
 export function pickMedia(
   items: readonly CompanionMedia[],
   args: Record<string, unknown>,
 ): MediaPick {
-  const n = args.which;
-  // A number outside the list is a real choice badly expressed, so it clamps.
-  // Something that isn't a number carries no choice at all, and the first item
-  // stands in rather than the call failing.
-  const idx =
-    typeof n === 'number' && Number.isFinite(n)
-      ? Math.min(Math.max(Math.round(n), 1), items.length) - 1
-      : 0;
-  const item = items[idx]!;
-  const named = nameKind(item);
-  // `kind` is a stated intent, not a filter — the list is one numbering over
-  // everything. Refusing a mismatch turns a misread number into a correction
-  // the companion can act on, rather than the wrong thing arriving on his
-  // screen.
-  const wanted = args.kind;
-  if (typeof wanted === 'string' && wanted !== named) {
+  const ref = args.ref;
+  if (typeof ref !== 'string' || ref === '') {
     return {
       show: null,
-      sent: `number ${idx + 1} is a ${named}, not a ${wanted} — check the list and pick again`,
+      sent: 'No ref was given — call search_media first and send one of the refs it returns.',
+    };
+  }
+  const item = items.find((m) => m.ref === ref);
+  if (item === undefined) {
+    return {
+      show: null,
+      sent: `${ref} isn't one of yours — call search_media and send one of the refs it returns.`,
     };
   }
   return {
     show: item,
     sent: {
-      result: `Sent him the ${named}: ${item.caption}`,
+      result: `Sent him the ${nameKind(item)}: ${item.caption}`,
       mediaRef: item.ref,
     },
   };
