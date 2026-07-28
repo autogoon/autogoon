@@ -283,9 +283,9 @@
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
 - enhancement: **The message box shimmers while you speak** — The same shimmer
-  that marks the message she's saying aloud now rings the message box while
-  she's listening to you, so both halves of the conversation show whose turn is
-  live in the same way. It appears the moment you start talking, not when the
+  that marks the message they're saying aloud now rings the message box while
+  they're listening to you, so both halves of the conversation show whose turn
+  is live in the same way. It appears the moment you start talking, not when the
   transcript catches up.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
@@ -296,19 +296,19 @@
   or you've actually stopped.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- enhancement: **Quicker to interrupt her** — The app no longer drops the speech
-  connection a few seconds after you stop talking, so interrupting her shortly
-  after she starts replying doesn't wait for a new connection to be set up
-  first. Your microphone audio is only sent while you're actually saying
+- enhancement: **Quicker to interrupt a companion** — The app no longer drops
+  the speech connection a few seconds after you stop talking, so interrupting
+  them shortly after they start replying doesn't wait for a new connection to be
+  set up first. Your microphone audio is only sent while you're actually saying
   something, so holding the line open costs nothing. The transcription service
   still closes an unused connection after a while of its own accord, so a very
   late interruption reconnects as before.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- enhancement: **The message she's speaking shimmers** — Instead of a separate
-  "Loading voice" and "Speaking" row in the conversation, her message itself now
-  carries a slow shimmer around its edge: faint and unhurried while her voice
-  loads, brighter and quicker once she's actually saying the words. The message
+- enhancement: **The message being spoken shimmers** — Instead of a separate
+  "Loading voice" and "Speaking" row in the conversation, the message itself now
+  carries a slow shimmer around its edge: faint and unhurried while the voice
+  loads, brighter and quicker once the words are being said. The message
   being spoken is the thing you're reading, so it's the thing that's marked.
   Listening, Thinking and Replying keep their own row — there's no message on
   screen yet for those. Over an open picture, the corner badge still names every
@@ -318,8 +318,8 @@
 - enhancement: **Companions reply faster** — Every companion's model now routes
   by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
   load balancing, which had been spreading requests across providers regardless
-  of speed. Her reply is spoken, so the wait before she starts talking is what
-  the conversation actually feels like.
+  of speed. A companion's reply is spoken, so the wait before they start talking
+  is what the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
 
 - bug: **A companion won't start the toy on you** — Starting it now needs your
@@ -352,8 +352,8 @@
   came back, by which point you had usually stopped. A transcript is now
   believed on the evidence of the speech that produced it — how long you were
   audible for, or simply carrying more than one word — so it shows up as you
-  talk. Interrupting her works on short interjections too, which previously
-  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+  talk. Interrupting a companion works on short interjections too, which
+  previously couldn't cut them off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - internal: **The request is shaped so it can be cached** — The clock and the
   toy's status now ride their own system message at the end of each LLM
@@ -403,7 +403,7 @@
   colour of one you have. A Goonpacks tab (say `packs`) manages the library —
   import with a confirm step, see what every pack brings, remove per version —
   and versions of a pack install side by side. Companion cards gain pack
-  pickers: her version and an overlay, newest first and remembered per
+  pickers: their version and an overlay, newest first and remembered per
   companion. Every load re-checks stored packs against the current rules; one
   that fails lists as incompatible with plain-English reasons instead of
   half-working. Packs cache in browser storage with your zip as the source of
@@ -411,8 +411,8 @@
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 - enhancement: **Better picture captions** — The captioning scripts now have the
-  vision model observe a picture out loud — what her weight is on, where the
-  knees and heels are, how each garment sits — before condensing that into the
+  vision model observe a picture out loud — where the weight is, where the knees
+  and heels are, how each garment sits — before condensing that into the
   one-line caption, with explicit tests for the poses models confuse (sitting
   versus kneeling versus squatting), and a check that stops a close-fitting
   opaque garment being read as see-through. Both `npm run goonpack:describe` and
@@ -420,7 +420,7 @@
   and (in iTerm2) show the picture itself under its caption at the size the
   model saw it — so you can watch a run go past and judge each caption against
   what it describes. The caption itself now has to carry the setting, the
-  garments, her hair and what's actually on show — down to what's only faintly
+  garments, the hair and what's actually on show — down to what's only faintly
   visible, stated as precisely as the model saw it — and leaves mood out. The
   `DESCRIBE_MODEL` environment variable is now just `MODEL`.
   ([#20](https://github.com/autogoon/autogoon/pull/20))
@@ -448,7 +448,7 @@
 
 - enhancement: **Live voice-stage indicators** — The conversation now shows
   what's happening as it happens: you speaking, the companion thinking, the
-  reply streaming in, her voice loading, and her speaking. In the chat it's a
+  reply streaming in, their voice loading, and them speaking. In the chat it's a
   typing-indicator-style bubble on the talker's side; over an open picture it's
   a chunky badge in the lightbox's top corner. Icons pulse, the words shimmer,
   and both disappear when nothing is going on.
@@ -518,8 +518,9 @@
 ## 2026-07-23
 
 - feature: **Companions notice time passing** — A companion now knows the real
-  date and time on every turn, and when you step away — an hour, overnight — she
-  comes back aware of how long you were gone instead of resuming mid-sentence.
+  date and time on every turn, and when you step away — an hour, overnight —
+  they come back aware of how long you were gone instead of resuming
+  mid-sentence.
   The conversation shows each message's time and a date line where a new day
   starts. Conversations saved before this update have no times on their older
   messages. ([#17](https://github.com/autogoon/autogoon/pull/17))
@@ -553,8 +554,8 @@
   ([#17](https://github.com/autogoon/autogoon/pull/17))
 
 - internal: **Caption images with their colours** — `npm run describe` now asks
-  the vision model for the specific colours of what she's wearing, so a caption
-  is precise enough to pick by when you ask for a particular outfit.
+  the vision model for the specific colours of the clothing in the picture, so a
+  caption is precise enough to pick by when you ask for a particular outfit.
   ([#16](https://github.com/autogoon/autogoon/pull/16))
 
 - internal: **Keep Claude session links out of commits** — Project settings now
@@ -593,8 +594,8 @@
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 - feature: **Companions can send you pictures** — During play, a companion with
-  pictures can send you a photo of herself, choosing one that fits the moment —
-  ask her for a particular pose and she'll pick accordingly. It opens filling
+  pictures can send you a photo of themselves, choosing one that fits the moment
+  — ask for a particular pose and they'll pick accordingly. It opens filling
   the screen in a lightbox (tap the backdrop, ✕ or Escape to close), and stays
   in your conversation as a thumbnail you can tap to reopen; send another while
   the lightbox is open and it swaps to the newest.
@@ -603,7 +604,8 @@
 - enhancement: **Companions run a Groove program** — The companion now drives a
   smooth Groove-style program (the same dip pattern the Groove and Goon
   algorithms use) instead of the old Autopilot-style one, and you steer it
-  through two controls she can also turn herself: Intensity (how hard and fast,
+  through two controls they can also turn themselves: Intensity (how hard and
+  fast,
   0–100%) and Variety (how much it teases and mixes up the pace). The old edge
   and vacuum controls are gone.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
