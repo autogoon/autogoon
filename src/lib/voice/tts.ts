@@ -1,12 +1,11 @@
-// TTS playback for Companions: POST the reply text to the /api/tts proxy
-// (Task 7), which streams back mp3, and play it through a shared <audio>
-// element. Barge-in is the point here — stop() must cut mid-sentence with no
-// audible tail — so the abort signal pauses and resets the element instantly
-// and cancels the fetch. Where the browser supports mp3 in Media Source
-// Extensions we feed chunks into a SourceBuffer for progressive playback;
-// otherwise we buffer the whole (short, fixed) reply into a Blob URL, which
-// still stops instantly on pause(). Integration code — no unit test (needs
-// real audio playback); verified in the Task 13 acceptance run.
+// TTS playback for Companions: POST the reply text to the /api/tts proxy, which
+// streams back mp3, and play it through a shared <audio> element. Barge-in is
+// the point here — stop() must cut mid-sentence with no audible tail — so the
+// abort signal pauses and resets the element instantly and cancels the fetch.
+// Where the browser supports mp3 in Media Source Extensions we feed chunks into
+// a SourceBuffer for progressive playback; otherwise we buffer the whole
+// (short, fixed) reply into a Blob URL, which still stops instantly on pause().
+// Integration code — no unit test (needs real audio playback).
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type TtsPlayer = {
