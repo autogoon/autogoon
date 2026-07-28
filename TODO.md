@@ -5,6 +5,11 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 ## General
 
+- **Don't connect to the microphone on load.** Particularly annoying during
+  development, where the app sits open and listening for keywords without being
+  used. It buys little when playing either — turning listening on is one click,
+  once.
+
 - **Stop the program when the device disconnects.** A device that drops mid-run
   leaves the Player ticking against nothing. The speed send throws,
   `scheduleNextTick` reports the failure and schedules the next tick anyway, and
