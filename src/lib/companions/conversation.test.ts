@@ -196,6 +196,27 @@ describe('tool turns', () => {
     expect('mediaRef' in without[0]!).toBe(false);
   });
 
+  it('appendTool stores display only when given', () => {
+    const [turn] = appendTool(
+      [],
+      'search_media',
+      'ref-a — (picture) one',
+      'call_1',
+      undefined,
+      '1 match',
+    );
+    expect(turn).toEqual({
+      role: 'tool',
+      name: 'search_media',
+      result: 'ref-a — (picture) one',
+      toolCallId: 'call_1',
+      display: '1 match',
+    });
+    expect('display' in appendTool([], 'start', 'started', 'call_1')[0]!).toBe(
+      false,
+    );
+  });
+
   it('appendAssistant carries toolCalls only when provided', () => {
     const calls = [{ id: 'call_1', name: 'start', arguments: '{}' }];
     const withCalls = appendAssistant([], '', undefined, calls);
@@ -240,6 +261,26 @@ describe('tool turns', () => {
     ]);
   });
 
+  it('toLlmMessages sends a tool turn in full, never the shorter display text', () => {
+    const thread: Thread = [
+      {
+        role: 'tool',
+        name: 'search_media',
+        result: 'ref-a — (picture) one\nref-b — (picture) two',
+        toolCallId: 'call_1',
+        display: '2 matches',
+      },
+    ];
+    expect(toLlmMessages(thread, 'SYS', true)).toEqual([
+      { role: 'system', content: 'SYS' },
+      {
+        role: 'tool',
+        content: 'ref-a — (picture) one\nref-b — (picture) two',
+        toolCallId: 'call_1',
+      },
+    ]);
+  });
+
   it('serialize/parse round-trips the agentic sequence', () => {
     const calls = [{ id: 'call_1', name: 'start', arguments: '{}' }];
     const thread: Thread = [
@@ -263,6 +304,19 @@ describe('tool turns', () => {
     expect(parse(serialize(thread))).toEqual(thread);
   });
 
+  it("serialize/parse round-trips a tool turn's display text", () => {
+    const thread: Thread = [
+      {
+        role: 'tool',
+        name: 'search_media',
+        result: 'ref-a — (picture) one\nref-b — (picture) two',
+        toolCallId: 'call_1',
+        display: '2 matches',
+      },
+    ];
+    expect(parse(serialize(thread))).toEqual(thread);
+  });
+
   it('parse rejects a tool turn missing name, result, or toolCallId', () => {
     expect(
       parse('[{"role":"tool","name":"start","result":"started"}]'),
@@ -279,6 +333,14 @@ describe('tool turns', () => {
     expect(
       parse(
         '[{"role":"tool","name":"send_media","result":"sent","toolCallId":"c1","mediaRef":7}]',
+      ),
+    ).toEqual([]);
+  });
+
+  it("parse rejects a tool turn whose display isn't a string", () => {
+    expect(
+      parse(
+        '[{"role":"tool","name":"search_media","result":"a\\nb","toolCallId":"c1","display":7}]',
       ),
     ).toEqual([]);
   });
@@ -314,7 +376,9 @@ describe('turn timestamps', () => {
   });
 
   it('appendTool stamps `at` only when given', () => {
-    expect(appendTool([], 'start', 'started', 'c1', undefined, 3000)).toEqual([
+    expect(
+      appendTool([], 'start', 'started', 'c1', undefined, undefined, 3000),
+    ).toEqual([
       {
         role: 'tool',
         name: 'start',

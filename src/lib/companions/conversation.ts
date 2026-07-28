@@ -22,19 +22,22 @@ export type ThreadTurn =
       at?: number;
     }
   // A tool result, linked to the assistant tool-call turn before it by
-  // toolCallId. name is display-only (the transcript chip); result is both the
-  // chip text and what we feed back to the model. These ARE replayed to the LLM
-  // (see toLlmMessages) so the companion sees their own prior tool use.
-  // mediaRef is set only for a media-sending tool (send_media): it's the
-  // still or video the transcript renders inline and the lightbox opens. It's
-  // display-only — never sent to the model (only `result` is) — and persists
-  // with the thread, so sent media stays in the log across a reload.
+  // toolCallId. name is display-only (the transcript chip); result is what we
+  // feed back to the model, and the chip text too unless display says
+  // otherwise. These ARE replayed to the LLM (see toLlmMessages) so the
+  // companion sees their own prior tool use. mediaRef is set only for a
+  // media-sending tool (send_media): it's the still or video the transcript
+  // renders inline and the lightbox opens. display is set only where the
+  // result is too long to read on screen (search_media's every match). Both are
+  // display-only — never sent to the model (only `result` is) — and persist
+  // with the thread, so the log reads the same across a reload.
   | {
       role: 'tool';
       name: string;
       result: string;
       toolCallId: string;
       mediaRef?: string;
+      display?: string;
       at?: number;
     };
 
@@ -59,6 +62,7 @@ export function appendTool(
   result: string,
   toolCallId: string,
   mediaRef?: string,
+  display?: string,
   at?: number,
 ): Thread {
   return [
@@ -69,6 +73,7 @@ export function appendTool(
       result,
       toolCallId,
       ...(mediaRef !== undefined ? { mediaRef } : {}),
+      ...(display !== undefined ? { display } : {}),
       ...(at !== undefined ? { at } : {}),
     },
   ];
@@ -260,12 +265,16 @@ export function parse(raw: string | null): Thread {
       if (turn.mediaRef !== undefined && typeof turn.mediaRef !== 'string') {
         return [];
       }
+      if (turn.display !== undefined && typeof turn.display !== 'string') {
+        return [];
+      }
       out.push({
         role: 'tool',
         name: turn.name,
         result: turn.result,
         toolCallId: turn.toolCallId,
         ...(turn.mediaRef !== undefined ? { mediaRef: turn.mediaRef } : {}),
+        ...(turn.display !== undefined ? { display: turn.display } : {}),
         ...(at !== undefined ? { at } : {}),
       });
     } else {

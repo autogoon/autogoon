@@ -8,8 +8,14 @@ import type { RequestTool, ToolParameterSchema } from '@/lib/llm/client';
 // text logged + fed back to the model). The object form lets a tool also attach
 // a still or video to the transcript turn (send_media): `result` is the
 // model-facing text, `mediaRef` the stable reference the transcript renders and
-// the lightbox opens.
-export type ToolRunResult = { result: string; mediaRef?: string };
+// the lightbox opens. `display` stands in for `result` on screen where the two
+// want to differ — search_media's result is every match it found, which the
+// model must read in full and a reader only wants the size of.
+export type ToolRunResult = {
+  result: string;
+  mediaRef?: string;
+  display?: string;
+};
 
 export type CompanionTool = {
   name: string; // the model-facing tool name, e.g. "start" | "stop" | "intensity"
