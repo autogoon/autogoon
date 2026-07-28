@@ -171,13 +171,25 @@ invariants, the why, and the cross-file shape. Concretely:
 - If a sentence goes stale when someone renames a field or adds an entry, it's
   implementation detail — replace it with a pointer.
 - Current-state docs describe **only what's implemented**. Future work lives in
-  [TODO.md](./TODO.md) (defined work), [BUG.md](./BUG.md) (known-wrong behaviour
-  whose approach isn't settled — a fixable defect is fixed instead),
-  [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` (direction, one file per
-  thread), or a dated plan or spec under `docs/` — nowhere else; a pointer to
-  those files is fine, describing the future in place is not. Program-time
-  "future events" and experiential copy ("you never know what's coming") are not
-  future work.
+  one of these, and nowhere else:
+
+  - [TODO.md](./TODO.md) — defined work.
+  - [BUG.md](./BUG.md) — known-wrong behaviour whose approach isn't settled; a
+    fixable defect is fixed instead.
+  - [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` — direction, one file per
+    thread.
+  - A dated plan or spec under `docs/`.
+
+  A pointer to those files is fine; describing the future in place is not.
+  Program-time "future events" and experiential copy ("you never know what's
+  coming") are not future work.
+
+  A nice way to think about it:
+
+  - ROADMAP.md says what could be, framed in how things are.
+  - TODO.md how they should be.
+  - BUG.md how they shouldn't be.
+
 - **This applies to code comments too, in both directions.** A comment says what
   the code does now — not what it replaced ("replaces the old spinners", "this
   used to…", "renamed from…"), and not what might come ("we'll add…", "for a
