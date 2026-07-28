@@ -239,31 +239,44 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
         audio: { channelCount: 1 },
       });
       mediaStreamRef.current = stream;
-      const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-      // Created without a user gesture (auto-start on load), the context can
-      // come up suspended; resume it so audio actually flows.
-      void audioContext.resume();
-      createRecognizer();
+      // getUserMedia has resolved, so the stream is live; if any of the setup
+      // below throws (addModule rejecting, createMediaStreamSource, …) we must
+      // stop the stream and close the context we opened. Otherwise the mic
+      // indicator stays lit with nothing listening, and stop() cannot reach
+      // either — toggleListening only calls it while `listening` is true, so
+      // the next start() overwrites the refs holding both.
+      let audioContext: AudioContext | undefined;
+      try {
+        audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        // Created without a user gesture (auto-start on load), the context can
+        // come up suspended; resume it so audio actually flows.
+        void audioContext.resume();
+        createRecognizer();
 
-      await audioContext.audioWorklet.addModule('/kws-audio-worklet.js');
-      const source = audioContext.createMediaStreamSource(stream);
-      const capture = new AudioWorkletNode(audioContext, 'kws-capture');
-      capture.port.onmessage = (e: MessageEvent<Float32Array>) => {
-        if (recognizerRef.current !== null && listeningRef.current) {
-          recognizerRef.current.acceptWaveformFloat(
-            e.data,
-            audioContext.sampleRate,
-          );
-        }
-      };
-      source.connect(capture);
-      // The worklet emits silence, but it must reach the destination to be
-      // pulled by the audio graph.
-      capture.connect(audioContext.destination);
+        await audioContext.audioWorklet.addModule('/kws-audio-worklet.js');
+        const ctx = audioContext;
+        const source = ctx.createMediaStreamSource(stream);
+        const capture = new AudioWorkletNode(ctx, 'kws-capture');
+        capture.port.onmessage = (e: MessageEvent<Float32Array>) => {
+          if (recognizerRef.current !== null && listeningRef.current) {
+            recognizerRef.current.acceptWaveformFloat(e.data, ctx.sampleRate);
+          }
+        };
+        source.connect(capture);
+        // The worklet emits silence, but it must reach the destination to be
+        // pulled by the audio graph.
+        capture.connect(ctx.destination);
 
-      listeningRef.current = true;
-      setListening(true);
+        listeningRef.current = true;
+        setListening(true);
+      } catch (err) {
+        stream.getTracks().forEach((t) => t.stop());
+        void audioContext?.close();
+        mediaStreamRef.current = null;
+        audioContextRef.current = null;
+        throw err;
+      }
     } finally {
       setStarting(false);
     }

@@ -43,6 +43,13 @@
   minute. A manual stroke pulse was short by the same margin.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- bug: **The microphone is handed back when listening fails to start** — If the
+  app got the microphone but couldn't bring up the rest of the listening
+  pipeline, it kept the microphone anyway: the browser's recording indicator
+  stayed lit with nothing being heard, and every retry took another one. It now
+  releases the microphone before reporting the failure.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - internal: **A thread that fails to save says so** — Writing a companion's
   conversation to browser storage can fail, most likely on a long thread passing
   the storage quota, and the error was discarded. Nothing went wrong until the
