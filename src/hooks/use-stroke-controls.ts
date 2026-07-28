@@ -48,12 +48,14 @@ export function useStrokeControls(
     [valvePlus, valveMinus, log],
   );
 
-  // Manual stroke needs a connected device — regardless of play state — and
-  // yields to a scheduled stroke: while an engine-generated stroke is holding
-  // a valve open, the manual controls are out (ruin/torture endings depend on
-  // their schedule playing out untouched). This one flag is the source of
-  // truth for both the voice words below and the Stroke buttons' enabled state.
-  const canStroke = connected && !player.strokeBusy;
+  // Manual stroke needs a connected device and a running program — the stroke
+  // valves only move the device while it is stroking, so off-play the control
+  // would send a request that changes nothing. It also yields to a scheduled
+  // stroke: while an engine-generated stroke is holding a valve open, the
+  // manual controls are out (ruin/torture endings depend on their schedule
+  // playing out untouched). This one flag is the source of truth for both the
+  // voice words below and the Stroke buttons' enabled state.
+  const canStroke = connected && player.isPlaying && !player.strokeBusy;
 
   const keywords = useMemo<Command[]>(
     () => [

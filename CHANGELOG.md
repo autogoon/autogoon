@@ -31,6 +31,12 @@
   have no sidecar instead of building silently over them, naming the first few
   and counting the rest. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- bug: **Stroke is only offered when it can do something** — The Stroke buttons
+  and the "up"/"down" words were live whenever a device was connected, but the
+  stroke valves only move the device while it is running, so using them with
+  nothing playing did nothing at all. They now stay out until a session is
+  playing. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - bug: **A session runs to the length it says** — Program time ran slow by
   however long the device took to answer each command, so a 30-minute Goon build
   took nearer 36 minutes and the preview labelled "+60s" covered longer than a
