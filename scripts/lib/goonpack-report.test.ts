@@ -1,5 +1,5 @@
-// What the build says about a pack it built anyway. Whether an uncaptioned file
-// is valid at all is parsePack's, and pack.test.ts's.
+// What the build says about a pack it built anyway. Whether a file with no
+// sidecar is valid at all is parsePack's, and pack.test.ts's.
 import { describe, it, expect } from '@jest/globals';
 import type { ParsedMedia } from '../../src/lib/goonpacks/pack';
 import { captionWarning } from './goonpack-report';
@@ -14,7 +14,7 @@ const item = (file: string, caption: string): ParsedMedia => ({
 });
 
 describe('captionWarning', () => {
-  it('reports nothing when every media file carries a caption', () => {
+  it('reports nothing when every media file carries a sidecar', () => {
     expect(
       captionWarning([item('a.jpg', 'a beach'), item('b.jpg', 'a kitchen')]),
     ).toBeNull();
@@ -24,22 +24,22 @@ describe('captionWarning', () => {
     expect(captionWarning([])).toBeNull();
   });
 
-  it('names the files with no caption, so the author knows which are left', () => {
+  it('names the files with no sidecar, so the author knows which are left', () => {
     expect(
       captionWarning([item('a.jpg', 'a beach'), item('b.jpg', '')]),
     ).toContain('b.jpg');
   });
 
-  it('counts every uncaptioned file while naming only the first few', () => {
+  it('counts every file with no sidecar while naming only the first few', () => {
     const media = ['a', 'b', 'c', 'd', 'e'].map((n) => item(`${n}.jpg`, ''));
     expect(captionWarning(media)).toBe(
-      '5 media files with no caption (a.jpg, b.jpg, c.jpg, …)',
+      '5 media files with no sidecar (a.jpg, b.jpg, c.jpg, …)',
     );
   });
 
-  it('drops the plural and the ellipsis for a single uncaptioned file', () => {
+  it('drops the plural and the ellipsis for a single file with no sidecar', () => {
     expect(captionWarning([item('a.jpg', '')])).toBe(
-      '1 media file with no caption (a.jpg)',
+      '1 media file with no sidecar (a.jpg)',
     );
   });
 });

@@ -90,16 +90,42 @@ describe('parsePack', () => {
     expect(pack.media[0]?.description).toBe('A long description.');
   });
 
-  it('refuses a media file with no sidecar rather than describing it as nothing', async () => {
+  it('leaves both texts empty for a media file not described yet, rather than refusing the pack', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+        'system-prompt.md': 'You are Testy.',
+        'media/a.jpg': '',
+      }),
+    );
+    expect(pack.media[0]).toMatchObject({ caption: '', description: '' });
+  });
+
+  it('refuses a sidecar whose body is empty, which is a description that went wrong rather than one not written yet', async () => {
     await expect(
       parsePack(
         tree({
           'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
           'system-prompt.md': 'You are Testy.',
           'media/a.jpg': '',
+          'media/a.md': '---\ncaption: "A caption."\n---\n',
         }),
       ),
-    ).rejects.toThrow(/a\.jpg/);
+    ).rejects.toThrow(/a\.md/);
+  });
+
+  it('refuses a sidecar with no media file beside it, which is half a rename', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+          'system-prompt.md': 'You are Testy.',
+          'media/a.jpg': '',
+          'media/a.md': sidecar('A caption.', 'A description.'),
+          'media/b.md': sidecar('Orphan.', 'No picture for this one.'),
+        }),
+      ),
+    ).rejects.toThrow(/b\.md/);
   });
 
   it('names the sidecar that failed to parse, not just the pack', async () => {

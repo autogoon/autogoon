@@ -172,7 +172,10 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   }
   // Sidecars are the only media-folder files ever read — a couple of kilobytes
   // of text each, never the media they describe. A sidecar that won't parse is
-  // a problem naming the sidecar, so the author knows which file to fix.
+  // a problem naming the sidecar, so the author knows which file to fix; one
+  // that isn't there yet is not, so a pack still being described keeps
+  // building. captionWarning (scripts/lib/goonpack-report.ts) is what reports
+  // those at build time.
   const sidecarStems = new Set<string>();
   for (const path of sidecarPaths) {
     const stem = splitName(path.slice(MEDIA_DIR.length)).stem;
@@ -196,16 +199,12 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       );
     }
     stems.add(m.name);
+    // Both texts stay '' where there is no sidecar — an item not described yet,
+    // which the build reports rather than refuses.
     const parsed = sidecars.get(m.name);
     if (parsed !== undefined) {
       m.caption = parsed.caption;
       m.description = parsed.description;
-    } else if (!sidecarStems.has(m.name)) {
-      // A sidecar that failed to parse already reported itself above; this is
-      // the one that isn't there at all.
-      problems.push(
-        `${m.file} has no ${m.name}.${SIDECAR_EXT} beside it — every media file needs one, holding its caption and description (npm run goonpack:describe-missing writes them).`,
-      );
     }
   }
   // A sidecar with no media file is the pairing seen from the other side: a
