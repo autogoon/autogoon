@@ -31,6 +31,12 @@
   have no sidecar instead of building silently over them, naming the first few
   and counting the rest. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- bug: **A session runs to the length it says** — Program time ran slow by
+  however long the device took to answer each command, so a 30-minute Goon build
+  took nearer 36 minutes and the preview labelled "+60s" covered longer than a
+  minute. A manual stroke pulse was short by the same margin.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - internal: **A thread that fails to save says so** — Writing a companion's
   conversation to browser storage can fail, most likely on a long thread passing
   the storage quota, and the error was discarded. Nothing went wrong until the

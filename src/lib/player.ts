@@ -47,6 +47,12 @@ export class Player {
 
   protected clock = 0;
   protected rate = 1;
+  // Wall-clock time the current tick cycle started, so the clock advances by
+  // the real time that actually passed rather than by the nominal TICK_MS: a
+  // tick awaits its device send, and setTimeout only ever fires late, so a
+  // constant increment runs program-time slow by the send latency. Set on
+  // play() (a resume must not count the paused span) and on every tick.
+  private lastTickAt = 0;
   protected events: ProgramEvent[] = [];
   protected cursor = 0; // index of the next unfired event
   // Live valve ownership, per valve: whether a manual (inserted) or scheduled
@@ -156,6 +162,7 @@ export class Player {
   play(): void {
     if (this.state === 'playing' || this.source === null) return;
     this.state = 'playing';
+    this.lastTickAt = Date.now();
     this.scheduleNextTick();
     this.notify();
   }
@@ -229,6 +236,11 @@ export class Player {
 
   private async tick(): Promise<void> {
     if (this.state !== 'playing' || this.source === null) return;
+    // Stamped before any work, so the next tick's span covers this one's
+    // duration as well as the timer wait — no real time goes unaccounted.
+    const tickStart = Date.now();
+    const elapsed = tickStart - this.lastTickAt;
+    this.lastTickAt = tickStart;
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
@@ -254,7 +266,7 @@ export class Player {
       this.lastDeviceSpeed = output;
     }
 
-    this.clock += TICK_MS * this.rate;
+    this.clock += elapsed * this.rate;
   }
 
   // Apply a due valve event, honouring stroke precedence: scheduled
