@@ -38,15 +38,15 @@ can pass this one and still be badly written.
 
 A document's class and audience decide how it is read:
 
-|                                           | class         | audience  |
-| ----------------------------------------- | ------------- | --------- |
-| README.md, MODES.md, `modes/*.md`         | current-state | user      |
-| ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md | current-state | developer |
-| GOONPACKS.md, CHANGELOG.md                | current-state | both      |
-| `.env.example`                            | current-state | developer |
-| `.claude/skills/*/SKILL.md`               | current-state | developer |
-| TODO.md, ROADMAP.md, `roadmap/*.md`       | future        | developer |
-| dated plans and specs under `docs/`       | future        | developer |
+|                                             | class         | audience  |
+| ------------------------------------------- | ------------- | --------- |
+| README.md, MODES.md, `modes/*.md`           | current-state | user      |
+| ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md   | current-state | developer |
+| GOONPACKS.md, CHANGELOG.md                  | current-state | both      |
+| `.env.example`                              | current-state | developer |
+| `.claude/skills/*/SKILL.md`                 | current-state | developer |
+| TODO.md, BUG.md, ROADMAP.md, `roadmap/*.md` | future        | developer |
+| dated plans and specs under `docs/`         | future        | developer |
 
 `.env.example`'s comments are the documented env contract.
 

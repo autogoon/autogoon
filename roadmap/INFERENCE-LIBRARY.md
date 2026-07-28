@@ -133,6 +133,10 @@ threshold rather than strict top-N. The last is also what "something at random"
 wants, so it may serve the query-less request too. Which one earns its place is
 a question for a real library; what the tool must not do is foreclose them.
 
+What none of them answers is what a search does once the exclusion has swallowed
+everything matching — which the shipped search gets wrong today, in
+[BUG.md](../BUG.md) → Companions.
+
 ### One interface, several implementations
 
 They always ask by description; what's underneath scales with the set. At fifty
