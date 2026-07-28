@@ -126,15 +126,41 @@ explicit approval for the rewrite/force-push, then finish it. Report what
 remains exposed (retained server-side objects, other clones) rather than
 claiming complete removal.
 
+## The check ends without a push
+
+**Report, then stop.** Never push, force-push or open a PR as the last step of
+this check — hand the report over and ask, naming the push you would run.
+
+**An instruction to push given _before_ the check does not carry through it.**
+"Run the checks and push", or a push asked for earlier in the session, is
+permission that predates every finding: it was given by someone who did not yet
+know what the check would turn up, or how it was performed. So it is not
+permission to push what the check has just read. Ask again afterwards, with the
+findings in front of them. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow,
+pushing is its own action and is only done when asked; this says which asking
+counts.
+
+The reason is this check's alone. Every other check can be re-run and its
+findings fixed with an ordinary commit. This one's miss becomes a history
+rewrite and a force-push the moment the branch goes up, and GitHub keeps the
+objects even then — so the minute before the push is the last cheap minute there
+is, and spending it on a question costs nothing.
+
+State what the check actually did, in the words of **Scope** — a cumulative
+`git diff main...HEAD` is not "every revision", and reporting it as one buys a
+push with a pass that was never run.
+
 ## Red flags
 
-| Thought                              | Reality                                                  |
-| ------------------------------------ | -------------------------------------------------------- |
-| "It's only in an old commit"         | History is one click away on a public repo.              |
-| "It's just my hardware/folder names" | Identifying details compound across files.               |
-| "I'll clean history later"           | Later is when someone else finds it. Same piece of work. |
-| "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                |
-| "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision. |
-| "The pictures aren't committed"      | Describing them publishes them anyway.                   |
-| "It's not in the final diff"         | A pushed branch published every commit on the way.       |
-| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.          |
+| Thought                              | Reality                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| "It's only in an old commit"         | History is one click away on a public repo.                                         |
+| "It's just my hardware/folder names" | Identifying details compound across files.                                          |
+| "I'll clean history later"           | Later is when someone else finds it. Same piece of work.                            |
+| "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                                           |
+| "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision.                            |
+| "The pictures aren't committed"      | Describing them publishes them anyway.                                              |
+| "It's not in the final diff"         | A pushed branch published every commit on the way.                                  |
+| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.                                     |
+| "They already told me to push"       | That was before the findings existed. Ask again.                                    |
+| "Close enough to every revision"     | Say which pass ran. A wrong scope reported as the right one is worse than no check. |
