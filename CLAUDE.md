@@ -241,6 +241,11 @@ every rule here. `/style-check` is the one that reads for these.
   filename. Where the target has no name, give it a heading rather than counting
   to it. (A `file:line` in a review finding is fine — it describes one moment,
   not a standing reference.)
+- **A list gets bullets.** Three or more items run together in a sentence become
+  a bulleted list. A comma-separated run can't be scanned, and a sentence
+  pointing back at it — "the four levers", "the last one" — can't be matched to
+  an item without reading the whole run again. Two things named in a sentence
+  are not a list.
 - Docs speak the app's vocabulary — play mode, program, play/session — never a
   persona's fiction ("during a call" is the companions' own call framing), and
   capabilities belong to features, not to whichever companion has them.

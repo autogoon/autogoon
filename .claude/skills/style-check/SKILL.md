@@ -37,9 +37,14 @@ and nothing else reads those.
 Read them there. They are not repeated, so a rule added there is checked without
 this file changing.
 
-Whether a path resolves, an identifier exists, a list is complete or a claim
-holds are other checks' subjects. A sentence can be accurate and still fail
-here.
+These belong to other checks, not this one:
+
+- Whether a path resolves.
+- Whether an identifier exists.
+- Whether a list is complete.
+- Whether a claim holds.
+
+A sentence can be accurate on all four and still fail here.
 
 ## Two questions
 
