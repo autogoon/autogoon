@@ -94,12 +94,22 @@ describe('countMedia', () => {
   it('tallies a media list into images and videos by kind', () => {
     expect(
       countMedia([
-        { kind: 'image' },
-        { kind: 'video' },
-        { kind: 'image' },
-        { kind: 'image' },
+        { kind: 'image', caption: 'a' },
+        { kind: 'video', caption: 'b' },
+        { kind: 'image', caption: 'c' },
+        { kind: 'image', caption: 'd' },
       ]),
     ).toEqual({ images: 3, videos: 1 });
+  });
+
+  it('leaves out an item with no sidecar, which the companion cannot choose', () => {
+    expect(
+      countMedia([
+        { kind: 'image', caption: 'a' },
+        { kind: 'image', caption: '' },
+        { kind: 'video', caption: '' },
+      ]),
+    ).toEqual({ images: 1, videos: 0 });
   });
 });
 

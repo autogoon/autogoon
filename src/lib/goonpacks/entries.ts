@@ -21,12 +21,21 @@ const totalMedia = (c: MediaCount): number => c.images + c.videos;
 
 // The one tally of a media list, wherever the list comes from: a parsed tree,
 // a built-in companion's own media, or the authoring build script's pack.
+//
+// Only items with a sidecar are counted. An empty caption means there is none
+// (parsePack fills the texts only from a sidecar it parsed), and an item the
+// companion has nothing to go on can't be chosen — so counting it would say the
+// pack offers more than it does. A pack still being described therefore climbs
+// towards its file count as the sidecars are written.
 export const countMedia = (
-  media: readonly { kind: MediaKind }[],
-): MediaCount => ({
-  images: media.filter((m) => m.kind === 'image').length,
-  videos: media.filter((m) => m.kind === 'video').length,
-});
+  media: readonly { kind: MediaKind; caption: string }[],
+): MediaCount => {
+  const described = media.filter((m) => m.caption !== '');
+  return {
+    images: described.filter((m) => m.kind === 'image').length,
+    videos: described.filter((m) => m.kind === 'video').length,
+  };
+};
 
 // "3 pictures · 2 videos" — one phrase, used by both the chooser card's
 // feature line and the Goonpacks row, so a pack reads the same on either

@@ -17,6 +17,14 @@
   can't be read is refused, naming the file.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- enhancement: **A pack's media count is what they can actually send** — The
+  counts on the Goonpacks row, the companion chooser card and the build line
+  now leave out any picture or video with no sidecar. One with nothing written
+  about it is one your companion has no way to choose, so counting it said the
+  pack offered more than it did. A pack part-way through being described climbs
+  towards its full count as the sidecars are written.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - enhancement: **Build or summarise one pack instead of all of them** — Both
   `npm run goonpack:build` and `npm run goonpack:summarise` now take a pack
   directory, so a change to one pack doesn't mean waiting for every other.
