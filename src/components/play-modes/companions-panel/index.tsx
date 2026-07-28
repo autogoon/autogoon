@@ -52,7 +52,11 @@ import {
   sameLocalDay,
 } from '@/lib/companions/conversation';
 import { SEARCH_LIMIT, searchMedia } from '@/lib/companions/media-search';
-import { describeHits, pickMedia } from '@/lib/companions/send-media';
+import {
+  countHits,
+  describeHits,
+  pickMedia,
+} from '@/lib/companions/send-media';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
 import { voiceStage } from '@/lib/voice/session-policy';
@@ -364,13 +368,15 @@ export function CompanionsPanel({
                     : args.kind === 'video'
                       ? 'video'
                       : undefined;
-                return describeHits(
-                  searchMedia(items, query, {
-                    limit: SEARCH_LIMIT,
-                    exclude: sentRefs.current,
-                    kind,
-                  }),
-                );
+                const found = searchMedia(items, query, {
+                  limit: SEARCH_LIMIT,
+                  exclude: sentRefs.current,
+                  kind,
+                });
+                return {
+                  result: describeHits(found),
+                  display: countHits(found),
+                };
               },
             } satisfies CompanionTool,
             {
@@ -915,7 +921,10 @@ export function CompanionsPanel({
                           );
                       } else {
                         row = (
-                          <ToolChip name={turn.name} result={turn.result} />
+                          <ToolChip
+                            name={turn.name}
+                            result={turn.display ?? turn.result}
+                          />
                         );
                       }
                     } else if (isSilentAssistantTurn(turn)) {

@@ -4,7 +4,7 @@
 // writes it out as text is textual-tool-calls.test.ts's.
 import { describe, expect, it } from '@jest/globals';
 import type { CompanionMedia } from './companions';
-import { describeHits, pickMedia } from './send-media';
+import { countHits, describeHits, pickMedia } from './send-media';
 
 const item = (
   kind: CompanionMedia['kind'],
@@ -65,5 +65,24 @@ describe('describeHits', () => {
 
   it('says nothing matched rather than returning an empty list', () => {
     expect(describeHits({ hits: [] })).toMatch(/nothing/i);
+  });
+});
+
+describe('countHits', () => {
+  const hit = (ref: string) => ({
+    ref,
+    caption: 'on the beach',
+    kind: 'image' as const,
+  });
+
+  it('counts the hits rather than naming any of them', () => {
+    expect(countHits({ hits: [hit('a'), hit('b'), hit('c')] })).toBe(
+      '3 matches',
+    );
+    expect(countHits({ hits: [] })).toBe('0 matches');
+  });
+
+  it('says match rather than matches for a single hit', () => {
+    expect(countHits({ hits: [hit('a')] })).toBe('1 match');
   });
 });

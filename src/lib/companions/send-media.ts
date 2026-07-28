@@ -21,6 +21,14 @@ export function describeHits(result: MediaSearchResult): string {
     .join('\n');
 }
 
+// The same search as the transcript shows it. The model has to read every hit
+// to choose between them; on screen that is a page of captions nobody reads,
+// where the only question is whether the search found anything.
+export function countHits(result: MediaSearchResult): string {
+  const n = result.hits.length;
+  return n === 1 ? '1 match' : `${n} matches`;
+}
+
 // Either the item to show and what to tell the model it sent, or — with
 // nothing shown — the sentence saying why.
 export type MediaPick =
