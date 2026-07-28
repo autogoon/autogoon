@@ -111,8 +111,14 @@ putting them last leaves everything before them — persona and whole conversati
 results they return are stored on the thread and replayed to the model as a
 proper agentic sequence (assistant-with-`tool_calls` → `tool` result → spoken
 reaction), so they see their own prior actions — without which the model drifts
-back to narrating actions instead of taking them. After a tool runs, its result
-is fed back for a **second round-trip** so they react in words to what happened.
+back to narrating actions instead of taking them.
+
+**A turn can hold a chain of calls.** After a tool runs, its result is fed back
+and the tools are offered again, so one turn can search for a picture and then
+send it, or set two knobs, rather than the second act waiting for a later turn.
+The chain ends when the companion answers with words instead of a call — that's
+their reaction to what they did — and a cap bounds a turn that never gets there
+(`MAX_TOOL_ROUNDS` in `use-voice-session.ts`, commented with why).
 
 ## Filling a silence
 

@@ -14,6 +14,13 @@
   asking gets you a straight answer rather than a promise she can't keep.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- enhancement: **A companion can do two things in one turn** — A tool call used
+  to be the only one a companion got per turn: whatever they did next had to
+  wait for the turn after it. They can now carry on — find a picture and send it
+  in the same breath, or move the intensity and the variety together — and the
+  turn ends when they have something to say about what they did.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - enhancement: **Two texts for every picture, and a summary of the set** — Each
   picture or video in a pack now has a `.md` file beside it instead of a `.txt`,
   holding the one-line caption in frontmatter and a fuller description of the
