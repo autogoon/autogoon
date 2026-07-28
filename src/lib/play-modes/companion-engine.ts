@@ -1,15 +1,11 @@
-// CompanionEngine — the motion backbone for the Companions play mode. A faithful,
-// self-contained port of GrooveEngine's dip generation (PEAK -> floor -> PEAK,
-// with a live Speed% magnitude knob and timing/dip Variability shape knobs),
-// duplicated rather than imported because engines don't import each other (see
-// ARCHITECTURE.md; Goon duplicates Groove for the same reason). One companion-only
-// addition over Groove: a one-shot stroke-minus tease held at session start
-// (ported from Goon's STROKE_MINUS_APPLY_MS). Everything Autopilot-shaped is gone
-// — the template blocks, edge/suction knobs, and the boundary-based narration
-// overlay. The chattiness-paced ambient-chat cues are a later phase (Phase 7),
-// generated here once a chattiness knob and an orchestrator consumer exist; there
-// is no narration overlay in the meantime. Pure event generation/scaling: no
-// React, no device, no LLM, no personas.
+// CompanionEngine — the motion backbone for the Companions play mode. A
+// faithful, self-contained port of GrooveEngine's dip generation (PEAK ->
+// floor -> PEAK, with a live Speed% magnitude knob and timing/dip Variability
+// shape knobs), duplicated rather than imported because engines don't import
+// each other (see ARCHITECTURE.md; Goon duplicates Groove for the same
+// reason). One companion-only addition over Groove: a one-shot stroke-minus
+// tease held at session start (ported from Goon's STROKE_MINUS_APPLY_MS). Pure
+// event generation/scaling: no React, no device, no LLM, no personas.
 
 import {
   type PlayerContext,
