@@ -17,11 +17,12 @@ sentence written here. Two things on top of it:
   - the problem;
   - the current situation, with the evidence for it;
   - the proposed change, or the options with what each costs;
-  - the resulting text, quoted in full.
+  - the resulting text, where it is short enough to read.
 
-  Quote verbatim in the reply itself. A description of a change cannot be judged
-  against the change, and `sed` or `cat` output in a tool call is not reliably
-  shown to you.
+  Quote verbatim in the reply itself — a description of a change cannot be
+  judged against the change, and `sed` or `cat` output in a tool call is not
+  reliably shown to you. A sentence, a comment or a small function goes in full;
+  anything larger is named rather than pasted, and quoted on request.
 
 ## Commands
 
