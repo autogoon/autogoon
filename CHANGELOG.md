@@ -67,6 +67,12 @@
   the validator can't drift, and both scripts are typechecked and linted with
   everything else. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- internal: **Ending a voice session cancels a connect in flight** — Stopping a
+  Companions session while its speech-to-text socket was still being opened
+  could not stop it: the token request was already away, and the socket came up
+  after teardown with nothing owning it. The connect is now abandoned when the
+  token arrives. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-27
 
 - enhancement: **See how much of the prompt was cached** — The debug tab now

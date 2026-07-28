@@ -82,10 +82,16 @@ the app in the browser and watching behaviour.
   what that one pins — the result is a new test that can fail, not an old one
   with a patched fixture. Never leave a contract that matters with no coverage.
 - **A fake stands at a boundary** so a test can assert what the code sent across
-  it, or so a module needing storage or a clock can run at all. Never fake the
-  LLM, TTS or STT — the app always has them, so exercise them in `tests/e2e/`. A
-  fake may supply the input; the assertion must be on something the code under
-  test decided.
+  it, or so a module needing storage or a clock can run at all. A fake may
+  supply the input; the assertion must be on something the code under test
+  decided — if replacing the code under test with a pass-through would leave the
+  test passing, it asserts its own fixture and is a dud.
+- **Fake the transport, never the reply.** A canned completion or transcript
+  proves nothing about the pipeline that produces it; exercise the LLM, TTS and
+  STT in `tests/e2e/`. Faking what sits under them — the socket, the `fetch` —
+  to assert what the code put on the wire, or how it behaves when the far end
+  closes, is the permitted kind, and is often the only way to reach a lifecycle
+  path at all.
 - **Anything with a job has a test.** Doing I/O decides how a module is tested,
   never whether.
 - **A test name stands alone.** `describe` is the exported symbol under test;

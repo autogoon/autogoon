@@ -34,19 +34,20 @@ added there is checked without this file changing. The rest of § Verifying
 changes — the commands, the zero-warning gate, the pre-commit run — is procedure
 for the author, not something to review a branch against.
 
-Two techniques, neither of which follows from knowing the rule:
+Two things that do not follow from knowing the rule:
 
 **Would this test fail if the behaviour it names broke?** Mutation testing
 answers it — § Mutation testing. Reading does not.
 
-**Would this test pass if the code under test were a pass-through?** If yes, the
-assertion is on a value the fake supplied. A fake upstream returning a 429 so
-the route can be seen turning it into a 502 is sound — the 502 is the route's
-decision. A fake returning `{ token: 'x' }` where the test asserts
-`{ token: 'x' }` is not. Quieter forms: a fake method that is a pure function of
-its arguments, so a memoised call and an unmemoised one look identical; a fake
-that discards a constructor argument, so the secret it was handed is never
-observed; expected and actual derived from the same source.
+**Where a test asserting its own fixture hides.** CLAUDE.md carries the rule and
+its pass-through check. These shapes supply the asserted value without appearing
+to:
+
+- a fake method that is a pure function of its arguments, so a memoised call and
+  an unmemoised one look identical;
+- a fake that discards a constructor argument, so the secret it was handed is
+  never observed;
+- expected and actual derived from the same source.
 
 ## Where to look
 
