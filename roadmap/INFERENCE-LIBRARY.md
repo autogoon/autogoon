@@ -115,27 +115,34 @@ identity is a filter. So each item also carries a structured attribute panel
 (**What we store per item**) and the search applies those as filters before it
 ranks anything.
 
-### The search is session-scoped
+### The search is thread-scoped
 
 Stateless search sends the same best match all evening. It needs:
 
 - **What they've already sent**, as an exclusion set, plus near-duplicate
-  collapse so the second-best isn't the same shot from an inch to the left.
+  collapse so the second-best isn't the same shot from an inch to the left. The
+  exclusion set is what ships: it is rebuilt from the thread, which is never
+  trimmed, so it spans every conversation with that companion rather than one
+  evening.
 - **The last item and the current heat band**, because that's what makes
   relative requests work — and "something filthier than that" is how escalation
   is actually spoken.
 
 The sharper version of the same problem: a search returning the top N over a set
 holding hundreds of similar items returns the same N every time. Four levers,
-none of them chosen — exclusion of what's been sent, near-duplicate collapse, a
-cursor that continues past the last search, and sampling from everything above a
-threshold rather than strict top-N. The last is also what "something at random"
-wants, so it may serve the query-less request too. Which one earns its place is
-a question for a real library; what the tool must not do is foreclose them.
+none of them chosen :
 
-What none of them answers is what a search does once the exclusion has swallowed
-everything matching — which the shipped search gets wrong today, in
-[BUG.md](../BUG.md) → Companions.
+- Exclusion of what's been sent,
+- Near-duplicate collapse,
+- A cursor that continues past the last search,
+- and sampling from everything above a threshold rather than strict top-N.
+
+The last is also what "something at random" wants, so it may serve the
+query-less request too. Which one earns its place is a question for a real
+library; what the tool must not do is foreclose them.
+
+Exhaustion is something to think about; it is in [BUG.md](../BUG.md) →
+Companions.
 
 ### One interface, several implementations
 
@@ -363,6 +370,6 @@ design up front.
 - **Where the heat band lives** — a companion's own sense of the session, or a
   number the app tracks and hands them.
 - **Which diversity lever**, and how many results a search returns (**The search
-  is session-scoped**).
+  is thread-scoped**).
 - **Whether hard constraints need the structured attribute filters** or fall out
   of ranking (**Filters are structured, not semantic**).

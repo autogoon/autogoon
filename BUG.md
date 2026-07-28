@@ -16,22 +16,17 @@ and the approach isn't known. An entry moves to TODO.md the moment it is.
   matching a request has been sent, the exclusion set covers it all,
   `searchMedia` returns nothing, and the companion is told "Nothing in your
   pictures or videos matches that" — which is false, and the prompt then has
-  them ask him for something else. The exclusion is not session-scoped, either:
-  it is rebuilt from the thread, the thread persists per companion and is never
-  trimmed, so the set only grows and clearing the thread is the one thing that
-  resets it. Exhaustion is therefore where any pack ends up, not an edge case
+  them ask him for something else. The exclusion is thread-scoped, not
+  session-scoped: it is rebuilt from the thread, which persists per companion
+  and is never trimmed, so it only grows and clearing the thread is the one
+  thing that resets it. Exhaustion is where any pack ends up, not an edge case
   for a small one.
 
-  A candidate, not a decision: rank a sent picture down rather than removing it,
-  so a set with nothing new returns its best old match instead of a falsehood.
-  That is one of the four levers weighed in
+  The retrieval work this waits on is
   [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md) → The search is
-  session-scoped, and which of them earns its place is deferred to a real
-  library — so the shape of the fix arrives with that work.
+  thread-scoped.
 
-  The question underneath it is how often a companion should repeat a picture
-  unprompted, which is a search-ranking question rather than a rule about
-  sending. **Sending is deliberately unfiltered**: `pickMedia` sends any ref it
-  is given, already sent or not, because "send me my favourite picture of you"
-  has to work. The asymmetry is the design — what she reaches for on her own
-  avoids repeats, what he asks for by name does not.
+  How often a companion should repeat a picture unprompted is the open question.
+  **Sending is deliberately unfiltered**: `pickMedia` sends any ref it is given,
+  already sent or not, because "send me my favourite picture of you" has to
+  work.
