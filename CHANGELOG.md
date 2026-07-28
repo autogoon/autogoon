@@ -25,9 +25,11 @@
   towards its full count as the sidecars are written.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
-- enhancement: **Build or summarise one pack instead of all of them** — Both
-  `npm run goonpack:build` and `npm run goonpack:summarise` now take a pack
-  directory, so a change to one pack doesn't mean waiting for every other.
+- enhancement: **Work on one pack instead of all of them** —
+  `npm run goonpack:describe-missing`, `npm run goonpack:summarise` and
+  `npm run goonpack:build` all take a pack directory now, so a change to one
+  pack doesn't mean waiting for every other — and the three run in that order
+  to take a new pack from pictures to a built zip.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - enhancement: **A built pack is the directory you built it from** —

@@ -301,8 +301,15 @@ describe **pictures**: `npm run goonpack:describe-missing` (every picture with
 no sidecar yet) and `npm run goonpack:describe <path-to-image>` (one picture).
 Videos are left alone — write their sidecars by hand. The third,
 `npm run goonpack:summarise`, writes the `mediaSummary` from the sidecars a pack
-already has; name a pack directory to do just that one. Run it again whenever
-you add media, so the summary keeps up with the set.
+already has. Run that again whenever you add media, so the summary keeps up with
+the set.
+
+`describe-missing`, `summarise` and `build` all take a pack directory to work on
+just that pack, which is the order to do them in for a new one:
+
+    npm run goonpack:describe-missing goonpacks/luna
+    npm run goonpack:summarise goonpacks/luna
+    npm run goonpack:build goonpacks/luna
 
 ## Importing and versions
 

@@ -1,6 +1,7 @@
 // Describe every goonpack image that doesn't have a description yet.
 //
-//   npm run goonpack:describe-missing
+//   npm run goonpack:describe-missing                  every pack source
+//   npm run goonpack:describe-missing goonpacks/aimee  just that one
 //
 // Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.md is
 // missing or empty, and describes each one (writing the .md) via the same
@@ -16,7 +17,7 @@
 
 import process from 'node:process';
 import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   describeImage,
@@ -35,14 +36,41 @@ const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const goonpacksDir = join(root, 'goonpacks');
 
+// One pack source named on the command line, or every directory under
+// goonpacks/. A named source that isn't there is an error, since the argument
+// asked for that one by name.
+const named = process.argv[2];
+const explicit = named !== undefined && named !== '';
+
+function packDirs() {
+  if (explicit) {
+    const dir = resolve(named);
+    if (!existsSync(dir)) {
+      console.error(`${named} isn't a directory`);
+      process.exit(1);
+    }
+    return [dir];
+  }
+  if (!existsSync(goonpacksDir)) return [];
+  return readdirSync(goonpacksDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => join(goonpacksDir, e.name));
+}
+
 // Every goonpack image with no (non-empty) sidecar yet, sorted.
 function missingImages() {
   const out = [];
-  if (!existsSync(goonpacksDir)) return out;
-  for (const entry of readdirSync(goonpacksDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const dir = join(goonpacksDir, entry.name, 'media');
-    if (!existsSync(dir)) continue;
+  for (const packDir of packDirs()) {
+    const dir = join(packDir, 'media');
+    if (!existsSync(dir)) {
+      // Named on the command line, so say so rather than reporting nothing to
+      // do; a pack without media/ among all of them is just skipped.
+      if (explicit) {
+        console.error(`${named}: no media/ folder`);
+        process.exit(1);
+      }
+      continue;
+    }
     for (const file of readdirSync(dir).sort()) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
@@ -57,11 +85,15 @@ function missingImages() {
 
 const images = missingImages();
 if (images.length === 0) {
-  console.log('All goonpack images already have descriptions.');
+  console.log(
+    explicit
+      ? `Every image in ${named} already has a sidecar.`
+      : 'Every goonpack image already has a sidecar.',
+  );
   process.exit(0);
 }
 
-console.log(`Describing ${images.length} image(s) without a description…\n`);
+console.log(`Describing ${images.length} image(s) with no sidecar…\n`);
 
 // Sequential — kinder to rate limits, and the output stays readable in order.
 // Each picture narrates itself exactly as the single-image script does: the file
