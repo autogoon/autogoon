@@ -1,5 +1,9 @@
 // Zips each goonpacks/<dir>/ into goonpacks/<dir>.zip (see the naming note
-// where the file is written). Run: npm run goonpack:build
+// where the file is written).
+//
+//   npm run goonpack:build                  every pack source
+//   npm run goonpack:build goonpacks/aimee  just that one
+//
 // (runs under tsx, so it imports the app's validator directly: every pack
 // source passes parsePack — the same checks importing runs — before it is
 // zipped, or the build fails. Only the app-level cross-pack checks, like "is
@@ -11,7 +15,7 @@ import {
   writeFileSync,
   type Dirent,
 } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { zipSync } from 'fflate';
@@ -37,26 +41,51 @@ const red = (s: string): string =>
 const yellow = (s: string): string =>
   process.stderr.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
 
-let entries: Dirent[];
-try {
-  entries = readdirSync(packsDir, { withFileTypes: true });
-} catch {
-  console.error(
-    'no goonpacks/ directory — put pack sources in goonpacks/<dir>/',
-  );
-  process.exit(1);
+// One pack source directory was named on the command line, rather than the
+// whole of goonpacks/. It changes two things besides the list: a named source
+// with no manifest.json is an error rather than a skip, since the argument
+// asked for that one by name.
+const named = process.argv[2];
+const explicit = named !== undefined && named !== '';
+
+function sourcesToBuild(): string[] {
+  if (explicit) {
+    const dir = resolve(named);
+    try {
+      if (!statSync(dir).isDirectory()) throw new Error('not a directory');
+    } catch {
+      console.error(`${named} isn't a directory`);
+      process.exit(1);
+    }
+    return [dir];
+  }
+  let entries: Dirent[];
+  try {
+    entries = readdirSync(packsDir, { withFileTypes: true });
+  } catch {
+    console.error(
+      'no goonpacks/ directory — put pack sources in goonpacks/<dir>/',
+    );
+    process.exit(1);
+  }
+  return entries
+    .filter((e) => e.isDirectory())
+    .map((e) => join(packsDir, e.name));
 }
 
 let built = 0;
-for (const entry of entries) {
-  if (!entry.isDirectory()) continue;
-  const dir = join(packsDir, entry.name);
+for (const dir of sourcesToBuild()) {
+  const name = basename(dir);
   // A directory without a manifest isn't a pack source — skip it quietly;
   // everything else is parsePack's to judge.
   try {
     statSync(join(dir, 'manifest.json'));
   } catch {
-    console.warn(`skipping ${entry.name}: no manifest.json`);
+    if (explicit) {
+      console.error(`${named}: no manifest.json — not a pack source`);
+      process.exit(1);
+    }
+    console.warn(`skipping ${name}: no manifest.json`);
     continue;
   }
   const files = collectPackFiles(dir);
@@ -75,22 +104,21 @@ for (const entry of entries) {
         ? e.problems
         : [e instanceof Error ? e.message : String(e)];
     const n = problems.length;
-    console.error(red(`${entry.name}: ${n} error${n === 1 ? '' : 's'}`));
+    console.error(red(`${name}: ${n} error${n === 1 ? '' : 's'}`));
     for (const p of problems) console.error(`  ${p}`);
     process.exitCode = 1;
     continue; // invalid — don't write a zip that can't import
   }
   // The zip is named after the source directory, not the pack id — two
-  // directories can hold two versions of the same id without clobbering.
-  const out = join(packsDir, `${entry.name}.zip`);
+  // directories can hold two versions of the same id without clobbering — and
+  // sits beside that directory, wherever it was given from.
+  const out = join(dirname(dir), `${name}.zip`);
   // Deflated, like the `zip -r` an author would run. Stills and video barely
   // shrink, but a pack's text does, and that is the part that grows.
   writeFileSync(out, zipSync(files));
   const counts = describeMedia(countMedia(parsed.media));
-  console.log(green(`${entry.name}: 0 errors`));
-  console.log(
-    `  built, ${entry.name}.zip${counts === '' ? '' : `, ${counts}`}`,
-  );
+  console.log(green(`${name}: 0 errors`));
+  console.log(`  built, ${name}.zip${counts === '' ? '' : `, ${counts}`}`);
   const captions = captionWarning(parsed.media);
   if (captions !== null) console.warn(yellow(`  warning: ${captions}`));
   built++;
