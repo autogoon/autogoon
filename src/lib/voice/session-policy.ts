@@ -20,7 +20,7 @@ export function isBargeIn(
 
 // True once an STT partial contains a real word (at least one alphanumeric run),
 // the signal we gate barge-in on instead of VAD onset.
-export function partialHasWord(partial: string): boolean {
+function partialHasWord(partial: string): boolean {
   return /[\p{L}\p{N}]/u.test(partial);
 }
 

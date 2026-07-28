@@ -2,7 +2,6 @@ import { describe, it, expect } from '@jest/globals';
 import {
   shouldOpenSocket,
   isBargeIn,
-  partialHasWord,
   partialWordCount,
   confirmSpeech,
   voiceStage,
@@ -71,14 +70,6 @@ describe('session-policy', () => {
     expect(partialWordCount('  hey   there  ')).toBe(2);
     expect(partialWordCount('... ,')).toBe(0);
     expect(partialWordCount('')).toBe(0);
-  });
-
-  it('partialHasWord treats a partial with no letter or digit as wordless', () => {
-    expect(partialHasWord('stop')).toBe(true);
-    expect(partialHasWord('  hey ')).toBe(true);
-    expect(partialHasWord('')).toBe(false);
-    expect(partialHasWord('  ')).toBe(false);
-    expect(partialHasWord('...')).toBe(false);
   });
 
   it('voiceStage is idle with nothing in flight', () => {
