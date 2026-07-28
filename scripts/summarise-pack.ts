@@ -182,11 +182,21 @@ async function summarisePack(packDir: string): Promise<boolean> {
 async function main() {
   const packs = packsToSummarise(process.argv[2]);
   let written = 0;
+  let failed = 0;
   // Sequential — kinder to rate limits, and the output stays readable in order.
+  // One pack's failure is caught here rather than ending the run: a bad sidecar
+  // or a refused request would otherwise skip every pack after it, and the packs
+  // that would have succeeded each cost a real request.
   for (const dir of packs) {
-    if (await summarisePack(dir)) written += 1;
+    try {
+      if (await summarisePack(dir)) written += 1;
+    } catch (e) {
+      console.error(`✗ ${e instanceof Error ? e.message : String(e)}\n`);
+      failed += 1;
+    }
   }
   console.log(`${written} of ${packs.length} pack(s) summarised`);
+  if (failed > 0) process.exit(1);
 }
 
 await main();
