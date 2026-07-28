@@ -90,15 +90,28 @@ describe('parsePack', () => {
     expect(pack.media[0]?.description).toBe('A long description.');
   });
 
-  it('leaves both texts empty for a media file not described yet, rather than refusing the pack', async () => {
+  it('leaves a media file not described yet out of the media, rather than refusing the pack', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': complete({}),
+        'system-prompt.md': 'You are Testy.',
+        'media/a.jpg': '',
+      }),
+    );
+    expect(pack.media).toEqual([]);
+  });
+
+  it('returns the described files and leaves the rest out, so media is what can be offered', async () => {
     const pack = await parsePack(
       tree({
         'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
         'system-prompt.md': 'You are Testy.',
         'media/a.jpg': '',
+        'media/a.md': sidecar('A caption.', 'A long description.'),
+        'media/b.jpg': '',
       }),
     );
-    expect(pack.media[0]).toMatchObject({ caption: '', description: '' });
+    expect(pack.media.map((m) => m.file)).toEqual(['a.jpg']);
   });
 
   it('refuses a sidecar whose body is empty, which is a description that went wrong rather than one not written yet', async () => {

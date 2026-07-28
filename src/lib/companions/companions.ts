@@ -11,9 +11,12 @@ import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// One thing a companion can send: a still or a video. Both texts come from the
-// pack's <basename>.md sidecar: `caption` is the one line the model reads to
-// pick a fitting one, `description` the long prose behind it. `ref` is the
+// One thing a companion can send: a still or a video — one entry per item of
+// valid media, since that is all a pack's `media` holds (parsePack). Both texts
+// therefore always carry something: they come from the pack's <basename>.md
+// sidecar, and an item without one is not in the set at all. `caption` is the
+// one line the model reads to pick a fitting one, `description` the long prose
+// behind it. `ref` is the
 // thread-stable reference — object URLs die with the session, so a sent item
 // persists as `ref` and rendering resolves it against whatever's currently
 // loaded. `src` is that object URL once it exists: `load()` mints it on first
@@ -56,9 +59,11 @@ export type Companion = {
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
   // The media they can send during a call — filled by an installed goonpack
-  // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
-  // installed: the panel then offers neither media tool, and their prompt's
-  // media section is the one saying they have nothing to send.
+  // (src/lib/goonpacks/), and valid media only, so every entry is one they can
+  // actually be offered. Empty (or omitted) for a companion with no pack
+  // installed, or one whose pack's sidecars aren't written yet: the panel then
+  // offers neither media tool, and their prompt's media section is the one
+  // saying they have nothing to send.
   media?: CompanionMedia[];
   // What that set holds, as one block of text — present whenever `media` is,
   // because a pack carrying media must carry a summary of it (parsePack).

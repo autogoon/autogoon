@@ -273,11 +273,14 @@ it; nothing shows it to you, and it's what a better caption gets rewritten from
 later without going back over every picture.
 
 `npm run goonpack:describe` writes both, so there's rarely a reason to type one
-by hand — see [Building the zip](#building-the-zip). A picture with no sidecar
-yet still works: the companion simply knows nothing about it, and the build says
-how many are left. A sidecar that _is_ there has to be readable, though — one
-with no caption, an empty body, or a misspelt field is refused, naming the file,
-because that's a description that went wrong rather than one not written yet.
+by hand — see [Building the zip](#building-the-zip). **The sidecar is what makes
+a file part of the set**: a picture with no sidecar yet doesn't stop the pack
+building, but it isn't one of your companion's pictures either — she can't
+search for it or send it, and it isn't in the count you see on her card. The
+build says how many are still waiting. A sidecar that _is_ there has to be
+readable, though — one with no caption, an empty body, or a misspelt field is
+refused, naming the file, because that's a description that went wrong rather
+than one not written yet.
 
 A sidecar with no picture or video beside it is refused too: it means a rename
 took one and left the other.

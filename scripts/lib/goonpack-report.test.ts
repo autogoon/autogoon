@@ -1,44 +1,26 @@
-// What the build says about a pack it built anyway. Whether a file with no
-// sidecar is valid at all is parsePack's, and pack.test.ts's.
+// What the build says about the files a pack left behind. Which files those are
+// is goonpack-build.ts's subtraction, and whether a file is media at all is
+// parsePack's — and pack.test.ts's.
 import { describe, it, expect } from '@jest/globals';
-import type { ParsedMedia } from '../../src/lib/goonpacks/pack';
 import { captionWarning } from './goonpack-report';
-
-const item = (file: string, caption: string): ParsedMedia => ({
-  name: file.slice(0, file.lastIndexOf('.')),
-  file,
-  kind: 'image',
-  mimeType: 'image/jpeg',
-  caption,
-  description: `${caption}, at length`,
-});
 
 describe('captionWarning', () => {
   it('reports nothing when every media file carries a sidecar', () => {
-    expect(
-      captionWarning([item('a.jpg', 'a beach'), item('b.jpg', 'a kitchen')]),
-    ).toBeNull();
-  });
-
-  it('reports nothing for a pack carrying no media at all', () => {
     expect(captionWarning([])).toBeNull();
   });
 
   it('names the files with no sidecar, so the author knows which are left', () => {
-    expect(
-      captionWarning([item('a.jpg', 'a beach'), item('b.jpg', '')]),
-    ).toContain('b.jpg');
+    expect(captionWarning(['b.jpg'])).toContain('b.jpg');
   });
 
   it('counts every file with no sidecar while naming only the first few', () => {
-    const media = ['a', 'b', 'c', 'd', 'e'].map((n) => item(`${n}.jpg`, ''));
-    expect(captionWarning(media)).toBe(
+    expect(captionWarning(['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg', 'e.jpg'])).toBe(
       '5 media files with no sidecar (a.jpg, b.jpg, c.jpg, …)',
     );
   });
 
   it('drops the plural and the ellipsis for a single file with no sidecar', () => {
-    expect(captionWarning([item('a.jpg', '')])).toBe(
+    expect(captionWarning(['a.jpg'])).toBe(
       '1 media file with no sidecar (a.jpg)',
     );
   });

@@ -3,6 +3,18 @@
 // complete-vs-overlay completeness rules are all name rules, so only
 // manifest.json, system-prompt.md and the sidecars are ever read. Validating a
 // multi-gigabyte pack costs a few hundred kilobytes.
+//
+// **`media` is valid media and nothing else** — a file whose extension
+// MEDIA_TYPES knows AND whose sidecar parseSidecar accepted. A file failing the
+// first is a fatal problem; one with no sidecar yet is left out and the pack
+// still builds. So nothing downstream re-decides validity, and nothing has to
+// read a text field being empty as a verdict.
+//
+// This is the ONE place those two checks run, which is what makes building and
+// importing the same: goonpack-build.ts calls parsePack over the source tree
+// before zipping, and the app calls it over the extracted tree at import and
+// again at every load (library.ts). A pack that builds is a pack that imports,
+// and the media it lists is the same set either way.
 import { PackError, parseManifest, type PackManifest } from './manifest';
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
 import { parseSidecar, SIDECAR_EXT, type Sidecar } from './sidecar';
@@ -23,11 +35,16 @@ export type PackTree = {
   readText(path: string): Promise<string>;
 };
 
-// One still or video. `name` is the stem — the thread ref's second half and the
-// sidecar's name; `file` is the file inside media/, which is what actually gets
-// opened when the item is first rendered. Both texts come from the sidecar and
-// are required: `caption` is the one line the model picks from, `description`
-// the long prose behind it.
+// One still or video the app will offer — valid media, which is the two checks
+// the format defines both passing: MEDIA_TYPES knows the extension, and
+// parseSidecar accepted the sidecar beside it. parsePack builds one only then,
+// so both texts are always filled and nothing downstream re-derives validity
+// from a field being empty.
+//
+// `name` is the stem — the thread ref's second half and the sidecar's name;
+// `file` is the file inside media/, which is what actually gets opened when the
+// item is first rendered. `caption` is the one line the model picks from,
+// `description` the long prose behind it.
 export type ParsedMedia = {
   name: string;
   file: string;
@@ -190,6 +207,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   }
 
   const stems = new Set<string>();
+  const described: ParsedMedia[] = [];
   for (const m of media) {
     // Different extensions, same stem (a.jpg + a.mp4) would collide to one
     // thread ref (goonpack:<key>/a) — reject at import, not silently drop.
@@ -198,14 +216,17 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
         `Two media files share the name ${m.name} — same name with different file types; rename one.`,
       );
     }
+    // Every file that got this far is one, described or not, so the pairing
+    // check below sees it and a later sidecar for it isn't reported as orphaned.
     stems.add(m.name);
-    // Both texts stay '' where there is no sidecar — an item not described yet,
-    // which the build reports rather than refuses.
+    // The second of the two checks, and the one that decides whether this is
+    // media at all. A file whose sidecar wouldn't parse isn't here either —
+    // that pushed a problem above, and problems are fatal.
     const parsed = sidecars.get(m.name);
-    if (parsed !== undefined) {
-      m.caption = parsed.caption;
-      m.description = parsed.description;
-    }
+    if (parsed === undefined) continue;
+    m.caption = parsed.caption;
+    m.description = parsed.description;
+    described.push(m);
   }
   // A sidecar with no media file is the pairing seen from the other side: a
   // rename that moved one and not the other, and nothing else would report it.
@@ -216,7 +237,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       );
     }
   }
-  media.sort((a, b) => a.name.localeCompare(b.name));
+  described.sort((a, b) => a.name.localeCompare(b.name));
 
   // Completeness rules need a readable manifest to know overlay from complete —
   // without one, the manifest's own problems already tell the story.
@@ -236,6 +257,9 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
         );
       }
     }
+    // Any media file at all contradicts noMedia, described or not — the
+    // contradiction is the folder being there, not what is in it. So this reads
+    // `media`, every supported file, rather than `described`.
     if (manifest.noMedia === true && media.length > 0) {
       problems.push(
         'noMedia is set but the pack has a media/ folder — remove one or the other.',
@@ -243,8 +267,9 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     }
     // The companion is told what the set holds rather than handed a list of it,
     // so a set with nothing said about it is incomplete in the same way a
-    // complete pack with no name is.
-    if (media.length > 0 && manifest.mediaSummary === undefined) {
+    // complete pack with no name is. A pack whose files are all still waiting
+    // for sidecars offers no media yet, so it needs no summary yet either.
+    if (described.length > 0 && manifest.mediaSummary === undefined) {
       problems.push(
         'A pack with media needs a mediaSummary in manifest.json — npm run goonpack:summarise writes it.',
       );
@@ -253,5 +278,5 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   if (problems.length > 0 || manifest === undefined) {
     throw new PackError(problems);
   }
-  return { manifest, systemPrompt, media };
+  return { manifest, systemPrompt, media: described };
 }

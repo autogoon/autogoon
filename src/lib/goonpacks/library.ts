@@ -4,6 +4,12 @@
 // screen as incompatible — with the reason — and is offered nowhere. An
 // incompatible pack heals on a later load (e.g. its base gets imported).
 //
+// Indexing runs parsePack, so the checks are exactly the ones the build runs
+// over a pack's source: an item is in the index only if its file format is
+// supported AND its sidecar is valid. What the index holds is therefore valid
+// media and nothing else, and every count and every set taken from it says the
+// same thing without re-testing anything.
+//
 // The source is injected so this whole pass is testable without OPFS; the app
 // passes the OPFS-backed one from store.ts.
 import { COMPANIONS, type CompanionMedia } from '@/lib/companions/companions';

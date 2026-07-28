@@ -89,17 +89,18 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   // noMedia strips the base's set outright; a media/ folder replaces it;
   // neither keeps it. name and gender are never the overlay's to change (the
   // manifest rejects them; the spread keeps the base's regardless).
+  const overlayBringsMedia = overlay.media.length > 0;
   const media =
     m.noMedia === true
       ? undefined
-      : overlay.media.length > 0
+      : overlayBringsMedia
         ? overlay.media
         : base.media;
   // The summary describes whichever set won, so it moves with it.
   const mediaSummary =
     m.noMedia === true
       ? undefined
-      : overlay.media.length > 0
+      : overlayBringsMedia
         ? m.mediaSummary
         : base.mediaSummary;
   const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;

@@ -31,17 +31,19 @@
   that carries media also carries a `mediaSummary` — what the set holds and the
   words its captions use for it — written by the new
   `npm run goonpack:summarise`, so a companion can tell what's worth offering
-  without being handed a list of everything. A picture with no sidecar yet still
-  works and the build still says how many are left; a sidecar that is there but
+  without being handed a list of everything. A picture with no sidecar yet
+  doesn't stop the pack building — it simply isn't part of the set until one is
+  written, and the build says how many are left; a sidecar that is there but
   can't be read is refused, naming the file.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
-- enhancement: **A pack's media count is what they can actually send** — The
-  counts on the Goonpacks row, the companion chooser card and the build line
-  now leave out any picture or video with no sidecar. One with nothing written
-  about it is one your companion has no way to choose, so counting it said the
-  pack offered more than it did. A pack part-way through being described climbs
-  towards its full count as the sidecars are written.
+- enhancement: **A pack's media is what they can actually send** — The sidecar
+  is now what makes a picture or video part of the set. One with nothing written
+  about it is one your companion has no way to search for or choose, so it isn't
+  offered to her and isn't counted on the Goonpacks row, the chooser card or the
+  build line — where before it was left out of the count but still quietly
+  handed over. A pack part-way through being described climbs towards its full
+  count as the sidecars are written.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - enhancement: **Work on one pack instead of all of them** —

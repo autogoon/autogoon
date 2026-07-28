@@ -22,10 +22,12 @@ import { zipSync } from 'fflate';
 import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
 import {
+  MEDIA_DIR,
   parsePack,
   type ParsedPack,
   type PackTree,
 } from '../src/lib/goonpacks/pack';
+import { SIDECAR_EXT } from '../src/lib/goonpacks/sidecar';
 import { captionWarning } from './lib/goonpack-report';
 import { collectPackFiles } from './lib/goonpack-source';
 
@@ -119,7 +121,17 @@ for (const dir of sourcesToBuild()) {
   const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${name}: 0 errors`));
   console.log(`  built, ${name}.zip${counts === '' ? '' : `, ${counts}`}`);
-  const captions = captionWarning(parsed.media);
+  // Which files are still waiting for a sidecar, by subtraction rather than by
+  // re-deciding anything: parsePack accepted the tree, so every non-sidecar
+  // file under media/ is a supported one, and the ones it didn't return as
+  // media are exactly those with no sidecar yet.
+  const described = new Set(parsed.media.map((m) => m.file));
+  const captions = captionWarning(
+    tree.names
+      .filter((p) => p.startsWith(MEDIA_DIR))
+      .map((p) => p.slice(MEDIA_DIR.length))
+      .filter((f) => !f.endsWith(`.${SIDECAR_EXT}`) && !described.has(f)),
+  );
   if (captions !== null) console.warn(yellow(`  warning: ${captions}`));
   built++;
 }

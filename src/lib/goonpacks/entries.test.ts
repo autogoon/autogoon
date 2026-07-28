@@ -90,26 +90,22 @@ describe('publisher', () => {
   });
 });
 
+// A media list only ever holds valid media — parsePack is what decides that,
+// and pack.test.ts is what pins it — so this counts everything it is handed.
 describe('countMedia', () => {
   it('tallies a media list into images and videos by kind', () => {
     expect(
       countMedia([
-        { kind: 'image', caption: 'a' },
-        { kind: 'video', caption: 'b' },
-        { kind: 'image', caption: 'c' },
-        { kind: 'image', caption: 'd' },
+        { kind: 'image' },
+        { kind: 'video' },
+        { kind: 'image' },
+        { kind: 'image' },
       ]),
     ).toEqual({ images: 3, videos: 1 });
   });
 
-  it('leaves out an item with no sidecar, which the companion cannot choose', () => {
-    expect(
-      countMedia([
-        { kind: 'image', caption: 'a' },
-        { kind: 'image', caption: '' },
-        { kind: 'video', caption: '' },
-      ]),
-    ).toEqual({ images: 1, videos: 0 });
+  it('tallies an empty list as no media of either kind', () => {
+    expect(countMedia([])).toEqual({ images: 0, videos: 0 });
   });
 });
 
