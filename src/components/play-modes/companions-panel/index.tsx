@@ -51,7 +51,8 @@ import {
   isSilentAssistantTurn,
   sameLocalDay,
 } from '@/lib/companions/conversation';
-import { describeMediaList, pickMedia } from '@/lib/companions/send-media';
+import { SEARCH_LIMIT, searchMedia } from '@/lib/companions/media-search';
+import { describeHits, pickMedia } from '@/lib/companions/send-media';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
 import { voiceStage } from '@/lib/voice/session-policy';
@@ -230,14 +231,23 @@ export function CompanionsPanel({
   );
   const showMedia = useCallback((m: CompanionMedia) => setLightboxMedia(m), []);
 
+  // What they have already sent, excluded from later searches so a second
+  // request on the same topic doesn't return the same picture. Derived from the
+  // thread rather than accumulated alongside it — every turn carrying a
+  // mediaRef is a send that happened — so a resumed conversation excludes what
+  // it sent before the reload, and clearing the thread clears these with it.
+  // A ref because the tool closures outlive the render that made them; the
+  // effect below is what keeps it current.
+  const sentRefs = useRef<Set<string>>(new Set());
+
   // The tools the companion can call, and the live device-state line injected each turn.
   // Return type annotated on the callback (not via useMemo's generic) so each
   // array element is checked against CompanionTool individually — otherwise TS's
   // array-literal inference merges the differently-shaped `intensity`/`variety`
   // `parameters.properties` into one shape before the check, and fails.
   const tools = useMemo((): CompanionTool[] => {
-    // The companion's media, if any. Empty → the send_media tool is left out
-    // entirely, so a companion with no media never offers it.
+    // The companion's media, if any. Empty → both media tools are left out
+    // entirely, so a companion with no media never offers them.
     const items = companion.media ?? [];
     return [
       {
@@ -313,38 +323,76 @@ export function CompanionsPanel({
           return `variety → ${level}`;
         },
       },
-      // send_media — only when the companion has media. They pick by number
-      // from the list in the description; run() resolves it to an item, opens
-      // the lightbox, and returns its ref so it renders inline in the
+      // The media tools — only when the companion has media. They ask in words,
+      // the app searches, and they send one of the refs it hands back. Nothing
+      // lists the whole set: send_media's run() resolves the ref to an item,
+      // opens the lightbox, and returns that ref so it renders inline in the
       // transcript too.
       ...(items.length > 0
         ? [
             {
-              name: 'send_media',
+              name: 'search_media',
               description:
-                'Send him a picture or a video of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. Optionally pass `kind` to say which sort you mean; the call is refused if it disagrees with the number. What you can send:\n' +
-                describeMediaList(items),
+                'Look through your own pictures and videos for ones matching a description — "me on my knees looking up", "something on a beach". Optionally pass `kind` to search only pictures or only videos. Returns up to a couple of dozen matches, each with a ref and what it shows. Call this before send_media; the refs it returns are what send_media takes.',
               parameters: {
                 type: 'object',
                 properties: {
-                  which: {
-                    type: 'integer',
-                    minimum: 1,
-                    maximum: items.length,
-                    description: 'the number of the one to send',
+                  description: {
+                    type: 'string',
+                    description:
+                      'what you want a picture of, in your own words',
                   },
                   kind: {
                     type: 'string',
                     enum: ['picture', 'video'],
                     description:
-                      'optional: the sort you mean to send, checked against the number',
+                      'optional: search only this sort; omit to search both',
                   },
                 },
-                required: ['which'],
+                required: ['description'],
+              },
+              run: (args: Record<string, unknown>) => {
+                const query =
+                  typeof args.description === 'string' ? args.description : '';
+                // 'picture' is the word the companion is given for a still;
+                // MediaKind calls it 'image'. Anything else is no filter — a
+                // model writing the call out as text can put anything here, and
+                // searching both beats refusing.
+                const kind =
+                  args.kind === 'picture'
+                    ? 'image'
+                    : args.kind === 'video'
+                      ? 'video'
+                      : undefined;
+                return describeHits(
+                  searchMedia(items, query, {
+                    limit: SEARCH_LIMIT,
+                    exclude: sentRefs.current,
+                    kind,
+                  }),
+                );
+              },
+            } satisfies CompanionTool,
+            {
+              name: 'send_media',
+              description:
+                'Send him one of your pictures or videos, shown to him right now in the call. Pass `ref` — one of the refs search_media returned. Search first; a ref you made up sends nothing.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  ref: {
+                    type: 'string',
+                    description: 'a ref from search_media',
+                  },
+                },
+                required: ['ref'],
               },
               run: (args: Record<string, unknown>) => {
                 const pick = pickMedia(items, args);
-                if (pick.show !== null) showMedia(pick.show);
+                if (pick.show !== null) {
+                  sentRefs.current.add(pick.show.ref);
+                  showMedia(pick.show);
+                }
                 return pick.sent;
               },
             } satisfies CompanionTool,
@@ -401,6 +449,20 @@ export function CompanionsPanel({
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
+
+  // Re-read the exclusions from the thread whenever it changes — a load, a
+  // send, or a clear. send_media also adds its ref as it sends, because a model
+  // can search again in the same turn, before the turn carrying that send has
+  // been appended.
+  useEffect(() => {
+    sentRefs.current = new Set(
+      status.thread.flatMap((turn) =>
+        turn.role === 'tool' && turn.mediaRef !== undefined
+          ? [turn.mediaRef]
+          : [],
+      ),
+    );
+  }, [status.thread]);
 
   // Manual stroke state only — its `keywords` are intentionally NOT wired to
   // voice (Companions registers no vosk words).

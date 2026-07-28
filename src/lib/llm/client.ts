@@ -32,13 +32,14 @@ export type LlmUsage = {
 // The OpenAI-compatible request tool shape (function tools). Generic LLM wire
 // shape — companions/tools.ts maps its CompanionTools onto this. `parameters`
 // is a JSON-Schema object: `properties` empty for a zero-arg tool (start/stop),
-// or a map of named arguments — a string-enum (variety) or a bounded integer
-// (intensity's percent) — with a `required` list.
+// or a map of named arguments — a string, free (search_media's description) or
+// constrained to an `enum` (variety's level), or a bounded integer (intensity's
+// percent) — with a `required` list.
 export type ToolParameterSchema = {
   type: 'object';
   properties: Record<
     string,
-    | { type: 'string'; enum: string[]; description?: string }
+    | { type: 'string'; enum?: string[]; description?: string }
     | {
         type: 'integer';
         minimum?: number;
