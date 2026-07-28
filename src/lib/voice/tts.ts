@@ -22,6 +22,10 @@ export type TtsPlayer = {
   stop: () => void;
 };
 
+// Firefox forces the fallback: it has MediaSource but reports
+// isTypeSupported('audio/mpeg') false, so mp3 cannot go through a SourceBuffer
+// there. Chromium and Playwright's WebKit both report true — which is not proof
+// for Safari, whose MSE behaviour Playwright cannot stand in for.
 function canStreamMp3(): boolean {
   return (
     typeof MediaSource !== 'undefined' &&
@@ -129,7 +133,11 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
           onFirstByte?.();
 
           if (canStreamMp3()) {
-            // Progressive path: pump the stream into a MediaSource.
+            // Progressive path: pump the stream into a MediaSource so playback
+            // starts on the first chunk instead of the last. The Blob fallback
+            // below runs in every engine, so this second path exists only to
+            // cut time-to-first-audio — the delay between a companion deciding
+            // to speak and being heard, which is the latency that shows.
             const mediaSource = new MediaSource();
             objectUrl = URL.createObjectURL(mediaSource);
             audioEl.src = objectUrl;
