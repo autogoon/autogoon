@@ -50,13 +50,9 @@ describe('pickMedia', () => {
 describe('describeHits', () => {
   it('gives one line per hit, each carrying the ref that sends it', () => {
     expect(
-      describeHits({
-        hits: ITEMS.map((m) => ({
-          ref: m.ref,
-          caption: m.caption,
-          kind: m.kind,
-        })),
-      }),
+      describeHits(
+        ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
+      ),
     ).toBe(
       'goonpack:pub.pack@1.0.0/on the beach — (picture) on the beach\n' +
         'goonpack:pub.pack@1.0.0/dancing — (video) dancing',
@@ -64,7 +60,7 @@ describe('describeHits', () => {
   });
 
   it('says nothing matched rather than returning an empty list', () => {
-    expect(describeHits({ hits: [] })).toMatch(/nothing/i);
+    expect(describeHits([])).toMatch(/nothing/i);
   });
 });
 
@@ -76,13 +72,11 @@ describe('countHits', () => {
   });
 
   it('counts the hits rather than naming any of them', () => {
-    expect(countHits({ hits: [hit('a'), hit('b'), hit('c')] })).toBe(
-      '3 matches',
-    );
-    expect(countHits({ hits: [] })).toBe('0 matches');
+    expect(countHits([hit('a'), hit('b'), hit('c')])).toBe('3 matches');
+    expect(countHits([])).toBe('0 matches');
   });
 
   it('says match rather than matches for a single hit', () => {
-    expect(countHits({ hits: [hit('a')] })).toBe('1 match');
+    expect(countHits([hit('a')])).toBe('1 match');
   });
 });

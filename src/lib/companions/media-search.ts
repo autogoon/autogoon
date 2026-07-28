@@ -9,11 +9,6 @@ import type { CompanionMedia } from './companions';
 
 export type MediaHit = { ref: string; caption: string; kind: MediaKind };
 
-// An object rather than a bare array: the session-scoping levers the roadmap
-// weighs — a cursor, a "there are more" count — land here without changing what
-// callers destructure.
-export type MediaSearchResult = { hits: MediaHit[] };
-
 // How many matches a search hands back. Big enough that a topic yields a set to
 // send from over several turns, small enough to stay cheap in context.
 export const SEARCH_LIMIT = 25;
@@ -79,9 +74,9 @@ export function searchMedia(
     // be one. Omitted searches both.
     kind?: MediaKind;
   } = {},
-): MediaSearchResult {
+): MediaHit[] {
   const wanted = new Set(terms(query));
-  if (wanted.size === 0) return { hits: [] };
+  if (wanted.size === 0) return [];
   const limit = opts.limit ?? SEARCH_LIMIT;
 
   const scored: { item: CompanionMedia; score: number }[] = [];
@@ -104,11 +99,9 @@ export function searchMedia(
     (a, b) => b.score - a.score || a.item.ref.localeCompare(b.item.ref),
   );
 
-  return {
-    hits: scored.slice(0, limit).map(({ item }) => ({
-      ref: item.ref,
-      caption: item.caption,
-      kind: item.kind,
-    })),
-  };
+  return scored.slice(0, limit).map(({ item }) => ({
+    ref: item.ref,
+    caption: item.caption,
+    kind: item.kind,
+  }));
 }

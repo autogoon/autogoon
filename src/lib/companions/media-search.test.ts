@@ -28,46 +28,46 @@ const SET = [
 
 describe('searchMedia', () => {
   it('ranks the item whose caption shares most with the request first', () => {
-    expect(searchMedia(SET, 'kneeling looking up').hits[0]?.ref).toBe('a');
+    expect(searchMedia(SET, 'kneeling looking up')[0]?.ref).toBe('a');
   });
 
   it('finds an item on detail that only its long description carries', () => {
-    expect(searchMedia(SET, 'mirror').hits[0]?.ref).toBe('c');
+    expect(searchMedia(SET, 'mirror')[0]?.ref).toBe('c');
   });
 
   it('ranks a caption hit above a description hit for the same word', () => {
     const beach = item('e', 'A woman indoors.', 'Behind her is a beach.');
-    const hits = searchMedia([beach, SET[1]!], 'beach').hits;
+    const hits = searchMedia([beach, SET[1]!], 'beach');
     expect(hits.map((h) => h.ref)).toEqual(['b', 'e']);
   });
 
   it('returns nothing when no item shares anything with the request', () => {
-    expect(searchMedia(SET, 'helicopter').hits).toEqual([]);
+    expect(searchMedia(SET, 'helicopter')).toEqual([]);
   });
 
   it('returns nothing for a request that is all words too common to tell items apart', () => {
-    expect(searchMedia(SET, 'she is on the').hits).toEqual([]);
+    expect(searchMedia(SET, 'she is on the')).toEqual([]);
   });
 
   it('leaves out the items it was told to exclude', () => {
     const hits = searchMedia(SET, 'woman', {
       exclude: new Set(['a', 'b', 'd']),
-    }).hits;
+    });
     expect(hits.map((h) => h.ref)).toEqual(['c']);
   });
 
   it('narrows to one kind when asked for one, keeping both when not', () => {
-    expect(searchMedia(SET, 'beach', { kind: 'video' }).hits[0]?.ref).toBe('d');
-    expect(searchMedia(SET, 'beach', { kind: 'image' }).hits[0]?.ref).toBe('b');
-    expect(searchMedia(SET, 'beach').hits).toHaveLength(2);
+    expect(searchMedia(SET, 'beach', { kind: 'video' })[0]?.ref).toBe('d');
+    expect(searchMedia(SET, 'beach', { kind: 'image' })[0]?.ref).toBe('b');
+    expect(searchMedia(SET, 'beach')).toHaveLength(2);
   });
 
   it('returns at most the limit it was given', () => {
-    expect(searchMedia(SET, 'woman', { limit: 2 }).hits).toHaveLength(2);
+    expect(searchMedia(SET, 'woman', { limit: 2 })).toHaveLength(2);
   });
 
   it('orders equally-scoring items the same way every time', () => {
-    expect(searchMedia(SET, 'woman').hits.map((h) => h.ref)).toEqual([
+    expect(searchMedia(SET, 'woman').map((h) => h.ref)).toEqual([
       'a',
       'b',
       'c',
@@ -76,7 +76,7 @@ describe('searchMedia', () => {
   });
 
   it('carries the caption and kind of each hit, which is what the model reads', () => {
-    const hit = searchMedia(SET, 'sunset').hits[0];
+    const hit = searchMedia(SET, 'sunset')[0];
     expect(hit?.caption).toBe('A woman standing on a beach at sunset.');
     expect(hit?.kind).toBe('image');
   });

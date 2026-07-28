@@ -3,7 +3,7 @@
 // refuse. The panel keeps the tools' schemas and the one side effect — putting
 // the item on his screen.
 import type { CompanionMedia } from './companions';
-import type { MediaSearchResult } from './media-search';
+import type { MediaHit } from './media-search';
 import type { ToolRunResult } from './tools';
 
 const nameKind = (m: { kind: CompanionMedia['kind'] }): string =>
@@ -12,21 +12,18 @@ const nameKind = (m: { kind: CompanionMedia['kind'] }): string =>
 // A search result as the model reads it: one line per hit, each opening with
 // the ref that sends it. Nothing matching is an answer in itself — far better
 // than them announcing a picture that never came.
-export function describeHits(result: MediaSearchResult): string {
-  if (result.hits.length === 0) {
+export function describeHits(hits: readonly MediaHit[]): string {
+  if (hits.length === 0) {
     return 'Nothing in your pictures or videos matches that — try describing something else.';
   }
-  return result.hits
-    .map((h) => `${h.ref} — (${nameKind(h)}) ${h.caption}`)
-    .join('\n');
+  return hits.map((h) => `${h.ref} — (${nameKind(h)}) ${h.caption}`).join('\n');
 }
 
 // The same search as the transcript shows it. The model has to read every hit
 // to choose between them; on screen that is a page of captions nobody reads,
 // where the only question is whether the search found anything.
-export function countHits(result: MediaSearchResult): string {
-  const n = result.hits.length;
-  return n === 1 ? '1 match' : `${n} matches`;
+export function countHits(hits: readonly MediaHit[]): string {
+  return hits.length === 1 ? '1 match' : `${hits.length} matches`;
 }
 
 // Either the item to show and what to tell the model it sent, or — with
