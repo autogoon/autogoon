@@ -2,7 +2,8 @@
 
 // Mirrors the Vacuglide cloud API as a React hook: connection, raw commands,
 // live device state, and a log of every command sent to the device. Knows
-// nothing about the play modes — those consume this via getDevice.
+// nothing about the play modes — they reach the device through the Player it
+// owns, which is the only thing here holding a device reference for them.
 // https://developers.autoblow.com/reference/http-api-v1-vacuglide/
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -113,10 +114,6 @@ export function useVacuglideDevice() {
     window.addEventListener('pagehide', onPageHide);
     return () => window.removeEventListener('pagehide', onPageHide);
   }, [player]);
-
-  // Stable accessor so consumers (e.g. the autopilot engine) always reach the
-  // currently-connected device across reconnects.
-  const getDevice = useCallback(() => deviceRef.current, []);
 
   const connectWithToken = useCallback(
     async (rawToken: string): Promise<boolean> => {
@@ -242,7 +239,6 @@ export function useVacuglideDevice() {
     deviceStatus,
     deviceStatusKind,
     connect,
-    getDevice,
     player,
     deviceSpeed,
     strokePlusValve,
