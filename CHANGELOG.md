@@ -31,6 +31,13 @@
   have no sidecar instead of building silently over them, naming the first few
   and counting the rest. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
+- internal: **A thread that fails to save says so** — Writing a companion's
+  conversation to browser storage can fail, most likely on a long thread passing
+  the storage quota, and the error was discarded. Nothing went wrong until the
+  next load found the conversation rewound to the last version that fit. The
+  failure now appears in the Companions debug log as it happens.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - internal: **The install marker moved out of the pack** — The file marking an
   extracted tree complete was written inside the pack's own directory, so
   validation had to be told to ignore it and extraction had to refuse a zip

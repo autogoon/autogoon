@@ -119,7 +119,17 @@ them isn't also transcribed as a turn.
 Keep the ever-growing thread within the model's context (recorded per companion
 as `contextWindow`): summarize older turns and/or keep a rolling window of
 recent turns verbatim, trimming old `reasoning_details` along with the messages
-they belong to. Headroom for very long sessions rather than a near-term limit.
+they belong to.
+
+A `search_media` result is the largest thing a turn can hold — up to
+`SEARCH_LIMIT` lines of ref and caption, replayed for the rest of the
+conversation because that is what lets a companion send from an earlier search —
+so a thread with a few dozen searches in it is far bigger than its spoken turns
+suggest. That moves this from headroom for very long sessions to something a
+real session reaches: the whole thread is re-serialised into `localStorage` on
+every turn, and past the origin's quota that write fails and `persistThread`
+discards the error, so the conversation silently rewinds to the last version
+that fit on the next load.
 
 ### Turn-commit review, reply-length tuning & prompt polish
 

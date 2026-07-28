@@ -330,15 +330,20 @@ export function useVoiceSession(opts: {
   }, []);
 
   // Write-through persistence: every thread mutation updates the ref, the
-  // mirror, and localStorage together. Storage failures (quota/unavailable) are
-  // swallowed — the in-memory thread still works for this session.
+  // mirror, and localStorage together. A storage failure (quota, or unavailable)
+  // doesn't end the session — the in-memory thread carries on — but it is said
+  // out loud rather than discarded: nothing else goes wrong until the reload
+  // that finds the thread rewound to the last version that fit.
   const persistThread = useCallback((thread: Thread): void => {
     threadRef.current = thread;
     setStatus((s) => ({ ...s, thread }));
     try {
       localStorage.setItem(threadKeyRef.current, serialize(thread));
-    } catch {
-      // ignore: storage full or unavailable
+    } catch (e) {
+      onLogRef.current?.(
+        `thread not saved: ${e instanceof Error ? e.message : String(e)}`,
+        'info',
+      );
     }
   }, []);
 
