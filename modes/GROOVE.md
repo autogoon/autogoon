@@ -43,6 +43,8 @@ everyone's taste.
 
 ## Voice control
 
+On top of the transport words every play mode has (see [MODES.md](../MODES.md)):
+
 - **more** / **less** — step Intensity up or down.
 - **hillier** / **flatter** — step Dip variability up or down.
 - **off** / **low** / **medium** / **high** — set Timing variability.

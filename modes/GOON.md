@@ -103,7 +103,8 @@ In setup:
   outcome.
 - `play` — lock the setup in and ready the session.
 
-During play:
+During play, on top of the transport words every play mode has (see
+[MODES.md](../MODES.md)):
 
 - `forward` / `back` — jump the position ±1 minute.
 - `finish` — jump to the end-of-session hold.
