@@ -24,8 +24,8 @@ to install; just open it, enter your device token, and go.
     (intensity + dip and timing variability).
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
     own Vacuglide autopilot.
-- **Switch by voice** — say a mode's name to change while stopped; once running,
-  the mode locks in.
+- **Switch by voice** — from home, say a mode's name to enter it; while stopped,
+  say exit to come back and choose another. Once running, the mode locks in.
 
 ## Companions — if you run it yourself
 
