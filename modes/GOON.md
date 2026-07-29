@@ -66,9 +66,9 @@ At the end of the session the build reaches the top and **holds there** until
 you end it. `finish` jumps straight to that hold.
 
 `cumming` is the actual send-off — and what it does is set by the **After-play**
-card in setup. Tick any of the four outcomes; at the cumming point one is drawn
-at random from the ticked set. At least one must be ticked before you can play,
-and your ticks are remembered on this device:
+card in setup. Tick any of the outcomes; at the cumming point one is drawn at
+random from the ticked set. At least one must be ticked before you can play, and
+your ticks are remembered on this device:
 
 - **Wind-down** — the device eases off in a slow, deliberate glide from a
   moderate pace down to a standstill over about ten seconds — the strokes
