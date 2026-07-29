@@ -21,10 +21,6 @@ forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
 header — same-origin for the browser (no CORS juggling), streaming passes
 straight through, and the key never reaches the client.
 
-One field-level why worth knowing (the rest are commented on the type):
-`voiceId` and `model` aren't secrets, so they're safe in code even in a public
-repo.
-
 ## One config object per companion
 
 The companions live in a keyed record — `COMPANIONS` in
