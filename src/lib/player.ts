@@ -1,6 +1,6 @@
 // The shared Player: owns the program-clock, the tick loop, device sends (with
 // duplicate-send suppression), and the 5-minute lookahead. It plays a
-// PlayModeEngine; it knows nothing about any specific play mode. No React, and
+// PlayModeEngine; nothing in it is specific to a play mode. No React, and
 // it takes a getDevice accessor rather than a device because it is constructed
 // before one is connected — every send reads whatever the accessor returns.
 
@@ -143,8 +143,8 @@ export class Player {
   }
 
   // Build the preview lookahead for a source WITHOUT starting the tick loop.
-  // This is "the Player minus the tick loop and device sends": upcomingWindow()
-  // and seek() work off it, so a panel can preview/scrub before Start.
+  // upcomingWindow() and seek() work off it, so a panel can preview/scrub
+  // before Start.
   arm(source: PlayModeEngine | null): void {
     this.setSource(source);
     this.ensureLookahead();
@@ -382,7 +382,7 @@ export class Player {
     this.notify();
   }
 
-  // ---- Regeneration (the "push" a source triggers on a knob/finish/cumming) ----
+  // ---- Regeneration (what a panel calls after a knob change, finish or cumming) ----
 
   // Drop everything after the cursor (keep the past + the in-effect event) and
   // re-pull generate from now. The source reflects its new state on the re-pull.
@@ -400,8 +400,7 @@ export class Player {
   // Re-lay ONLY the valve overlay, keeping the speed script byte-identical — for a
   // knob that shapes valves but not speed (Autopilot's vacuum maintenance). Drop
   // the not-yet-played valve events, ask the source to overlay fresh valves across
-  // the retained future speed, and splice them back in. The speed the user is
-  // riding is untouched; only the suction reshapes from here on.
+  // the retained future speed, and splice them back in.
   invalidateValves(): void {
     if (this.source === null) return;
     const ctx = this.context();

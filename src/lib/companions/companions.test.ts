@@ -45,7 +45,7 @@ describe('companionList', () => {
   // very top — costing the whole conversation behind it, not just the prompt.
   // The live values ride a trailing system message instead (liveStateMessage).
   // {{MEDIA_SECTION}} is fine — it resolves once, when a companion is
-  // assembled. Only the per-turn markers cost anything.
+  // assembled.
   it("no companion's system prompt contains a per-turn value", () => {
     for (const companion of Object.values(COMPANIONS)) {
       expect(companion.systemPrompt).not.toContain('{{TOY_STATUS}}');

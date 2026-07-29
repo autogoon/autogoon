@@ -12,7 +12,7 @@
 // only thing the model produces is what the companion says. It bans
 // stage-direction (describing yourself from the outside) but explicitly allows
 // candid spoken talk — a companion telling him out loud what they're doing is
-// speech, not narration, and stays in bounds. It ends with the rule and no
+// speech, not narration. It ends with the rule and no
 // trailing newline: each persona appends its OWN WRONG/RIGHT examples in its
 // own voice, so the illustrations don't drag every companion toward one tone.
 export const OUTPUT_FORMAT_SECTION = `OUTPUT FORMAT — THIS IS THE MOST IMPORTANT RULE:
@@ -44,7 +44,7 @@ export const SHARED_STYLE_BULLETS = `- Convey everything — mood, reactions, te
 // A one-bullet summary of the two knobs — intensity and variety — in plain,
 // in-character language, for a persona to drop into its INTIMACY section so the
 // vocabulary is introduced before its disposition bullets lean on it. Distinct
-// from CONTROL_SECTION below: this is the in-scene framing ("the user has a toy
+// from CONTROL_SECTION: this is the in-scene framing ("the user has a toy
 // you can control"), that is the mechanical discipline (use the tool, trust TOY
 // STATUS). Persona-neutral, starts with "- " and no trailing newline so it sits
 // among the other INTIMACY bullets.
@@ -95,7 +95,7 @@ ${summary}
 // it only hands the model two contradictory instructions. Who leads the
 // encounter is the persona's, in its INTIMACY section; who drives the toy is
 // not. It talks about the TOY STATUS line, which arrives separately
-// (liveStateMessage below) — every value here is fixed, so a prompt built from
+// (liveStateMessage) — every value here is fixed, so a prompt built from
 // it is byte-identical turn to turn.
 //
 // THE TOY opens it rather than being its own export because every prompt
@@ -209,9 +209,9 @@ export const TIME_SECTION = `TIME:
 
 // The two values that change every turn, as their own system message at the end
 // of a request rather than inside the persona prompt. Prompt caching matches a
-// prefix of tokens: with these at the foot of the first message, the request
-// diverged from the last one within a few hundred tokens of its start, so
-// nothing after them — including the whole conversation — could ever be reused.
+// prefix of tokens: with these inside the persona prompt, a request would
+// diverge from the last one within a few hundred tokens of its start, so
+// nothing after them — including the whole conversation — could be reused.
 // Last means everything before is byte-identical turn to turn.
 //
 // TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY

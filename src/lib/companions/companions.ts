@@ -48,7 +48,7 @@ export type Companion = {
   // deliberately captured anyway, because it belongs to whoever picked `model`.
   // Compaction (TODO.md) is what will need it, and a pack authored before then
   // would otherwise have to be revisited to supply a number its author knew all
-  // along. Cheap to carry, expensive to backfill across every pack in the wild.
+  // along.
   contextWindow: number;
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
   // How readily this companion fills a silence, 1–5, as two separate appetites:
@@ -75,7 +75,7 @@ export type Companion = {
 // passesReasoning "default to the app's current defaults").
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default
 // price-weighted load balancing — a companion's reply is spoken, so time to
-// first token is what the conversation feels like.
+// first token is the pause before they answer.
 export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
 // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
@@ -120,7 +120,7 @@ export const COMPANIONS: Record<string, Companion> = {
   },
 };
 
-// The picker order, derived from the one source above: alphabetical by name.
+// The picker order, derived from COMPANIONS: alphabetical by name.
 export const companionList: Companion[] = Object.values(COMPANIONS).sort(
   (a, b) => a.name.localeCompare(b.name),
 );

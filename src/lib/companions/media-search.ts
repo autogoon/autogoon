@@ -1,9 +1,9 @@
 // Finding one item in a companion's media from a request in their own words.
 // Lexical overlap over the two texts each item carries: deliberately simple,
 // deliberately replaceable, and pure — so it is pinned by tests rather than by
-// faking a model. Which retrieval method actually wins is measured against a
-// yardstick that doesn't exist yet (roadmap/INFERENCE-LIBRARY.md); the tool
-// contract above it doesn't change when the answer arrives.
+// faking a model. Which retrieval method scores best needs a benchmark this
+// repo doesn't have yet (roadmap/INFERENCE-LIBRARY.md); the tool contract above
+// it doesn't change when the answer arrives.
 import type { MediaKind } from '@/lib/goonpacks/media';
 import type { CompanionMedia } from './companions';
 
@@ -91,8 +91,7 @@ export function searchMedia(
     if (score > 0) scored.push({ item, score });
   }
 
-  // Ties break on ref so the same request twice gives the same answer. That is
-  // a contract a sampling lever would deliberately break, not an accident.
+  // Ties break on ref so the same request twice gives the same answer.
   scored.sort(
     (a, b) => b.score - a.score || a.item.ref.localeCompare(b.item.ref),
   );

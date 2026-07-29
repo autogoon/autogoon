@@ -209,8 +209,7 @@ export function serialize(thread: Thread): string {
 // Tolerant codec: any malformed / partial / legacy / non-array JSON → [], so a
 // bad or stale localStorage value can never crash the session — it just starts
 // fresh. Legacy tool turns without a toolCallId are treated as malformed, which
-// discards pre-agentic threads wholesale (they can't be replayed validly) — a
-// clean reset, not a crash.
+// discards pre-agentic threads wholesale (they can't be replayed validly).
 export function parse(raw: string | null): Thread {
   if (raw === null) return [];
   let data: unknown;

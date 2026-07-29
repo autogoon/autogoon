@@ -9,7 +9,7 @@ import type { RequestTool, ToolParameterSchema } from '@/lib/llm/client';
 // a still or video to the transcript turn (send_media): `result` is the
 // model-facing text, `mediaRef` the stable reference the transcript renders and
 // the lightbox opens. `display` stands in for `result` on screen where the two
-// want to differ — search_media's result is every match it found, which the
+// should differ — search_media's result is every match it found, which the
 // model must read in full and a reader only wants the size of.
 export type ToolRunResult = {
   result: string;

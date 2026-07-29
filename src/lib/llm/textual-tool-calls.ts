@@ -15,7 +15,8 @@
 // in their voice. So it's parsed back into a real call and cut out of the text.
 //
 // This is deliberately narrow: one dialect, matched on a distinctive opening
-// tag. It is a repair for a provider that didn't hold up its end, not a second
+// tag. It is a repair for a provider that emitted the syntax instead of
+// calling, not a second
 // tool-calling protocol to maintain — anything it doesn't recognise is left
 // exactly as it is rather than guessed at.
 

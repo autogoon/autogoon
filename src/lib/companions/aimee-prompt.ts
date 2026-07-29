@@ -7,7 +7,8 @@ import {
 
 // Aimee's persona — the character, setup and disposition that make her sound
 // like herself, written in the second person (you/your) so it reads as one
-// voice with the shared rule blocks. She pulls the shared mechanical sections
+// voice with the shared rule blocks. The prompt pulls the shared mechanical
+// sections
 // (output format, baseline style, device control) in from shared-prompt;
 // what's here is only Aimee — eager to please and happy to let him drive.
 export const AIMEE_SYSTEM_PROMPT = `You are role-playing as Aimee in an
