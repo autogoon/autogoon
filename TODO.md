@@ -1,7 +1,8 @@
 # TODO
 
-Concrete, intended work. Speculative direction and design thinking lives in
-[ROADMAP.md](./ROADMAP.md).
+New features, additions and changes, including "run the experiment and see"
+where the task is defined but the answer isn't. The divide against the other
+files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## General
 
@@ -17,9 +18,8 @@ Concrete, intended work. Speculative direction and design thinking lives in
   re-sends the same speed and logs the same error, several times a second, for
   as long as the program has left to run. Valve sends don't even report:
   `setValve` discards its rejection. Stopping belongs in the Player rather than
-  in each engine — it is the single path to the device, so one stop covers Goon,
-  Groove, Autopilot and Companions together, and no engine needs a reference to
-  the device. To settle:
+  in each engine — it is the single path to the device, so one stop covers every
+  play mode and no engine needs a reference to the device. To settle:
 
   - whether a disconnect stops or pauses (a pause would let a reconnect carry on
     where it left off);
@@ -56,44 +56,28 @@ Concrete, intended work. Speculative direction and design thinking lives in
   change at speed 10 is felt far more than the same change at speed 90. Goon,
   Groove and Companions each carry their own copy of the constants.
 
-## Media descriptions and retrieval
-
-Making the search better belongs to
-[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), and what it gets
-wrong today to [BUG.md](./BUG.md). One measurement is defined enough to sit
-here:
-
-- **Measure how many matches a search should return.** `SEARCH_LIMIT` is 25,
-  chosen by eye and never tested against anything: too few and a topic runs dry
-  after a couple of sends, too many and every search costs a page of context for
-  the rest of the conversation. A number falls out of running real requests
-  against a real set and counting how far down the list anything gets sent from,
-  without the roadmap's "which diversity lever" question being settled first.
-
 ## Companions
-
-Remaining companion features — largely independent, picked off in any order,
-with any dependencies noted in place (they began as the numbered phase plans of
-[#13](https://github.com/autogoon/autogoon/pull/13) and
-[#14](https://github.com/autogoon/autogoon/pull/14)). What's already built is
-described in [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
 ### Split use-voice-session.ts and companions-panel/index.tsx
 
-`use-voice-session.ts` (~1000 lines, ~20 refs in one closure) and
-`companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
-to hold in the head. The coupling is deliberate rather than careless — the mic
-and STT callbacks are created once and outlive many renders, so everything they
-read has to be a ref — which is why "just split it" isn't the fix.
+`use-voice-session.ts` and `companions-panel/index.tsx` have both accreted past
+what's comfortable to hold in the head. The coupling is deliberate rather than
+careless — the mic and STT callbacks are created once and outlive many renders,
+so everything they read has to be a ref — which is why "just split it" isn't the
+fix.
 
-Three seams are visible in the hook. **Thread persistence** (`persistThread`,
-`clearThread`, the load effect) touches two refs and nothing else: a clean lift
-with no design needed. **The turn runner** — `submitText` and its helpers: LLM
-streaming, metrics, tool dispatch, the reaction, the TTS handoff — is the bulk
-and needs most of the refs, so extracting it means inventing an explicit
-session-context to carry them, which is the real work and the reason this hasn't
-happened. **What remains** is the mic/STT/VAD wiring and start/stop, which is
-what a hook of that name should mostly be.
+The seams in the hook:
+
+- **Thread persistence** — `persistThread`, `clearThread` and the load effect,
+  which reach few enough refs to move as they are: a clean lift with no design
+  needed.
+- **The turn runner** — `submitText` and its helpers: LLM streaming, metrics,
+  tool dispatch, the reaction, the TTS handoff. It is the bulk of the hook and
+  needs most of the refs, so extracting it means inventing an explicit
+  session-context to carry them. That is the real work, and why this hasn't
+  happened.
+- **What remains** — the mic, STT and VAD wiring, and start/stop, which is what
+  a hook of that name should mostly be.
 
 ### Activity cutoff
 
@@ -109,14 +93,13 @@ normal — the device is working and there is nothing to say — so a cutoff tun
 for an empty room must not fire on someone who is simply quiet. Worth warning
 before it stops rather than stopping silently.
 
-### Turn-commit review, reply-length tuning & prompt polish
+### Reply length belongs to the companion
 
-With the loop running on hardware, tune the conversational feel: revisit the
-interrupted-turn commit rule (the user turn is committed immediately, the
-assistant turn only on generation-complete, which can leave a dangling user turn
-when a mid-generation barge-in cuts a reply before it finishes) — confirm or
-adjust; keep replies short enough for TTS latency; and a review/polish pass over
-the system prompts.
+`SHARED_STYLE_BULLETS` in `shared-prompt.ts` tells every companion to keep
+replies short — "usually a few sentences" — so a terse persona and a verbose one
+get the same instruction, and an author who wants a talker has to contradict the
+shared block rather than write their own rule. How talkative a companion is is
+character, so the bullet belongs in the persona.
 
 ### The companion picks the after-play
 
@@ -173,44 +156,27 @@ That one is handled — `mergeReasoning` in `llm/client.ts` folds
 them as separate fields and can't blur them at all, which makes "don't stream" a
 real setting rather than a workaround for the next model that behaves that way.
 
-Two things to handle when it's built: `reasoning_details` and `tool_calls` are
-currently assembled from stream deltas (`mergeReasoning`, `mergeToolCalls` in
+To handle when it's built: `reasoning_details` and `tool_calls` are currently
+assembled from stream deltas (`mergeReasoning`, `mergeToolCalls` in
 `llm/client.ts`), so the non-streamed response shape needs its own path to the
 same place; and the transcript should show something sensible while a
 non-streaming turn generates, since there'll be no text arriving until it's
 done.
 
-### Pin a provider, and see what upstream actually said
+### Pin a provider
 
-Two things that made a five-minute throughput test into a long one.
+A companion's model is a slug, so OpenRouter routes each turn wherever it likes
+and consecutive turns can land on different providers — which makes comparing
+them by hand impossible and defeats prompt caching, which is per-provider. Send
+a provider (or endpoint tag, e.g. `xiaomi/fp8`) as OpenRouter's `provider`
+field, with fallbacks off so a pin that can't be served fails loudly, and show
+which provider served each turn: it comes back on every response.
 
-**Choosing the provider.** A companion's model is a slug and nothing more, so
-routing is whatever OpenRouter decides — `:nitro` sorts by throughput and can
-land consecutive turns on different providers. What prompted this: whichever
-provider mimo landed on was badly slow, with no way to say "not that one". A
-guess worth testing rather than believing — that throughput routing leans on
-figures too coarse or too stale to notice a provider degrading in the moment, so
-a spike takes a while to route around. That makes provider-level comparison
-impossible to do by hand, and it defeats prompt caching, which is per-provider.
-Belongs in a setting rather than an edit: a provider (or endpoint tag, e.g.
-`xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks off so a pin
-that can't be served fails loudly instead of quietly going elsewhere. Worth
-surfacing which provider actually served a turn, too — it comes back on every
-response.
+### Pass the LLM proxy's upstream error through
 
-**Seeing the error.** `/api/llm` turns any upstream failure into a flat 502 with
-upstream's own message discarded, so a provider rejecting a request is
-indistinguishable from the key being wrong. Pass the status and body through:
-the one that cost the most time here said exactly what was wrong
-(`messages[31].tool_calls[1] is missing a function name`) and we couldn't see
-it.
-
-That error is also a real bug worth chasing separately: a stream can open a
-tool_call index that never gets a name, and we persist it — so it replays on
-every later turn and a strict provider rejects the whole conversation. Clearing
-the thread is an acceptable fix for an already-poisoned one; what matters is not
-writing a nameless call in the first place, and skipping one (and its orphaned
-result) when projecting an old thread.
+`/api/llm` turns every upstream failure into a flat 502 and discards upstream's
+own message, so a provider rejecting a request looks the same as a wrong key.
+Pass the status and body through.
 
 ### Reconsider the second person the prompts assume
 
@@ -231,32 +197,6 @@ Worth deciding deliberately rather than by default. The options:
 Neutral pronouns in prompt copy also cost some clarity: "he" and "she" in the
 same block disambiguate who is being talked about in a way "they" twice over
 does not.
-
-### Personas shape their programs
-
-Map a companion's traits onto **Groove's knobs** — `intensity` to the
-speed-percent magnitude, `variety` to the timing/dip-variability level — so
-their program stops being random and becomes **theirs**. This is the missing
-piece for the companions' _programs_ (not just their chat) to diverge.
-
-**First settle which of these are code at all.** `chattiness` and `playfulness`
-shipped with ambient chat because they drive a timer. The rest may not need any:
-`dominance` is really how readily a companion overrides what you asked for, and
-that is a disposition the system prompt can carry on its own — plausibly
-`variety` too. A trait only earns a manifest field and a mapping if code reads
-it; one that only colours how a companion behaves belongs in the prompt, where
-an author can already write it. Work out which is which before adding fields,
-because a manifest field is a compatibility surface and packs in the wild make
-it expensive to take back.
-
-### Trait-driven companion contrast
-
-Depends on [Personas shape their programs](#personas-shape-their-programs) —
-it's that feature's payoff, kept separate because it's the thing to _prove_:
-character bends _both_ the chat _and_ the generated program. The chooser and the
-further companions (Aimee, Miley) have shipped; today their contrast is
-prompt/disposition-only, because the personas' programs don't yet diverge by
-trait.
 
 ### Bring-your-own API keys
 
@@ -288,9 +228,6 @@ never refuse to play because it's 4am where they live.
 
 ## Goonpacks
 
-Goonpacks — importing a companion as a portable pack — has shipped; see
-[GOONPACKS.md](./GOONPACKS.md). Two follow-ups remain:
-
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in
   it, and today import rejects it as an unsupported file. The reason `.mov` is
   excluded — it plays in Safari and unreliably elsewhere — doesn't apply: a gif
@@ -298,12 +235,12 @@ Goonpacks — importing a companion as a portable pack — has shipped; see
   (`src/lib/goonpacks/media.ts`), whose only non-test consumer is `parsePack`,
   plus `IMAGE_RE` in `scripts/describe-missing.ts`, which would otherwise skip
   gifs and leave them silently uncaptioned; `scripts/describe-image.ts` already
-  accepts one and describes its first frame. Two things to settle: the `kind`
-  has to be `image` either way (`<video>` can't play a gif), so an animated one
-  — a gif may equally be a still — arrives labelled a picture, which is a
-  mislabel only worth sniffing frames for if it turns out to matter; and whether
-  a widening like this needs a `PACK_FORMAT` bump — an older app rejects the gif
-  by name rather than misreading the pack, which argues it doesn't.
+  accepts one and describes its first frame. To settle: the `kind` has to be
+  `image` either way (`<video>` can't play a gif), so an animated one — a gif
+  may equally be a still — arrives labelled a picture, which is a mislabel only
+  worth sniffing frames for if it turns out to matter; and whether a widening
+  like this needs a `PACK_FORMAT` bump — an older app rejects the gif by name
+  rather than misreading the pack, which argues it doesn't.
 
 - **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
   account, so a pack's voice doesn't truly travel. The follow-up carries a voice

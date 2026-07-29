@@ -1,14 +1,8 @@
 # BUG
 
-Known-wrong behaviour with no settled approach. A defect worth fixing now is
-fixed now rather than written down; what lands here is what can't be, usually
-because the fix waits on work that hasn't happened.
-
-The split against the other files: [TODO.md](./TODO.md) is work that is ready to
-pick up — including "run the experiment and see", where the task is defined even
-though the answer isn't. [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` are
-direction, where nothing is wrong and it could be more. Here, something is wrong
-and the approach isn't known. An entry moves to TODO.md the moment it is.
+Known defects in behaviour that is already implemented. Severity decides when
+one gets fixed, not whether it belongs here. The divide against the other files
+is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## Companions
 

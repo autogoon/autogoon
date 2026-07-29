@@ -1,7 +1,9 @@
 # Roadmap
 
 Direction and design thinking — ideas that still need to be thought through and
-specified more firmly before implementation. Some need prototyping first.
+specified more firmly before implementation. Some need prototyping first. The
+divide against the other files is in
+[CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 Each idea lives in its own file under [`roadmap/`](./roadmap/); this page is the
 index.
@@ -26,6 +28,9 @@ index.
 - [Goonpack kit](roadmap/GOONPACK-KIT.md) — move pack authoring into the app:
   leaf through a pack's pictures fixing captions, edit its manifest and persona,
   and build it, instead of scripts and a text editor.
+- [Persona programs](roadmap/PERSONA-PROGRAMS.md) — a companion's chat diverges
+  by persona and their program doesn't. Map their traits onto Groove's knobs,
+  once it's settled which traits are code at all rather than prompt.
 - [The safe word](roadmap/SAFE-WORD.md) — it stops the toy and nothing else
   today. It should also cut the companion off and then let them react to it in
   character, which means telling them it happened.

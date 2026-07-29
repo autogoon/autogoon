@@ -152,6 +152,13 @@ Sampling above a threshold is also what "something at random" needs, so it may
 serve the query-less request too. Which one earns its place is a question for a
 real library; what the tool must not do is foreclose them.
 
+How many a search returns is the other half, and it can be answered without
+picking a lever: `SEARCH_LIMIT` is 25, an arbitrary starting point — too few and
+a topic runs dry after a couple of sends, too many and every search costs a page
+of context for the rest of the conversation. A number falls out of running real
+requests against a real set and counting how far down the list anything gets
+sent from.
+
 Exhaustion is in [BUG.md](../BUG.md) → Companions.
 
 ### One interface, several implementations

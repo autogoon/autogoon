@@ -204,9 +204,8 @@ invariants, the why, and the cross-file shape. Concretely:
 - Current-state docs describe **only what's implemented**. Future work lives in
   one of these, and nowhere else:
 
-  - [TODO.md](./TODO.md) — defined work.
-  - [BUG.md](./BUG.md) — known-wrong behaviour whose approach isn't settled; a
-    fixable defect is fixed instead.
+  - [TODO.md](./TODO.md) — new features, additions and changes.
+  - [BUG.md](./BUG.md) — known defects in behaviour that is already implemented.
   - [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` — direction, one file per
     thread.
   - A dated plan or spec under `docs/`.
