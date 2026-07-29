@@ -1,7 +1,7 @@
 // The companion's LLM client: a thin wrapper over the openai SDK pointed at our
 // same-origin proxy route, which forwards to OpenRouter. The client sends the
 // companion's model itself; the route injects only the API key server-side, and
-// the proxy is unauthenticated for the local experiment.
+// gates on the Companion access ID (checkAccess in companions/access-check.ts).
 import OpenAI from 'openai';
 import { parseTextualToolCalls } from './textual-tool-calls';
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
@@ -200,8 +200,7 @@ export function createLlmClient(model: string): LlmClient {
           ? { tools: opts.tools }
           : {}),
       },
-      // Attach the Companion access ID (read fresh so a later unlock applies) —
-      // ignored by the proxy unless COMPANIONS_ACCESS_IDS is set.
+      // Attach the Companion access ID, read fresh so a later unlock applies.
       { signal: opts.signal, headers: { [ACCESS_HEADER]: getAccessId() } },
     );
     const reasoning: ReasoningEntry[] = [];
