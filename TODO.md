@@ -6,54 +6,61 @@ files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## General
 
-- **Don't connect to the microphone on load.** Particularly annoying during
-  development, where the app sits open and listening for keywords without being
-  used. Connecting on load gains little when playing either. Turning listening
-  on is one click, once.
+### Don't connect to the microphone on load
 
-- **Stop the program when the device disconnects.** A device that drops mid-run
-  leaves the Player's tick loop running. The speed send throws.
-  `scheduleNextTick` reports the failure and schedules the next tick anyway, and
-  `lastDeviceSpeed` only updates on a send that succeeded. So every tick
-  re-sends the same speed and logs the same error, several times a second, until
-  the program would have ended. Valve sends report nothing at all: `setValve`
-  discards its rejection.
+Particularly annoying during development, where the app sits open and listening
+for keywords without being used. Connecting on load gains little when playing
+either. Turning listening on is one click, once.
 
-  Stopping belongs in the Player, not in each engine. The Player is the single
-  path to the device, so one stop covers every play mode and no engine needs a
-  device reference. To settle:
+### Stop the program when the device disconnects
 
-  - whether a disconnect stops or pauses (a pause would let a reconnect carry on
-    where it left off);
-  - how many consecutive failures mean gone rather than a blip;
-  - what the screen says. A device that has dropped is the one failure the user
-    can't otherwise see.
+A device that drops mid-run leaves the Player's tick loop running. The speed
+send throws. `scheduleNextTick` reports the failure and schedules the next tick
+anyway, and `lastDeviceSpeed` only updates on a send that succeeded. Every tick
+re-sends the same speed and logs the same error, several times a second, until
+the program would have ended. Valve sends report nothing at all: `setValve`
+discards its rejection.
 
-- **Show remaining provider credits in the app.** Saves visiting the providers'
-  dashboards.
+Stopping belongs in the Player, not in each engine. The Player is the single
+path to the device, so one stop covers every play mode and no engine needs a
+device reference. To settle:
 
-- **Finish intensity.** One global percentage in Settings: the intensity you'd
-  want to finish at. What reads it:
+- whether a disconnect stops or pauses (a pause would let a reconnect carry on
+  where it left off);
+- how many consecutive failures mean gone rather than a blip;
+- what the screen says. A device that has dropped is the one failure the user
+  can't otherwise see.
 
-  - **Finish** goes straight to it;
-  - **companion-set intensity** is multiplied by it. They set 100, it lands on
-    50, and they never see the setting or the scaled number;
-  - **the wind-down** starts at it and ramps down.
+### Show remaining provider credits in the app
 
-  What doesn't:
+Saves visiting the providers' dashboards.
 
-  - **torture** and **the ruins**, absolute on purpose;
-  - **Autopilot**, which recreates Autoblow's own.
+### Finish intensity
 
-  A companion picking a number has no idea what it does to you. The only fix
-  today is saying so in words, every session and every new companion.
+One global percentage in Settings: the intensity you'd want to finish at. What
+reads it:
 
-- **Put the wind-down on a curve.** It steps down in two straight-line phases.
-  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so its steps shrink as it
-  approaches a standstill instead of stepping evenly the whole way. A 5-unit
-  change at speed 10 is felt far more than the same change at speed 90.
+- **Finish** goes straight to it;
+- **companion-set intensity** is multiplied by it. They set 100, it lands on 50,
+  and they never see the setting or the scaled number;
+- **the wind-down** starts at it and ramps down.
 
-  Goon, Groove and Companions each carry their own copy of the constants.
+What doesn't:
+
+- **torture** and **the ruins**, absolute on purpose;
+- **Autopilot**, which recreates Autoblow's own.
+
+A companion picking a number has no idea what it does to you. The only fix today
+is saying so in words, every session and every new companion.
+
+### Put the wind-down on a curve
+
+It steps down in two straight-line phases. Give it the `RAMP_GAMMA` curve Goon's
+dips ramp on, so its steps shrink as it approaches a standstill instead of
+stepping evenly the whole way. A 5-unit change at speed 10 is felt far more than
+the same change at speed 90.
+
+Goon, Groove and Companions each carry their own copy of the constants.
 
 ## Companions
 
@@ -61,13 +68,13 @@ files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 `use-voice-session.ts` and `companions-panel/index.tsx` have both grown long
 enough that several unrelated concerns sit in one file. The coupling is
-deliberate: the mic and STT callbacks are created once and outlive many renders,
-so everything they read has to be a ref. That is why "just split it" isn't the
-fix: anything moved out still needs those refs.
+deliberate. The mic and STT callbacks are created once and outlive many renders,
+so everything they read has to be a ref, and anything moved out still needs
+those refs. The work is a structure that carries them, not smaller files.
 
-`submitText` and its helpers are the bulk of the hook and need most of the refs,
-so extracting the turn runner means inventing an explicit session-context to
-carry them. That is the real work, and why this hasn't happened.
+`submitText` and its helpers are the bulk of the hook and need most of the refs.
+Extracting the turn runner means inventing an explicit session-context to carry
+them, which is why this hasn't happened.
 
 ### Activity cutoff
 
@@ -76,8 +83,8 @@ A spend backstop, separate from ambient chat's own `wait_for_user` stop (shipped
 user turn and no control touched, stop the program.
 
 Stopping the program already stops ambient chat, so the one cutoff covers a
-session left running in an empty room. That is where LLM and TTS spend would
-otherwise run indefinitely.
+session left running in an empty room, where LLM and TTS spend would otherwise
+run indefinitely.
 
 The hard part is the number, not the mechanism. Long silences during play are
 normal: the device is working and there is nothing to say. A cutoff tuned for an
@@ -97,9 +104,9 @@ How talkative a companion is belongs in their persona.
 ### The companion picks the after-play
 
 The companion gets a tool for each after-play and picks which one to use when
-you say you're cumming. The persona decides, so the ending stops being a setting
-and becomes something they do to you. And because they can choose, they can say
-they will without saying which.
+you say you're cumming, so the ending stops being a setting and becomes
+something they do to you. And because they can choose, they can say they will,
+and do something else.
 
 ### Pick packs up off disk in dev
 
@@ -116,11 +123,11 @@ The source directory rather than a built zip, because validation now runs on the
 extracted tree. The tree is the thing that ships and the zip only carries it, so
 importing the directory imports what would ship.
 
-Deliberately not watching for changes: load-time only. A reload is a small
+Deliberately load-time only, with no watching for changes. A reload is a small
 enough ask, and polling can come later if it isn't.
 
 **Dev-server only, and it has to be enforced server-side.** The route reads the
-developer's own filesystem, which is exactly what a deploy must not do.
+developer's own filesystem, which is what a deploy must not do.
 `access-check.ts` already has the `NODE_ENV === 'development'` precedent to
 follow.
 
@@ -128,15 +135,15 @@ Also worth deciding what happens when a disk pack and an installed one collide,
 and whether a pack imported this way should be visibly marked as having come
 from disk rather than chosen.
 
-This is a stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack
-authoring moves into the app properly. Worth doing anyway. It is small.
+A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
+moves into the app properly. Small enough to be worth doing anyway.
 
 ### Streaming per companion
 
 `stream: true` is hardcoded for every request, and on a spoken turn it gains
 nothing: the reply is buffered in full and handed to TTS complete (the
 `submitText` comment in `use-voice-session.ts` says so). All streaming does is
-fill the transcript word by word. That is nice on a typed turn.
+fill the transcript word by word, worth having on a typed turn.
 
 So make it a per-companion field like `model` and `passesReasoning`, and a
 manifest field packs can set.
@@ -145,18 +152,18 @@ manifest field packs can set.
 what the companion said, because OpenRouter didn't cleanly separate the two.
 `mergeReasoning` in `llm/client.ts` handles that one, folding
 `reasoning_details` into its own array. A non-streamed response carries
-reasoning and content as separate fields and can't blur them at all. That makes
-"don't stream" a real setting rather than a workaround for the next model that
-behaves that way.
+reasoning and content as separate fields and can't blur them. "Don't stream" is
+then a real setting rather than a workaround for the next model that behaves
+that way.
 
 To settle: what the transcript shows while a non-streaming turn generates, since
 no text arrives until it's done.
 
 ### Pin a provider
 
-A companion's model is a slug, so OpenRouter can route each turn to any provider
-serving it, and consecutive turns can land on different providers. That makes
-comparing providers by hand impossible, and defeats prompt caching, which is
+A companion's model is a slug, and OpenRouter can route each turn to any
+provider serving it. Consecutive turns can land on different providers, making
+comparison by hand impossible and defeating prompt caching, which is
 per-provider.
 
 Send a provider (or endpoint tag, e.g. `xiaomi/fp8`) as OpenRouter's `provider`
@@ -172,8 +179,8 @@ the status and body through.
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,
-and the toy-start rule added more of it. The premise is reasonable: it's a male
-masturbator, so nearly every user is male.
+and the toy-start rule added more of it. The premise is reasonable. It's a male
+masturbator, and nearly every user is male.
 
 But it is an assumption sitting in copy rather than a setting, and the
 companions themselves aren't gendered anywhere else in the app.
@@ -196,7 +203,7 @@ Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
 app** instead of the server's `.env`: entered once, stored client-side, never on
 the server.
 
-This is what makes a **hosted public build** viable. Every user funds their own
+A **hosted public build** becomes viable this way. Every user funds their own
 usage, so there's nothing for accounts or per-user rate limiting to protect.
 [Goonpacks](#goonpacks) are orthogonal: an imported pack runs on whatever keys
 the build has, the same way companions do today. Locally that is the server's
