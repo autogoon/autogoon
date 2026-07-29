@@ -67,8 +67,9 @@ A Next.js single-page app (App Router, TypeScript, Tailwind) with **no accounts
 and no server-side database** — your device token, settings and conversations
 live in your browser and nowhere else. Speech recognition is
 [vosk](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) running fully
-in-browser; the only server-side pieces are thin API proxies for Companions'
-voice and chat, there purely so the API keys never reach the client.
+in-browser; the only server-side pieces serve Companions — thin proxies for its
+chat, voice and hearing, there purely so the API keys never reach the client,
+plus the check that validates an access ID.
 
 Running it yourself, building it, or contributing? Start at
 [DEVELOPERS.md](./DEVELOPERS.md); how it's put together is
