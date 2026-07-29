@@ -207,23 +207,9 @@
   they can't drift, and all three decisions have tests.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
-- internal: **Tests that can actually fail** — Reviewed every unit test file and
-  every Playwright spec against the code they test, mutation-testing each claim.
-  Tests that passed with the behaviour they named broken are gone — replaced by
-  real ones where the contract mattered. The two
-  engine `reset()` tests and the VAD debounce test asserted only that output was
-  non-empty, `library.test.ts` called `rows.every(...)` over arrays a defect
-  empties, `stt-token`'s expectation restated its own fixture, and the voice e2e
-  spec had matched no element since card titles became spans. Comments asserting
-  behaviour the code does not have were corrected throughout, including two in
-  `extract.test.ts`. Contracts that had no test now have one: `mediaRef` —
-  including that `toLlmMessages` never sends it to the model — the Player's
-  one-engine-at-a-time invariant, a rejected access id on each paid route, the
-  `internal` changelog tag, safe words outside a–z, the `PackError` name a
-  storage failure has to keep to avoid being reported as a bad zip, that asking
-  the browser for persistent storage never waits on the permission prompt
-  Firefox raises, and that a pack imported while a removal is still rebuilding
-  the library survives it.
+- internal: **Tests that can actually fail** — Tests that passed with the
+  behaviour they named broken are gone, replaced by real ones where the contract
+  mattered, and contracts that had no test now have one.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
