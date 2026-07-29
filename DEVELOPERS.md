@@ -55,12 +55,11 @@ Requirements, on top of those for [running locally](#running-locally):
 
 The scripts:
 
-- `npm run typecheck` — `tsc --noEmit`.
-- `npm run lint` — `eslint --max-warnings 0`.
-- `npm run format` — Reformats code and markdown documentation; the globs
+- `npm run typecheck` and `npm run lint` — the gates; both must produce no
+  output.
+- `npm run format` — reformats code and markdown documentation; the globs
   defining what it covers are in `package.json`.
-- `npm test` — Jest unit tests.
-- `npm run test:e2e` — Playwright end-to-end tests (see [Testing](#testing)).
+- `npm test` and `npm run test:e2e` — see [Testing](#testing).
 
 Then:
 
