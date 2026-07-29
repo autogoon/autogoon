@@ -74,11 +74,9 @@ Plus these, which answer to no rule in CLAUDE.md:
    `package.json`.
 4. **Env vars** — names and semantics match `.env.example`.
 5. **Enumerations** — for any list of modes, tools, tabs, knobs, words, globs or
-   config values, ask in this order: should it exist, and only then, is it
-   complete? A list copied out of a source file is a finding whether or not it
-   is currently accurate — checking it for completeness passes the copy and
-   misses the defect. A list the reader is the audience for stays, and is
-   checked against the code for entries added since it was written.
+   config values, ask in this order: should it exist at all (CLAUDE.md →
+   Documentation), and only then, is it complete? Asking only about completeness
+   passes a copy and misses the defect.
 6. **Behavioural claims** — read the referenced code and confirm the sentence is
    still true.
 
