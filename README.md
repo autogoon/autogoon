@@ -32,32 +32,37 @@ to install; just open it and enter your device token.
 
 ### Companions — someone to talk to
 
-Talk to an AI companion who chats back in their own voice, remembers the
-conversation, and drives the toy themselves. They don't wait to be spoken to
-either: go quiet and the conversation keeps going, so you can lie back
-mid-session and let them run it.
+Talk to an AI companion. They chat back in their own voice, remember the
+conversation, and drive the toy themselves. They speak unprompted too, not only
+in reply. Going quiet doesn't end the conversation.
 
-**Companions isn't usable on the public app yet.** Their chat, voice and hearing
-are paid cloud services, so on a deploy the mode sits behind an access ID and
-stays hidden without one. Run the dev server yourself with your own keys and
-it's there with no ID needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
-covers setup, pictures and videos. **Coming to the hosted app** once those
-services run on [keys you enter in the app](./TODO.md#bring-your-own-api-keys)
-rather than the server's.
+**Companions isn't usable on the public app yet.** Chat, voice and hearing are
+paid cloud services. On a deploy the mode sits behind an access ID and stays
+hidden without one. Run the dev server with your own keys and it's there, no ID
+needed. [modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and
+videos. **Coming to the hosted app** once those services run on
+[keys you enter in the app](./TODO.md#bring-your-own-api-keys) rather than the
+server's.
 
 ### Goonpacks — a companion in a zip
 
-A [goonpack](./GOONPACKS.md) is one companion as a file — persona, voice,
-colour, and their own pictures and videos — imported straight into the app: a
-complete new companion, or an overlay that changes one you have (add media, swap
-their voice or persona).
+A [goonpack](./GOONPACKS.md) is one companion as a file, imported straight into
+the app. A pack carries:
+
+- their persona;
+- their voice;
+- their colour;
+- their own pictures and videos.
+
+A pack is either a complete new companion or an overlay on one you already have,
+adding media or swapping a voice or persona.
 
 **A companion with a pack will send you pictures and videos.** Ask for what you
-want in words and they search their own set for it, send one that fits, and
-never send the same one twice in a conversation. The search reads text written
-when the pack was built, so nothing is sent to a vision model mid-play.
+want in words. They search their own set, send one that fits, and never send the
+same one twice in a conversation. The search reads text written when the pack
+was built. Nothing is sent to a vision model mid-play.
 
-Assembling a pack is plain-text work, no coding — [GOONPACKS.md](./GOONPACKS.md)
+Assembling a pack is plain-text work, no coding. [GOONPACKS.md](./GOONPACKS.md)
 is the guide, with a worked example in the repo.
 
 ### Privacy
