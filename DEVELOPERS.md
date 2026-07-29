@@ -134,11 +134,10 @@ Importing your own file is the only acquisition path the app implements.
 Two layers, both local-only for now (no CI):
 
 - **Unit tests** — `npm test` (Jest via `next/jest`). They live next to what
-  they test and cover pure logic: engine generation contracts, the device
-  client's rate-limit accounting. Import from `@jest/globals` rather than
-  relying on globals. The environment is node by default, which is what keeps
-  the suite quick; a test that renders a hook or a component asks for jsdom in a
-  `@jest-environment jsdom` docblock at the top of the file
+  they test. `jest.config.mjs` holds the match set. Import from `@jest/globals`
+  rather than relying on globals. The environment is node by default, which is
+  what keeps the suite quick; a test that renders a hook or a component asks for
+  jsdom in a `@jest-environment jsdom` docblock at the top of the file
   (`src/hooks/use-media-url.test.ts` is the shortest example). Keep that opt-in
   per file — a global jsdom would slow every engine test down for nothing.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
