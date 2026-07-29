@@ -327,12 +327,14 @@ reads for these.
   `/code-check` settles what the code does, so the tests and docs are judged
   against code that is finished rather than code still moving. `/test-check`
   comes next because a test it rewrites is itself something the docs may
-  describe. `/doc-check` then reads every doc and comment against a settled
-  branch, establishing that they are true. `/style-check` follows, because the
-  three before it all write new sentences while fixing what they find, and
-  nothing else reads those. `/personal-check` is last so it sees the final text
-  of everything the other four wrote — it is the only check whose miss can't be
-  fixed after a push.
+  describe. `/doc-check` then reads every doc against a settled branch,
+  establishing that they are true. Comments divide: `/code-check` takes each one
+  the diff touched against the code beneath it, `/test-check` those in test
+  files, and `/doc-check` whether a comment still describes the repo around it.
+  `/style-check` follows, because the three before it all write new sentences
+  while fixing what they find, and nothing else reads those. `/personal-check`
+  is last so it sees the final text of everything the other four wrote — it is
+  the only check whose miss can't be fixed after a push.
 - **Before merging**, run all five again, in the same order — the branch has
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
