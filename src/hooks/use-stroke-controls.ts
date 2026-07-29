@@ -1,7 +1,8 @@
 'use client';
 
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
-// for a beat then closes it, mimicking a manual tap. Lives here (rather than
+// for a fixed pulse length then closes it, mimicking a manual tap. Lives here
+// (rather than
 // inside one play mode) so every play mode panel can offer the same Stroke
 // controls without duplicating the pulse logic. Where a pulse goes — into the
 // running program as valve events, or straight at the device — is the

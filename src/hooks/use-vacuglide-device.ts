@@ -1,8 +1,8 @@
 'use client';
 
 // Mirrors the Vacuglide cloud API as a React hook: connection, raw commands,
-// live device state, and a log of every command sent to the device. Knows
-// nothing about the play modes — they reach the device through the Player it
+// live device state, and a log of every command sent to the device. Nothing
+// here refers to the play modes — they reach the device through the Player it
 // owns, which is the only thing here holding a device reference for them.
 // https://developers.autoblow.com/reference/http-api-v1-vacuglide/
 

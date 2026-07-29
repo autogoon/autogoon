@@ -19,7 +19,7 @@ import {
 
 export interface PlayerView {
   // The engine the Player is currently pointed at (null when idle). A play mode
-  // hook compares this to its own engine to know whether it is the active source.
+  // hook compares this to its own engine to test whether it is the active source.
   source: PlayModeEngine | null;
   state: PlayerState;
   isPlaying: boolean;

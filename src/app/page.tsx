@@ -1,11 +1,11 @@
 'use client';
 
-// Wires the app together and lays out the header, navigation and screens. The
-// heavy lifting lives elsewhere: each play mode is one self-contained module
-// that owns its engine + panel + commands, the Player (in useVacuglideDevice)
-// plays one engine at a time, and the KeywordSpotterProvider owns the single
-// recognizer. This file only holds the navigation state and the two genuinely
-// global concerns: which words are live and routing them.
+// Wires the app together and lays out the header, navigation and screens. Each
+// play mode is one self-contained module that owns its engine + panel +
+// commands, the Player (in useVacuglideDevice) plays one engine at a time, and
+// the KeywordSpotterProvider owns the single recognizer. This file only holds
+// the navigation state and the two global concerns: which words are live and
+// routing them.
 //
 // Navigation is a two-level hierarchy, not tabs: **home** (the play mode
 // chooser, plus the device/appearance cards) and one screen per play mode.
@@ -48,7 +48,7 @@ import {
 // description + icon), a screen, and a voice word (the id, live on home) all
 // at once. Adding a mode is an entry here plus its panel rendered below — the
 // switch word and screen follow automatically and the lists can never drift.
-// Each entry wears its play mode's signature bright colour twice: the icon
+// A play mode's colour appears twice in its entry: the icon
 // (iconClass) and the row's accent — the colour name Card turns into the
 // tinted border/gradient shell.
 // On the dev server Companions is always available (the paid routes are open —
@@ -149,7 +149,7 @@ const SAFE_WORD_RESERVED = [
   'packs', // the Goonpacks tab's spoken word
   ...PLAY_MODES.map((a) => a.id),
 ];
-// The validator the editing surfaces use, with the reserved list baked in.
+// The validator the editing surfaces use, with the reserved list applied.
 const sanitizeCandidate = (input: string): string | null =>
   sanitizeSafeWord(input, SAFE_WORD_RESERVED);
 
@@ -167,14 +167,15 @@ function App() {
   const access = useCompanionsAccess();
   const spotter = useKeywordSpotter();
   // Only the spotter's stable functions may be used in effect deps — the context
-  // object's identity churns with grammar/flash state (see useVoiceCommands).
+  // object's identity changes with grammar/flash state (see useVoiceCommands).
   const { setGlobalWords, keywordListener } = spotter;
   const [screen, setScreen] = useState<Screen>('home');
 
   // Companions is hidden from the chooser, the home grammar and navigation until
   // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
   // (see access-check.ts): with COMPANIONS_ACCESS_IDS unset nothing validates,
-  // so Companions stays hidden and the other play modes show exactly as before.
+  // so Companions stays hidden and the other play modes show as they do with no
+  // gate.
   // The dev server is the exception: the paid routes are open there, so the
   // card always shows — while the Settings box still validates real IDs.
   const availablePlayModes = useMemo(
@@ -319,7 +320,7 @@ function App() {
     return keywordListener((word) => {
       // Central log of every recognised command word, so every play mode's voice
       // hits show up. Fires alongside the active panel's own handler and the
-      // "Listening for" flash — all three ride the same detection.
+      // "Listening for" flash — all three fire on the same detection.
       logRef.current(`🎙 ${word}`, 'hit');
       if (word === safeWordRef.current) {
         // The safe word: halt exactly like Stop, no reset. Routed before (and
@@ -360,7 +361,7 @@ function App() {
   const currentPlayMode = PLAY_MODES.find((a) => a.id === screenBase) ?? null;
   const atPlayLevel = screen.endsWith('/play');
   // Companions' play screen strips the app chrome — header and breadcrumb —
-  // down to the panel's own slim bar, so the chat gets the screen.
+  // down to the panel's own slim bar, so the chat fills the viewport.
   const chromeless = screen === 'companions/play';
   const crumbLink =
     'rounded-none border-0 bg-transparent p-0 enabled:hover:bg-transparent text-muted-foreground hover:text-foreground font-medium underline-offset-4 hover:underline disabled:opacity-50';

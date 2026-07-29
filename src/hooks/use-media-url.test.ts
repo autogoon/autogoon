@@ -1,9 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-// What a bubble is told to render for one media entry, and — the part that
-// matters — that an entry whose URL was revoked underneath it goes back to disk
-// instead of staying pointed at a dead URL. Which entries get revoked is
+// What a bubble is told to render for one media entry, and that an entry whose
+// URL was revoked underneath it goes back to disk instead of staying pointed at
+// a dead URL. Which entries get revoked is
 // library.test.ts's (carryMediaOver).
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react';

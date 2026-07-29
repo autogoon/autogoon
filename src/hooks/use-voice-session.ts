@@ -76,7 +76,7 @@ export type VoiceStatus = {
   // usage dashboard, and the one that should stay flat between turns.
   sentFrames: number;
   // Ambient chat's whole state: when the next unprompted turn is due (null when
-  // none is pending) and whether the companion has bowed out until you speak.
+  // none is pending) and whether the companion is holding off until you speak.
   // Surfaced so the debug tab can show what's coming — otherwise a poke that
   // never comes and a poke that was never armed look identical.
   ambientDueAt: number | null;
@@ -94,7 +94,7 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
-  // True while the companion's reply audio is actually playing: set where awaitingSpeech
+  // True while the companion's reply audio is playing: set where awaitingSpeech
   // clears (first audio bytes), cleared when the utterance finishes or the
   // turn is cancelled/superseded. The bit replyPlaying can't give a display —
   // that flag spans the whole turn, generation included.
@@ -230,7 +230,7 @@ export function useVoiceSession(opts: {
   tools?: CompanionTool[];
   getDeviceState?: () => string;
   // Whether a program is running right now. Ambient chat reads it to pick which
-  // appetite applies — talking over a running device is a different situation
+  // set of intervals applies — talking over a running device is a different situation
   // from filling a conversational pause. It never gates whether they speak.
   isPlaying?: () => boolean;
   onToolRun?: (name: string, result: string) => void;
@@ -331,8 +331,8 @@ export function useVoiceSession(opts: {
 
   // Write-through persistence: every thread mutation updates the ref, the
   // mirror, and localStorage together. A storage failure (quota, or unavailable)
-  // doesn't end the session — the in-memory thread carries on — but it is said
-  // out loud rather than discarded: nothing else goes wrong until the reload
+  // doesn't end the session — the in-memory thread carries on — but it is
+  // logged rather than swallowed: nothing else goes wrong until the reload
   // that finds the thread rewound to the last version that fit.
   const persistThread = useCallback((thread: Thread): void => {
     threadRef.current = thread;
@@ -557,8 +557,8 @@ export function useVoiceSession(opts: {
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
-        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
-        // the reaction — so this is factored out. Returns false if the turn was
+        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool
+        // line, then the reaction. Returns false if the turn was
         // aborted/superseded mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
           const ttsStart = performance.now();
@@ -616,9 +616,7 @@ export function useVoiceSession(opts: {
           // call a tool, or do BOTH: a pre-tool line ("mm, let me get you
           // going") and the call in one turn. A round they answer with a call
           // runs it and goes round again, because a call's only useful follow-up
-          // is often another one — search_media hands back refs that only
-          // send_media can act on, and waiting a turn to send is the whole gap
-          // it would leave. A round they answer with words alone is their
+          // is often another one. A round they answer with words alone is their
           // reaction, and ends the turn.
           let reply = '';
           let reasoning: unknown[] | undefined;
@@ -864,11 +862,9 @@ export function useVoiceSession(opts: {
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
         // their voice leaking past AEC) doesn't interrupt them mid-sentence. It
-        // asks for more voicing than the composer does — the cost of being wrong
-        // is the companion being cut off mid-sentence, not a word appearing and vanishing
-        // — but it is not sticky: each partial is judged on the evidence so far,
-        // so a confirmed utterance can't leave a latch set that lets the next
-        // phantom through.
+        // is not sticky: each partial is judged on the evidence so far, so a
+        // confirmed utterance can't leave a latch set that lets the next
+        // hallucinated token through.
         const speechConfirmed = confirmSpeech(
           false,
           text,
@@ -911,7 +907,7 @@ export function useVoiceSession(opts: {
       onClosed: ({ local, code, reason, wasClean }) => {
         // Our own hang-up is expected and already visible as the phase change.
         // One from the far end is the interesting case: it's how an idle
-        // socket's death shows up, and the code and reason are all we get.
+        // socket closing shows up, and the code and reason are all we get.
         if (local) return;
         const why = reason !== '' ? ` ${reason}` : '';
         onLogRef.current?.(
