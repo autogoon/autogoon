@@ -2,6 +2,12 @@
 
 ## 2026-07-29
 
+- enhancement: **Describe a pack's pictures in random order** —
+  `npm run goonpack:describe-missing` took pictures in filename order, which is
+  shoot order, so a run stopped part-way through had described one shoot and
+  left the rest untouched. It now shuffles, so a part-described pack is a spread
+  of the whole set. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - bug: **Finish leaves your Autopilot settings alone** — Pressing Finish used to
   snap Intensity to High, Edge Control to Moderate and Vacuum Maintenance to
   Off. It now pushes to full speed and closes the valves without touching what
