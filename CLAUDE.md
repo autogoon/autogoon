@@ -319,10 +319,9 @@ reads for these.
   All five run on every branch: a check that only runs when someone judges it
   relevant is a check that never runs, and each one reports "nothing found"
   cheaply when a branch didn't go near its subject.
-- **A check reports what it finds, including outside its own subject.** The
-  divisions say what each one must not miss, never what it may pass over: two
-  checks reporting one thing costs a duplicate line, and a check staying silent
-  because another one owns it costs the finding. Say it and name whose it is.
+- **Never discard a valid finding for being outside the check's remit.** Report
+  it and name which check owns it. A duplicate line costs nothing; a finding
+  dropped because another check owns it is lost.
 - **The order matters**, because each check changes what the next one reads.
   `/code-check` settles what the code does, so the tests and docs are judged
   against code that is finished rather than code still moving. `/test-check`
