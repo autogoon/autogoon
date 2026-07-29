@@ -40,11 +40,11 @@ are commented in place — read `player.ts` and `program.ts` before touching
 either.
 
 The Player carries a `state` — `armed` / `playing` / `paused`. The visible play
-mode **arms** the Player (`arm`), building a live preview before Start (Goon
-defers arming to its setup view's Play, which commits the setup first); Start
-(`play`) then **resumes** from the held position rather than restarting, Stop
-(`pause`) holds position, and `reset` re-arms the program from the beginning
-(Reset is two layers — see [Play modes](#play-modes)).
+mode **arms** the Player (`arm`), building a live preview before Start (Goon and
+Companions defer arming until their setup view enters play, which commits the
+setup first); Start (`play`) then **resumes** from the held position rather than
+restarting, Stop (`pause`) holds position, and Reset re-arms the program from
+the beginning (Reset is two layers — see [Play modes](#play-modes)).
 
 **A PlayModeEngine** (`src/lib/play-modes/*-engine.ts`) is what each play mode
 _is_ here: a generation-only object — no React, no device, no clock of its own;
@@ -59,9 +59,9 @@ keep cadence state.
 
 **How a change reaches the device** — two kinds:
 
-- _Magnitude_ knobs (Goon's intensity, Groove's Speed %) live in `scale()`,
-  which the Player runs at send time every tick — the next tick picks the new
-  value up, no regeneration.
+- _Magnitude_ knobs (Goon's and Groove's intensity) live in `scale()`, which the
+  Player runs at send time every tick — the next tick picks the new value up, no
+  regeneration.
 - _Shape_ changes (Groove's Variability, Autopilot's intensity/edge) and program
   rewrites (`cumming`, Autopilot's finish) update engine state and then the
   Player `invalidateFuture()`s — it drops the events after the cursor and
@@ -125,9 +125,9 @@ What is easy to get wrong about the pair, and not visible from one file:
   `CummingButton` itself. **Finish** (a _pre_-ending — reach and hold the climax
   point) and **Cumming** (the send-off) are distinct actions, and a play mode
   may have both, one or neither.
-- **A setup view is the panel's own choice**, not part of the shape: Goon has
-  one and defers arming to it, Groove and Autopilot arm as soon as their screen
-  is active.
+- **A setup view is the panel's own choice**, not part of the shape: Goon and
+  Companions have one and defer arming to it, Groove and Autopilot arm as soon
+  as their screen is active.
 
 Read a working pair before writing one. `goon-engine.ts` + `goon-panel/`
 exercise the full set:
@@ -147,10 +147,11 @@ driven by manual knobs.
 **Each action is declared once.** A `Command`
 (`src/hooks/use-voice-commands.ts`) carries one `run` and one `enabled`, and
 both the on-screen button and the spoken keyword go through them — so a disabled
-control is also out of the grammar. The panel renders a button from each command
-and hands the list to `useVoiceCommands`, which registers the enabled words with
-the recognizer and routes detections back, but only while the panel is the
-active screen. A button flashes when its word is recognized.
+control is also out of the grammar. The panel hands the list to
+`useVoiceCommands`, which registers the enabled words with the recognizer and
+routes detections back, but only while the panel is the active screen. A
+command's control is usually a button, which flashes when its word is
+recognized, but not always — Groove's `more` and `less` step a slider.
 
 ## Shared device, one Player, mutual exclusion
 
@@ -184,15 +185,13 @@ and a `/play` deep-link lands on its setup level, since the session it named
 didn't survive the reload. One screen opts out of the chrome: Companions' play
 screen hides the header bar and breadcrumb and draws its own slim bar — a
 back-to-picker button under the same lock, the mic, and a hamburger for the
-panel's sub-tabs — so the chat gets the screen. Second, the global voice words —
-`connect` while disconnected; the (unlocked) play mode names on home; the
-sibling tab words (`home`/`changes`/`settings`, plus `packs` while the Goonpacks
-tab shows) on any top-level tab; `exit` below the top level while idle — which
-it sets on the recognizer and routes itself. Everything else is a play mode
-word, owned by the active panel. Third, the **safe word**: an always-on hard
-stop (`src/lib/safe-word.ts`) wired at the page level so no play mode can ever
-gate it — it stays in the grammar even for outcomes that deliberately ignore
-Stop.
+panel's sub-tabs — so the chat gets the screen. Second, the global voice words,
+which it sets on the recognizer and routes itself —
+[Keyword spotting](#keyword-spotting) lists them, and the effect in `page.tsx`
+builds them. Everything else is a play mode word, owned by the active panel.
+Third, the **safe word**: an always-on hard stop (`src/lib/safe-word.ts`) wired
+at the page level so no play mode can ever gate it — it stays in the grammar
+even for outcomes that deliberately ignore Stop.
 
 ## Controls
 
@@ -212,8 +211,10 @@ a latency service first locates the device's regional cluster, then the client
 verifies the device and drives the speed and valve endpoints on that cluster —
 the endpoints are listed in the client itself, which links the official
 reference. All requests carry the device token header; the API is rate limited
-(`x-ratelimit-*` response headers, mirrored into the client's accounting), and
-the device token is remembered in `localStorage`.
+and the client tracks that limit locally, because the `x-ratelimit-*` headers
+are not exposed cross-origin — the comment at `RATE_LIMIT` in
+`src/lib/vacuglide-device.ts` records how the window's shape was established.
+The device token is remembered in `localStorage`.
 
 ## Keyword spotting
 
@@ -242,7 +243,8 @@ on the dev server, where the gate is open). The tab words
 (`home`/`changes`/`settings`) move sideways between the top-level tabs, joined
 by `packs` whenever the Goonpacks tab shows — it answers to `packs` rather than
 its own name, for the reason given at `TabId` in `page.tsx`. `exit` (while
-nothing runs) goes up one level.
+nothing runs) goes up one level. `connect` is in the grammar while the device is
+disconnected.
 
 ## Companions' voice subsystem
 

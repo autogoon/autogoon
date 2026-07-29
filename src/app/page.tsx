@@ -97,8 +97,8 @@ const PLAY_MODES = [
 
 type PlayModeId = (typeof PLAY_MODES)[number]['id'];
 // A play mode's setup is its own level (`#goon`), with the live session one
-// below (`#goon/play`) — for play modes that have a setup view (only Goon;
-// Groove and Autopilot never navigate to a `/play`).
+// below (`#goon/play`) — for play modes that have a setup view (Goon and
+// Companions; Groove and Autopilot never navigate to a `/play`).
 type Screen =
   | 'home'
   | 'goonpacks'
