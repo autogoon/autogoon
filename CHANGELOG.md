@@ -245,7 +245,8 @@
   commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
-- enhancement: **Companions know when the call has turned** — Every persona
+- enhancement: **Companions know when the conversation has turned** — Every
+  persona
   described the moment it stops being a chat and becomes something else in terms
   only they could judge — "once things heat up", "once there's a spark", "once
   he's got you going". Nothing said what that meant, so when a companion dropped

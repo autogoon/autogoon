@@ -8,7 +8,7 @@
 
 // The hard rule that every reply is only spoken words — no narration or stage
 // direction. Persona-neutral: it names no character and prescribes no tone, and
-// it holds whether the call is voice- or video-only, because either way the
+// it holds whether or not the session shows video, because either way the
 // only thing the model produces is what the companion says. It bans
 // stage-direction (describing yourself from the outside) but explicitly allows
 // candid spoken talk — a companion telling him out loud what they're doing is

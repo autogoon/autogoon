@@ -45,14 +45,14 @@ said earlier. The thread is persisted to `localStorage` per companion
 **Clear** button in the panel wipes it (button-only — Companions registers no
 spoken words).
 
-**Time passes on a call.** Every turn is stamped when it lands, the transcript
-shows each message's time (with a date header where a new day starts), and the
-companion is told the current date and time every turn. A longer break — an hour
-away, overnight — reaches them as a stage direction ("(6 hours pass.)"), so they
-come back to you like someone who noticed you were gone, not mid-sentence.
-Conversations saved before timestamps existed simply have none: those turns show
-no times and never trigger a marker. The mechanics (the threshold, the marker
-shape) are commented in `conversation.ts`.
+**Time passes between turns.** Every turn is stamped when it lands, the
+transcript shows each message's time (with a date header where a new day
+starts), and the companion is told the current date and time every turn. A
+longer break — an hour away, overnight — reaches them as a stage direction ("(6
+hours pass.)"), so they come back to you like someone who noticed you were gone,
+not mid-sentence. Conversations saved before timestamps existed simply have
+none: those turns show no times and never trigger a marker. The mechanics (the
+threshold, the marker shape) are commented in `conversation.ts`.
 
 `passesReasoning` marks a **reasoning model**: such a model returns a private
 thinking block (`reasoning_details`) alongside its reply and was trained with

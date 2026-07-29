@@ -58,7 +58,7 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
-  // The media they can send during a call — filled by an installed goonpack
+  // The media they can send during a session — filled by an installed goonpack
   // (src/lib/goonpacks/), and valid media only, so every entry is one they can
   // actually be offered. Empty (or omitted) for a companion with no pack
   // installed, or one whose pack's sidecars aren't written yet: the panel then
