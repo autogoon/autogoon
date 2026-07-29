@@ -44,9 +44,8 @@ const yellow = (s: string): string =>
   process.stderr.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
 
 // One pack source directory was named on the command line, rather than the
-// whole of goonpacks/. It changes two things besides the list: a named source
-// with no manifest.json is an error rather than a skip, since the argument
-// asked for that one by name.
+// whole of goonpacks/. It also makes a named source with no manifest.json an
+// error rather than a skip, since the argument asked for that one by name.
 const named = process.argv[2];
 const explicit = named !== undefined && named !== '';
 
@@ -116,7 +115,8 @@ for (const dir of sourcesToBuild()) {
   // sits beside that directory, wherever it was given from.
   const out = join(dirname(dir), `${name}.zip`);
   // Deflated, like the `zip -r` an author would run. Stills and video barely
-  // shrink, but a pack's text does, and that is the part that grows.
+  // shrink, but a pack's text does, and text is what a pack accumulates as more
+  // media is described.
   writeFileSync(out, zipSync(files));
   const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${name}: 0 errors`));

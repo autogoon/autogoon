@@ -28,8 +28,8 @@ let heldLocks: Set<string>;
 // Every removeEntry, as `<parent>/<child>` — removal's ordering is the whole
 // crash-safety contract, and only the sequence shows it.
 let removals: string[];
-// Runs just before a lock request is granted, so a test can make the world
-// change in the gap the sweep's second hasMarker() check exists for.
+// Runs just before a lock request is granted, so a test can change the disk in
+// the gap the sweep's second hasMarker() check exists for.
 let beforeGrant: ((name: string) => void) | null;
 let estimate: () => StorageEstimate;
 // How many times persist() has been asked for, so a test can tell "resolved

@@ -1,4 +1,5 @@
-// What the build says about the files a pack left behind. Which files those are
+// What the build says about the media files a pack carries with no sidecar.
+// Which files those are
 // is goonpack-build.ts's subtraction, and whether a file is media at all is
 // parsePack's — and pack.test.ts's.
 import { describe, it, expect } from '@jest/globals';

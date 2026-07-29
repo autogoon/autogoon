@@ -64,7 +64,7 @@ const storedZipFile = (files: Record<string, Uint8Array>): File =>
 // `TypeError: ctr is not a constructor` out through unzip.push() — the throw
 // peekZip's own catch exists for. Bytes that simply aren't a zip
 // don't throw at all, so a patched header is the only fixture that keeps that
-// catch honest; without it the failure reaches the user as the panel's generic
+// catch at all; without it the failure reaches the user as the panel's generic
 // "Import failed." The patch is the compression-method field of the first local
 // file header, 2 bytes at offset 8.
 const unsupportedMethodZipFile = (): File => {

@@ -183,7 +183,8 @@ async function main() {
   const packs = packsToSummarise(process.argv[2]);
   let written = 0;
   let failed = 0;
-  // Sequential — kinder to rate limits, and the output stays readable in order.
+  // Sequential — one request at a time stays under the rate limits, and the
+  // output stays readable in order.
   // One pack's failure is caught here rather than ending the run: a bad sidecar
   // or a refused request would otherwise skip every pack after it, and the packs
   // that would have succeeded each cost a real request.

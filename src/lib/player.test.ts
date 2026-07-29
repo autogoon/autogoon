@@ -345,7 +345,7 @@ describe('Player.pause', () => {
 
 // A stub whose generateSpeed records the ctx.currentRawSpeed it was handed, and
 // whose first cycle after a knob change starts FROM that speed (like the real
-// Groove/companion engines' startFromCurrent). Lets us assert the resume point.
+// Groove/companion engines' startFromCurrent).
 class ResumeStubEngine implements PlayModeEngine {
   seenRawSpeed: number | null = null;
   private resumeNext = false;

@@ -43,7 +43,7 @@ describe('ambientDelayMs', () => {
     expect(ambientDelayMs(chatty1Playful5, true, MIN)).toBe(2_500);
   });
 
-  it('is monotonic — more appetite is never a longer wait', () => {
+  it('is monotonic — a higher chattiness or playfulness is never a longer wait', () => {
     for (const playing of [false, true]) {
       const delays = [1, 2, 3, 4, 5].map((t) =>
         ambientDelayMs(companion(t, t), playing, 0.5),

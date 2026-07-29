@@ -20,8 +20,8 @@
 // image is downscaled (long edge 1024px, JPEG q80) with macOS `sips` before
 // sending, so this script is macOS-only.
 //
-// The model is asked to observe the picture out loud before condensing to the
-// caption line (see PROMPT). Both reach the sidecar, and both scripts print
+// The model is asked to write its observations out before condensing them to
+// the caption line (see PROMPT). Both reach the sidecar, and both scripts print
 // them, so you can see what the caption was based on.
 //
 // describeImage(), sidecarPath() and the colour helpers are exported so
@@ -77,8 +77,7 @@ const MAX_EDGE = 1024;
 const JPEG_QUALITY = 80;
 
 // Downscale an image to a temp JPEG (long edge MAX_EDGE, quality JPEG_QUALITY)
-// and return its bytes; the caller deletes nothing — this cleans up its own temp
-// file. Uses macOS `sips` (built in), so this script is macOS-only.
+// and return its bytes; this cleans up its own temp file. Uses macOS `sips` (built in), so this script is macOS-only.
 function resizedJpeg(imagePath: string): Buffer {
   const tmp = join(tmpdir(), `describe-${randomUUID()}.jpg`);
   try {
@@ -114,8 +113,9 @@ function resizedJpeg(imagePath: string): Buffer {
 // The house caption style — matches the existing sidecar descriptions so a
 // freshly-described image reads like the rest of the set.
 //
-// Two-step on purpose: the model observes out loud first, then condenses. Asking
-// for the caption alone forbids the reasoning that rescues an ambiguous pose —
+// Two-step on purpose: the model writes its observations first, then condenses.
+// Asking for the caption alone leaves no room for the reasoning that settles an
+// ambiguous pose —
 // so the observations are parsed off the CAPTION line and kept as the sidecar's
 // body. The confusable poses get explicit discriminators rather than "take
 // care", because that is the part a model gets wrong by guessing from overall

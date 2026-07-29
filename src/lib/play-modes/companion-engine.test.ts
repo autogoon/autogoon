@@ -57,7 +57,7 @@ describe('CompanionEngine.generateSpeed', () => {
     const events = engine.generateSpeed(0, 60_000, CTX);
     // The dip pattern starts at the peak and is scalable; a reset that left
     // `cumming` set would hand back the unscaled wind-down from speed 30 again,
-    // stranding the session in the send-off forever.
+    // stranding the session in the send-off.
     expect(events[0]!.speed).toBe(100);
     expect(events.every((e) => e.unscaled === undefined)).toBe(true);
   });

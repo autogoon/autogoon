@@ -95,11 +95,11 @@ if (images.length === 0) {
 
 console.log(`Describing ${images.length} image(s) with no sidecar…\n`);
 
-// Sequential — kinder to rate limits, and the output stays readable in order.
-// Each picture narrates itself exactly as the single-image script does: the file
-// in yellow, each step as it starts, what the model observed, the caption in
-// green, then the picture itself to check it against — so a long bulk run can be
-// watched going past.
+// Sequential — one request at a time stays under the rate limits, and the
+// output stays readable in order. Each picture is reported exactly as the
+// single-image script reports it — the file in yellow, each step as it starts,
+// what the model observed, the caption in green, then the picture itself to
+// check it against — so a long bulk run can be watched going past.
 let done = 0;
 let failed = 0;
 for (const image of images) {
