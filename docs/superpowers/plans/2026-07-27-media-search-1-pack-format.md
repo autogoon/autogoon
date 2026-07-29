@@ -377,9 +377,10 @@ mean neither task ends on a green gate.
 - Test: `tests/e2e/goonpack-storage.spec.ts` — the `validPack` fixture
 
 The fixtures beyond `manifest.test.ts` and `pack.test.ts` are the ones a
-`format: 2` grep finds. Only these two of them break: a fixture that never
-reaches `parseManifest` — `entries`, `extract`, `import`, `resolve`,
-`use-goonpack-library` — declares a format nothing reads, and passes either way.
+`format: 2` grep finds. Only `library.test.ts`, `goonpack-import.spec.ts` and
+`goonpack-storage.spec.ts` break: a fixture that never reaches `parseManifest` —
+`entries`, `extract`, `import`, `resolve`, `use-goonpack-library` — declares a
+format nothing reads, and passes either way.
 
 **Interfaces:**
 
@@ -525,8 +526,9 @@ Run: `npm test`
 
 Expected: PASS, whole suite. `library.test.ts` fails first: its manifest fixture
 still declares `2`, so every pack it builds is now refused as needing a newer
-app, and one test asserts the missing-format message by its text. Both are the
-one-line fixture changes above.
+app, and one test asserts the missing-format message by its text. Both are
+one-line changes in `library.test.ts`: the fixture's `format`, and the message
+it asserts.
 
 - [x] **Step 7: Rewrite the e2e fixtures**
 
