@@ -147,16 +147,17 @@ A companion **with media** asks for a picture rather than picking one off a
 list. Their prompt carries a summary of what their set holds — enough to know
 what there is to ask for — and when they want to show you something they
 describe it in their own words: "me on my knees looking up", "something on a
-beach". That comes back as a handful of matches, each with its one-line caption,
-and they send the one that fits. They can narrow the search to pictures only or
+beach". That comes back as a set of matches, each with its one-line caption, and
+they send the one that fits. They can narrow the search to pictures only or
 videos only.
 
-They search and choose on the _captions_, so the vision work happens offline,
-never during play. Nothing matching is an answer they're given, so they ask for
-something else instead of talking about a picture that never arrived. Within one
-conversation they won't send you the same thing twice — what has already been
-sent is left out of later searches, and that survives a reload because it's read
-back off the conversation itself.
+The search reads each item's caption and the longer description written
+alongside it; what they choose from is the captions, so the vision work happens
+offline, never during play. Nothing matching is an answer they're given, so they
+ask for something else instead of talking about a picture that never arrived.
+Within one conversation they won't send you the same thing twice — what has
+already been sent is left out of later searches, and that survives a reload
+because it's read back off the conversation itself.
 
 Sending pops it open in a lightbox and leaves it in the transcript as a
 thumbnail — a video plays there inline, and full-size in the lightbox — stored
