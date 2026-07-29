@@ -56,8 +56,8 @@ the rule forbids. The prompt prefix and YAGNI are not, and both are worth the
 minutes.
 
 **The prompt prefix.** Assemble two consecutive requests and diff them. The
-first index at which they differ is where caching stops; anything below the
-newest turn is a finding.
+first index at which they differ is where caching stops: it must be the newest
+turn or the trailing live-state message. Anything earlier is a finding.
 
 **YAGNI.** The cheap pass first: an export with no caller outside its own module
 greps out, and is a real finding. It is not most of them, though — an unexported
