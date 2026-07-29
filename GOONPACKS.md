@@ -90,8 +90,8 @@ separated by commas:
   not the companion — it's what the Goonpacks list and the import confirmation
   show. Their own blurb goes in `description`. Leave what the pack holds out of
   it — counts, or that it has none: the app works that out from the pack itself
-  and shows it beside this line, so anything hand-written there is a second
-  answer waiting to go stale.
+  and shows it, so anything hand-written there is a second answer waiting to go
+  stale.
 
 ### A pack with media also needs
 
