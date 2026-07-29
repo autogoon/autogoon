@@ -138,7 +138,7 @@ test('importing a pack puts its tree on disk and offers it on the chooser', asyn
     }),
   ).toEqual(['one.md', 'one.png']);
 
-  // Her card (a clickable div, not a button — the pickers live inside it)
+  // Testy's card (a clickable div, not a button — the pickers live inside it)
   // shows up on the Companions chooser, which watches the same one index this
   // screen just rebuilt.
   await page.getByRole('button', { name: 'Home' }).click();

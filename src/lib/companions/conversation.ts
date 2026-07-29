@@ -156,7 +156,8 @@ export function sameLocalDay(a: number, b: number): boolean {
 //
 // Time awareness: when both sides of a gap are stamped and the gap clears
 // GAP_MARKER_MIN_MS, a system stage direction — "(2 hours pass.)" — is inserted
-// so the companion knows he went away. Only before user turns: a marker can never split
+// so the companion knows the user went away. Only before user turns: a marker
+// can never split
 // an assistant tool-call from its result, and a gap only ever means the user
 // stepped away. The stored thread is untouched; markers exist per-request.
 export function toLlmMessages(

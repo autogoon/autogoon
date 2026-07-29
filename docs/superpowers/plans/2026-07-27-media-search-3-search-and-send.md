@@ -412,8 +412,8 @@ Replace `src/lib/companions/send-media.ts` entirely:
 ```ts
 // The two media tools' decisions, split from the panel that declares them: how
 // a search result reads to the model, which item a ref means, and when to
-// refuse. The panel keeps the tools' schemas and the one side effect — putting
-// the item on his screen.
+// refuse. The panel keeps the tools' schemas and the one side effect — showing
+// the item on screen.
 import type { CompanionMedia } from './companions';
 import type { MediaSearchResult } from './media-search';
 import type { ToolRunResult } from './tools';
@@ -505,7 +505,7 @@ state: nothing renders from it, and the tool closures must read the current
 value rather than the one captured at declaration.
 
 ```tsx
-// What she's already sent this session, excluded from later searches so a
+// What they've already sent this session, excluded from later searches so a
 // second request on the same topic doesn't return the same picture. A ref
 // because the tool closures outlive the render that made them.
 const sentRefs = useRef<Set<string>>(new Set());
@@ -516,8 +516,8 @@ const sentRefs = useRef<Set<string>>(new Set());
 In the `tools` useMemo, replace the `send_media` block:
 
 ```tsx
-      // The media tools — only when the companion has media. She asks in words,
-      // the app searches, and she sends one of the refs it hands back.
+      // The media tools — only when the companion has media. They ask in words,
+      // the app searches, and they send one of the refs it hands back.
       ...(items.length > 0
         ? [
             {
@@ -582,7 +582,7 @@ button. Wrap it so starting the conversation over starts the exclusions over
 too, and use the wrapper at the button:
 
 ```tsx
-// Clearing the conversation clears what she's already sent with it: the
+// Clearing the conversation clears what they've already sent with it: the
 // exclusions belong to the thread, not to the panel's lifetime.
 const clearThreadAndSent = useCallback(() => {
   sentRefs.current = new Set();
@@ -699,8 +699,8 @@ ${summary}
 ```
 
 Leave the "you'll be told it sent, and THEN you say something about it" rule
-out: with a search result in hand she has already read the caption of what she
-chose. Whether that reads better or worse is
+out: with a search result in hand they have already read the caption of what
+they chose. Whether that reads better or worse is
 [an open question in the spec](../specs/2026-07-27-media-search-design.md) to
 settle by driving the app, not by guessing here.
 
@@ -755,10 +755,10 @@ where the name says "MEDIA_SECTION" rather than what it pins.
 npm run dev
 ```
 
-Open a companion with media, ask her for something, and watch: the search runs,
-she sends, the picture lands in the transcript and the lightbox. Ask for the
+Open a companion with media, ask them for something, and watch: the search runs,
+they send, the picture lands in the transcript and the lightbox. Ask for the
 same thing again and confirm a different picture comes back. Ask for something
-the set doesn't have and confirm she says so rather than announcing one.
+the set doesn't have and confirm they say so rather than announcing one.
 
 Check the Companions debug tab's "Prompt cached" row is still climbing across
 turns — the summary fills at load, so it must not have moved the cache boundary.
@@ -803,13 +803,13 @@ still true and now more so.
 
 ```markdown
 - feature: **Companions find a picture instead of picking one** — A companion
-  used to be handed a numbered list of everything she had and asked to pick by
-  number, which stops working once there are more than a few dozen. She now
-  knows roughly what her set contains, searches it in her own words when she
-  wants to show you something, and sends one of the matches. Two things come
-  with it: she won't send you the same picture twice in a session, and when
-  nothing matches she says so instead of talking about a picture that never
-  arrived. ([#25](https://github.com/autogoon/autogoon/pull/25))
+  used to be handed a numbered list of everything they had and asked to pick by
+  number, which stops working once there are more than a few dozen. They now
+  know roughly what their set contains, search it in their own words when they
+  want to show you something, and send one of the matches. Two things come with
+  it: they won't send you the same picture twice in a session, and when nothing
+  matches they say so instead of talking about a picture that never arrived.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 ```
 
 - [ ] **Step 4: Gates and commit**
