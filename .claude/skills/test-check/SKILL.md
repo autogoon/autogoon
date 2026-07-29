@@ -102,8 +102,8 @@ summary: which files are clean, which need work, anything systemic.
 - **Ask first:** splitting tests, and genuinely new coverage — a contract
   nothing pinned before.
 
-Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
-workflow.
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
 Run `npm run format` after edits, and `npm test` before reporting done. A clean
 run reports "no findings" — don't invent findings to seem useful.

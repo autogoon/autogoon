@@ -78,8 +78,8 @@ assembled. Reasoning from the code alone is where invented findings come from.
 - **Ask first:** anything that changes behaviour, prompt wording, or what the
   model is told.
 
-Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
-workflow.
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
 A clean run says "no findings". Don't invent any.
 

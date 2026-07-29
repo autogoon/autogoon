@@ -131,6 +131,9 @@ claiming complete removal.
 **Report, then stop.** Never push, force-push or open a PR as the last step of
 this check — hand the report over and ask, naming the push you would run.
 
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
+
 **An instruction to push given _before_ the check does not carry through it.**
 "Run the checks and push", or a push asked for earlier in the session, is
 permission that predates every finding: it was given by someone who did not yet

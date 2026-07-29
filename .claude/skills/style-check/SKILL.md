@@ -75,8 +75,8 @@ having looked.
 - **Ask first:** a rewrite that changes what a passage claims, and any cut that
   would take a fact out with it.
 
-Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
-workflow.
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
 Run `npm run format` after edits.
 
