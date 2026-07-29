@@ -8,14 +8,13 @@ hosts, or points at them (see the
 [content policy](./DEVELOPERS.md#content-policy)).
 
 Importing **unpacks** the zip into your browser's storage; the zip itself isn't
-kept, so keep your own copy. If the browser ever clears its storage the app just
-forgets the pack, and importing the zip again brings it back.
+kept, so keep your own copy. If the browser ever clears its storage the pack
+goes with it, and importing the zip again brings it back.
 
 You don't need to be a developer to make one. A pack is at most three things,
 zipped: a `manifest.json` (a few lines describing the pack), a
 `system-prompt.md` (their persona, written in plain English), and a `media/`
-folder if they send pictures or videos. This page is the reference for all of
-it.
+folder if they send pictures or videos.
 
 ## The two kinds of pack
 
@@ -50,9 +49,8 @@ the zip root, not inside a folder):
     media/              optional. Their pictures and videos, with a .md sidecar each
 
 For a complete worked example, see [`goonpacks/elise/`](./goonpacks/elise/) —
-Elise, the app's former built-in companion, as a complete pack: a real manifest
-and a full persona prompt to crib from. She ships with no media at all; the repo
-never distributes imagery (see the
+Elise as a complete pack: a real manifest and a full persona prompt to crib
+from. The pack ships with no media; the repo never distributes imagery (see the
 [content policy](./DEVELOPERS.md#content-policy)) — pictures and videos are
 always yours to add.
 
@@ -79,9 +77,8 @@ separated by commas:
 
 ### Every pack needs
 
-- **`format`** — always `1`. This is the version of the _pack format_ (so the
-  app knows how to read it), not the version of your pack. A pack declaring
-  anything else is refused on import.
+- **`format`** — always `1`. This is the version of the _pack format_, not the
+  version of your pack. A pack declaring anything else is refused on import.
 - **`id`** — the pack's identity, as `publisher.packname`: your publisher name,
   a dot, the pack name — lowercase letters, numbers and hyphens only
   (`g00ner.luna`, `my-packs.luna-beach`). The id is permanent: new versions of a
@@ -126,15 +123,15 @@ it changes.
   overlay.
 - **`description`** — a sentence about _them_, shown on their card on the
   Companions screen. Optional.
-- **`accentColour`** — the colour their card and chooser entry wear. One of:
-  red, orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue,
-  indigo, violet, purple, fuchsia, pink, rose. Optional (pink if omitted).
+- **`accentColour`** — the colour of their card and chooser entry. One of: red,
+  orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo,
+  violet, purple, fuchsia, pink, rose. Optional (pink if omitted).
 - **`model`** — the OpenRouter model they run on, as a model slug. Optional; the
   app's default model when omitted. Pick a model that suits their persona — and
   that allows the kind of roleplay you're writing. Whether it will refuse, and
   whether it calls tools reliably, are both properties of the model rather than
-  of your prompt, so try one before settling on it: a model that drifts on tool
-  calls gives you a companion who talks about the toy without ever driving it.
+  of your prompt, so try one before settling on it: a model that stops calling
+  tools gives you a companion who talks about the toy without ever driving it.
 - **`contextWindow`** — the chosen model's context window, in tokens (a number,
   no quotes). Optional; only worth setting alongside `model`.
 - **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
@@ -142,14 +139,13 @@ it changes.
   out unless you know the model needs it.
 - **`chattiness`** and **`playfulness`** — how readily your companion speaks up
   when you haven't, from 1 to 5. Both optional, 3 if omitted. `chattiness`
-  applies while the toy is idle, `playfulness` while it's running — they're
-  separate because they're separate appetites: someone of few words can still
-  keep up a filthy running commentary once things are underway, and one setting
-  couldn't say so.
+  applies while the toy is idle, `playfulness` while it's running: someone of
+  few words can still keep up a filthy running commentary once things are
+  underway, and one setting couldn't say so.
 
   What each buys, as the pause after they finish speaking. Every pause is varied
-  a little so it doesn't tick like a clock, which is what the range column is —
-  it leans shorter rather than longer, erring on the side of eager.
+  a little so the gap isn't the same every time, which is what the range column
+  is — it leans shorter rather than longer.
 
   **`chattiness` — while the toy is idle:**
 
@@ -172,9 +168,9 @@ it changes.
   | 5     | 5s         | 2.5–6s       |
 
   Treat these as the feel rather than a promise — they're tuned by ear and may
-  shift. And note they're measured from the moment the talking stops, so the gap
-  between turns is always longer than the table: the next line still has to be
-  written and spoken first.
+  shift. They're measured from the moment the talking stops, so the gap between
+  turns is always longer than the table: the next line still has to be written
+  and spoken first.
 
 ### Overlays
 
@@ -188,7 +184,7 @@ it changes.
   base's pictures and videos, so the combination has none. (Simply omitting
   `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
-  memory, as above.
+  memory (see [The two kinds of pack](#the-two-kinds-of-pack)).
 
 An overlay that changes only the companion's colour is just:
 
@@ -223,7 +219,7 @@ media is sent — as ready-made sections you pull in with `{{PLACEHOLDER}}`
 tokens. Put a token on its own line where that section should land:
 
 - **`{{OUTPUT_FORMAT_SECTION}}`** — the reply-format rules (speech only, no
-  stage directions). Every persona wants this.
+  stage directions). Include it in every persona.
 - **`{{SHARED_STYLE_BULLETS}}`** — baseline speaking style bullets; put them
   under your own STYLE heading and add the companion's own after.
 - **`{{CONTROL_SUMMARY_SECTION}}`** — a short "you control the toy" summary for
@@ -235,11 +231,11 @@ tokens. Put a token on its own line where that section should land:
   `mediaSummary`, which is what tells them what their set holds and so what
   there is to ask for; with none it tells them they have nothing to send.
 
-Omit a token and that section is simply absent — a persona with no
-`{{MEDIA_SECTION}}` never gets the instructions for sending. Misspell one and it
-stays in your prompt as you typed it, which is how you'll spot it. The section
-texts live in the app (`src/lib/companions/shared-prompt.ts`, for the curious),
-so they stay current as the app changes without packs having to.
+Omit a token and that section is absent — a persona with no `{{MEDIA_SECTION}}`
+never gets the instructions for sending. Misspell one and it stays in your
+prompt as you typed it, which is how you'll spot it. The section texts live in
+the app (`src/lib/companions/shared-prompt.ts`), so they stay current as the app
+changes without packs having to.
 
 One set of rules needs no token and can't be left out: your companion is always
 told the real date and time where _you_ are, so the rules for reading that are
@@ -269,8 +265,7 @@ sun is low and the light is warm.
 
 They read the **caption** to choose what fits the moment, so a good caption says
 what's actually in the shot. The **description** is the fuller account behind
-it; nothing shows it to you, and it's what a better caption gets rewritten from
-later without going back over every picture.
+it; nothing shows it to you.
 
 `npm run goonpack:describe` writes both, so there's rarely a reason to type one
 by hand — see [Building the zip](#building-the-zip). **The sidecar is what makes
@@ -306,8 +301,7 @@ describe **pictures**: `npm run goonpack:describe-missing` (every picture with
 no sidecar yet) and `npm run goonpack:describe <path-to-image>` (one picture).
 Videos are left alone — write their sidecars by hand. The third,
 `npm run goonpack:summarise`, writes the `mediaSummary` from the sidecars a pack
-already has. Run that again whenever you add media, so the summary keeps up with
-the set.
+already has.
 
 `describe-missing`, `summarise` and `build` all take a pack directory to work on
 just that pack, which is the order to do them in for a new one:
@@ -332,8 +326,8 @@ description, colour and feature line follow what you've picked.
 
 Every app load re-checks every stored pack against the current rules. A pack
 that fails — its base was removed, or the pack format has moved on — stays on
-the Goonpacks tab marked incompatible with the reasons, and simply isn't offered
-on the chooser; fix the cause (or re-import a corrected zip) and it comes back.
+the Goonpacks tab marked incompatible with the reasons, and isn't offered on the
+chooser; fix the cause (or re-import a corrected zip) and it comes back.
 
 A sent picture or video stays in the conversation as a stable reference, not a
 copy: it resolves against whichever pack is currently loaded, so if you switch

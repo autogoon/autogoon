@@ -12,7 +12,7 @@ stroker from your browser, **entirely by voice**.
 to install; just open it, enter your device token, and go.
 
 - **Hands-free from start to finish** — just say what you want to happen, any
-  time. Tap **Listen** once and run the whole session without touching a thing.
+  time. Tap **Listen** once and run the whole session.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
@@ -39,9 +39,9 @@ model mid-play.
 
 **Companions isn't usable on the public app.** Their chat, voice and hearing are
 paid cloud services, so on a deploy the mode sits behind an access key and stays
-hidden without one. Run the app yourself with your own keys and it just works —
-locally, no access key needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
-covers setup, pictures and videos.
+hidden without one. Run the app yourself with your own keys and the mode is
+there — locally, no access key needed —
+[modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and videos.
 
 **Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
 zip — persona, voice, colour, pictures and videos — imported straight into the
@@ -54,8 +54,7 @@ the repo.
 
 Everything runs in your browser; the only thing that leaves your machine is the
 control traffic to Autoblow's cloud API for the device itself. Speech
-recognition runs entirely locally in your browser, so your microphone audio
-never leaves your machine.
+recognition runs entirely locally in your browser.
 
 The exception is **Companions**, which can't be local-only by nature: during
 play your speech is transcribed by a cloud STT service, and the companion's
@@ -91,7 +90,7 @@ throttle background or screen-locked tabs, which stops both.
 - **Android Chrome** _(untested)_ — likely more forgiving in the foreground with
   the screen on (different engine), but background/locked tabs are still
   throttled. A single device _may_ work if you keep the tab in front and the
-  screen awake (e.g. Screen Wake Lock) — unverified.
+  screen awake (e.g. Screen Wake Lock).
 
 ## Documentation
 
