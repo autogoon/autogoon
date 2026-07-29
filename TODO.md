@@ -197,13 +197,12 @@ one, because the audio can't start until the text is finished anyway.
 So make it a per-companion field like `model` and `passesReasoning`, and a
 manifest field packs can set.
 
-**The reason this is worth building: it's what rules MiniMax M3 out today.** The
-problem there was specifically in the streamed response — OpenRouter not cleanly
-separating the model's reasoning from its reply, so thinking leaked into what
-the companion said. A non-streamed response carries them as separate fields and
-can't blur the two, which makes "don't stream" the fix rather than a workaround,
-and hands back a model currently unusable for a reason that has nothing to do
-with the model itself.
+**Where this came from:** a streamed MiniMax reply whose reasoning leaked into
+what the companion said, because OpenRouter didn't cleanly separate the two.
+That one is handled — `mergeReasoning` in `llm/client.ts` folds
+`reasoning_details` into its own array — but a non-streamed response carries
+them as separate fields and can't blur them at all, which makes "don't stream" a
+real setting rather than a workaround for the next model that behaves that way.
 
 Two things to handle when it's built: `reasoning_details` and `tool_calls` are
 currently assembled from stream deltas (`mergeReasoning`, `mergeToolCalls` in
