@@ -90,9 +90,9 @@ once it has halted things, Reset and Start return.
 
 **`faster` / `slower`** stretch or compress the build from that point on (~5%
 per step, roughly 0.25×–4×). They don't jump the position; they change how fast
-you move through the build (and the tease schedule) from here. The device's own
-stroke rhythm stays real-time; only the build/variability curve compresses or
-stretches. The Timeline card shows the current factor (e.g. `1.20×`).
+you move through the build from here. The device's own stroke rhythm stays
+real-time; only the build/variability curve compresses or stretches. The
+Timeline card shows the current factor (e.g. `1.20×`).
 
 ## Voice control
 
