@@ -56,8 +56,8 @@ keep:
 
 ## The constraint that shapes it
 
-Nothing in `src/` touches the filesystem today: every API route is a network
-proxy, and packs reach the app as uploaded zips. A kit that edits pictures and
+Nothing in `src/` touches the filesystem today: no API route reads or writes
+disk, and packs reach the app as uploaded zips. A kit that edits pictures and
 sidecars where they actually live would be the app's first filesystem route —
 and it can only exist on the machine holding the pack sources, which means
 **dev-only**, present under `npm run dev` and absent from any deploy.
