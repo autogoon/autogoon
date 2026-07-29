@@ -25,8 +25,15 @@ are defined and commented in [`src/lib/program.ts`](./src/lib/program.ts), along
 with the transport constants.
 
 **The Player** (`src/lib/player.ts`) plays a program and is the only thing that
-touches the device's motion commands: it owns the program-clock, the tick loop,
-the playback rate, device sends, keeping the future built ahead, and transport.
+touches the device's motion commands. It owns:
+
+- the program-clock;
+- the tick loop;
+- the playback rate;
+- device sends;
+- keeping the future built ahead;
+- transport.
+
 Nothing in it is specific to a play mode. There is **one** Player, owned by the
 device hook; it plays whichever play mode is active. Its methods and constants
 are commented in place — read `player.ts` and `program.ts` before touching
@@ -43,14 +50,14 @@ defers arming to its setup view's Play, which commits the setup first); Start
 _is_ here: a generation-only object — no React, no device, no clock of its own;
 the Player calls back into it. The four-method contract lives in
 [`src/lib/program.ts`](./src/lib/program.ts) (the best-commented file in the
-repo — start there). Generation is split into two channels: `generateSpeed` (the
-stateful backbone, pulled a batch at a time so looping play modes never
-materialise all at once) and `generateValves` (a **pure** overlay laid across a
-span of already-built speed). Purity lets the Player re-lay the valve overlay
-over an unchanged speed script for a valve-only knob, and is why the overlay
-must not keep cadence state.
+repo — start there). Generation is split into two channels: `generateSpeed`
+(stateful, pulled a batch at a time so looping play modes never materialise all
+at once) and `generateValves` (a **pure** overlay laid across a span of
+already-built speed). Purity lets the Player re-lay the valve overlay over an
+unchanged speed script for a valve-only knob, and is why the overlay must not
+keep cadence state.
 
-**How a change reaches the device** — two directions:
+**How a change reaches the device** — two kinds:
 
 - _Magnitude_ knobs (Goon's intensity, Groove's Speed %) live in `scale()`,
   which the Player runs at send time every tick — the next tick picks the new
@@ -123,10 +130,17 @@ What is easy to get wrong about the pair, and not visible from one file:
   is active.
 
 Read a working pair before writing one. `goon-engine.ts` + `goon-panel/`
-exercise the full set — an automatic build curve, a setup view with per-concern
-option cards, a live-scaled magnitude knob, valve teases, time dilation and a
-bespoke `cumming` wind-down. `groove-engine.ts` + `groove-panel.tsx` are the
-leaner model, for a play mode driven by manual knobs.
+exercise the full set:
+
+- an automatic build curve;
+- a setup view with per-concern option cards;
+- a live-scaled magnitude knob;
+- valve teases;
+- time dilation;
+- a bespoke `cumming` wind-down.
+
+`groove-engine.ts` + `groove-panel.tsx` are the leaner model, for a play mode
+driven by manual knobs.
 
 ## Commands
 
@@ -160,7 +174,7 @@ top-level tabs and the play mode screens form a strict hierarchy with no
 sideways moves below the top level. The Goonpacks tab is in the strip only when
 Companions is available, on the same condition — an access ID, or the dev
 server. `exit` (the word, or a breadcrumb link) goes **up one level**, and it's
-locked while a session runs, so switching play modes mid-session simply can't be
+locked while a session runs, so switching play modes mid-session can't be
 expressed; stop first. A play mode with a setup view gets a play sub-level
 (`Home › Goon › Play`): Play navigates down into it, exit climbs back to setup.
 Screens mirror into the URL hash (`#goon`, `#goon/play`), so the browser back
@@ -221,8 +235,6 @@ and an **exclusive test word** that temporarily narrows the grammar to a single
 word (the safe-word Test button). Any component subscribes to detections with
 `keywordListener`: the page's listener logs every recognised word and handles
 the global words, while each active panel's listener runs its own commands.
-Because only the active panel registers its words, exactly one play mode's
-commands are ever live.
 
 Switch words are just the play mode names — say one on home to enter that play
 mode's screen (Companions only once its access ID has unlocked it — or any time
@@ -273,9 +285,9 @@ was found in the first place, and it is the only account we get.
 **Ambient chat is a self-sustaining loop, not a clock.** Each companion turn
 arms the next as it ends, so nothing polls for a silence to fill; the scheduler
 (`src/lib/companions/ambient-scheduler.ts`) holds only that timer and a latch,
-kept out of the voice session because that hook already carries some twenty refs
-read by callbacks created once and outliving every render. The rules that keep
-it working:
+kept out of the voice session because that hook already carries refs read by
+callbacks created once and outliving every render. The rules that keep it
+working:
 
 - **Scheduling is decided once, at the end of a turn, from session state** —
   never from what happened inside a generation. That's why `wait_for_user` sets
@@ -283,9 +295,10 @@ it working:
   reaction generation, and the arm at the end of _that_ would otherwise undo
   what the tool asked for. Only a real user turn releases it.
 - **The companion decides when to stop, so nothing else needs to.** A timeout
-  would be guessing at what the persona already knows — whether there is
-  anything left to say. The cost is that a walked-away session keeps the talking
-  going until it gives up, which is [Activity cutoff](./TODO.md)'s to solve.
+  would fix a number to something only the conversation can settle — whether
+  there is anything left to say. The cost is that a walked-away session keeps
+  generating turns until the companion stops on its own, which is
+  [Activity cutoff](./TODO.md)'s to solve.
 - **The scheduler is wall-clock and belongs to the session, never the program.**
   Program events are dropped on every regeneration and scale with playback rate,
   and neither should touch the cadence. The Player's state is read for one
@@ -333,8 +346,8 @@ shape worth knowing:
   tested without OPFS.
   [`src/hooks/use-goonpack-library.ts`](./src/hooks/use-goonpack-library.ts) is
   the React face of one session-wide index: the Companions chooser and the
-  Goonpacks tab both hold the hook, and a media file's object URL is minted on
-  first render and held until its pack is removed or re-imported.
+  Goonpacks tab both hold the hook, and a media file's object URL is held until
+  its pack is removed or re-imported.
 - **The id means the same companion.** Storage keys carry the version so
   versions install side by side, but a resolved companion keeps the unversioned
   pack id — conversation threads belong to that id, so they survive version

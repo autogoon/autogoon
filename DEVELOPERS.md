@@ -113,8 +113,8 @@ costs more than the unreviewable edit this catches.
 Autogoon is a player, not a distributor. Because of the UK Online Safety Act
 (and copyright law), the project does not — and will not — distribute adult
 content, host or index goonpacks, or recommend where content can be acquired.
-Users bring their own files; everything stays on their own machine, and the app
-stays dumb about where it came from.
+Users bring their own files; everything stays on their own machine, and nothing
+in the app records where it came from.
 
 The issue is the content — imagery, still or moving — not the pack format
 itself: the repo carries one deliberately media-free example pack
@@ -123,13 +123,13 @@ itself: the repo carries one deliberately media-free example pack
 
 Contributions must keep it that way. Don't submit features that:
 
-- bundle, host, or download content (the media-free example pack above is the
-  one exception, and it stays media-free);
+- bundle, host, or download content (`goonpacks/elise/` is the one exception,
+  and it stays media-free);
 - index, list, or link to packs or content sources (no "browse packs", curated
   lists, or in-app galleries of third-party content);
 - point users at places to acquire content — in the app or its docs.
 
-Import-your-own-file is the only acquisition path the app knows about.
+Importing your own file is the only acquisition path the app implements.
 
 ## Testing
 
@@ -138,23 +138,22 @@ Two layers, both local-only for now (no CI):
 - **Unit tests** — `npm test` (Jest via `next/jest`). They live next to what
   they test and cover pure logic: engine generation contracts, the device
   client's rate-limit accounting. Import from `@jest/globals` rather than
-  relying on globals. The environment is node by default, which is why the suite
-  runs in a second or so; a test that renders a hook or a component asks for
-  jsdom in a `@jest-environment jsdom` docblock at the top of the file
+  relying on globals. The environment is node by default, which is what keeps
+  the suite quick; a test that renders a hook or a component asks for jsdom in a
+  `@jest-environment jsdom` docblock at the top of the file
   (`src/hooks/use-media-url.test.ts` is the shortest example). Keep that opt-in
   per file — a global jsdom would slow every engine test down for nothing.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
   spec runs on real Chromium, Firefox **and** WebKit; the config starts the dev
   server on :8931 (or reuses one already running). The goonpack specs are the
   one exception, and skip themselves rather than being pinned to a browser: they
-  probe OPFS and stand down where it is unusable (`tests/e2e/opfs.ts` explains
-  which engine that is today, and why the check is a capability probe).
+  probe OPFS and skip where it is unusable (`tests/e2e/opfs.ts` explains which
+  engine that is today, and why the check is a capability probe).
 
 A green E2E run therefore says nothing about pack storage on the engine that
 skipped — there is no OPFS there to run against. That is a standing limitation,
-not a gap to fix or re-report: the unit tests hold the shape, and a change
-touching OPFS needs a pass by hand in real Safari, which does support it. The
-skips disappear on their own if the test browser ever gains OPFS.
+not a gap to fix or re-report: the unit tests cover the logic, and a change
+touching OPFS needs a pass by hand in real Safari, which does support it.
 
 The voice test is the reason the E2E layer exists: it proves the whole voice
 pipeline — AudioWorklet capture, vosk's WASM recognizer, grammar and command
@@ -186,5 +185,5 @@ pictures and videos in `goonpacks/<dir>/media/` — plus the `.zip` files
 manifest fields, the two pack kinds) is user-facing and lives in
 [GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*` npm scripts that operate
 on it (`describe`, `describe-missing`, `build`) are commented at their
-definitions in `scripts/`. The two captioning scripts are vision-model work and
-so cover stills only — a video's caption is written by hand.
+definitions in `scripts/`. `describe` and `describe-missing` are vision-model
+work and so cover stills only — a video's caption is written by hand.
