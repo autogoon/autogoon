@@ -85,10 +85,10 @@ A clean run says "no findings". Don't invent any.
 
 ## Red flags
 
-| Thought                        | Reality                                                                                |
-| ------------------------------ | -------------------------------------------------------------------------------------- |
-| "The tests pass"               | None of this fails a test. It costs money, breaks one browser, or loses the safe word. |
-| "It's only a few tokens"       | Position, not size. One volatile value above the conversation re-bills all.            |
-| "No rule covers this"          | The rules are how the app is built, not a checklist. Argue from them.                  |
-| "WebKit will probably be fine" | Playwright's WebKit can't test the paths that most need it. A human must.              |
-| "Nothing unused was added"     | Unused is not the test. Ask what breaks without it.                                    |
+| Thought                        | Reality                                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| "The tests pass"               | None of this fails a test. It costs money, breaks one browser, or loses the safe word.       |
+| "It's only a few tokens"       | Position, not size. One volatile value above the conversation re-bills all (→ Architecture). |
+| "No rule covers this"          | The rules are how the app is built, not a checklist. Argue from them.                        |
+| "WebKit will probably be fine" | Playwright's WebKit can't test the paths that most need it. A human must (→ Architecture).   |
+| "Nothing unused was added"     | Unused is not the test. Ask what breaks without it.                                          |
