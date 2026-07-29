@@ -46,12 +46,8 @@ Change files with **Edit and Write, never a shell rewrite**. None of these:
 
 Those render no diff, so the change can't be reviewed and has to be taken on
 trust from a summary; batching several of them into one script is what makes a
-bad edit hard to catch. Several small Edit calls beat one clever script. A
-PreToolUse hook backs this up
-([.claude/hooks/no-shell-edits.sh](./.claude/hooks/no-shell-edits.sh)) — it
-screens the shapes a regex can spot and denies the ones that turn out to be
-edits, so it is a backstop for the rule rather than the whole of it. Shell that
-only reads — greps, tests, mutation runs against a scratchpad copy — is
+bad edit hard to catch. Several small Edit calls beat one clever script. Shell
+that only reads — greps, tests, mutation runs against a scratchpad copy — is
 unaffected.
 
 ## Secrets / environment

@@ -49,7 +49,7 @@ because they are believed:
 - a mechanism that now works another way.
 
 § Editing files is deliberately not claimed: which tool made an edit leaves no
-trace in a diff, and the PreToolUse hook enforces it at the point of use.
+trace in a diff, so a diff cannot be read for it.
 
 Finding a breach is mostly obvious once the rule is in mind — grep for the thing
 the rule forbids. The prompt prefix and YAGNI are not, and both are worth the

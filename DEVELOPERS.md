@@ -49,10 +49,6 @@ offline.
 
 ## Making changes
 
-Requirements, on top of those for [running locally](#running-locally):
-
-- `jq` and `claude` — for [the shell-edit guard](#the-shell-edit-guard)
-
 The scripts:
 
 - `npm run typecheck` and `npm run lint` — the gates; both must produce no
@@ -82,21 +78,6 @@ Then:
   spans files.
 - **Respect the [content policy](#content-policy)** — no features that host,
   index, or point at content.
-
-## The shell-edit guard
-
-Edits go through tools that render a reviewable diff, never a shell rewrite —
-the rule, and why, are in [CLAUDE.md](./CLAUDE.md) under Editing files. A
-PreToolUse hook backs it up:
-[`.claude/hooks/no-shell-edits.sh`](./.claude/hooks/no-shell-edits.sh),
-registered in `.claude/settings.json`.
-
-Its patterns — an interpreter by name, an in-place `sed` or `perl` — only decide
-what is worth asking about; whether the command actually writes to a file is a
-question about the script it carries, so every match is put to Claude and
-nothing is denied on the shape of the text alone. A missing dependency, a slow
-answer, or anything but a clear verdict lets the command run — a blocked commit
-costs more than the unreviewable edit this catches.
 
 ## Content policy
 
