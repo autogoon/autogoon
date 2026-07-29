@@ -1,19 +1,19 @@
 # The Autopilot play mode
 
-A faithful recreation of Autoblow's own Vacuglide autopilot — the official
+A faithful recreation of Autoblow's own Vacuglide autopilot, the official
 "hands-off" mode. Reverse-engineered from the original app's client bundle as it
 stood in **July 2026** and rebuilt to run entirely in your browser, faithful
 down to its constants. That bundle ships under a fresh name on each of their
-deploys and their implementation isn't independently documented, so it may drift
-from what is written here.
+deploys, and their implementation isn't independently documented, so it may
+drift from what is written here.
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
 ## The mystery script
 
-Autopilot plays a **mystery script** — it stitches together a long,
-unpredictable run from **8 hand-crafted patterns**, picking 10 of them at random
-(repeats allowed), then a fresh draw. The patterns:
+Autopilot plays a **mystery script**. It stitches together a long, unpredictable
+run from **8 hand-crafted patterns**, picking 10 of them at random with repeats
+allowed, then drawing afresh. The patterns:
 
 1. **Slow full staircase** — climbs step by step from a crawl up to full and
    back down, lingering ~5 s on each step.
@@ -78,20 +78,22 @@ each step, keyed off the **template** speed:
 
 Steps between 30 and 70 are never warped.
 
-The surge and the shave are keyed differently from the durations: they apply as
+The surge and the shave are keyed differently from the durations. They apply as
 each move is sent, to the **intensity-scaled** speed rather than the template
-speed. Intense adds `speed += random(0 .. min(100 − speed, 15))`; Gentle shaves
-`speed −= round(min(speed − 50, 20) × 0.5)`; Moderate leaves it alone. The band
+speed. Intense adds `speed += random(0 .. min(100 − speed, 15))`. Gentle shaves
+`speed −= round(min(speed − 50, 20) × 0.5)`. Moderate leaves it alone. The band
 is `> 70` on the scaled value and Medium's ceiling is exactly 70, so neither
 fires below High.
 
 ## Vacuum maintenance (suction control)
 
-Autoblow's own name: the device can lose a little suction over a session, so
+Autoblow's own name. The device can lose a little suction over a session, so
 this fires a brief **stroke-minus** pulse to re-apply the vacuum and keep the
-toy firmly seated — **Off**, **Light**, or **Heavy**. Because stroke-minus also
-shortens the stroke each time, keeping it topped up trends toward short strokes
-with strong suction — not necessary, but a feel some enjoy:
+toy firmly seated. Because stroke-minus also shortens the stroke each time,
+keeping it topped up trends toward short strokes with strong suction — not
+necessary, but a feel some enjoy.
+
+The settings are **Off**, **Light** and **Heavy**:
 
 | Setting        | baseDuration | speedMultiplier | interval |
 | -------------- | -----------: | --------------: | -------: |
@@ -101,16 +103,17 @@ with strong suction — not necessary, but a feel some enjoy:
 
 A pulse fires only **when a speed move is sent** — at a script step transition,
 never mid-step — and only if at least `interval` has passed since the last
-pulse. The interval is a **minimum gap between pulses, not a cadence**: a long
+pulse. The interval is a **minimum gap between pulses, not a cadence**. A long
 step gets one pulse at its start and nothing more, and steps arriving sooner
-than the gap are skipped. Nothing fires in the first `interval` of a session
-(`lastSuctionTime` starts at 0); changing the suction setting resets it, so the
-next move pulses immediately.
+than the gap are skipped.
+
+Nothing fires in the first `interval` of a session (`lastSuctionTime` starts at
+0). Changing the suction setting resets it, so the next move pulses immediately.
 
 Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))`, where
-`speed` is the move just sent (intensity-scaled, jitter included) — inversely
-proportional, so slow strokes get long pulses (Light at speed 10: 800 ms) and
-fast strokes short ones.
+`speed` is the move just sent (intensity-scaled, jitter included). It is
+inversely proportional: slow strokes get long pulses (Light at speed 10: 800 ms)
+and fast strokes short ones.
 
 ## Manual override
 
@@ -119,5 +122,5 @@ fast strokes short ones.
   open time of 300 ms** so a quick tap still registers.
 - **Finish**: closes both valves, stops the vacuum-maintenance pulses and pushes
   to full speed, leaving your other settings as you had them. The original ends
-  the script there; the 30-minute hold is this app's, which lays out a program
-  ahead of time rather than driving the device from a live timer.
+  the script there. The 30-minute hold is this app's, since it lays out a
+  program ahead of time rather than driving the device from a live timer.

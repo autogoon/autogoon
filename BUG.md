@@ -7,14 +7,15 @@ is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 ## Companions
 
 - **An exhausted media set reads as "nothing matches".** Once everything
-  matching a request has been sent, the exclusion set covers it all,
-  `searchMedia` returns nothing, and the companion is told "Nothing in your
-  pictures or videos matches that" — which is false, and the prompt then has
-  them ask him for something else. The exclusion is thread-scoped, not
-  session-scoped: it is rebuilt from the thread, which persists per companion
-  and is never trimmed, so it only grows and clearing the thread is the one
-  thing that resets it. Exhaustion is where any pack ends up, not an edge case
-  for a small one.
+  matching a request has been sent, the exclusion set covers it all and
+  `searchMedia` returns nothing. The companion is told "Nothing in your pictures
+  or videos matches that", which is false, and the prompt then has them ask him
+  for something else.
+
+  The exclusion is thread-scoped, not session-scoped. It is rebuilt from the
+  thread, which persists per companion and is never trimmed, so it only grows.
+  Clearing the thread is the one thing that resets it. Exhaustion is where any
+  pack ends up, not an edge case for a small one.
 
   The retrieval work this waits on is
   [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md) → The search is
