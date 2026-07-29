@@ -5,9 +5,11 @@
 //
 // Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.md is
 // missing or empty, and describes each one (writing the .md) via the same
-// describeImage() the single-image `npm run goonpack:describe` uses. Videos are
-// left alone — their sidecars are hand-written — as are stills that already
-// have one, so it's safe to re-run after dropping in more. Reads
+// describeImage() the single-image `npm run goonpack:describe` uses, in random
+// order, so a run stopped part-way through covers a spread of the pack rather
+// than whichever shoot sorts first. Videos are left alone — their sidecars are
+// hand-written — as are stills that already have one, so it's safe to re-run
+// after dropping in more. Reads
 // OPENROUTER_API_KEY / LLM_URL from the environment (the npm script loads .env
 // via --env-file-if-exists), and
 // honours MODEL the same as `npm run goonpack:describe`, so you can pick the
@@ -57,7 +59,17 @@ function packDirs(): string[] {
     .map((e) => join(goonpacksDir, e.name));
 }
 
-// Every goonpack image with no (non-empty) sidecar yet, sorted.
+// Filename order is shoot order — one shoot's pictures share a prefix and land
+// together — so describing in it means a part-described pack is one shoot
+// described and the rest untouched. Shuffled per pack directory, which leaves
+// the packs themselves in order.
+const shuffled = (files: string[]): string[] =>
+  files
+    .map((file) => ({ file, at: Math.random() }))
+    .sort((a, b) => a.at - b.at)
+    .map((e) => e.file);
+
+// Every goonpack image with no (non-empty) sidecar yet.
 function missingImages(): string[] {
   const out: string[] = [];
   for (const packDir of packDirs()) {
@@ -71,7 +83,7 @@ function missingImages(): string[] {
       }
       continue;
     }
-    for (const file of readdirSync(dir).sort()) {
+    for (const file of shuffled(readdirSync(dir))) {
       if (!IMAGE_RE.test(file)) continue;
       const image = join(dir, file);
       const sidecar = sidecarPath(image);
