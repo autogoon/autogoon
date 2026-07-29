@@ -14,15 +14,14 @@ it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
 What this check must not miss has a right answer in another file: a path that no
 longer resolves, an identifier that was renamed, a claim the code stopped
-supporting. How a sentence is _written_ is another check's subject — a document
-can pass this one and still be badly written.
+supporting. How a sentence is _written_ is another check's subject.
 
 ## Scope
 
 - **Default: the branch.** `git diff main...HEAD --name-only` plus the
   identifiers the diff renamed, removed, or added. Then find every doc that
   mentions any of them. The documents are the ones classed in
-  [The document set](#the-document-set) below.
+  [The document set](#the-document-set).
 - **Code comments are docs too.** **Every comment the diff touched is in
   scope**, whatever file it sits in: if the branch wrote or edited it, read it
   as a doc — what it names, and whether it still describes the repo around it.
@@ -50,12 +49,13 @@ A document's class and audience decide how it is read:
 
 `.env.example`'s comments are the documented env contract.
 
-**Current-state** docs describe only what is implemented today. **Future** docs
-describe intent and churn as plans change: check only the claims they make about
-the _current_ code ("Groove's floor is fixed at 60"), never flag an unbuilt
-idea.
+**Current-state** and **future** docs are distinguished in
+[CLAUDE.md](../../../CLAUDE.md) → Documentation. In a future doc, check only the
+claims it makes about the _current_ code ("Groove's floor is fixed at 60"),
+never flag an unbuilt idea.
 
-`modes/AUTOPILOT.md`'s constants must match `autopilot-engine.ts` exactly.
+`modes/AUTOPILOT.md` is a specification — [CLAUDE.md](../../../CLAUDE.md) →
+Documentation says which side must match.
 
 ## What to check, per doc
 
@@ -63,8 +63,7 @@ idea.
 is a check.** Read them there. They are not repeated here, so a rule added to
 either is checked without this file changing.
 
-Plus these, which answer to no rule: verifications nothing in CLAUDE.md would
-tell you to perform.
+Plus these, which answer to no rule in CLAUDE.md:
 
 1. **Paths and links** — every file path, markdown link and heading anchor
    resolves.

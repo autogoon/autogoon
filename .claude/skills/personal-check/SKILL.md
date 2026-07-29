@@ -21,10 +21,10 @@ scanned for without this file changing.
 
 Below is where those leaks hide, which the rules alone would not tell you:
 
-- **A leak wearing the clothes of a project fact** — the author's own library
-  sizes, folder layouts, hardware or workflow, stated as though describing the
-  app. Reframe as a generic worked example ("say 40k images", "a 64GB machine")
-  or delete.
+- **A personal fact stated as a project fact** — the author's own library sizes,
+  folder layouts, hardware or workflow, stated as though describing the app.
+  Reframe as a generic worked example ("say 40k images", "a 64GB machine") or
+  delete.
 - **A sentence about the local media set that reads as a sentence about the
   feature.** `goonpacks/<dir>/media/` is gitignored and exists on one machine,
   so anything about its contents is private: a persona note justified by "which
@@ -99,10 +99,10 @@ Once a finding exists, the cheap next move is to grep the rest of history for
 its wording — which finds more of what is already known and nothing else. The
 identifier patterns come from **What to look for** and run in full regardless.
 For the categories no regex covers — a set's size, a folder layout, hardware,
-sourcing — reading is the only pass that works, so the remainder above gets
-read, not searched.
+sourcing — reading is the only pass that works, so that remainder gets read, not
+searched.
 
-## History — the part that actually matters
+## History
 
 For **every** finding, determine exposure before calling it fixed:
 
@@ -140,15 +140,14 @@ findings in front of them. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow,
 pushing is its own action and is only done when asked; this says which asking
 counts.
 
-The reason is this check's alone. Every other check can be re-run and its
-findings fixed with an ordinary commit. This one's miss becomes a history
-rewrite and a force-push the moment the branch goes up, and GitHub keeps the
-objects even then — so the minute before the push is the last cheap minute there
-is, and spending it on a question costs nothing.
+Every other check can be re-run and its findings fixed with an ordinary commit.
+This one's miss becomes a history rewrite and a force-push the moment the branch
+goes up, and GitHub keeps the objects even then — so the minute before the push
+is the last cheap minute there is, and spending it on a question costs nothing.
 
 State what the check actually did, in the words of **Scope** — a cumulative
-`git diff main...HEAD` is not "every revision", and reporting it as one buys a
-push with a pass that was never run.
+`git diff main...HEAD` is not "every revision", and reporting it as one gets the
+push approved on a pass that was never run.
 
 ## Red flags
 

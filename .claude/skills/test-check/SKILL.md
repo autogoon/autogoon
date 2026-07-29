@@ -16,15 +16,17 @@ it reads as coverage in exactly the place you would stop looking.
 
 ## Scope
 
-- **Default: the branch.** `git diff main...HEAD --name-only` gives you three
-  things to review: every `*.test.ts` and `tests/e2e/*.spec.ts` the diff
-  touched; the source modules those tests cover; and every new or changed export
-  under `src/lib/**`, whether or not it has a test.
+- **Default: the branch.** `git diff main...HEAD --name-only` gives you what to
+  review:
+  - every `*.test.ts` and `tests/e2e/*.spec.ts` the diff touched;
+  - the source modules those tests cover;
+  - every new or changed export under `src/lib/**`, whether or not it has a
+    test.
 - **`/test-check all`: full sweep.** Every test file against its source. Fan out
   one subagent per file or tight cluster — each needs room to read the source
   and run mutations. Expensive; this is not the per-PR mode.
-- **Always read the source.** Never review a test in isolation from the code it
-  tests. Most findings only exist in the gap between the two.
+- **Always read the source.** Most findings only exist in the gap between the
+  two.
 
 ## What to check
 
@@ -62,8 +64,8 @@ the rules would not tell you:
    `it` string alone, as a CI failure list shows it, not in file order where the
    surrounding tests supply the missing context.
 3. **A comment asserting behaviour the code does not have.** Verify each against
-   the source and quote `file:line`. These are always written confidently, which
-   is why reading past them is easy.
+   the source and quote `file:line`. These read confidently, which is why
+   reading past them is easy.
 4. **A skip is not a pass.** Where a capability probe can skip a whole suite
    (`tests/e2e/opfs.ts`), say what a green run did not cover.
 
