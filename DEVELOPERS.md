@@ -72,11 +72,9 @@ Then:
 - **Open a pull request** — push your branch (`git push -u origin <branch>`) and
   open a PR against `main` with `gh pr create` (the GitHub CLI), or the "Compare
   & pull request" prompt GitHub shows after you push.
-- **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change —
-  user-facing ones described by what the app does, internal ones (refactors,
-  etc.) by what changed. One entry per change, newest first, grouped by date,
-  tagged `feature` / `enhancement` / `bug` / `internal` (in that order within a
-  day), linking the PR.
+- **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change — the entry
+  format, and what to write for a user-facing change versus an internal one, are
+  in [CLAUDE.md](./CLAUDE.md) under Changelog.
 - **Before it's reviewed** — `npm run typecheck`, `lint`, and `format` must all
   pass with **zero warnings** (typecheck and lint produce no output; fix every
   warning, not just the ones your change introduced). Individual commits needn't
