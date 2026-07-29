@@ -27,14 +27,8 @@ files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
   - what the screen says — a device that has dropped is the one failure the user
     can't otherwise see.
 
-- **Show remaining provider credits in the app.** Both providers expose balances
-  (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint — character
-  quota used/limit), so surface them in the app instead of two dashboards —
-  presumably a pair of trivial proxied lookups. Maybe also record usage over
-  time (per session?). To settle: where it lives (Settings, or on the Companions
-  screen), and how it composes with
-  [Bring-your-own API keys](#bring-your-own-api-keys) (with BYO keys it's the
-  _user's_ balance — arguably more useful, same lookups).
+- **Show remaining provider credits in the app.** Saves visiting the providers'
+  dashboards to find out.
 
 - **Finish intensity.** One global percentage in Settings: the intensity you'd
   want to finish at. What reads it:
@@ -98,8 +92,8 @@ before it stops rather than stopping silently.
 `SHARED_STYLE_BULLETS` in `shared-prompt.ts` tells every companion to keep
 replies short — "usually a few sentences" — so a terse persona and a verbose one
 get the same instruction, and an author who wants a talker has to contradict the
-shared block rather than write their own rule. How talkative a companion is is
-character, so the bullet belongs in the persona.
+shared block rather than write their own rule. How talkative a companion is
+belongs in their persona.
 
 ### The companion picks the after-play
 
@@ -134,9 +128,9 @@ follow. Also worth deciding what happens when a disk pack and an installed one
 collide, and whether a pack imported this way should be visibly marked as having
 come from disk rather than chosen.
 
-A stopgap, not the destination — [Goonpack kit](./roadmap/GOONPACK-KIT.md) is
-where authoring properly moves into the app. This is worth doing anyway because
-it's small and pays off immediately.
+A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
+moves into the app properly. Worth doing anyway — it is small and pays off
+immediately.
 
 ### Streaming per companion
 
@@ -216,11 +210,11 @@ server keys** — its only job was protecting them.
 ### Companion time zones
 
 Personas are located — anywhere a pack author puts them — but only the user's
-clock is real: the prompt's TIME line is his browser's time. Give a located
-persona their own: an IANA `timezone` field on `Companion` and a second TIME
-line ("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it
-can be the middle of their night in the middle of his day. The app does all the
-arithmetic — no LLM offset math (models are passable at offsets and quietly
+clock is real: the prompt's TIME line is the browser's. Give a located persona
+their own: an IANA `timezone` field on `Companion` and a second TIME line ("TIME
+(yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it can be the
+middle of their night while it is the middle of the user's day. The app does all
+the arithmetic — no LLM offset math (models are passable at offsets and quietly
 wrong about DST); they only roleplay the two clocks.
 
 One rule ships with it: their clock colours the fiction, never gates it — they
