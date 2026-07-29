@@ -106,7 +106,8 @@ async function installCompletePack(page: import('@playwright/test').Page) {
   ).toBeVisible();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   // The confirm sheet closes only after the store commit lands — wait for it,
-  // or its card and the new list row's coexist and the locators go strict.
+  // or its card and the new list row are both on screen and the locators go
+  // strict.
   await expect(
     page.getByRole('button', { name: 'Import', exact: true }),
   ).toHaveCount(0);

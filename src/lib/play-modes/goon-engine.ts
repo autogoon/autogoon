@@ -1,4 +1,4 @@
-// Goon as an PlayModeEngine — an automatic, timeline-driven slow build: the
+// Goon as a PlayModeEngine — an automatic, timeline-driven slow build: the
 // manual Groove dip pattern with its knobs driven automatically over a
 // program-position running 0 -> the configured session length. position === the
 // Player's clock, so each cycle samples the curves at its own program-time and

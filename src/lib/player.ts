@@ -345,7 +345,7 @@ export class Player {
 
   // ---- Transport ----
 
-  // Jump the clock to an absolute program-time — an play-mode-specific transport
+  // Jump the clock to an absolute program-time — a play-mode-specific transport
   // (e.g. Goon's "finish" jumping to the end of its build). Clamped to >= 0; the
   // source decides what a position past its content means (Goon parks at the top).
   seekTo(to: number): void {

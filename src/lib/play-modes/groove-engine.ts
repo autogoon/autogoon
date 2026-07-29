@@ -1,4 +1,4 @@
-// Groove as an PlayModeEngine — the manual dip pattern (100 -> floor -> 100)
+// Groove as a PlayModeEngine — the manual dip pattern (100 -> floor -> 100)
 // with Speed + Variability knobs. Pure event generation/scaling — no React, no
 // device; generation helpers are private to this file.
 

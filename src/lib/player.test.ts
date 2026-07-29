@@ -529,7 +529,7 @@ describe('Player clock', () => {
 
       // Advancing the clock by the nominal TICK_MS rather than the span that
       // actually elapsed put this ratio at about 0.82 with a 150 ms send, and
-      // fell further the slower the device answered. The band is wide because
+      // the ratio fell further the slower the device answered. The band is wide because
       // the exact figure is timer slop, not a contract; what it pins is that
       // the clock neither lags the wall nor races it.
       const ratio = player.getState().clock / realMs;

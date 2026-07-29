@@ -1,4 +1,4 @@
-// Autopilot as an PlayModeEngine — a faithful port of the original
+// Autopilot as a PlayModeEngine — a faithful port of the original
 // fun.autoblow.com/vacuglide/autopilot client bundle (its pattern templates and
 // constants). Pure event generation/scaling — no React, no device; generation
 // helpers are private to this file.
