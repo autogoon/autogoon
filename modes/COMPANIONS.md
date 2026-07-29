@@ -65,16 +65,15 @@ where it slots in), and each persona module interpolates them into place, so
 those rules can't drift between companions.
 
 The device description is part of that shared set because **what the toy does to
-you isn't a persona's to invent.** Left to infer the hardware from the tool
-names, a model guesses — the wrong shape, the wrong sensation, sometimes the
-wrong act — and it guesses mid-scene, where the words are the whole point.
-Written once, no pack author has to know the hardware, and no companion is wrong
-about it. What stays in the persona module is only that companion: their
-character, setup, tone, and disposition — **who leads between them and the
-user**, which the shared blocks leave open. Control of the toy is not among
-them: the shared block settles that for everyone, so a persona written against
-it contradicts rather than overrides it. Personas are written in the **second
-person** ("You're 21…") so they read as one voice with the shared blocks.
+you isn't a persona's to invent.** With only the tool names to go on, a model
+infers the wrong hardware and says so mid-scene. Written once, no pack author
+has to know the hardware, and no companion is wrong about it. What stays in the
+persona module is only that companion: their character, setup, tone, and
+disposition — **who leads between them and the user**, which the shared blocks
+leave open. Control of the toy is not among them: the shared block settles that
+for everyone, so a persona written against it contradicts rather than overrides
+it. Personas are written in the **second person** ("You're 21…") so they read as
+one voice with the shared blocks.
 
 ## Device control
 

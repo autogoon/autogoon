@@ -44,14 +44,13 @@ the beginning (Reset is two layers — see [Play modes](#play-modes)).
 
 **A PlayModeEngine** (`src/lib/play-modes/*-engine.ts`) is what each play mode
 _is_ here: a generation-only object — no React, no device, no clock of its own;
-the Player calls back into it. The four-method contract lives in
-[`src/lib/program.ts`](./src/lib/program.ts) (the best-commented file in the
-repo — start there). Generation is split into two channels: `generateSpeed`
-(stateful, pulled a batch at a time so looping play modes never materialise all
-at once) and `generateValves` (a **pure** overlay laid across a span of
-already-built speed). Purity lets the Player re-lay the valve overlay over an
-unchanged speed script for a valve-only knob, and is why the overlay must not
-keep cadence state.
+the Player calls back into it. The four-method contract is defined and commented
+in [`src/lib/program.ts`](./src/lib/program.ts). Generation is split into two
+channels: `generateSpeed` (stateful, pulled a batch at a time so looping play
+modes never materialise all at once) and `generateValves` (a **pure** overlay
+laid across a span of already-built speed). Purity lets the Player re-lay the
+valve overlay over an unchanged speed script for a valve-only knob, and is why
+the overlay must not keep cadence state.
 
 **How a change reaches the device** — two kinds:
 
