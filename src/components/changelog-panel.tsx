@@ -52,8 +52,6 @@ export function ChangelogPanel() {
       {DAYS.map((day) => (
         <Card key={day.date} title={day.date}>
           {day.entries.map((entry, i) => (
-            /* One card per change: tag pill then summary as the title, the
-               description as the body. */
             <Card
               key={i}
               className="mb-4"

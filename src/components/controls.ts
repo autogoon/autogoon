@@ -1,7 +1,7 @@
 // The shared look of SMALL interactive controls — utility buttons (Connect,
 // Test, the header chips) and text inputs. On the flat, borderless pages these
-// need their own lift to be visible at rest: a subtle fill plus a border
-// brighter than the theme's hairline --border.
+// are only visible at rest with a subtle fill plus a border brighter than the
+// theme's hairline --border.
 //
 // The border COLOUR is a separate token (CONTROL_BORDER): a caller showing a
 // state colour (the Connect button's connected emerald, an error's red) uses

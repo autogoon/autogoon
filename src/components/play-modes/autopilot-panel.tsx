@@ -100,7 +100,7 @@ export function AutopilotPanel({
       engine.setIntensity(level);
       // Shape knob — unlike Goon's "intensity". Here the level selects a different
       // generated script, not a scale-time ceiling, so regenerate the future
-      // rather than refresh(). (Contrast goon-panel's changeIntensity.)
+      // rather than refresh().
       device.invalidateFuture();
       vacuglide.log(`intensity → ${level}`);
     },

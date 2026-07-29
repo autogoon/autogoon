@@ -2,7 +2,7 @@
 
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves (voice "up"/"down" does the same, see useStrokeControls, and
-// highlights the matching button). Genuinely shared by every play mode panel —
+// highlights the matching button). Shared by every play mode panel —
 // the stroke buttons operate on the device layer regardless of which play mode is
 // running. Finish/cumming are play-mode-specific, so each panel renders its own.
 

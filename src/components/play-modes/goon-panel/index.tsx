@@ -224,10 +224,9 @@ export function GoonPanel({
   // avoided: Stop and every transport control that could dodge or dilute the
   // outcome are withdrawn. The page-owned safe word bypasses all of this.
   const unstoppable = afterPlay !== null && afterPlay !== 'wind-down';
-  // And while such an outcome is actually playing, the panel ignores you
-  // entirely — every remaining command (word and button alike) is withdrawn
-  // too, so only the safe word gets a hearing. Once the safe word has halted
-  // it (state leaves "playing"), Reset and Start come back.
+  // While such an outcome is playing, every remaining command (word and button
+  // alike) is withdrawn too, leaving only the safe word. Once the safe word has
+  // halted it (state leaves "playing"), Reset and Start come back.
   const lockedOut = unstoppable && state === 'playing';
   // Cumming is one-shot per session — no re-rolling the draw.
   const canEnd = live && connected && afterPlay === null;

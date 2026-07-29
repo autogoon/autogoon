@@ -4,7 +4,7 @@
 // Always shown (once the initial check resolves) so access can be entered or
 // changed at any time. The real enforcement is server-side on the paid routes
 // (see access-check.ts); this only decides whether the Companions feature is
-// revealed — and Companions stays hidden until a valid ID is entered. On the
+// revealed. On the
 // dev server Companions shows regardless (page.tsx), but this box still
 // validates real IDs, so the gate stays testable in dev.
 

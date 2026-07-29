@@ -8,9 +8,8 @@
 //
 // The Test button exists because vosk can only recognise words in its model's
 // vocabulary — a typed word the model doesn't know would silently never fire.
-// Testing narrows the grammar to just the candidate (the easiest possible
-// recognition setting, via the spotter's exclusive slot), so a word that
-// fails the test is genuinely unusable, not just drowned out.
+// Testing narrows the grammar to just the candidate (see the exclusive slot in
+// keyword-spotter.tsx).
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

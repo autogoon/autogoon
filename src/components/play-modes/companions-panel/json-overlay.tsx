@@ -1,8 +1,7 @@
 'use client';
 
 // Near-fullscreen overlay showing the Debug tab's LLM request JSON. The
-// Lightbox's shell (backdrop, ✕, Escape) without the animation machinery — a
-// debug view doesn't need the polish.
+// Lightbox's shell (backdrop, ✕, Escape) without its enter/exit animation.
 
 import { useEffect } from 'react';
 import { X } from 'lucide-react';

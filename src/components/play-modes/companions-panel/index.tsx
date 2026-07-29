@@ -182,7 +182,7 @@ export function CompanionsPanel({
     void device.pause();
   }, [device]);
 
-  // Transition log for the acceptance run. Hoisted above the voice session
+  // Transition log. Hoisted above the voice session
   // (rather than left with the other status-derived effects below) because
   // its `append` is the tool-dispatch log callback passed into useVoiceSession.
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -580,8 +580,8 @@ export function CompanionsPanel({
   // is locked. It runs from the VAD onset that opens an utterance to the point
   // the server commits it — a decision about speech, not about mic energy, so
   // it doesn't blink between words the way the raw VAD does and needs no
-  // debouncing. `partial` is redundant with it, and kept as belt and braces:
-  // text on screen should never sit in an unlocked box.
+  // debouncing. `partial` is redundant with it, and kept because text on screen
+  // should never sit in an unlocked box.
   const dictating = status.utteranceOpen || status.partial !== '';
 
   // The session's live stage, shared by the lightbox badge and the
@@ -620,7 +620,7 @@ export function CompanionsPanel({
   const [menuOpen, setMenuOpen] = useState(false);
   // The LLM request viewer: the pretty-printed JSON of the exact request a
   // turn sent right now would make, or null when closed. Snapshotted on click,
-  // not live — it's a "what would go out" inspector.
+  // not live.
   const [llmRequestJson, setLlmRequestJson] = useState<string | null>(null);
   const showLlmRequest = useCallback(
     () => setLlmRequestJson(JSON.stringify(previewLlmMessages(), null, 2)),
@@ -961,9 +961,8 @@ export function CompanionsPanel({
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
-                  {/* Live stage as a chat-style bubble — the "other person is
-                  typing" slot, same icon vocabulary as the lightbox badge, for
-                  the stages with no message on screen yet. Once one exists the
+                  {/* Live stage as a chat-style bubble, for the stages with no
+                  message on screen yet. Once one exists the
                   message carries the state itself: the pending bubble while the
                   reply streams into it, then its shimmer through voice-loading
                   and speaking. */}
@@ -981,7 +980,7 @@ export function CompanionsPanel({
                   )}
                   {/* The ring mirrors the one on a message the companion is
                       speaking: theirs shimmers while they talk, the composer
-                      while we're listening to you. It rides the wrapper because a textarea
+                      while the mic is open. It rides the wrapper because a textarea
                       can't carry the pseudo-element that draws it, and because
                       the ring shouldn't dim with the disabled box inside. */}
                   <div
