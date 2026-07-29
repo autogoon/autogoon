@@ -1,15 +1,11 @@
 # Architecture
 
-A single-page app with a sticky header bar and a shallow navigation hierarchy: a
-top-level tab strip of **Home** (the device connection, the play mode chooser
-and the getting-started notes), **Goonpacks** (pack admin), **Changes** (the
-changelog) and **Settings** (appearance, safe word, Companions access, build
-info), with one screen per play mode below Home — Goon, Groove, Autopilot, and
-the access-gated Companions. `src/app/page.tsx` owns the layout: it wraps
-everything in the keyword-spotter provider, mirrors the one shared Player into
-React once, and renders every screen. Hidden screens stay mounted (only their
-visibility changes), so the recognizer and the running play mode keep going
-regardless of which screen is visible.
+A single-page app. `src/app/page.tsx` wraps everything in the keyword-spotter
+provider, mirrors the one shared Player into React once, and renders every
+screen. Hidden screens stay mounted (only their visibility changes), so the
+recognizer and the running play mode keep going regardless of which screen is
+visible. The navigation hierarchy those screens form is under
+[Shared device, one Player, mutual exclusion](#shared-device-one-player-mutual-exclusion).
 
 ## The program / player model
 
