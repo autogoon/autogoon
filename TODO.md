@@ -53,26 +53,17 @@ Concrete, intended work. Speculative direction and design thinking lives in
 
 ## Media descriptions and retrieval
 
-The plumbing has landed: two texts per item in a `.md` sidecar, a summary of the
-set in the manifest, and the two tools a companion calls —
-[docs/superpowers/specs/2026-07-27-media-search-design.md](./docs/superpowers/specs/2026-07-27-media-search-design.md)
-is the design it was built to.
-
-What a description should contain, how the search should rank and which
-mechanism answers "the same N every time" are deliberately not settled there.
-They belong to [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md),
-and none of them can be evaluated without a library big enough to tell one
-answer from another. What the shipped search gets wrong today is in
-[BUG.md](./BUG.md).
+Making the search better belongs to
+[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), and what it gets
+wrong today to [BUG.md](./BUG.md). One measurement is defined enough to sit
+here:
 
 - **Measure how many matches a search should return.** `SEARCH_LIMIT` is 25,
   chosen by eye and never tested against anything: too few and a topic runs dry
   after a couple of sends, too many and every search costs a page of context for
-  the rest of the conversation. It is one of the two halves of the roadmap's
-  "which diversity lever, and how many results" question, and the only half that
-  can be answered without choosing a lever first — a number falls out of running
-  real requests against a real set and counting how far down the list anything
-  gets sent from.
+  the rest of the conversation. A number falls out of running real requests
+  against a real set and counting how far down the list anything gets sent from,
+  without the roadmap's "which diversity lever" question being settled first.
 
 ## Companions
 
