@@ -86,17 +86,16 @@ A companion **drives the device through LLM tools**:
 
 - start/stop;
 - the intensity and variety knobs;
-- `search_media` and `send_media`, for a companion with media;
-- `wait_for_user`, which is how a run of unprompted turns is ended (see
-  [Filling a silence](#filling-a-silence)).
+- `search_media` and `send_media`, for a companion with media.
 
 When one is called, the panel runs **the same transport and knobs the on-screen
 controls use** — there is one path, not a parallel one. The tool definitions,
 argument shapes, and which knob applies live versus regenerates are all
-commented in `companions-panel/index.tsx`. Whether a companion acts on a request
-or declines is a disposition written into their `systemPrompt`, not a code gate.
-Companions default to a **gentle baseline** — low intensity, light variety, a
-one-shot stroke-minus tease at session start — and build up from there.
+commented at their declarations in `companions-panel/index.tsx`. Whether a
+companion acts on a request or declines is a disposition written into their
+`systemPrompt`, not a code gate. Companions default to a **gentle baseline** —
+low intensity, light variety, a one-shot stroke-minus tease at session start —
+and build up from there.
 
 The device's **current state reaches the companion every turn** (see
 `getDeviceState` in the panel) — so they always know whether the toy is
