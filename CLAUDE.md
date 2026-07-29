@@ -248,6 +248,11 @@ invariants, the why, and the cross-file shape. Concretely:
   neither settles it — re-read the bundle. The doc describes the patterns as
   templates, which is not what playback looks like, so it is the likelier of the
   two to have lost a detail.
+- **[GOONPACKS.md](./GOONPACKS.md) is the pack format's reference for authors.**
+  A pack author does not read TypeScript, so the field-by-field prose lives
+  there, while `src/lib/goonpacks/manifest.ts` carries the types and the terse
+  comments a developer reads. Where the two disagree, the parser settles it: it
+  is what rejects a pack.
 - When code you change is mentioned in a doc, updating the doc is part of the
   change. Run `/doc-check` before opening a PR — and again before merging — to
   catch what slipped.
