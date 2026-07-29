@@ -259,9 +259,10 @@ She stands at the waterline in a white summer dress, the hem wet. Behind her the
 sun is low and the light is warm.
 ```
 
-They read the **caption** to choose what fits the moment, so a good caption says
-what's actually in the shot. The **description** is the fuller account behind
-it; nothing shows it to you.
+A search matches the request's words against the caption and the description
+together; each hit comes back with its caption, and the companion chooses from
+those. So a caption should say what's actually in the shot, and a word that
+appears only in the description will still find the item.
 
 `npm run goonpack:describe` writes both, so there's rarely a reason to type one
 by hand — see [Building the zip](#building-the-zip). **The sidecar is what makes
