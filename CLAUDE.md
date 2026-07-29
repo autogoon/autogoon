@@ -261,11 +261,10 @@ invariants, the why, and the cross-file shape. Concretely:
 
 ## Writing style
 
-How a sentence is written, wherever it sits: `*.md`, a code comment, a skill, a
-commit message, a reply in this conversation. Whether the sentence is _true_
-belongs to → Documentation and the checks that read against code; a sentence can
-be accurate and still break every rule here. `/style-check` is the one that
-reads for these.
+How text is written, wherever it sits: `*.md`, a code comment, a skill, a commit
+message, a reply in this conversation. Whether it is _true_ belongs to →
+Documentation and the checks that read against code; text can be accurate and
+still break every rule here. `/style-check` is the one that reads for these.
 
 - **Documentation is precise.** It is instruction and reference, not prose —
   writing it as prose is what produces padding and hedging. Name the mechanism
@@ -288,6 +287,12 @@ reads for these.
   pointing back at it — "the four levers", "the last one" — can't be matched to
   an item without reading the whole run again. Two things named in a sentence
   are not a list.
+- **A construction repeated down a page becomes a register.** One shape used for
+  every sentence reads as talk, however well each sentence carries on its own.
+  The recurring shape here is a claim, a gloss on it, then a trailing
+  consequence. The gloss arrives on dashes, a colon or a comma; the consequence
+  on `so…` or `which is…`. Use it where the reader needs it, not by default:
+  reference prose states a thing and stops.
 - Docs speak the app's vocabulary — play mode, program, play/session — never a
   persona's fiction ("during a call" is the companions' own call framing), and
   capabilities belong to features, not to whichever companion has them.

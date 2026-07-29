@@ -4,7 +4,8 @@ description:
   Use before opening a PR and again before merging it — reads everything the
   branch added or changed, in documentation and in code comments, against
   CLAUDE.md's writing style. Cuts metaphors, personification, restatement,
-  padding and anything that carries nothing. Checks nothing for truth.
+  padding, anything that carries nothing, and a register that says everything
+  the same way. Checks nothing for truth.
 ---
 
 # Style check
@@ -32,7 +33,9 @@ wrote them and nothing else reads them for style. Commit messages are inside →
 Writing style as well, but rewriting history to fix one costs more than the
 flaw: report what you find and leave it.
 
-Text written **during** an earlier check is in scope like any other.
+Text written **during** an earlier check is in scope like any other. So is your
+own fix here — a rewrite matches its surroundings, and that is how the register
+spreads. Read what you wrote against the shape, not only against the rules.
 
 ## The style
 
@@ -49,9 +52,9 @@ These belong to other checks, not this one:
 
 Text can be accurate on every one of those and still fail here.
 
-## Two questions
+## Three questions
 
-Neither follows from knowing the rule, and the rule is not enforceable without
+None follows from knowing the rule, and the rules are not enforceable without
 them.
 
 **Cut it — the sentence, the clause, the phrase. Did the paragraph lose
@@ -65,7 +68,19 @@ anything?** If it says as much without, it goes. This catches:
 it names something the reader can point at, or it stands where a mechanism
 should be.
 
-Run both over everything in scope.
+**Name the shape the document is written in, and count it.** The first two
+questions run inside a paragraph. A register fault survives both: each instance
+carries information, and no single word stands where a mechanism should be. What
+fails is that every sentence says its thing the same way. The rule is in
+[CLAUDE.md](../../../CLAUDE.md) → Writing style. What this check adds is the
+count: mean words per sentence, glosses per line on dashes or a colon, and `so…`
+and `which is…` tails. The count is evidence, not a target; without one, "this
+reads chatty" is an impression.
+
+Run all three over everything in scope. The third reads the whole of any
+document the diff touched, not only the changed lines — the pattern is invisible
+in a hunk. It is always **ask first**: the fix rewrites a document, not a line,
+and it is one question for that document rather than one per sentence.
 
 ## Reporting
 
@@ -88,10 +103,11 @@ Run `npm run format` after edits.
 
 ## Red flags
 
-| Thought                          | Reality                                                      |
-| -------------------------------- | ------------------------------------------------------------ |
-| "It reads well"                  | Reading well is what padding does. Cut it and read it again. |
-| "That sentence is true"          | Truth is the other checks'. An empty sentence is not false.  |
-| "The word is obvious in context" | Then the mechanism is easy to write. Write that.             |
-| "It's only a comment"            | Comments are read while changing the code they sit on.       |
-| "I wrote that an hour ago"       | Then nothing has read it yet. Your own edits are in scope.   |
+| Thought                          | Reality                                                                             |
+| -------------------------------- | ----------------------------------------------------------------------------------- |
+| "It reads well"                  | Reading well is what padding does. Cut it and read it again.                        |
+| "That sentence is true"          | Truth is the other checks'. An empty sentence is not false.                         |
+| "The word is obvious in context" | Then the mechanism is easy to write. Write that.                                    |
+| "It's only a comment"            | Comments are read while changing the code they sit on.                              |
+| "I wrote that an hour ago"       | Then nothing has read it yet. Your own edits are in scope.                          |
+| "Every sentence here passes"     | Then read the shape they share. A register fault is fifty sentences that each pass. |
