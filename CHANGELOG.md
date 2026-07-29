@@ -2,11 +2,10 @@
 
 ## 2026-07-29
 
-- bug: **Autopilot patterns ran a step out of time** — Each speed in a pattern
-  was held for the following step's stretch of time, so patterns played back
-  distorted: the bursts to full speed and the rests between them had their
-  lengths swapped, and Edge Control stretched the rests rather than the peaks.
-  ([#25](https://github.com/autogoon/autogoon/pull/25))
+- bug: **Finish leaves your Autopilot settings alone** — Pressing Finish used to
+  snap Intensity to High, Edge Control to Moderate and Vacuum Maintenance to
+  Off. It now pushes to full speed and closes the valves without touching what
+  you had set. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 ## 2026-07-28
 

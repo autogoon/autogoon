@@ -89,9 +89,6 @@ export function AutopilotPanel({
     } catch (err) {
       vacuglide.log(`error: ${(err as Error).message}`, 'error');
     }
-    setIntensity('high');
-    setEdge('moderate');
-    setSuction('off');
   }, [device, engine, vacuglide]);
 
   const changeIntensity = useCallback(

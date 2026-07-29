@@ -1,10 +1,11 @@
 # The Autopilot play mode
 
 A faithful recreation of Autoblow's own Vacuglide autopilot — the official
-"hands-off" mode. Reverse-engineered from the original app's client bundle
-(`autopilot-Krw_IcWx.js`, **July 2026**) and rebuilt to run entirely in your
-browser, faithful down to its constants. Autoblow's own implementation isn't
-independently documented and may drift from this over time.
+"hands-off" mode. Reverse-engineered from the original app's client bundle as it
+stood in **July 2026** and rebuilt to run entirely in your browser, faithful
+down to its constants. That bundle ships under a fresh name on each of their
+deploys and their implementation isn't independently documented, so it may drift
+from what is written here.
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
@@ -31,6 +32,19 @@ unpredictable run from **8 hand-crafted patterns**, picking 10 of them at random
    high plateau.
 
 A draw of ten runs roughly 5–30 minutes, then a new random draw begins.
+
+## How a draw is laid out
+
+The pattern descriptions name the **templates**. Two properties of playback do
+not follow from them:
+
+- A draw opens with an unscaled `speed: 10` at time 0, ahead of the first
+  template step. It skips the intensity remap, so on High it sits below that
+  level's floor of 30.
+- Each step is emitted at the **end** of its own duration, so its speed is in
+  effect for the _following_ step's duration, and the opening `speed: 10` covers
+  the first step's. Pattern 7's rests shrink in the template, while the span
+  that shortens in playback is the hold at full speed.
 
 ## Intensity → how hard
 
@@ -62,10 +76,14 @@ each step, keyed off the **template** speed:
 | Moderate |                   ×1 |                    ×1 |
 | Intense  |                 ×1.5 |                  ×0.5 |
 
-Steps between 30 and 70 are never warped. Intense also adds random surges above
-the plateau (`speed += random(0 .. min(100 − speed, 15))`); Gentle shaves up to
-10 off it (`speed −= round(min(speed − 50, 20) × 0.5)`); Moderate leaves it
-alone.
+Steps between 30 and 70 are never warped.
+
+The surge and the shave are keyed differently from the durations: they apply as
+each move is sent, to the **intensity-scaled** speed rather than the template
+speed. Intense adds `speed += random(0 .. min(100 − speed, 15))`; Gentle shaves
+`speed −= round(min(speed − 50, 20) × 0.5)`; Moderate leaves it alone. The band
+is `> 70` on the scaled value and Medium's ceiling is exactly 70, so neither
+fires below High.
 
 ## Vacuum maintenance (suction control)
 
@@ -99,5 +117,7 @@ fast strokes short ones.
 - **Stroke − / Stroke +**: press-and-hold buttons that shorten (−) or lengthen
   (+) the stroke. Press opens the valve, release closes it, with a **minimum
   open time of 300 ms** so a quick tap still registers.
-- **Finish**: pushes to full speed (suction off) and holds for 30 minutes, then
-  stops itself — or until you stop it.
+- **Finish**: closes both valves, stops the vacuum-maintenance pulses and pushes
+  to full speed, leaving your other settings as you had them. The original ends
+  the script there; the 30-minute hold is this app's, which lays out a program
+  ahead of time rather than driving the device from a live timer.

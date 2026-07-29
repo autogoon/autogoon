@@ -244,11 +244,14 @@ invariants, the why, and the cross-file shape. Concretely:
   rule added here is checked without touching them. Two exceptions, both of
   which still link the source: a user-facing doc restating a developer-facing
   rule in user terms, and a summary naming what a longer doc covers.
-- **[modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is a specification, not a
-  description of code.** It records Autoblow's Autopilot, reverse-engineered
-  from their client bundle, so it carries the constants instead of pointing at
-  `autopilot-engine.ts`. Truth runs the other way here — the code must match the
-  doc.
+- **[modes/AUTOPILOT.md](./modes/AUTOPILOT.md) records an algorithm this repo
+  does not own.** Autoblow's client bundle is the specification and is not
+  published; `autopilot-engine.ts` is derived from reading it, and the doc from
+  the engine. The doc carries the constants rather than pointing at the engine
+  because they record the original. Where the doc and the engine disagree,
+  neither settles it — re-read the bundle. The doc describes the patterns as
+  templates, which is not what playback looks like, so it is the likelier of the
+  two to have lost a detail.
 - When code you change is mentioned in a doc, updating the doc is part of the
   change. Run `/doc-check` before opening a PR — and again before merging — to
   catch what slipped.

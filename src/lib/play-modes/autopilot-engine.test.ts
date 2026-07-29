@@ -132,24 +132,40 @@ const speedsFrom = (
 const holds = (events: SpeedEvent[], count: number) =>
   Array.from({ length: count }, (_, i) => events[i + 1]!.at - events[i]!.at);
 
+const pairs = (events: SpeedEvent[], count: number) =>
+  Array.from(
+    { length: count },
+    (_, i) => `${events[i]!.speed}@${events[i + 1]!.at - events[i]!.at}`,
+  );
+
 describe('AutopilotEngine.generateSpeed', () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('holds each pattern step for its own duration', () => {
-    // Not the next step's: the full-speed bursts stay at 10 s while the rests
-    // between them shrink, which is what pattern 7 is.
-    expect(holds(speedsFrom('high', 'moderate'), 12)).toEqual([
-      5_000, 10_000, 10_000, 9_000, 10_000, 8_000, 10_000, 7_000, 10_000, 6_000,
-      10_000, 5_000,
+  it('holds each step for the following step duration', () => {
+    // The original emits a step at the end of its own duration, so a speed is
+    // in effect for the next step's span, and the lead-in covers the first.
+    expect(pairs(speedsFrom('high', 'moderate'), 12)).toEqual([
+      '10@5000',
+      '41@10000',
+      '56@10000',
+      '100@9000',
+      '48@10000',
+      '100@8000',
+      '41@10000',
+      '100@7000',
+      '34@10000',
+      '100@6000',
+      '30@10000',
+      '100@5000',
     ]);
   });
 
-  it('opens a block with the pattern first step, at the requested time', () => {
+  it('opens a draw with an unscaled lead-in speed', () => {
     const [first] = speedsFrom('high', 'moderate');
-    // Template speed 20 remapped into High's 30–100 range.
-    expect(first).toEqual({ kind: 'speed', at: 0, speed: 41 });
+    // 10 is below High's floor of 30: the lead-in skips the intensity remap.
+    expect(first).toEqual({ kind: 'speed', at: 0, speed: 10 });
   });
 
   it('remaps each template speed into the intensity range', () => {
@@ -163,7 +179,7 @@ describe('AutopilotEngine.generateSpeed', () => {
     expect(peak('high')).toBe(100);
   });
 
-  it('stretches the peaks and cuts the valleys under intense edge control', () => {
+  it('multiplies a step duration by the intense edge control factors', () => {
     // ×1.5 above 70, ×0.5 below 30, keyed off the template speed; the 40 and
     // the 30 sit between the bands and are left alone.
     expect(holds(speedsFrom('high', 'intense'), 6)).toEqual([
@@ -171,9 +187,15 @@ describe('AutopilotEngine.generateSpeed', () => {
     ]);
   });
 
-  it('eases off the peaks and stretches the valleys under gentle edge control', () => {
+  it('multiplies a step duration by the gentle edge control factors', () => {
     expect(holds(speedsFrom('high', 'gentle'), 6)).toEqual([
       10_000, 10_000, 5_000, 9_000, 5_000, 16_000,
     ]);
+  });
+
+  it('shaves the plateau under gentle edge control', () => {
+    // Applied to the intensity-scaled speed, so only a scaled value above 70
+    // is touched: 100 − round(min(100 − 50, 20) × 0.5).
+    expect(speedsFrom('high', 'gentle').map((e) => e.speed)).toContain(90);
   });
 });

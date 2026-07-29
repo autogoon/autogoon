@@ -54,8 +54,9 @@ A document's class and audience decide how it is read:
 claims it makes about the _current_ code ("Groove's floor is fixed at 60"),
 never flag an unbuilt idea.
 
-`modes/AUTOPILOT.md` is a specification — [CLAUDE.md](../../../CLAUDE.md) →
-Documentation says which side must match.
+`modes/AUTOPILOT.md` records an algorithm this repo does not own —
+[CLAUDE.md](../../../CLAUDE.md) → Documentation says what settles a disagreement
+between it and the code.
 
 ## What to check, per doc
 
