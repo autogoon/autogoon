@@ -320,8 +320,8 @@ reads for these.
   relevant is a check that never runs, and each one reports "nothing found"
   cheaply when a branch didn't go near its subject.
 - **Never discard a valid finding for being outside the check's remit.** Report
-  it and name which check owns it. A duplicate line costs nothing; a finding
-  dropped because another check owns it is lost.
+  it. A duplicate line costs nothing; a finding dropped because another check
+  owns it is lost.
 - **The order matters**, because each check changes what the next one reads.
   `/code-check` settles what the code does, so the tests and docs are judged
   against code that is finished rather than code still moving. `/test-check`
