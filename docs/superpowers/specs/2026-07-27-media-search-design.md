@@ -27,11 +27,11 @@ a numbered list. A better caption has to be a better _search result_ to be
 better at all.
 
 **Storing the long description makes caption iteration nearly free.**
-[`describe-image.mjs`](../../../scripts/describe-image.mjs) already has the
-model observe at length and then condense to one line, and keeps only the line.
-With the observations on disk, a new caption is a re-condense of text already
-there — no vision model, no image, no downscale. Without them, every caption
-experiment re-runs inference over the whole set.
+[`describe-image.ts`](../../../scripts/describe-image.ts) already has the model
+observe at length and then condense to one line, and keeps only the line. With
+the observations on disk, a new caption is a re-condense of text already there —
+no vision model, no image, no downscale. Without them, every caption experiment
+re-runs inference over the whole set.
 
 **The format is cheap to change while we are the only pack author.** Nothing in
 circulation constrains it, and changing it is a rebuild rather than a migration.
@@ -105,7 +105,7 @@ gains the rule the validator now enforces: what a pack may contain.
 Store the long description beside the caption. `describe-image.mjs` writes both;
 [`parsePack`](../../../src/lib/goonpacks/pack.ts) reads both;
 `ParsedMedia`/`CompanionMedia` carry both.
-[`describe-missing.mjs`](../../../scripts/describe-missing.mjs) shares
+[`describe-missing.ts`](../../../scripts/describe-missing.ts) shares
 `sidecarPath` with the describing script, so it follows the rename.
 
 The long description is stored **opaquely** — a text blob, whatever the
