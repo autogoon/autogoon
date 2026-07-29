@@ -23,7 +23,6 @@ const SPEED_MAX = 100;
 const SPEED_TEMPLATE_MIN = 5;
 const FINISH_HOLD_MS = 1_800_000;
 const TEMPLATES_PER_BLOCK = 10;
-const BLOCK_LEAD_IN_SPEED = 10;
 
 const PATTERN_TEMPLATES: TemplateStep[][] = [
   [
@@ -190,9 +189,7 @@ function buildBlock(
   intensity: IntensityLevel,
   edge: EdgeControlLevel,
 ): { events: SpeedEvent[]; endAt: number } {
-  const events: SpeedEvent[] = [
-    { kind: 'speed', at: startAt, speed: BLOCK_LEAD_IN_SPEED },
-  ];
+  const events: SpeedEvent[] = [];
   let at = startAt;
   for (let i = 0; i < TEMPLATES_PER_BLOCK; i++) {
     const template =
@@ -202,8 +199,8 @@ function buildBlock(
       const scaled = scaleSpeedToIntensity(step.speed, intensity);
       const speed = applyPlateauJitter(scaled, edge);
       const duration = scaleDurationToEdge(step.speed, step.duration, edge);
-      at += duration;
       events.push({ kind: 'speed', at, speed });
+      at += duration;
     }
   }
   return { events, endAt: at };

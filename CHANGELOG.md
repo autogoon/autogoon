@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-29
+
+- bug: **Autopilot patterns ran a step out of time** — Each speed in a pattern
+  was held for the following step's stretch of time, so patterns played back
+  distorted: the bursts to full speed and the rests between them had their
+  lengths swapped, and Edge Control stretched the rests rather than the peaks.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-28
 
 - feature: **Companions find a picture instead of picking one** — A companion
