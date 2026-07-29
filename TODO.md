@@ -200,8 +200,11 @@ does not.
 ### Bring-your-own API keys
 
 Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
-app** instead of the server's `.env`: entered once, stored client-side, never on
-the server.
+app** instead of the server's `.env`:
+
+- entered once;
+- stored client-side;
+- never on the server.
 
 A **hosted public build** becomes viable this way. Every user funds their own
 usage, so there's nothing for accounts or per-user rate limiting to protect.
