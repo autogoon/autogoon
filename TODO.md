@@ -18,19 +18,23 @@ Concrete, intended work. Speculative direction and design thinking lives in
   as long as the program has left to run. Valve sends don't even report:
   `setValve` discards its rejection. Stopping belongs in the Player rather than
   in each engine — it is the single path to the device, so one stop covers Goon,
-  Groove, Autopilot and Companions together, and no engine needs to know the
-  device exists. To settle: whether a disconnect stops or pauses (a pause would
-  let a reconnect carry on where it left off), how many consecutive failures
-  mean gone rather than a blip, and what the screen says — a device that has
-  dropped is the one failure the user can't otherwise see.
+  Groove, Autopilot and Companions together, and no engine needs a reference to
+  the device. To settle:
+
+  - whether a disconnect stops or pauses (a pause would let a reconnect carry on
+    where it left off);
+  - how many consecutive failures mean gone rather than a blip;
+  - what the screen says — a device that has dropped is the one failure the user
+    can't otherwise see.
 
 - **Show remaining provider credits in the app.** Both providers expose balances
   (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint — character
   quota used/limit), so surface them in the app instead of two dashboards —
   presumably a pair of trivial proxied lookups. Maybe also record usage over
   time (per session?). To settle: where it lives (Settings, or on the Companions
-  screen), and how it composes with the bring-your-own-keys feature below (with
-  BYO keys it's the _user's_ balance — arguably more useful, same lookups).
+  screen), and how it composes with
+  [Bring-your-own API keys](#bring-your-own-api-keys) (with BYO keys it's the
+  _user's_ balance — arguably more useful, same lookups).
 
 - **Finish intensity.** One global percentage in Settings: the intensity you'd
   want to finish at. **Finish** goes to it; **companion-set intensity** is
@@ -42,7 +46,7 @@ Concrete, intended work. Speculative direction and design thinking lives in
   today is saying so in words, every session and every new companion.
 
 - **Put the wind-down on a curve.** It glides down in two straight-line phases.
-  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it
+  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so its steps shrink as it
   approaches a standstill instead of stepping evenly the whole way — a 5-unit
   change at speed 10 is felt far more than the same change at speed 90. Goon,
   Groove and Companions each carry their own copy of the constants.
@@ -55,11 +59,11 @@ set in the manifest, and the two tools a companion calls —
 is the design it was built to.
 
 What a description should contain, how the search should rank and which
-diversity lever answers "the same N every time" are deliberately not settled
-there. They belong to
-[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), and none of them
-can be evaluated without a library big enough to tell one answer from another.
-What the shipped search gets wrong today is in [BUG.md](./BUG.md).
+mechanism answers "the same N every time" are deliberately not settled there.
+They belong to [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md),
+and none of them can be evaluated without a library big enough to tell one
+answer from another. What the shipped search gets wrong today is in
+[BUG.md](./BUG.md).
 
 - **Measure how many matches a search should return.** `SEARCH_LIMIT` is 25,
   chosen by eye and never tested against anything: too few and a topic runs dry
@@ -143,7 +147,7 @@ interrupted-turn commit rule (the user turn is committed immediately, the
 assistant turn only on generation-complete, which can leave a dangling user turn
 when a mid-generation barge-in cuts a reply before it finishes) — confirm or
 adjust; keep replies short enough for TTS latency; and a review/polish pass over
-the system prompts. _(The on-hardware feel tuning remains.)_
+the system prompts.
 
 ### The companion picks the after-play
 
@@ -220,7 +224,7 @@ guess worth testing rather than believing — that throughput routing leans on
 figures too coarse or too stale to notice a provider degrading in the moment, so
 a spike takes a while to route around. That makes provider-level comparison
 impossible to do by hand, and it defeats prompt caching, which is per-provider.
-Wants to be a setting rather than an edit: a provider (or endpoint tag, e.g.
+Belongs in a setting rather than an edit: a provider (or endpoint tag, e.g.
 `xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks off so a pin
 that can't be served fails loudly instead of quietly going elsewhere. Worth
 surfacing which provider actually served a turn, too — it comes back on every
@@ -248,13 +252,17 @@ it's a male masturbator, so nearly every user is male — but it's an assumption
 baked into copy rather than a setting, and the companions themselves aren't
 gendered anywhere else in the app.
 
-Worth deciding deliberately rather than by default. The options are roughly:
-leave it (and say so somewhere, so it reads as a choice); neutralise the prompt
-copy; or make it a setting, which is the most work and the only one that costs a
-compatibility surface — pack prompts are author-written and would have to follow
-whatever convention is picked. Note that neutral pronouns in prompt copy also
-cost some clarity: "he" and "she" in the same block disambiguate who is being
-talked about in a way "they" twice over does not.
+Worth deciding deliberately rather than by default. The options:
+
+- leave it (and say so somewhere, so it reads as a choice);
+- neutralise the prompt copy;
+- make it a setting, which is the most work and the only one that costs a
+  compatibility surface — pack prompts are author-written and would have to
+  follow whatever convention is picked.
+
+Neutral pronouns in prompt copy also cost some clarity: "he" and "she" in the
+same block disambiguate who is being talked about in a way "they" twice over
+does not.
 
 ### Personas shape their programs
 

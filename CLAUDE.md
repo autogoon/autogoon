@@ -36,12 +36,18 @@ sentence written here. Two things on top of it:
 
 ## Editing files
 
-Change files with **Edit and Write, never a shell rewrite** — no heredoc script,
-`sed -i`, `perl -pi`, redirect into a tracked path, or `git checkout --` over
-uncommitted work. Those render no diff, so the change can't be reviewed and has
-to be taken on trust from a summary; batching several of them into one script is
-what makes a bad edit hard to catch. Several small Edit calls beat one clever
-script. A PreToolUse hook backs this up
+Change files with **Edit and Write, never a shell rewrite**. None of these:
+
+- a heredoc script;
+- `sed -i`;
+- `perl -pi`;
+- a redirect into a tracked path;
+- `git checkout --` over uncommitted work.
+
+Those render no diff, so the change can't be reviewed and has to be taken on
+trust from a summary; batching several of them into one script is what makes a
+bad edit hard to catch. Several small Edit calls beat one clever script. A
+PreToolUse hook backs this up
 ([.claude/hooks/no-shell-edits.sh](./.claude/hooks/no-shell-edits.sh)) — it
 screens the shapes a regex can spot and denies the ones that turn out to be
 edits, so it is a backstop for the rule rather than the whole of it. Shell that
@@ -63,12 +69,14 @@ only — none are `NEXT_PUBLIC_*`.
 This repo is **public and pseudonymous**. Never commit identifying details: real
 names, `/Users/<name>` or other machine-local paths, personal emails or URLs,
 session links. When a doc or plan needs a concrete path, genericize it
-(`~/.claude/jobs/<job-id>/tmp`, not the real one). Also never: a platform name
-in a downloading or collecting context (the app is source-agnostic), anything
-describing the local media set under `goonpacks/<dir>/media/` (gitignored and
-personal — write about the feature, never its contents), and analysis of the
-author's own legal exposure. `/personal-check` is the backstop, not the defence
-— history rewrites are the only fix once pushed.
+(`~/.claude/jobs/<job-id>/tmp`, not the real one). Also never:
+
+- a platform name in a downloading or collecting context (the app is
+  source-agnostic);
+- anything describing the local media set under `goonpacks/<dir>/media/`
+  (gitignored and personal — write about the feature, never its contents);
+- analysis of the author's own legal exposure. `/personal-check` is the
+  backstop, not the defence — history rewrites are the only fix once pushed.
 
 ## Verifying changes
 
@@ -325,8 +333,8 @@ reads for these.
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
   reads them. Run them even on a branch that hasn't moved, and for the same
-  reason as above: a re-run skipped on judgement is a re-run that never happens.
-  Treat `gh pr merge` as blocked until all five have run against the final diff.
+  reason: a re-run skipped on judgement is a re-run that never happens. Treat
+  `gh pr merge` as blocked until all five have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and
@@ -386,11 +394,11 @@ things worth knowing up front:
   voice session has its own orchestrator hook, but the Player path is the same).
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
-  replaces whoever was there, so "starting one stops the others" is a Player
-  invariant, not a coordinator. Navigation, the global voice words and the
-  play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
-  new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy to
-  get wrong about the pair, are in
+  replaces whatever engine was armed, so "starting one stops the others" is a
+  Player invariant, not a coordinator. Navigation, the global voice words and
+  the play-mode registry all live in `src/app/page.tsx`; **adding a play mode**
+  is a new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy
+  to get wrong about the pair, are in
   [ARCHITECTURE.md](./ARCHITECTURE.md#play-modes).
 - **Commands are declared once**: each action is a `Command` (the type is
   commented in `src/hooks/use-voice-commands.ts`) — the button and the spoken

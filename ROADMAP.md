@@ -1,8 +1,7 @@
 # Roadmap
 
 Direction and design thinking — ideas that still need to be thought through and
-specified more firmly before implementation. Some might need prototyping and
-testing to work out how well they work.
+specified more firmly before implementation. Some need prototyping first.
 
 Each idea lives in its own file under [`roadmap/`](./roadmap/); this page is the
 index.
@@ -12,14 +11,14 @@ index.
   your hand. A control prompt per device, and the open question of whether a
   persona can be device-neutral.
 - [Improve keyword detection](roadmap/KEYWORD-DETECTION.md) — stop background
-  media (videos) triggering voice commands: volume/clarity gating, or a KWS that
-  knows the user's voice.
+  media (videos) triggering voice commands: volume/clarity gating, or a KWS
+  matched to the user's voice.
 - [Play-mode options](roadmap/PLAY-MODE-OPTIONS.md) — options every play mode
   should eventually share, grouped by when they happen: mid-play (edge),
   end-play (the run to finish) and after-play (from the moment you cum).
 - [Cumming patterns](roadmap/CUMMING-PATTERNS.md) — make what happens when you
-  cum a defined, shareable thing rather than bespoke code, so any play mode can
-  use one and a companion can pick.
+  cum a defined, shareable pattern rather than bespoke code, so any play mode
+  can use one and a companion can pick.
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — how a companion handles a
   library too big to curate: they ask for a picture in words and the app finds
   it, from descriptions and a summary generated offline. The plumbing ships; the
