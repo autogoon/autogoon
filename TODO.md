@@ -136,9 +136,9 @@ conversation because that is what lets a companion send from an earlier search â
 so a thread with a few dozen searches in it is far bigger than its spoken turns
 suggest. That moves this from headroom for very long sessions to something a
 real session reaches: the whole thread is re-serialised into `localStorage` on
-every turn, and past the origin's quota that write fails and `persistThread`
-discards the error, so the conversation silently rewinds to the last version
-that fit on the next load.
+every turn, and past the origin's quota that write fails. `persistThread` logs
+it to the Companions event log, but nothing recovers the turn, so the
+conversation still rewinds to the last version that fit on the next load.
 
 ### Turn-commit review, reply-length tuning & prompt polish
 
