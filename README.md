@@ -11,10 +11,10 @@ stroker from your browser, **entirely by voice**.
 ## For users
 
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
-to install; just open it, enter your device token, and go.
+to install; just open it and enter your device token.
 
 - **Hands-free from start to finish** — just say what you want to happen, any
-  time. Tap **Listen** once and run the whole session.
+  time. Tap **Listen** once.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
@@ -54,9 +54,8 @@ their voice or persona).
 
 **A companion with a pack will send you pictures and videos.** Ask for what you
 want in words and they search their own set for it, send one that fits, and
-never send the same one twice in a conversation. The media is yours, brought by
-the pack, and the search reads text written when the pack was built — so nothing
-is sent to a vision model mid-play.
+never send the same one twice in a conversation. The search reads text written
+when the pack was built, so nothing is sent to a vision model mid-play.
 
 Assembling a pack is plain-text work, no coding — [GOONPACKS.md](./GOONPACKS.md)
 is the guide, with a worked example in the repo.
@@ -64,13 +63,11 @@ is the guide, with a worked example in the repo.
 ### Privacy
 
 Everything runs in your browser; the only thing that leaves your machine is the
-control traffic to Autoblow's cloud API for the device itself. Speech
-recognition runs entirely locally in your browser.
+control traffic to Autoblow's cloud API for the device itself.
 
-The exception is **Companions**, which can't be local-only by nature: during
-play your speech is transcribed by a cloud STT service, and the companion's
-replies come from a cloud LLM and TTS voice. The other three modes stay fully
-local.
+The exception is **Companions**, which can't be local-only: during play your
+speech is transcribed by a cloud STT service, and the companion's replies come
+from a cloud LLM and TTS voice.
 
 ### Running hands-free (mobile caveats)
 
@@ -78,13 +75,13 @@ The controlling tab has to stay **foregrounded and awake** — it runs the timin
 loop and the microphone continuously, and mobile browsers suspend or heavily
 throttle background or screen-locked tabs, which stops both.
 
-- **iOS Safari** — strict: the moment the tab is backgrounded or the screen
-  locks, the play mode and the mic stop. In practice you need a **second
-  device** dedicated to Autogoon (screen on, tab in front) while you use the
-  toy. This is the only tested configuration.
+- **iOS Safari** — the moment the tab is backgrounded or the screen locks, the
+  play mode and the mic stop. In practice you need a **second device** dedicated
+  to Autogoon (screen on, tab in front) while you use the toy. This is the only
+  tested configuration.
 - **iOS Chrome / Firefox / any iOS browser** _(untested)_ — expected to behave
   exactly like iOS Safari: Apple requires every iOS browser to use the system
-  WebKit engine, so they inherit the same background-tab and media limits.
+  WebKit engine.
 - **Android Chrome** _(untested)_ — likely more forgiving in the foreground with
   the screen on (different engine), but background/locked tabs are still
   throttled. A single device _may_ work if you keep the tab in front and the
