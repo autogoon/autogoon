@@ -204,10 +204,10 @@ invariants, the why, and the cross-file shape. Concretely:
 - Current-state docs describe **only what's implemented**. Future work lives in
   one of these, and nowhere else:
 
-  - [TODO.md](./TODO.md) — new features, additions and changes.
+  - [TODO.md](./TODO.md) — new features, additions and changes meant for soon.
   - [BUG.md](./BUG.md) — known defects in behaviour that is already implemented.
-  - [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` — direction, one file per
-    thread.
+  - [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` — longer-term features and
+    direction, one file per thread.
   - A dated plan or spec under `docs/`.
 
   A pointer to those files is fine; describing the future in place is not.
@@ -251,7 +251,10 @@ invariants, the why, and the cross-file shape. Concretely:
   A pack author does not read TypeScript, so the field-by-field prose lives
   there, while `src/lib/goonpacks/manifest.ts` carries the types and the terse
   comments a developer reads. Where the two disagree, the parser settles it: it
-  is what rejects a pack.
+  is what rejects a pack. `modes/*.md` states its play mode's engine values —
+  speed ranges, dip floors, durations, knob defaults — because a user reading
+  what a play mode does is not reading the engine. Changing one in the engine
+  changes it there too, in the same commit.
 - When code you change is mentioned in a doc, updating the doc is part of the
   change. Run `/doc-check` before opening a PR — and again before merging — to
   catch what slipped.
