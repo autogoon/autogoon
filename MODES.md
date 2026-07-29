@@ -12,4 +12,7 @@ The ways a session can run. Each play mode has its own doc under
 - [Companions](modes/COMPANIONS.md) — talk to an AI companion who talks back
   through the session and drives the toy themselves.
 
+The three device-driving play modes all answer to `start`, `stop` and `reset`.
+Each mode's own doc covers the words particular to it.
+
 Play-mode candidates that don't exist yet live in the [roadmap](./ROADMAP.md).
