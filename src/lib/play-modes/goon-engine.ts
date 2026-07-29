@@ -29,8 +29,8 @@ const BUILD_EXP = 1.3;
 // The dip has two parts. Over the first DIP_VARIABILITY_FRACTION of the session,
 // Groove's dip variability knob is swept from "high" down to "off". Then the
 // remaining time is a taper: the dip itself flattens away to leave the hold at
-// the top. Timing variability keeps its own schedule, spanning the whole session
-// (see timingPercent), so the legs are still losing their snap through the taper.
+// the top. Timing variability keeps its own schedule, spanning the whole
+// session (see timingPercent).
 const DIP_VARIABILITY_FRACTION = 25 / 30;
 
 // Timing variability: how much of a leg's baseline duration may be randomly cut.
@@ -93,7 +93,7 @@ export const AFTER_PLAY_OPTIONS: readonly AfterPlayOption[] = [
 const EJECT_SPEED = 40;
 const EJECT_MS = 15_000;
 
-// Past the end of the session the build is over and Goon holds at top speed.
+// Past the end of the session Goon holds at top speed.
 // Emit that hold one minute at a time (extended by the normal lookahead) rather
 // than as a single far-future event, so the tail stays a uniform stream.
 const PARK_STEP_MS = 60_000;
@@ -155,8 +155,8 @@ function deepestFloor(t: number): number {
 // The auto "timing variability" knob: how much a leg's duration may be cut. High at
 // the start, easing to 0 only at the very end of the program — unlike dip
 // variability, which is spent well before that. So the pace keeps a little lurch
-// through the taper, and it's the last legs of all that finally run their full,
-// unhurried length.
+// through the taper, and it's the last legs of all that finally run their full
+// baseline length.
 function timingPercent(t: number): number {
   return lerp(TIMING_PERCENT_HIGH, TIMING_PERCENT_OFF, t);
 }

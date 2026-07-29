@@ -1,8 +1,14 @@
-// A pack's tree → ParsedPack. Validation is a pass over NAMES: permitted
-// extensions, no subfolders, no stem collisions, sidecar pairing and the
-// complete-vs-overlay completeness rules are all name rules, so only
-// manifest.json, system-prompt.md and the sidecars are ever read. Validating a
-// multi-gigabyte pack costs a few hundred kilobytes.
+// A pack's tree → ParsedPack. Validation is a pass over NAMES. These are all
+// name rules:
+//
+// - permitted extensions;
+// - no subfolders;
+// - no stem collisions;
+// - sidecar pairing;
+// - the complete-vs-overlay completeness rules.
+//
+// So only manifest.json, system-prompt.md and the sidecars are ever read.
+// Validating a multi-gigabyte pack costs a few hundred kilobytes.
 //
 // **`media` is valid media and nothing else** — a file whose extension
 // MEDIA_TYPES knows AND whose sidecar parseSidecar accepted. A file failing the
@@ -217,11 +223,11 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
         `Two media files share the name ${m.name} — same name with different file types; rename one.`,
       );
     }
-    // Every file that got this far is one, described or not, so the pairing
-    // check below sees it and a later sidecar for it isn't reported as orphaned.
+    // Every file that got this far is one, described or not, so the
+    // sidecar-pairing check sees it and a later sidecar for it isn't reported
+    // as orphaned.
     stems.add(m.name);
-    // The second of the two checks, and the one that decides whether this is
-    // media at all. A file whose sidecar wouldn't parse isn't here either —
+    // The sidecar check — the one that decides whether this is media at all. A file whose sidecar wouldn't parse isn't here either —
     // that pushed a problem above, and problems are fatal.
     const parsed = sidecars.get(m.name);
     if (parsed === undefined) continue;

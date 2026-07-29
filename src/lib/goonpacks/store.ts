@@ -194,14 +194,20 @@ export async function removePackTree(key: string): Promise<void> {
 // and no staleness constant: the next sweep simply finds the lock free.
 export const importLock = (key: string): string => `goonpack-import:${key}`;
 
-// The one clean pass, run before every library build: a tree with no marker is
-// a crashed import, a cancelled import or a crashed removal — all the same
-// state, all deleted. A tree whose import lock is held is none of those: it is
+// The one clean pass, run before every library build. A tree with no marker is
+// one of:
+//
+// - a crashed import;
+// - a cancelled import;
+// - a crashed removal.
+//
+// All the same state, all deleted. A tree whose import lock is held is none of
+// those: it is
 // being written, here or in another tab, and is left alone. The delete runs
 // inside the lock callback — not after it releases — so a tree only ever goes
 // once this pass holds the lock for it; the marker is re-checked inside the
 // callback too, because an import can start and finish in the gap between the
-// listing's `hasMarker` above and this `ifAvailable` grant being scheduled.
+// listing's `hasMarker` and this `ifAvailable` grant being scheduled.
 export async function sweepIncomplete(): Promise<string[]> {
   const removed: string[] = [];
   for (const key of await listPackKeys()) {

@@ -11,7 +11,7 @@ import {
 // function with a higher voicedMs.
 const MIN = { voicedMs: 150, words: 2 };
 
-// A convenient idle baseline for voiceStage tests.
+// The idle baseline for the voiceStage tests.
 const IDLE = {
   partial: '',
   replyPlaying: false,
@@ -35,7 +35,7 @@ describe('session-policy', () => {
     expect(isBargeIn(true, false)).toBe(false);
   });
 
-  // The phantom: one hallucinated token, no voicing worth the name behind it.
+  // One hallucinated token, with no sustained voicing behind it.
   // 60ms is the shortest run the VAD can report at all (attackFrames 3 ×
   // FRAME_MS 20, mic.ts), and 149 sits a millisecond under the threshold.
   it('confirmSpeech does not confirm a lone token backed only by a transient', () => {

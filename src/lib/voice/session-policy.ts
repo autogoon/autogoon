@@ -34,8 +34,8 @@ export function partialWordCount(partial: string): number {
 // partials can drive the composer and barge-in. Sticky (`alreadyConfirmed`
 // carries forward), and callers reset it at each utterance boundary.
 //
-// What it guards against is the phantom: a token the STT hallucinates from
-// near-silence ("Yes.", "No.") when a cough or a thump opens the socket, which
+// What it guards against is a token the STT hallucinates from near-silence
+// ("Yes.", "No.") when a cough or a thump opens the socket, which
 // would otherwise take over the composer or cut the companion off mid-reply.
 //
 // `voicedMs` is the longest run of voicing in this utterance, NOT whether the
@@ -56,18 +56,23 @@ export function confirmSpeech(
   // misses quiet speech: the VAD tracks loudness, and a softly-spoken sentence
   // dips under the offset threshold repeatedly, so a real sentence can be
   // credited a fraction of its true length. Word count misses a deliberate
-  // one-word utterance ("stop"). What neither mistakes is the phantom itself —
-  // a single token hallucinated from a cough — which is short in both.
+  // one-word utterance ("stop"). What neither mistakes is the hallucinated
+  // token — a single word from a cough — which is short in both.
   return voicedMs >= min.voicedMs || partialWordCount(partial) >= min.words;
 }
 
 // What the voice session is doing right now, as one stage for status displays
 // (the lightbox badge). Precedence: the user's own speech streaming in wins
 // over everything (a confirmed partial is about to barge in anyway), then the
-// reply pipeline in reverse order — audio playing, TTS requested, tokens
-// arriving, request sent. On a tool-call turn the stages replay naturally
-// (speaking → thinking → streaming → tts → speaking) because the hook clears
-// replyText before the reaction call.
+// reply pipeline in reverse order:
+//
+// - audio playing;
+// - TTS requested;
+// - tokens arriving;
+// - request sent.
+//
+// On a tool-call turn the stages replay (speaking → thinking → streaming → tts
+// → speaking) because the hook clears replyText before the reaction call.
 export type VoiceStage =
   'idle' | 'listening' | 'thinking' | 'streaming' | 'tts' | 'speaking';
 

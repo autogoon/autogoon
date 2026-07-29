@@ -12,11 +12,9 @@ import {
 } from '@/lib/companions/shared-prompt';
 
 // Placeholder name = shared-prompt export name, on purpose — but a new
-// shared-prompt export still needs adding to SECTIONS below explicitly; this
-// record is deliberate, not auto-derived from the module's exports.
+// shared-prompt export still needs adding to SECTIONS explicitly.
 // MEDIA_SECTION is not here: it is a function of the companion's own summary
-// — and of its absence — filled from opts below rather than being one fixed
-// block.
+// — and of its absence — filled from opts rather than being one fixed block.
 const SECTIONS: Record<string, string> = {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,

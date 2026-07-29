@@ -52,7 +52,7 @@ function fakeDir(written: Set<string>, prefix = ''): FileSystemDirectoryHandle {
 // through as a window onto the archive read-chunk, so an entry's first chunk
 // starts partway into it — byteOffset > 0, backed by the whole chunk — where a
 // deflated entry always arrives in a fresh exact-size buffer. A default-level
-// zip therefore can't catch the bug the chunk-buffer test below is about, with
+// zip therefore can't catch the bug the WebKit chunk-buffer test is about, with
 // or without the fix.
 const storedZipFile = (files: Record<string, Uint8Array>): File =>
   new File([zipSync(files, { level: 0 })], 'pack.zip', {

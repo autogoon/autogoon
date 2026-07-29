@@ -136,7 +136,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
             // starts on the first chunk instead of the last. The Blob fallback
             // below runs in every engine, so this second path exists only to
             // cut time-to-first-audio — the delay between a companion deciding
-            // to speak and being heard, which is the latency that shows.
+            // to speak and being heard.
             const mediaSource = new MediaSource();
             objectUrl = URL.createObjectURL(mediaSource);
             audioEl.src = objectUrl;

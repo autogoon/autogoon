@@ -156,7 +156,7 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
       try {
         peek = peekManifest(await tree.readText(MANIFEST));
       } catch {
-        // a tree we can't even read a manifest out of describes itself as nothing
+        // a tree whose manifest won't read leaves the peek empty
       }
       bad.push({
         id: key,
@@ -227,9 +227,11 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
 // still installed and untouched keeps its very entry objects, URLs and all: a
 // Companion resolved before the rebuild — and everything already sent in the
 // thread — holds those objects, and revoking their URLs would break media that
-// is on screen. Only what the new index doesn't adopt is revoked: packs that
-// were removed, packs whose tree an import just replaced (`replaced`), and
-// individual files that have gone from a carried-over pack.
+// is on screen. Only what the new index doesn't adopt is revoked:
+//
+// - packs that were removed;
+// - packs whose tree an import just replaced (`replaced`);
+// - individual files that have gone from a carried-over pack.
 //
 // Still INSTALLED, note, not still offered: a pack can drop out of `content`
 // by turning incompatible (its base was removed) while its media is on screen

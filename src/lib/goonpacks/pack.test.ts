@@ -20,7 +20,7 @@ const sidecar = (caption: string, description: string) =>
 
 // An in-memory PackTree: file contents by path. Media files hold '' — parsePack
 // must never read them, and a test that made it read one would still pass on
-// content but is caught by the "never reads a media file" test below.
+// content but is caught by the "never reads a media file" test.
 function tree(files: Record<string, string>): PackTree & { read: string[] } {
   const read: string[] = [];
   return {
@@ -38,7 +38,7 @@ function tree(files: Record<string, string>): PackTree & { read: string[] } {
 describe('parsePack', () => {
   it('parses a complete pack with stills, videos and both sidecar texts', async () => {
     // The media is listed out of alphabetical order deliberately: pack.media
-    // comes back sorted by name from parsePack, so the index assertions below
+    // comes back sorted by name from parsePack, so the index assertions
     // only hold if that sort ran.
     const t = tree({
       'manifest.json': complete({ mediaSummary: 'Beach shots.' }),

@@ -7,7 +7,7 @@ import {
 } from '@/lib/companions/shared-prompt';
 import { fillSharedSections } from './prompt';
 
-// Every assembled prompt ends with the time rules, so each expectation below
+// Every assembled prompt ends with the time rules, so each expectation
 // carries them too.
 const TAIL = `\n\n${TIME_SECTION}`;
 

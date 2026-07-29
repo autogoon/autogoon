@@ -106,7 +106,7 @@ describe('applyOverlay', () => {
   it("never takes the overlay's name — the base's is kept", () => {
     // The base's name survives only by omission: `name` is absent from the
     // field-by-field merge in applyOverlay and arrives with `...base`. Adding
-    // `name: c.name ?? base.name` beside the other eight lines would let an
+    // `name: c.name ?? base.name` beside the other merged fields would let an
     // overlay rename a companion and take over their thread.
     const out = applyOverlay(base, overlay({ companion: { name: 'Amy' } }));
     expect(out.name).toBe('Aimee');

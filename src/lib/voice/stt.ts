@@ -125,7 +125,7 @@ export function createStt(events: SttEvents): Stt {
   }
 
   async function open(preRoll: Int16Array[]): Promise<void> {
-    // Guard double-open: only start from a fully closed socket.
+    // Guard double-open.
     if (phase !== 'closed') return;
     setPhase('connecting');
     pending = [];
@@ -140,7 +140,6 @@ export function createStt(events: SttEvents): Stt {
       if (!res.ok) throw new Error(`stt-token ${res.status}`);
       ({ token } = (await res.json()) as { token: string });
     } catch (err) {
-      // Token fetch failed: roll straight back to closed.
       setPhase('closed');
       throw err;
     }
@@ -190,9 +189,16 @@ export function createStt(events: SttEvents): Stt {
           break;
         }
         default: {
-          // Every error the server can raise — insufficient audio activity,
-          // quota, throttling, rate limits, session time limit — arrives as its
-          // own message_type, and several of them precede a close. Match on the
+          // Every error the server can raise arrives as its own message_type,
+          // and several of them precede a close:
+          //
+          // - insufficient audio activity;
+          // - quota;
+          // - throttling;
+          // - rate limits;
+          // - session time limit.
+          //
+          // Match on the
           // name rather than listing them, so a type added upstream still shows
           // up. The payload goes through raw: we don't model these, and a
           // truncated one is worse than useless when a session drops.
@@ -223,7 +229,7 @@ export function createStt(events: SttEvents): Stt {
 
     socket.addEventListener('error', () => {
       // Errors are followed by a close event, which drives the phase back to
-      // closed; nothing extra to do here.
+      // closed.
     });
   }
 
