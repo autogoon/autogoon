@@ -24,13 +24,9 @@ screen.
 
 **An overlay** is _your version_ of a companion you already have — a built-in or
 an imported complete pack. It names its base companion and includes only what
-changes; everything else stays the base's. An overlay can:
-
-- add pictures or videos (or strip the base's, with `noMedia`)
-- replace their voice
-- replace their persona prompt
-- change their card colour or description
-- change which model they run on
+changes; everything else stays the base's. An overlay can replace their pictures
+and videos (or strip them, with `noMedia`), their persona prompt, and any of
+their [companion fields](#the-companion-section--their-fields).
 
 What an overlay can never do is change their **name** or **gender**. An overlay
 is still the same companion — they keep the same conversation memory whichever
