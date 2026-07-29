@@ -60,9 +60,9 @@ unaffected.
 
 Real keys live in **`.env`** (gitignored via `.env` / `.env.*`), **not**
 `.env.local`. Copy [`.env.example`](./.env.example) to `.env` and fill in real
-values; never commit a real key (the repo is public). All secret-bearing vars
-(`ELEVENLABS_API_KEY`, `OPENROUTER_API_KEY`, `LLM_URL`) are read server-side
-only — none are `NEXT_PUBLIC_*`.
+values; never commit a real key (the repo is public). Every var it documents is
+read server-side only and none is `NEXT_PUBLIC_*`, so no secret reaches the
+browser bundle.
 
 ### What must never be committed
 
