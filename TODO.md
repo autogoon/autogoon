@@ -12,7 +12,7 @@ files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
   once.
 
 - **Stop the program when the device disconnects.** A device that drops mid-run
-  leaves the Player ticking against nothing. The speed send throws,
+  leaves the Player's tick loop running. The speed send throws,
   `scheduleNextTick` reports the failure and schedules the next tick anyway, and
   `lastDeviceSpeed` is only updated on a send that succeeded — so every tick
   re-sends the same speed and logs the same error, several times a second, for

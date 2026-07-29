@@ -1,24 +1,24 @@
 ---
 name: style-check
 description:
-  Use before opening a PR and again before merging it — reads every sentence the
+  Use before opening a PR and again before merging it — reads everything the
   branch added or changed, in documentation and in code comments, against
   CLAUDE.md's writing style. Cuts metaphors, personification, restatement,
-  padding and sentences that carry nothing. Checks nothing for truth.
+  padding and anything that carries nothing. Checks nothing for truth.
 ---
 
 # Style check
 
-Read every sentence the branch wrote against the style CLAUDE.md sets. Nothing
-here is settled by looking in another file: a sentence carrying nothing is not
-false, so asking whether it is true passes it.
+Read everything the branch wrote against the style CLAUDE.md sets. Nothing here
+is settled by looking in another file: text carrying nothing is not false, so
+asking whether it is true passes it.
 
 Where this runs among the checks, and why, is in [CLAUDE.md](../../../CLAUDE.md)
 → Git workflow.
 
 ## Scope
 
-- **Default: the branch.** Every sentence the diff added or changed:
+- **Default: the branch.** Every line the diff added or changed:
   `git diff main...HEAD` over `*.md` at the root, `modes/`, `roadmap/`, `docs/`,
   `.claude/skills/`, and `.env.example`, plus every comment line the diff
   touched in any source file. Read the added and changed lines, not the whole
@@ -27,10 +27,10 @@ Where this runs among the checks, and why, is in [CLAUDE.md](../../../CLAUDE.md)
   repo. Fan out one read-only subagent per directory and collect their reports.
   Expensive; this is not the per-PR mode.
 
-On the pre-merge pass, the PR's own title and body are in scope too — they are
-sentences this repo wrote and nothing else reads them for style. Commit messages
-are inside → Writing style as well, but rewriting history to fix one costs more
-than the flaw: report what you find and leave it.
+On the pre-merge pass, the PR's own title and body are in scope too — this repo
+wrote them and nothing else reads them for style. Commit messages are inside →
+Writing style as well, but rewriting history to fix one costs more than the
+flaw: report what you find and leave it.
 
 Text written **during** an earlier check is in scope like any other.
 
@@ -47,15 +47,15 @@ These belong to other checks, not this one:
 - Whether a list is complete.
 - Whether a claim holds.
 
-A sentence can be accurate on every one of those and still fail here.
+Text can be accurate on every one of those and still fail here.
 
 ## Two questions
 
 Neither follows from knowing the rule, and the rule is not enforceable without
 them.
 
-**Cut the sentence. Did the paragraph lose anything?** If it says as much
-without, the sentence goes. This catches:
+**Cut it — the sentence, the clause, the phrase. Did the paragraph lose
+anything?** If it says as much without, it goes. This catches:
 
 - a sentence announcing what the next one is about to say;
 - a phrase restating the one before it;
@@ -65,15 +65,16 @@ without, the sentence goes. This catches:
 it names something the reader can point at, or it stands where a mechanism
 should be.
 
-Run both over every sentence in scope.
+Run both over everything in scope.
 
 ## Reporting
 
-`FILE:LINE — the sentence → what it carries → cut or rewrite.` Worst first.
+`FILE:LINE — quote the words at fault → what they carry → cut or rewrite.` Worst
+first.
 
-End with the count: sentences read, sentences cut. "Nothing found" is a result
-only alongside those two numbers — without them it is indistinguishable from not
-having looked.
+"Nothing found" is a result only alongside what was read — the files, and
+whether the whole of each or only the lines the diff touched. Without that it is
+indistinguishable from not having looked.
 
 - **Fix directly:** deletions, and a metaphor whose mechanism the surrounding
   text already states.
