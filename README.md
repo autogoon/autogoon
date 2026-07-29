@@ -96,9 +96,7 @@ throttle background or screen-locked tabs, which stops both.
 ## Documentation
 
 - [DEVELOPERS.md](./DEVELOPERS.md) — running Autogoon locally and contributing.
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together: the
-  program/player model, the engine/panel split, the shared device layer and
-  single Player, the keyword spotter, and the Vacuglide HTTP API.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together.
 - [MODES.md](./MODES.md) — the play modes, each with its own doc under
   [`modes/`](./modes/).
 

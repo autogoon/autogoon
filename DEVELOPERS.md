@@ -1,9 +1,7 @@
 # Developing Autogoon
 
 How to run Autogoon locally and contribute changes. For how the app is put
-together internally — the program/player model, the engine/panel split, the
-shared device layer and single Player, and the keyword spotter — see
-[ARCHITECTURE.md](./ARCHITECTURE.md).
+together internally, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Adding a companion
 
