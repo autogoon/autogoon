@@ -104,13 +104,10 @@ in-browser; the only server-side pieces serve Companions — thin proxies for it
 chat, voice and hearing, there purely so the API keys never reach the client,
 plus the check that validates an access ID.
 
-Running it yourself, building it, or contributing? Start at
-[DEVELOPERS.md](./DEVELOPERS.md); how it's put together is
-[ARCHITECTURE.md](./ARCHITECTURE.md).
-
 ### Documentation
 
-- [DEVELOPERS.md](./DEVELOPERS.md) — running Autogoon locally and contributing.
+- [DEVELOPERS.md](./DEVELOPERS.md) — start here: running Autogoon locally,
+  building it, and contributing.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together.
 - [MODES.md](./MODES.md) — the play modes, each with its own doc under
   [`modes/`](./modes/).
