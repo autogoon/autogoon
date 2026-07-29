@@ -56,8 +56,8 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
 // The media ability, for a companion who can send pictures or videos of
 // themselves. Shared and persona-neutral so any companion can opt in, and
 // filled once at load with their pack's own summary of the set — the tool
-// schemas no longer list what they have, so this is where they learn what there
-// is to ask for. No summary means no media, and the block says so outright
+// schemas don't list what they have, so this is where they learn what there is
+// to ask for. No summary means no media, and the block says so outright
 // rather than being dropped: a persona prompt whose own character text mentions
 // photos would otherwise go unanswered, and a promised picture that never
 // arrives is the worst of the failures here. Both forms start with the header

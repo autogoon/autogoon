@@ -145,8 +145,9 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   const sidecarPaths: string[] = [];
   const sidecars = new Map<string, Sidecar>();
   // Every path is either the manifest, the prompt, something under media/, or
-  // something that has no place in a pack. Skipping the last of those is what
-  // let a stray folder ride along unnoticed into a built pack.
+  // something that has no place in a pack. The last of those is a problem, not
+  // something to skip: a skipped path is a stray folder riding into a built
+  // pack unnoticed.
   for (const path of names) {
     if (path === MANIFEST || path === PROMPT) continue;
     if (!path.startsWith(MEDIA_DIR)) {

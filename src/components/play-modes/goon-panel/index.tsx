@@ -50,12 +50,10 @@ import {
 const DEFAULT_INTENSITY = 50;
 const INTENSITY_STEP = 10;
 const DEFAULT_SESSION_MINUTES = DEFAULT_PROGRAM_MS / 60_000;
-// Wind-down alone by default — the behaviour Goon has always had; the darker
-// outcomes are opt-in.
+// Wind-down alone by default; the darker outcomes are opt-in.
 const DEFAULT_AFTER_PLAY: AfterPlayOption[] = ['wind-down'];
 // The ticked set persists across visits. Keyed per play mode ("goon") on
-// purpose: a future softer or harsher play mode with after-play will want its
-// own set, not a shared one.
+// purpose: the set belongs to Goon, not to the app.
 const AFTER_PLAY_STORAGE_KEY = 'goonAfterPlay';
 
 export function GoonPanel({

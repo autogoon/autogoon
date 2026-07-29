@@ -38,9 +38,8 @@ describe('pickMedia', () => {
 
   it('sends nothing when the ref is missing rather than standing something in', () => {
     // A model that writes the call out as text can produce anything here, and
-    // the schema does not stop it. With an index a wrong number still meant a
-    // picture, so standing one in was the kinder failure; a ref is either
-    // theirs or invented.
+    // the schema does not stop it. A ref is either theirs or invented, so
+    // there is nothing to stand in.
     expect(pickMedia(ITEMS, {}).show).toBeNull();
     expect(pickMedia(ITEMS, { ref: '' }).show).toBeNull();
     expect(pickMedia(ITEMS, { ref: 7 }).show).toBeNull();

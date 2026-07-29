@@ -758,7 +758,8 @@ export function CompanionsPanel({
         // screen (page.tsx), so this column owns the viewport.
         <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col gap-3">
           {/* The slim bar — all that's left of the chrome: back to the picker
-              (locked while the program runs, the breadcrumb's old rule), the
+              (locked while the program runs, the same nav lock as every other
+              screen), the
               mic with its loudness sliver, and the hamburger. */}
           <div className="flex shrink-0 items-center gap-2">
             <Button

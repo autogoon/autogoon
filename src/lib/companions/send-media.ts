@@ -32,9 +32,8 @@ export type MediaPick =
   { show: CompanionMedia; sent: ToolRunResult } | { show: null; sent: string };
 
 // `items` is the companion's whole set; the ref came from a search over it. A
-// ref that doesn't resolve is refused rather than clamped to something: with an
-// index a wrong number still meant a picture, so standing one in was the kinder
-// failure. A ref is either theirs or invented.
+// ref that doesn't resolve is refused rather than clamped to something: a ref
+// is either theirs or invented.
 export function pickMedia(
   items: readonly CompanionMedia[],
   args: Record<string, unknown>,

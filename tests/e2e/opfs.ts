@@ -6,8 +6,7 @@ import { test, type Page } from '@playwright/test';
 // unknown transient reason", reproducibly and at --workers=1. Chromium and
 // Firefox both complete a write/read round-trip. Real Safari supports OPFS;
 // this is a gap in the test browser, so the check probes the capability rather
-// than naming a project — these specs start running by themselves the day
-// Playwright's WebKit gains OPFS.
+// than naming a project.
 //
 // What a green run consequently leaves uncovered, and why that is accepted
 // rather than outstanding, is in DEVELOPERS.md → Testing.

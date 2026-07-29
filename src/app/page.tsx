@@ -97,8 +97,8 @@ const PLAY_MODES = [
 
 type PlayModeId = (typeof PLAY_MODES)[number]['id'];
 // A play mode's setup is its own level (`#goon`), with the live session one
-// below (`#goon/play`) — for play modes that have a setup view (only Goon so
-// far; Groove and Autopilot never navigate to a `/play`).
+// below (`#goon/play`) — for play modes that have a setup view (only Goon;
+// Groove and Autopilot never navigate to a `/play`).
 type Screen =
   | 'home'
   | 'goonpacks'
@@ -196,7 +196,7 @@ function App() {
 
   // The safe word — the always-on hard stop (see src/lib/safe-word.ts). It
   // lives here, not in the panels, so no play mode can ever gate it: panels
-  // own `stop` and may one day ignore it; the safe word bypasses them and
+  // own `stop` and may ignore it; the safe word bypasses them and
   // halts the Player directly. Persisted across sessions; the stored value is
   // re-validated on load in case a stale one clashes with words added since.
   const [safeWord, setSafeWordState] = useState(DEFAULT_SAFE_WORD);
@@ -395,8 +395,8 @@ function App() {
           </nav>
         )}
         {currentPlayMode !== null && !chromeless && (
-          // The breadcrumb: the way back up, locked while a session runs (the
-          // old tab lock's rule — stop before you leave).
+          // The breadcrumb: the way back up, locked while a session runs —
+          // stop before you leave.
           <nav className="flex items-center gap-2 border-b py-3 text-sm">
             <Button
               onClick={() => navigate('home')}
