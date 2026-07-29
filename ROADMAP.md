@@ -23,8 +23,7 @@ index.
   can use one and a companion can pick.
 - [Inference library](roadmap/INFERENCE-LIBRARY.md) — how a companion handles a
   library too big to curate: they ask for a picture in words and the app finds
-  it, from descriptions and a summary generated offline. The plumbing ships; the
-  open questions behind it are what this covers.
+  it, from descriptions and a summary generated offline. The plumbing ships.
 - [Goonpack kit](roadmap/GOONPACK-KIT.md) — move pack authoring into the app:
   leaf through a pack's pictures fixing captions, edit its manifest and persona,
   and build it, instead of scripts and a text editor.

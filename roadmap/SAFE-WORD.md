@@ -1,21 +1,20 @@
 # The safe word — stopping the toy, and the companion knowing why
 
-The safe word halts the Player and nothing else: `page.tsx` routes it straight
-to `player.pause()`, so the device stops while the companion's reply plays on
-and their next turn opens as though nothing happened.
+The safe word halts the Player and nothing else. `page.tsx` routes it straight
+to `player.pause()`. The device stops; the companion's reply plays on, and their
+next turn opens as though nothing happened.
 
-What it should do is stop the toy, cut them off — `cancelReply` already does
-that for a barge-in — and then let them react in character. Tearing the voice
-session down is the wrong shape: a companion cut off mid-sentence and never told
-why is worse than one who answers for it, so the reaction is the point rather
-than the silence.
+It should stop the toy and cut them off. `cancelReply` already does the cutting
+off, for a barge-in. Then they react in character: a companion cut off
+mid-sentence and never told why is worse than one who answers for it. Tearing
+the voice session down is the wrong shape.
 
-Two things hold whatever mechanism carries it:
+Two constraints hold whatever mechanism carries it:
 
 - The word has to be live whenever a companion could be speaking, not only while
-  the Player plays. `page.tsx` puts it in the grammar on `playing`, so with the
+  the Player plays. `page.tsx` puts it in the grammar on `playing`. With the
   device stopped there is no spoken way to cut them off at all.
-- Their tools stay live throughout, so whatever tells them also has to stop them
+- Their tools stay live throughout. Whatever tells them also has to stop them
   calling `start` straight after.
 
 To settle:

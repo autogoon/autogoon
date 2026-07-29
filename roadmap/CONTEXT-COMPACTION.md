@@ -4,7 +4,7 @@ A companion's thread only grows: every turn is appended and the whole of it is
 re-sent on the next one. `contextWindow` is recorded per companion for this, and
 nothing reads it yet.
 
-`search_media` is what makes it a real limit rather than headroom for very long
+`search_media` is what makes it a real limit rather than headroom for long
 sessions. Its result is the largest thing a turn can hold — up to `SEARCH_LIMIT`
 lines of ref and caption — and it is replayed for the rest of the conversation,
 because that is what lets a companion send from an earlier search. A thread with

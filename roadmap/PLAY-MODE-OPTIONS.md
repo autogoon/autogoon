@@ -1,18 +1,16 @@
 # Play-mode options
 
-Options which seem like they should belong to all play modes, grouped by when
-they happen:
+Options every play mode should eventually share, grouped by when they happen:
 
-- **mid-play**: During play.
+- **mid-play**: Before you decide to finish.
 - **end-play**: The point you decide you want to cum — it drops into a finish
   mode and drives you toward climax.
 - **after-play**: From the moment you start to cum.
 
-The Autopilot play mode is a faithful recreation of Autoblow's Autopilot, but
-these options are additive, users can keep that faithful implementation by not
-enabling any of the options.
+The Autopilot play mode is a faithful recreation of Autoblow's Autopilot; with
+none of these options enabled it stays one.
 
-## Mid-play — during play
+## Mid-play — before you decide to finish
 
 - **Edge** — say **"edge"** → short cool-down → wait → build back up.
   - **Edge length** — how long the pause lasts before it ramps back: short

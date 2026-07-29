@@ -15,16 +15,15 @@ shaped curves — without turning into a programming language nobody wants to
 write in.
 
 **Whether a companion can use all of them.** Once patterns can be imported
-you'll have some you brought in to try and don't actually want used, so "active"
-may need to mean more than "installed" — or a companion may need a narrower set
-than the one you'd pick from yourself.
+you'll have some you brought in to try and don't want used, so "active" may need
+to mean more than "installed" — or a companion may need a narrower set than the
+one you'd pick from yourself.
 
 **Nothing makes a pattern's description true.** An imported pattern's title and
 description are whatever its author typed; what it actually does is the data. So
-what you see before enabling one wants to be a `Sparkline` of the pattern
-itself, alongside the title and description. Keep the metadata to exactly those,
-too: every extra field is another thing that has to be trusted, checked or
-displayed.
+what you see before enabling one should be a `Sparkline` of the pattern itself,
+alongside the title and description. Keep the metadata to exactly those, too:
+every extra field is another thing that has to be trusted, checked or displayed.
 
 **A pattern's description reaches the persona.** Not a security concern — a
 goonpack already hands its author the whole system prompt, so this is a much

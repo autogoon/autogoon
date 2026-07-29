@@ -3,7 +3,7 @@
 Stop-start (the Semans technique) is a recognised behavioural treatment for
 premature ejaculation: build up to just before the point of no return, stop dead
 until the urge fades, then start again, repeating several times before finishing
-(one trial ran five stops, then finished on the sixth [2])
+(one trial ran five stops, then finished on the sixth [2]).
 
 Groove with variability off, plus the Stop/Start voice commands, already does
 the mechanical part. The open question is whether we can add anything that
