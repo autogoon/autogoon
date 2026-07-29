@@ -217,8 +217,7 @@ prompt's TIME line is the browser's.
 Give a located persona their own: an IANA `timezone` field and a second TIME
 line ("TIME (yours, in Riga): …"), so it can be the middle of their night while
 it is the middle of the user's day. The app does all the arithmetic, with no LLM
-offset math: models are passable at offsets and quietly wrong about DST. The
-model gets both times already worked out, and plays them.
+offset math: models are passable at offsets and quietly wrong about DST.
 
 One rule ships with it: their clock shows up in what they say.
 
