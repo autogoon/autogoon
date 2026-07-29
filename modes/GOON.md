@@ -20,8 +20,8 @@ needs the device connected, like Start.
 
 The build **scales to fit** whatever length you choose — a 15-minute Goon
 compresses the whole ramp, an hour-long one stretches it, and either way the
-curves below play out as fractions of your session. Times in this document
-describe the default 30-minute build.
+curves in [The build](#the-build) play out as fractions of your session. Times
+in this document describe the default 30-minute build.
 
 ## The build
 
@@ -47,17 +47,13 @@ program arrives at a flat hold at the top. The timing is still slackening off
 through all of that, so the dips keep a little unevenness right up to the point
 where they vanish.
 
-So it opens with deep, ragged, unpredictable swings that could stop you dead,
-settles into a steady `100 → 60` bob that gradually slows, and then flattens out
-entirely.
-
 ## Intensity
 
 **Intensity** (0–100, default **50**) is a final ceiling on the whole thing —
 the build is fixed and intensity just scales, evenly, what actually reaches the
 device. At the default **50**, the 25 → 100 build plays out as roughly **12 →
 50%** on the device; turn it down further when you're more sensitive. It takes
-effect live, so a change lands at once.
+effect live.
 
 ## Teases
 
@@ -67,19 +63,16 @@ start. It's separate from the manual Stroke ± / `up`/`down` controls.
 ## The finish and cumming
 
 At the end of the session the build reaches the top and **holds there** until
-you end it. `finish` jumps straight to that hold — the top of the build, waiting
-for you.
+you end it. `finish` jumps straight to that hold.
 
 `cumming` is the actual send-off — and what it does is set by the **After-play**
 card in setup. Tick any of the four outcomes; at the cumming point one is drawn
-at random from the ticked set, so with more than one enabled you don't know
-what's coming. At least one must be ticked before you can play, and your ticks
-are remembered on this device:
+at random from the ticked set. At least one must be ticked before you can play,
+and your ticks are remembered on this device:
 
-- **Wind-down** — the classic: the device eases off in a slow, deliberate glide
-  from a moderate pace down to a standstill over about ten seconds — the strokes
-  shortening as it winds down — then rests. An unhurried, drawn-out finish
-  rather than a frantic pump. Fair warning: this is simply how the author likes
+- **Wind-down** — the device eases off in a slow, deliberate glide from a
+  moderate pace down to a standstill over about ten seconds — the strokes
+  shortening as it winds down — then rests. This is simply how the author likes
   to cum, and it won't be to everyone's taste.
 - **Torture** — straight to full speed and held there. Indefinitely.
 - **Ruin: stay in** — stops dead, leaving you seated with the vacuum seal held.
@@ -90,13 +83,12 @@ are remembered on this device:
   into a finish instead of a ruin. A ruin is timing-dependent even by hand.
 
 **Torture and both ruins ignore your voice once they start** — every control
-greys out and every word leaves the grammar, so the outcome can't be dodged,
-diluted or fiddled with. The safe word still works, always; once it has halted
-things, Reset and Start return.
+greys out and every word leaves the grammar. The safe word still works, always;
+once it has halted things, Reset and Start return.
 
 ## Time dilation
 
-**`faster` / `slower`** stretch or compress the journey from that point on (~5%
+**`faster` / `slower`** stretch or compress the build from that point on (~5%
 per step, roughly 0.25×–4×). They don't jump the position; they change how fast
 you move through the build (and the tease schedule) from here. The device's own
 stroke rhythm stays real-time; only the build/variability curve compresses or
@@ -117,7 +109,8 @@ During play:
 - `finish` — jump to the end-of-session hold.
 - `faster` / `slower` — dilate time ±5% from this point on.
 - `more` / `less` — step Intensity up/down.
-- `cumming` — trigger the drawn after-play (see above).
+- `cumming` — trigger the drawn after-play (see
+  [The finish and cumming](#the-finish-and-cumming)).
 - plus the shared stroke `up` / `down` words — lengthen (`up`) or shorten
   (`down`) the stroke by hand.
 

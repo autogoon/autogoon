@@ -3,9 +3,8 @@
 A faithful recreation of Autoblow's own Vacuglide autopilot — the official
 "hands-off" mode. Reverse-engineered from the original app's client bundle
 (`autopilot-Krw_IcWx.js`, **July 2026**) and rebuilt to run entirely in your
-browser, faithful down to its constants. It mirrors that build; Autoblow's own
-implementation isn't independently documented and may drift from this over time.
-Start it and let it drive.
+browser, faithful down to its constants. Autoblow's own implementation isn't
+independently documented and may drift from this over time.
 
 See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
@@ -13,8 +12,7 @@ See [ARCHITECTURE.md](../ARCHITECTURE.md) for how it plugs into the app.
 
 Autopilot plays a **mystery script** — it stitches together a long,
 unpredictable run from **8 hand-crafted patterns**, picking 10 of them at random
-(repeats allowed), then a fresh draw, so you never quite know what's coming. The
-patterns:
+(repeats allowed), then a fresh draw. The patterns:
 
 1. **Slow full staircase** — climbs step by step from a crawl up to full and
    back down, lingering ~5 s on each step.
@@ -32,8 +30,7 @@ patterns:
 8. **Quick ramp to a high hold** — a fast climb to near-full, then a sustained
    high plateau.
 
-A draw of ten runs roughly 5–30 minutes, then a new random draw begins. Two
-settings shape it.
+A draw of ten runs roughly 5–30 minutes, then a new random draw begins.
 
 ## Intensity → how hard
 
@@ -55,10 +52,9 @@ E.g. a template step of 100 becomes 20 on Warmup, 70 on Medium, 100 on High.
 ## Edge control → how it paces the peaks
 
 How long it lingers at the extremes. **Gentle** eases off the top quickly and
-stretches out the recovery valleys; **Intense** holds you at the peaks — with
-little random surges above them — and cuts the recovery short; **Moderate** sits
-in between. Under the hood it's a duration multiplier on each step, keyed off
-the **template** speed:
+stretches out the recovery valleys; **Intense** holds you at the peaks and cuts
+the recovery short; **Moderate** sits in between. It's a duration multiplier on
+each step, keyed off the **template** speed:
 
 | Edge     | plateau (speed > 70) | cooldown (speed < 30) |
 | -------- | -------------------: | --------------------: |
@@ -73,12 +69,11 @@ alone.
 
 ## Vacuum maintenance (suction control)
 
-Autoblow's own name, and an apt one: the device can lose a little suction over a
-session, so this fires a brief **stroke-minus** pulse to re-apply the vacuum and
-keep the toy firmly seated — **Off**, **Light**, or **Heavy**. Because
-stroke-minus also shortens the stroke each time, keeping it topped up trends
-toward short strokes with strong suction — rarely strictly necessary, but a feel
-some enjoy:
+Autoblow's own name: the device can lose a little suction over a session, so
+this fires a brief **stroke-minus** pulse to re-apply the vacuum and keep the
+toy firmly seated — **Off**, **Light**, or **Heavy**. Because stroke-minus also
+shortens the stroke each time, keeping it topped up trends toward short strokes
+with strong suction — not necessary, but a feel some enjoy:
 
 | Setting        | baseDuration | speedMultiplier | interval |
 | -------------- | -----------: | --------------: | -------: |
@@ -90,9 +85,9 @@ A pulse fires only **when a speed move is sent** — at a script step transition
 never mid-step — and only if at least `interval` has passed since the last
 pulse. The interval is a **minimum gap between pulses, not a cadence**: a long
 step gets one pulse at its start and nothing more, and steps arriving sooner
-than the gap are skipped. The gate starts closed (`lastSuctionTime` starts at 0,
-so nothing fires in the first `interval` of a session); changing the suction
-setting resets it, so the next move pulses immediately.
+than the gap are skipped. Nothing fires in the first `interval` of a session
+(`lastSuctionTime` starts at 0); changing the suction setting resets it, so the
+next move pulses immediately.
 
 Pulse length: `round(baseDuration × speedMultiplier / (speed/100 + 0.1))`, where
 `speed` is the move just sent (intensity-scaled, jitter included) — inversely

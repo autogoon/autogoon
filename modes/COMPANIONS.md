@@ -21,17 +21,16 @@ forwards to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer
 header — same-origin for the browser (no CORS juggling), streaming passes
 straight through, and the key never reaches the client.
 
-Two field-level whys worth knowing (the rest are commented on the type):
+One field-level why worth knowing (the rest are commented on the type):
 `voiceId` and `model` aren't secrets, so they're safe in code even in a public
-repo; and because each companion carries their own `model`, different companions
-can run entirely different models with nothing global to configure.
+repo.
 
 ## One config object per companion
 
 The companions live in a keyed record — `COMPANIONS` in
 `src/lib/companions/companions.ts`. The picker order (`companionList`) derives
-from that record, and the panel simply starts on its first entry. Each persona
-is pure data: adding a companion is a new entry plus a persona module (e.g.
+from that record, and the panel starts on its first entry. Each persona is pure
+data: adding a companion is a new entry plus a persona module (e.g.
 `aimee-prompt.ts`) that interpolates the shared sections and fills in the
 character — the picker, switch and saved thread all derive from the record, so
 nothing else needs touching.
@@ -49,53 +48,55 @@ spoken words).
 transcript shows each message's time (with a date header where a new day
 starts), and the companion is told the current date and time every turn. A
 longer break — an hour away, overnight — reaches them as a stage direction ("(6
-hours pass.)"), so they come back to you like someone who noticed you were gone,
-not mid-sentence. Conversations saved before timestamps existed simply have
-none: those turns show no times and never trigger a marker. The mechanics (the
-threshold, the marker shape) are commented in `conversation.ts`.
+hours pass.)"), so they pick up on the gap rather than carrying on mid-sentence.
+Conversations saved before timestamps existed have none: those turns show no
+times and never trigger a marker. The mechanics (the threshold, the marker
+shape) are commented in `conversation.ts`.
 
 `passesReasoning` marks a **reasoning model**: such a model returns a private
 thinking block (`reasoning_details`) alongside its reply and was trained with
 that reasoning present in history, so the app captures it from the stream and
 replays it verbatim on that companion's stored turns (the mechanics are in
 `conversation.ts`). A non-reasoning companion sets it `false` and the field is
-simply never sent.
+never sent.
 
 ### Shared prompt sections
 
-A `systemPrompt` is not one monolithic string per companion. The **mechanical
-rules that are the same for everyone** — reply format, baseline speaking style,
-what the device is and how it's driven — live once as persona-neutral blocks in
-`shared-prompt.ts` (each export is commented with where it slots in), and each
-persona module interpolates them into place, so those rules can't drift between
-companions.
+The **mechanical rules that are the same for everyone** — reply format, baseline
+speaking style, what the device is and how it's driven — live once as
+persona-neutral blocks in `shared-prompt.ts` (each export is commented with
+where it slots in), and each persona module interpolates them into place, so
+those rules can't drift between companions.
 
-The device description is part of that shared set for a reason: **what the toy
-does to you isn't a persona's to invent.** Left to infer the hardware from the
-tool names, a model guesses — the wrong shape, the wrong sensation, sometimes
-the wrong act — and it guesses mid-scene, where the words are the whole point.
+The device description is part of that shared set because **what the toy does to
+you isn't a persona's to invent.** Left to infer the hardware from the tool
+names, a model guesses — the wrong shape, the wrong sensation, sometimes the
+wrong act — and it guesses mid-scene, where the words are the whole point.
 Written once, no pack author has to know the hardware, and no companion is wrong
 about it. What stays in the persona module is only that companion: their
-character, setup, tone, and disposition — crucially, **who leads between them
-and the user**, which the shared blocks leave open. Control of the toy is not
-among them: the shared block settles that for everyone, so a persona written
-against it contradicts rather than overrides it. Personas are written in the
-**second person** ("You're 21…") so they read as one voice with the shared
-blocks.
+character, setup, tone, and disposition — **who leads between them and the
+user**, which the shared blocks leave open. Control of the toy is not among
+them: the shared block settles that for everyone, so a persona written against
+it contradicts rather than overrides it. Personas are written in the **second
+person** ("You're 21…") so they read as one voice with the shared blocks.
 
 ## Device control
 
-A companion **drives the device through LLM tools** — start/stop, the intensity
-and variety knobs, (for a companion with media) `search_media` and `send_media`,
-and `wait_for_user`, which is how a run of unprompted turns is ended (see
-[Filling a silence](#filling-a-silence)). When one is called, the panel runs
-**the same transport and knobs the on-screen controls use** — there is one path,
-not a parallel one. The tool definitions, argument shapes, and which knob
-applies live versus regenerates are all commented in
-`companions-panel/index.tsx`. Whether a companion acts on a request or declines
-is a disposition written into their `systemPrompt`, not a code gate. Companions
-default to a **gentle baseline** — low intensity, light variety, a one-shot
-stroke-minus tease at session start — and build up from there.
+A companion **drives the device through LLM tools**:
+
+- start/stop;
+- the intensity and variety knobs;
+- `search_media` and `send_media`, for a companion with media;
+- `wait_for_user`, which is how a run of unprompted turns is ended (see
+  [Filling a silence](#filling-a-silence)).
+
+When one is called, the panel runs **the same transport and knobs the on-screen
+controls use** — there is one path, not a parallel one. The tool definitions,
+argument shapes, and which knob applies live versus regenerates are all
+commented in `companions-panel/index.tsx`. Whether a companion acts on a request
+or declines is a disposition written into their `systemPrompt`, not a code gate.
+Companions default to a **gentle baseline** — low intensity, light variety, a
+one-shot stroke-minus tease at session start — and build up from there.
 
 The device's **current state reaches the companion every turn** (see
 `getDeviceState` in the panel) — so they always know whether the toy is
@@ -131,8 +132,8 @@ coming, so there's no silence left to fill.
 
 **The companion decides when to stop, not a clock.** Having said their piece —
 or asked whether you're still there and would rather you answered — they call
-`wait_for_user` and go quiet until you speak. That's what keeps it from becoming
-a monologue into an empty room, and why no timeout is needed to switch them off.
+`wait_for_user` and go quiet until you speak. That's what keeps them from
+talking on at someone who has stopped answering.
 
 **How readily a companion fills a silence is their own**, as two separate
 settings a goonpack gives them: one for while the toy is idle, one for while
@@ -161,10 +162,9 @@ back off the conversation itself.
 Sending pops it open in a lightbox and leaves it in the transcript as a
 thumbnail — a video plays there inline, and full-size in the lightbox — stored
 on the thread turn so what was sent survives a reload. While the lightbox is
-open, a badge in its top corner shows the conversation live: you speaking, the
-companion thinking, their reply streaming in, their voice loading, them
-speaking. A companion with nothing to send gets neither tool, and is told
-outright that they have nothing — so if you ask, they say so rather than
+open, a badge in its top corner shows every stage of a turn, from you speaking
+to them speaking. A companion with nothing to send gets neither tool, and is
+told outright that they have nothing — so if you ask, they say so rather than
 promising a picture that can never arrive.
 
 Pictures and videos are **bring-your-own** — they arrive via a
