@@ -7,9 +7,11 @@
 // when asked, speaking it. The mic/STT callbacks are created once (they outlive
 // many renders) but must read LIVE values — the current phase, whether a reply is
 // playing, the active turn's controller — so everything they touch lives in a
-// ref; useState only mirrors the `status` the panel renders. Integration code —
-// no unit test (the pure lifecycle/barge-in decisions live in session-policy.ts
-// and are unit-tested there); the wiring is exercised by driving the panel.
+// ref; useState only mirrors the `status` the panel renders. The mic and STT
+// wiring is integration code, exercised by driving the panel — the pure
+// lifecycle/barge-in decisions live in session-policy.ts and are unit-tested
+// there. What a turn commits, and when, is unit-tested against faked LLM and
+// TTS boundaries.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
@@ -704,6 +706,10 @@ export function useVoiceSession(opts: {
               );
             }
             persistThread(next);
+            // The pre-tool line now has a turn of its own, so drop the streamed
+            // copy: the pending bubble stands for text with nowhere else to
+            // render, and the next round streams into it from empty.
+            setStatus((s) => ({ ...s, replyText: '' }));
             if (controller.signal.aborted || turnRef.current !== controller) {
               return;
             }
@@ -717,9 +723,6 @@ export function useVoiceSession(opts: {
               companion.passesReasoning,
             );
             messages.push(liveState(deviceState));
-            // What they say next is a fresh spoken block; clear the streamed
-            // pre-tool text so it streams from empty.
-            setStatus((s) => ({ ...s, replyText: '' }));
 
             if (round === MAX_TOOL_ROUNDS) {
               owedReaction = true;
@@ -750,6 +753,9 @@ export function useVoiceSession(opts: {
                 Date.now(),
               ),
             );
+            // Same as each round's commit: the reply has a bubble now, so the
+            // pending one must go before TTS starts.
+            setStatus((s) => ({ ...s, replyText: '' }));
           }
           if (
             controller.signal.aborted ||

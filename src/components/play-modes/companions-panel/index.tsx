@@ -588,14 +588,12 @@ export function CompanionsPanel({
   // transcript's stage bubble.
   const stage = voiceStage(status);
 
-  // In-progress reply bubble: shown only until the assistant turn commits —
-  // once the thread's last non-tool turn is the assistant turn, the committed
-  // bubble replaces it, even while a spoken reply is still playing.
+  // In-progress reply bubble: the streamed text that has no turn of its own
+  // yet. Every commit clears replyText, so this is exactly what is unstored —
+  // a pre-tool line in any tool round included, since those are spoken before
+  // the round they belong to is written.
   const pendingReplyVisible =
-    status.replyPlaying &&
-    status.replyText !== '' &&
-    [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
-      'assistant';
+    status.replyPlaying && status.replyText.trim() !== '';
 
   // From the moment the companion's words are headed for the speaker, their most
   // recent turn wears the shimmer instead of a status row — faint while the
