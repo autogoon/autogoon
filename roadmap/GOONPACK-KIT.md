@@ -68,11 +68,9 @@ editing logic can assume a directory or has to assume a zip.
 
 Open questions:
 
-- **Where the observations live.** Answered elsewhere: the sidecar becomes a
-  `.md` per item carrying the caption in frontmatter and the model's full notes
-  as the body, so reviewing a caption beside what it was condensed from comes
-  free. See
-  [the design](../docs/superpowers/specs/2026-07-27-media-search-design.md).
+- **Where the observations live.** Answered elsewhere: the sidecar is a `.md`
+  per item carrying the caption in frontmatter and the model's full notes as the
+  body, so reviewing a caption beside what it was condensed from comes free.
 - **What happens to the scripts.** `describe`, `describe-missing` and `build`
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the

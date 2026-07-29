@@ -160,8 +160,7 @@
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Settle how a companion will find a picture** — The replacement for
-  picking media by number from the tool schema is specified in
-  [docs/superpowers/specs/2026-07-27-media-search-design.md](./docs/superpowers/specs/2026-07-27-media-search-design.md):
+  picking media by number from the tool schema:
   two texts per item in a `.md` sidecar, a summary of the set in the manifest,
   and two tools in place of one — `search_media` returning a bounded set of refs
   and captions, `send_media` sending one by ref. The questions it deliberately
