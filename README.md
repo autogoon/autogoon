@@ -38,10 +38,10 @@ that fits the moment, picked by its caption — nothing ever goes to a vision
 model mid-play.
 
 **Companions isn't usable on the public app.** Their chat, voice and hearing are
-paid cloud services, so on a deploy the mode sits behind an access key and stays
-hidden without one. Run the app yourself with your own keys and the mode is
-there — locally, no access key needed —
-[modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and videos.
+paid cloud services, so on a deploy the mode sits behind an access ID and stays
+hidden without one. Run the dev server yourself with your own keys and it's
+there with no ID needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md) covers
+setup, pictures and videos.
 
 **Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
 zip — persona, voice, colour, pictures and videos — imported straight into the
