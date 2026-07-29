@@ -67,7 +67,7 @@ between it and the code.
 is a check.** Read them there. They are not repeated here, so a rule added to
 either is checked without this file changing.
 
-Plus these, which answer to no rule in CLAUDE.md:
+Plus these:
 
 1. **Paths and links** — every file path, markdown link and heading anchor
    resolves.
