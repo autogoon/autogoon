@@ -73,7 +73,7 @@ with any dependencies noted in place (they began as the numbered phase plans of
 [#14](https://github.com/autogoon/autogoon/pull/14)). What's already built is
 described in [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
-### Split the voice session and the companions panel
+### Split use-voice-session.ts and companions-panel/index.tsx
 
 `use-voice-session.ts` (~1000 lines, ~20 refs in one closure) and
 `companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
