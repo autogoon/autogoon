@@ -630,7 +630,7 @@
   opens at the bottom, showing your most recent exchange.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Add `npm run describe` / `describe:missing`** — Caption a single
+- internal: **Add the describe scripts** — Caption a single
   companion image, or every image that's still missing a description, with a
   vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to
   override), writing the sidecar `.txt` the picture glob reads.
