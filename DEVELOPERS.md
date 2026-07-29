@@ -181,7 +181,7 @@ holds one source directory per pack you're assembling — with that pack's
 pictures and videos in `goonpacks/<dir>/media/` — plus the `.zip` files
 `goonpack:build` produces from them. The authoring workflow (directory layout,
 manifest fields, the two pack kinds) is user-facing and lives in
-[GOONPACKS.md](./GOONPACKS.md); the three `goonpack:*` npm scripts that operate
-on it (`describe`, `describe-missing`, `build`) are commented at their
-definitions in `scripts/`. `describe` and `describe-missing` are vision-model
-work and so cover stills only — a video's caption is written by hand.
+[GOONPACKS.md](./GOONPACKS.md); the `goonpack:*` npm scripts that operate on it
+are commented at their definitions in `scripts/`. `describe` and
+`describe-missing` are vision-model work and so cover stills only — a video's
+caption is written by hand.
