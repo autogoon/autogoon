@@ -8,6 +8,8 @@ Autogoon drives an Autoblow
 [Vacuglide or Vacuglide 2](https://developers.autoblow.com/reference/http-api-v1-vacuglide/)
 stroker from your browser, **entirely by voice**.
 
+## For users
+
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
 to install; just open it, enter your device token, and go.
 
@@ -16,40 +18,50 @@ to install; just open it, enter your device token, and go.
 - **No app, no wearable** — it all runs in this one browser tab.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
-- **Three modes**, each steered live by voice:
+- **Four play modes**, each steered live by voice:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose, with an intensity dial and faster/slower time-stretch.
   - **[Groove](./modes/GROOVE.md)** — a manual stroke pattern you shape live
     (intensity + dip and timing variability).
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
     own Vacuglide autopilot.
+  - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
+    drives the toy themselves; needs your own keys today.
 - **Switch by voice** — from home, say a mode's name to enter it; while stopped,
   say exit to come back and choose another. Once running, the mode locks in.
 
-## Companions — if you run it yourself
+### Companions — someone to talk to
 
-There's a fourth mode: **[Companions](./modes/COMPANIONS.md)** — talk to an AI
-companion who chats back in their own voice, remembers the conversation, and
-drives the toy themselves. They don't wait to be spoken to either: go quiet and
-the conversation keeps going, so you can lie back mid-session and let them run
-it. Given pictures and videos (bring your own), a companion will send you one
-that fits the moment, picked by its caption — nothing ever goes to a vision
-model mid-play.
+Talk to an AI companion who chats back in their own voice, remembers the
+conversation, and drives the toy themselves. They don't wait to be spoken to
+either: go quiet and the conversation keeps going, so you can lie back
+mid-session and let them run it.
 
-**Companions isn't usable on the public app.** Their chat, voice and hearing are
-paid cloud services, so on a deploy the mode sits behind an access ID and stays
-hidden without one. Run the dev server yourself with your own keys and it's
-there with no ID needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md) covers
-setup, pictures and videos.
+**Companions isn't usable on the public app yet.** Their chat, voice and hearing
+are paid cloud services, so on a deploy the mode sits behind an access ID and
+stays hidden without one. Run the dev server yourself with your own keys and
+it's there with no ID needed — [modes/COMPANIONS.md](./modes/COMPANIONS.md)
+covers setup, pictures and videos. **Coming to the hosted app** once those
+services run on [keys you enter in the app](./TODO.md#bring-your-own-api-keys)
+rather than the server's.
 
-**Companions are portable.** A [goonpack](./GOONPACKS.md) is one companion in a
-zip — persona, voice, colour, pictures and videos — imported straight into the
-app: a complete new companion, or an overlay that changes one you have (add
-media, swap their voice or persona). Assembling one is plain-text work, no
-coding — [GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in
-the repo.
+### Goonpacks — a companion in a zip
 
-## Privacy
+A [goonpack](./GOONPACKS.md) is one companion as a file — persona, voice,
+colour, and their own pictures and videos — imported straight into the app: a
+complete new companion, or an overlay that changes one you have (add media, swap
+their voice or persona).
+
+**A companion with a pack will send you pictures and videos.** Ask for what you
+want in words and they search their own set for it, send one that fits, and
+never send the same one twice in a conversation. The media is yours, brought by
+the pack, and the search reads text written when the pack was built — so nothing
+is sent to a vision model mid-play.
+
+Assembling a pack is plain-text work, no coding — [GOONPACKS.md](./GOONPACKS.md)
+is the guide, with a worked example in the repo.
+
+### Privacy
 
 Everything runs in your browser; the only thing that leaves your machine is the
 control traffic to Autoblow's cloud API for the device itself. Speech
@@ -60,21 +72,7 @@ play your speech is transcribed by a cloud STT service, and the companion's
 replies come from a cloud LLM and TTS voice. The other three modes stay fully
 local.
 
-## The app
-
-A Next.js single-page app (App Router, TypeScript, Tailwind) with **no accounts
-and no server-side database** — your device token, settings and conversations
-live in your browser and nowhere else. Speech recognition is
-[vosk](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) running fully
-in-browser; the only server-side pieces serve Companions — thin proxies for its
-chat, voice and hearing, there purely so the API keys never reach the client,
-plus the check that validates an access ID.
-
-Running it yourself, building it, or contributing? Start at
-[DEVELOPERS.md](./DEVELOPERS.md); how it's put together is
-[ARCHITECTURE.md](./ARCHITECTURE.md).
-
-## Running hands-free (mobile caveats)
+### Running hands-free (mobile caveats)
 
 The controlling tab has to stay **foregrounded and awake** — it runs the timing
 loop and the microphone continuously, and mobile browsers suspend or heavily
@@ -92,7 +90,23 @@ throttle background or screen-locked tabs, which stops both.
   throttled. A single device _may_ work if you keep the tab in front and the
   screen awake (e.g. Screen Wake Lock).
 
-## Documentation
+## For developers
+
+### The app
+
+A Next.js single-page app (App Router, TypeScript, Tailwind) with **no accounts
+and no server-side database** — your device token, settings and conversations
+live in your browser and nowhere else. Speech recognition is
+[vosk](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) running fully
+in-browser; the only server-side pieces serve Companions — thin proxies for its
+chat, voice and hearing, there purely so the API keys never reach the client,
+plus the check that validates an access ID.
+
+Running it yourself, building it, or contributing? Start at
+[DEVELOPERS.md](./DEVELOPERS.md); how it's put together is
+[ARCHITECTURE.md](./ARCHITECTURE.md).
+
+### Documentation
 
 - [DEVELOPERS.md](./DEVELOPERS.md) — running Autogoon locally and contributing.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the app is put together.
