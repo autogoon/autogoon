@@ -27,6 +27,11 @@ Where this runs among the checks, and why, is in [CLAUDE.md](../../../CLAUDE.md)
   repo. Fan out one read-only subagent per directory and collect their reports.
   Expensive; this is not the per-PR mode.
 
+On the pre-merge pass, the PR's own title and body are in scope too — they are
+sentences this repo wrote and nothing else reads them for style. Commit messages
+are inside → Writing style as well, but rewriting history to fix one costs more
+than the flaw: report what you find and leave it.
+
 Text written **during** an earlier check is in scope like any other.
 
 ## The style
