@@ -26,14 +26,13 @@ Below is where those leaks hide, which the rules alone would not tell you:
   Reframe as a generic worked example ("say 40k images", "a 64GB machine") or
   delete.
 - **A sentence about the local media set that reads as a sentence about the
-  feature.** `goonpacks/<dir>/media/` is gitignored and exists on one machine,
-  so anything about its contents is private: a persona note justified by "which
-  is what her pictures are", a cost estimate that needs a real count. Both have
-  slipped from the feature to the set. **Do not quote the offending sentence
-  when reporting it** — restating it is the same leak.
-- **Sourcing implied rather than stated** — a platform name in a
-  downloading/collecting context, a scraper or downloader tool name. The app is
-  source-agnostic (DEVELOPERS.md → Content policy).
+  feature** — a persona note justified by "which is what her pictures are", a
+  cost estimate that needs a real count. Both have slipped from the feature to
+  the set. **Do not quote the offending sentence when reporting it** — restating
+  it is the same leak.
+- **Sourcing implied rather than stated** — a scraper or downloader tool name,
+  which the rule's "platform name" does not cover (DEVELOPERS.md → Content
+  policy).
 - **Leaky meta-files** — a `.gitignore` entry or a script name can reveal what
   it hides; weigh the wording, not just the file it points at.
 - **Commit messages** — a surface of their own: session links and attribution
