@@ -139,34 +139,14 @@ it changes.
   few words can still keep up a filthy running commentary once things are
   underway, and one setting couldn't say so.
 
-  What each buys, as the pause after they finish speaking. Every pause is varied
-  a little so the gap isn't the same every time, which is what the range column
-  is — it leans shorter rather than longer.
-
-  **`chattiness` — while the toy is idle:**
-
-  | value | base pause | actual range |
-  | ----- | ---------- | ------------ |
-  | 1     | 50s        | 25–60s       |
-  | 2     | 40s        | 20–48s       |
-  | 3     | 30s        | 15–36s       |
-  | 4     | 20s        | 10–24s       |
-  | 5     | 10s        | 5–12s        |
-
-  **`playfulness` — while it's running:**
-
-  | value | base pause | actual range |
-  | ----- | ---------- | ------------ |
-  | 1     | 25s        | 12.5–30s     |
-  | 2     | 20s        | 10–24s       |
-  | 3     | 15s        | 7.5–18s      |
-  | 4     | 10s        | 5–12s        |
-  | 5     | 5s         | 2.5–6s       |
-
-  Treat these as the feel rather than a promise — they're tuned by ear and may
-  shift. They're measured from the moment the talking stops, so the gap between
-  turns is always longer than the table: the next line still has to be written
-  and spoken first.
+  What each buys is the pause after they finish speaking: a higher number is a
+  shorter one, and in play every pause is about half as long. Each is varied a
+  little so the gap isn't the same twice, leaning shorter rather than longer.
+  The figure for every value is tabulated in
+  [ambient.ts](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/ambient.ts),
+  beside the curves it comes from. They're measured from the moment the talking
+  stops, so the gap between turns is always longer than that: the next line
+  still has to be written and spoken first.
 
 ### Overlays
 
