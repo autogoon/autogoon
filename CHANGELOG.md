@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-30
+
+- internal: **One sentence shape repeated is a style fault** — A claim, a gloss
+  on a dash or colon, then a consequence on `so…`, used for every sentence down
+  a page, reads as talk however well each sentence stands alone. Written into
+  [CLAUDE.md](./CLAUDE.md), enforced by a `/style-check` pass that counts glosses
+  and consequence tails across a whole document instead of reading sentence by
+  sentence, and applied to the user-facing and developer docs, the roadmap
+  threads and TODO.md.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-29
 
 - enhancement: **Describe a pack's pictures in random order** —
