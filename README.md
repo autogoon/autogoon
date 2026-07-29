@@ -18,8 +18,7 @@ to install; just open it, enter your device token, and go.
   only device-control traffic leaves it.
 - **Three modes**, each steered live by voice:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
-    you choose (10–120 min), with an intensity dial and faster/slower
-    time-stretch.
+    you choose, with an intensity dial and faster/slower time-stretch.
   - **[Groove](./modes/GROOVE.md)** — a manual stroke pattern you shape live
     (intensity + dip and timing variability).
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
