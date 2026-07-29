@@ -8,14 +8,13 @@ a variety level, and the shared `CONTROL_SECTION` in
 [`src/lib/companions/shared-prompt.ts`](../src/lib/companions/shared-prompt.ts)
 describes a suction sleeve by name and tells a companion it runs itself.
 
-Two widenings, and the second is much bigger than it looks:
+Two widenings, and no device at all is much bigger than it looks:
 
 - **Other strokers.** There are plenty, and they don't share a control surface
   or a transport.
-- **No device at all** — chat to the companions and use your hand. This is the
-  crucial one. It's the largest widening of who can use the app, it needs no
-  hardware to try, and it's the case that most tests whether the persona format
-  is really device-neutral.
+- **No device at all** — chat to the companions and use your hand. It's the
+  largest widening of who can use the app, it needs no hardware to try, and it's
+  the case that most tests whether the persona format is really device-neutral.
 
 Open questions:
 
@@ -51,9 +50,8 @@ Open questions:
   shared sections; a second token so a pack can ship a device-facing block per
   device; a manifest field declaring which devices a pack supports; or a
   per-device overlay, since an overlay can already replace the persona prompt.
-  This wants prototyping before designing — write one companion three ways
-  (Vacuglide, another stroker, hand only) and see how much genuinely survives in
-  common.
+  Prototype this before designing it — write one companion three ways
+  (Vacuglide, another stroker, hand only) and see how much survives in common.
 - **The play modes without a device.** Goon, Groove and Autopilot exist to
   generate a program for hardware, and Autopilot is a faithful recreation of
   Autoblow's Autopilot, so it can't travel to another device either. With no

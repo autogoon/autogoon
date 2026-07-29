@@ -22,7 +22,7 @@ print is a workaround for not having a screen.
 So the first piece is a review surface: pick a pack, leaf through its pictures,
 see each one beside its caption and the model's full observations, jump into the
 caption with a keystroke, and save. Fast leafing and keyboard editing are the
-whole point — the value is in how quickly you can get through a lot of pictures.
+whole point.
 
 **What changes as a pack grows.** Reading every caption is the right workflow
 while a pack is a curated few hundred. Past that nobody will read them all — see
@@ -63,9 +63,8 @@ and it can only exist on the machine holding the pack sources, which means
 **dev-only**, present under `npm run dev` and absent from any deploy.
 
 That gating is the first design question, and it is not just a feature flag: the
-routes must not be reachable in a deployed build at all. Worth settling before
-anything else, because it decides whether the editing logic can assume a
-directory or has to assume a zip.
+routes must not be reachable in a deployed build at all. It decides whether the
+editing logic can assume a directory or has to assume a zip.
 
 Open questions:
 

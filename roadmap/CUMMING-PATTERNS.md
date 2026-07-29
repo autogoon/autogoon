@@ -7,8 +7,7 @@ Autopilot has nothing.
 The idea is that **every cumming pattern is definable** — the four that exist,
 and the ones nobody has thought of yet. They'd be shareable, you'd pick which
 one ends a play mode, and a companion could pick one when you say you're
-cumming. Goon's four stop being special cases and become four among however many
-you have.
+cumming.
 
 **How a pattern gets written down is the open question.** It would need to cover
 a ruin (a valve held open for a fixed time), torture (a hold with no end) and
@@ -23,9 +22,9 @@ than the one you'd pick from yourself.
 **Nothing makes a pattern's description true.** An imported pattern's title and
 description are whatever its author typed; what it actually does is the data. So
 what you see before enabling one wants to be a `Sparkline` of the pattern
-itself, alongside the title and description — the shape is the honest part. Keep
-the metadata to exactly those, too: every extra field is another thing that has
-to be trusted, checked or displayed.
+itself, alongside the title and description. Keep the metadata to exactly those,
+too: every extra field is another thing that has to be trusted, checked or
+displayed.
 
 **A pattern's description reaches the persona.** Not a security concern — a
 goonpack already hands its author the whole system prompt, so this is a much

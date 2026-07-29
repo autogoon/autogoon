@@ -36,10 +36,9 @@ mechanism:
   business being in their context at all. This is **retrieval**.
 
 Both ship, separately: the summary rides their prompt, and `search_media` does
-the retrieval. Conflating them is what collapses — one list of every item,
-picked by number, works at fifty and fails well before a thousand, not because
-the window fills but because a model choosing between two thousand
-near-identical descriptions chooses badly.
+the retrieval. One list of every item, picked by number, works at fifty and
+fails well before a thousand, not because the window fills but because a model
+choosing between two thousand near-identical descriptions chooses badly.
 
 ## Two regimes — hand-reviewable, or not
 
@@ -56,9 +55,9 @@ anyone would do, and that changes what the pipeline is _for_:
   model and the prompt, review becomes sampling plus tooling, and every quality
   question below starts to matter.
 
-A curated persona set sits in the first regime. A collected set of a couple of
-thousand sits firmly in the second, so captioning quality starts to matter well
-before a library reaches any impressive size.
+A curated persona set is hand-reviewable. A collected set of a couple of
+thousand is not, so captioning quality starts to matter well before a library
+reaches any impressive size.
 
 ## How a request gets served
 
@@ -82,17 +81,20 @@ before a library reaches any impressive size.
    ask for something else — far better than them announcing a picture that never
    came.
 
-Searching is app code, not theirs, for three reasons: searching means reading
-the corpus, and the corpus is exactly what doesn't fit; their job is character,
-not lookup; and in the app it can use methods a chat turn can't, and be improved
-without touching anybody's persona prompt. The corpus therefore never enters
-their context — a bounded working set does, small and riding as append-only tool
-results, so the prefix cache is unaffected.
+Searching is app code, not theirs:
+
+- searching means reading the corpus, and the corpus is exactly what doesn't
+  fit;
+- their job is character, not lookup;
+- in the app it can use methods a chat turn can't, and be improved without
+  touching anybody's persona prompt.
+
+The corpus therefore never enters their context — a bounded working set does,
+small and riding as append-only tool results, so the prefix cache is unaffected.
 
 ### Coarse on captions, fine on the long descriptions
 
-Two texts suggest two passes, and the counter-intuitive half is why the long one
-isn't the thing to search:
+Two texts, two passes:
 
 - **Coarse, over the captions.** Embedding search gets _worse_ on long text: a
   vector over two hundred words is an average of everything in them, so it
@@ -104,13 +106,17 @@ isn't the thing to search:
   which is what answers "is there a mirror in it", "does he have a condom on",
   "is he behind her".
 
-Both halves are candidates rather than decisions. The comparison worth running:
-a cheap LLM reading all the captions, caption-embedding top-k, top-k plus the
-rerank, and the same with an image embedding added — scored by hand against
-thirty to fifty requests in a companion's own words ("something with a man in
-it", "topless but not explicit", "filthier than the last one"). The output is
-the least that works and where it breaks. Start with the coarse pass alone and
-earn the rest.
+Both halves are candidates rather than decisions. The methods worth comparing:
+
+- a cheap LLM reading all the captions;
+- caption-embedding top-k;
+- top-k plus the rerank;
+- the same with an image embedding added.
+
+Score them by hand against thirty to fifty requests in a companion's own words
+("something with a man in it", "topless but not explicit", "filthier than the
+last one"). The output is the least that works and where it breaks. Start with
+the coarse pass alone and earn the rest.
 
 ### Filters are structured, not semantic
 
@@ -142,12 +148,11 @@ none of them chosen :
 - A cursor that continues past the last search,
 - and sampling from everything above a threshold rather than strict top-N.
 
-The last is also what "something at random" wants, so it may serve the
-query-less request too. Which one earns its place is a question for a real
-library; what the tool must not do is foreclose them.
+Sampling above a threshold is also what "something at random" needs, so it may
+serve the query-less request too. Which one earns its place is a question for a
+real library; what the tool must not do is foreclose them.
 
-Exhaustion is something to think about; it is in [BUG.md](../BUG.md) →
-Companions.
+Exhaustion is in [BUG.md](../BUG.md) → Companions.
 
 ### One interface, several implementations
 
@@ -259,11 +264,11 @@ text already on disk, with no image and no vision model.
 - **Resolution before model.** The known failure — small models unable to tell
   sitting from kneeling — is mostly resolution: fine spatial detail is what gets
   destroyed when an image is down-sampled into fewer visual tokens, and it's a
-  config change rather than a model swap. Try it first.
-- **Prompt is a smaller lever than it looks, but not spent.** The two structural
-  moves are already made — observe out loud before condensing, and state
-  outright how to tell confusable cases apart. What's left is scope, which is
-  **What a description should contain** rather than a model question.
+  config change rather than a model swap.
+- **Prompt is a smaller lever than it looks, and there is some left.** The two
+  structural moves are already made — observe out loud before condensing, and
+  state outright how to tell confusable cases apart. What's left is scope, which
+  is **What a description should contain** rather than a model question.
 - **Some ambiguity is irreducible.** A single frame sometimes genuinely can't
   say. Don't chase the last few percent.
 
@@ -282,11 +287,10 @@ text already on disk, with no image and no vision model.
   is all you need. SigLIP's sigmoid makes per-prompt scores more independently
   meaningful, which is a reason to prefer it here.
 
-An aside worth keeping straight: an embedding is **not** a set of named
-attributes. It's a few hundred anonymous learned numbers with no "bikini
-dimension" — meaning lives as _directions_ through the space, not axes. Named
-attributes are a derived layer you get by projecting onto a text-prompt
-direction, or from a VLM.
+An embedding is **not** a set of named attributes. It's a few hundred anonymous
+learned numbers with no "bikini dimension" — meaning lives as _directions_
+through the space, not axes. Named attributes are a derived layer you get by
+projecting onto a text-prompt direction, or from a VLM.
 
 ### People, video, duplicates, batches
 
@@ -312,8 +316,8 @@ direction, or from a VLM.
 
 ## Reviewing the output
 
-In the second regime the output can't be read end to end, so reviewing it has to
-be visual and targeted. Different views answer different questions:
+Where the set isn't hand-reviewable the output can't be read end to end, so
+reviewing it has to be visual and targeted.
 
 - **"Is each tag right?" → a sorted, faceted grid.** Sorted by heat you can
   _see_ the ramp, and a wrong jump is a wrong score spotted instantly.
@@ -321,9 +325,9 @@ be visual and targeted. Different views answer different questions:
 - **"Is the structure right?" → the embedding map.** Project the embeddings to
   2D and plot every image as a thumbnail on a pan/zoom plane. The axes mean
   nothing; you read regions. Recolour the same map by heat, person or attribute
-  — a real concept lights up a tidy patch, a meaningless tag is confetti. It QAs
-  person clusters at a glance too (merged people are one blob, a split person is
-  two).
+  — a real concept lights up a tidy patch, a meaningless tag scatters across the
+  whole map. It QAs person clusters at a glance too (merged people are one blob,
+  a split person is two).
 - **"What do I even have?" → distributions.** A heat histogram (a smooth ramp,
   or bimodal with a hole where the build should be?), attribute prevalence, a
   co-occurrence heatmap, per-person counts. This is also the human-readable
@@ -338,9 +342,9 @@ be visual and targeted. Different views answer different questions:
 
 **Browsing as its own reward.** A folder tree only holds structure you imposed;
 the embedding map surfaces structure that emerged — a "type" cluster you never
-noticed, forgotten images beside their cousins. "More like this" is free, and so
-is a path between two images that morphs a clothed shot into a nude of the same
-look, every step a real picture.
+noticed, forgotten images sitting beside their near neighbours. "More like this"
+is free, and so is a path between two images that morphs a clothed shot into a
+nude of the same look, every step a real picture.
 
 ## Where it runs, and what it costs to store
 
@@ -349,7 +353,6 @@ Pack media already lives in OPFS, one directory tree per installed pack
 solved. What's new is the index, and it's the cheap part: embeddings and
 attributes for tens of thousands of images are a few hundred megabytes at most
 and search over them is in-memory top-k in milliseconds — no vector database.
-It's the pixels that were ever expensive.
 
 That leaves the distribution split:
 
@@ -362,8 +365,8 @@ That leaves the distribution split:
 So a companion is either _packaged_ or _local-backed_ — the same system with two
 backends, chosen by whether you're running a public build or your own copy.
 Naming for the eventual big-library format is unsettled; "supergoonpack" is a
-placeholder, and it's where all of the above lands rather than something to
-design up front.
+placeholder, and it is where everything in this file lands rather than something
+to design up front.
 
 ## Open questions
 

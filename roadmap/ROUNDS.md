@@ -3,7 +3,7 @@
 The only play mode that continues past the first orgasm. Finish, then a brief
 burst on the over-sensitive glans, ease down through the refractory lull, then
 rebuild for another round — a repeating sawtooth of whole sessions rather than a
-single build. Nothing else in the app touches the post-orgasm region.
+single build.
 
 - The overstim between rounds is basically the after-play **Torture** idea (see
   [Play-mode options](./PLAY-MODE-OPTIONS.md)) used as a bridge rather than a
