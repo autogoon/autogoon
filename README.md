@@ -1,7 +1,7 @@
 # Autogoon — voice-controlled gooning
 
 <p align="center">
-  <img src="./docs/screenshot.png" alt="Autogoon running the Goon mode — voice command list, transport, stroke controls, timeline, and intensity dial" width="420">
+  <img src="./docs/screenshot.png" alt="Autogoon's home screen: device connection, the play mode chooser, and the getting-started notes" width="420">
 </p>
 
 Autogoon drives an Autoblow
