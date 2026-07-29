@@ -63,23 +63,18 @@ The scripts:
 
 Then:
 
-- **Branch off `main`** — never commit to `main` directly. One branch/PR per
-  piece of work.
 - **Run the tests** (`npm test` and `npm run test:e2e` — see
   [Testing](#testing)). They're a floor, not the whole story: the app drives
   physical hardware, so behaviour changes still want the app run and the
   affected flow driven in the browser — not just typecheck and build.
-- **Open a pull request** — push your branch (`git push -u origin <branch>`) and
-  open a PR against `main` with `gh pr create` (the GitHub CLI), or the "Compare
-  & pull request" prompt GitHub shows after you push.
+- **Open a pull request** against `main` — from a branch on your fork, with
+  `gh pr create` (the GitHub CLI) or the "Compare & pull request" prompt GitHub
+  shows after you push.
 - **Update [CHANGELOG.md](./CHANGELOG.md)** for every notable change — the entry
   format, and what to write for a user-facing change versus an internal one, are
   in [CLAUDE.md](./CLAUDE.md) under Changelog.
-- **Before it's reviewed** — `npm run typecheck`, `lint`, and `format` must all
-  pass with **zero warnings** (typecheck and lint produce no output; fix every
-  warning, not just the ones your change introduced). Individual commits needn't
-  be spotless — the PR as a whole must be clean — and commit anything `format`
-  reformats.
+- **Before it's reviewed** — `npm run typecheck` and `npm run lint` must produce
+  no output, and commit anything `npm run format` reformats.
 - **Document it for whoever it's for** — a user-facing feature needs its
   user-facing page (`modes/*.md` for a play mode) and a link from
   [MODES.md](./MODES.md) and `README.md`; something only a developer sees is
