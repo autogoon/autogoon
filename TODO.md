@@ -307,8 +307,8 @@ server keys** — its only job was protecting them.
 
 ### Companion time zones
 
-The personas are located (Riga, Pembrokeshire, Portland) but only the user's
-clock is real — the prompt's TIME line is his browser's time. Give a located
+Personas are located — anywhere a pack author puts them — but only the user's
+clock is real: the prompt's TIME line is his browser's time. Give a located
 persona their own: an IANA `timezone` field on `Companion` and a second TIME
 line ("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it
 can be the middle of their night in the middle of his day. The app does all the
