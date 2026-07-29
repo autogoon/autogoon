@@ -35,7 +35,10 @@ supporting. How a sentence is _written_ is another check's subject.
 
 ## The document set
 
-A document's class and audience decide how it is read:
+A document's class and audience decide how it is read. Which documents are
+user-facing, and which files future work may live in, are
+[CLAUDE.md](../../../CLAUDE.md) → Documentation's to say; the table restates
+them so the set is scannable, and follows that file when it changes:
 
 |                                             | class         | audience  |
 | ------------------------------------------- | ------------- | --------- |
