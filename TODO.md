@@ -104,33 +104,6 @@ normal — the device is working and there is nothing to say — so a cutoff tun
 for an empty room must not fire on someone who is simply quiet. Worth warning
 before it stops rather than stopping silently.
 
-### Safeword as a hard stop
-
-Vosk KWS reserved for the safeword → a hard stop that tears down the voice
-session (LLM + TTS), not just the device. Today the safeword only pauses the
-Player, so they keep talking through it; and it is only in the grammar while a
-program runs, so with the device stopped there is no spoken way to stop them at
-all. Also the nav/global-word lockdown a running session needs, and reconciling
-the two concurrent mic captures (vosk vs. ElevenLabs STT) so the word that stops
-them isn't also transcribed as a turn.
-
-### Context compaction / rolling window
-
-Keep the ever-growing thread within the model's context (recorded per companion
-as `contextWindow`): summarize older turns and/or keep a rolling window of
-recent turns verbatim, trimming old `reasoning_details` along with the messages
-they belong to.
-
-A `search_media` result is the largest thing a turn can hold — up to
-`SEARCH_LIMIT` lines of ref and caption, replayed for the rest of the
-conversation because that is what lets a companion send from an earlier search —
-so a thread with a few dozen searches in it is far bigger than its spoken turns
-suggest. That moves this from headroom for very long sessions to something a
-real session reaches: the whole thread is re-serialised into `localStorage` on
-every turn, and past the origin's quota that write fails. `persistThread` logs
-it to the Companions event log, but nothing recovers the turn, so the
-conversation still rewinds to the last version that fit on the next load.
-
 ### Turn-commit review, reply-length tuning & prompt polish
 
 With the loop running on hardware, tune the conversational feel: revisit the

@@ -45,10 +45,9 @@ export type Companion = {
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
   // The chosen model's context window, in tokens. Nothing reads it yet —
-  // deliberately captured anyway, because it belongs to whoever picked `model`.
-  // Compaction (TODO.md) is what will need it, and a pack authored before then
-  // would otherwise have to be revisited to supply a number its author knew all
-  // along.
+  // deliberately captured anyway, because it belongs to whoever picked `model`,
+  // and a pack authored without it would have to be revisited to supply a number
+  // its author knew all along.
   contextWindow: number;
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
   // How readily this companion fills a silence, 1–5, as two separate appetites:
