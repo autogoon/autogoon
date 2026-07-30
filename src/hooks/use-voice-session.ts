@@ -548,9 +548,10 @@ export function useVoiceSession(opts: {
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
-        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool
-        // line, then the reaction. Returns false if the turn was
-        // aborted/superseded mid-play (the caller then bails).
+        // stages and metrics. A turn can call this several times: once for each
+        // tool round the companion opened with a line, then once for the reply
+        // that ends the turn. Returns false if the turn was aborted/superseded
+        // mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
           const ttsStart = performance.now();
           let ttsTtfbMs: number | null = null;
