@@ -243,8 +243,14 @@ export function createLlmClient(model: string): LlmClient {
     if (reasoning.length > 0) opts.onReasoning?.(reasoning);
     // A model that wrote its calls out as text made none through the API, so
     // these are additions rather than duplicates — but concatenate rather than
-    // replace, in case a turn manages one of each.
-    const recovered = parseTextualToolCalls(content);
+    // replace, in case a turn manages one of each. The parser numbers them from
+    // zero every time; they are stored in the thread and every later request
+    // replays it, so they are made unique here before anything sees them.
+    const stamp = Date.now();
+    const recovered = parseTextualToolCalls(content).map((c) => ({
+      ...c,
+      id: `${c.id}-${stamp}`,
+    }));
     const calls = [
       ...toolCalls.map(({ index: _index, ...c }) => c),
       ...recovered,

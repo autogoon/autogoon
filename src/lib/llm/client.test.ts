@@ -546,7 +546,12 @@ describe('createLlmClient', () => {
     );
     expect(tokens).toEqual(deltas);
     expect(seen[0]).toEqual([
-      { id: 'textual-0', name: 'send_media', arguments: '{"which":504}' },
+      {
+        // The parser's own numbering, stamped unique by the client.
+        id: expect.stringMatching(/^textual-0-\d+$/) as unknown as string,
+        name: 'send_media',
+        arguments: '{"which":504}',
+      },
     ]);
   });
 
@@ -579,7 +584,11 @@ describe('createLlmClient', () => {
     );
     expect(seen[0]).toEqual([
       { id: 'call_1', name: 'start', arguments: '{}' },
-      { id: 'textual-0', name: 'send_media', arguments: '{"which":504}' },
+      {
+        id: expect.stringMatching(/^textual-0-\d+$/) as unknown as string,
+        name: 'send_media',
+        arguments: '{"which":504}',
+      },
     ]);
   });
 
