@@ -7,7 +7,7 @@
 // reuses. No secret and no server-only imports live here.
 
 export const ACCESS_HEADER = 'x-access-id';
-export const ACCESS_STORAGE_KEY = 'companions:access-id';
+const ACCESS_STORAGE_KEY = 'companions:access-id';
 
 // Parse the comma-separated COMPANIONS_ACCESS_IDS env value into a clean list:
 // split on commas, trim, drop blanks. An empty result means NOTHING validates —
