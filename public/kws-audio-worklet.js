@@ -1,7 +1,6 @@
 // Audio capture worklet for keyword spotting. Runs on the audio thread,
 // accumulates the incoming mono signal into ~4096-sample chunks, and ships
-// each chunk to the main thread where vosk's recognizer consumes it. This
-// replaces the deprecated ScriptProcessorNode path.
+// each chunk to the main thread where vosk's recognizer consumes it.
 
 const CHUNK = 4096;
 

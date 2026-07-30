@@ -3,8 +3,8 @@
 // A plain <button> with an optional voice command, plus a "flash" highlight
 // that lights the control up from two triggers, one look: pressing it (the
 // browser's native :active state) and its voiceCommand word being recognised
-// by the keyword spotter. So a click and the spoken word look identical, and
-// every button flashes on press whether or not it has a voice command. The
+// by the keyword spotter. Every button flashes on press whether or not it has
+// a voice command. The
 // word shows as a chip in the corner — say it to trigger the button.
 //
 // Every button starts from the standard control style (CONTROL_BUTTON —

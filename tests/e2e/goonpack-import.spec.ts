@@ -11,10 +11,11 @@ const TINY_PNG = Buffer.from(
 const completePack = zipSync({
   'manifest.json': strToU8(
     JSON.stringify({
-      format: 2,
+      format: 1,
       id: 'e2e.testy',
       version: '1.0.0',
       aboutThePack: 'an e2e test pack',
+      mediaSummary: 'One test picture.',
       companion: {
         name: 'Testy',
         description: 'e2e import fixture',
@@ -25,12 +26,12 @@ const completePack = zipSync({
   ),
   'system-prompt.md': strToU8('You are Testy.\n{{OUTPUT_FORMAT_SECTION}}'),
   'media/one.png': new Uint8Array(TINY_PNG),
-  'media/one.txt': strToU8('a test picture'),
+  'media/one.md': strToU8(
+    '---\ncaption: "a test picture"\n---\n\nA test picture, described at length.\n',
+  ),
 });
 
-// A pack zip built to order. The version gate turns on three inputs: `format`
-// and `noPictures` in the manifest (parseManifest), and whether the tree holds
-// a pictures/ folder (parsePack).
+// A pack zip built to order: the manifest, a system prompt, and any media given.
 function packZip(
   manifest: Record<string, unknown>,
   media: Record<string, Uint8Array> = {},
@@ -43,15 +44,6 @@ function packZip(
     }),
   );
 }
-
-const v1Manifest = (extra: Record<string, unknown> = {}) => ({
-  format: 1,
-  id: 'e2e.oldpack',
-  version: '1.0.0',
-  aboutThePack: 'a format 1 pack',
-  companion: { name: 'Oldie', voiceId: 'v-e2e' },
-  ...extra,
-});
 
 const importErrors = (page: import('@playwright/test').Page) =>
   page.getByTestId('import-error');
@@ -114,7 +106,8 @@ async function installCompletePack(page: import('@playwright/test').Page) {
   ).toBeVisible();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   // The confirm sheet closes only after the store commit lands — wait for it,
-  // or its card and the new list row's coexist and the locators go strict.
+  // or its card and the new list row are both on screen and the locators go
+  // strict.
   await expect(
     page.getByRole('button', { name: 'Import', exact: true }),
   ).toHaveCount(0);
@@ -137,15 +130,16 @@ test('importing a pack puts its tree on disk and offers it on the chooser', asyn
       const root = await navigator.storage.getDirectory();
       const packs = await root.getDirectoryHandle('goonpacks');
       const dir = await packs.getDirectoryHandle('e2e.testy@1.0.0');
-      await dir.getFileHandle('.complete');
+      // The marker is a sibling of the tree, so it is the root that holds it.
+      await packs.getFileHandle('e2e.testy@1.0.0.complete');
       const media = await dir.getDirectoryHandle('media');
       const names: string[] = [];
       for await (const name of media.keys()) names.push(name);
       return names.sort();
     }),
-  ).toEqual(['one.png', 'one.txt']);
+  ).toEqual(['one.md', 'one.png']);
 
-  // Her card (a clickable div, not a button — the pickers live inside it)
+  // Testy's card (a clickable div, not a button — the pickers live inside it)
   // shows up on the Companions chooser, which watches the same one index this
   // screen just rebuilt.
   await page.getByRole('button', { name: 'Home' }).click();
@@ -182,63 +176,6 @@ test('removing a pack deletes its tree and its chooser card', async ({
   await expect(page.getByText('Testy', { exact: true })).toHaveCount(0);
 });
 
-test('a format 1 pack with no pictures/ folder imports as if it were format 2', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await skipWithoutOpfs(page);
-  await page.getByRole('button', { name: 'Goonpacks' }).click();
-
-  expect(await importZip(page, 'old-clean.zip', packZip(v1Manifest()))).toEqual(
-    [],
-  );
-  await expect(page.getByText('Oldie · complete companion')).toBeVisible();
-  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(true);
-});
-
-test('a format 1 pack that sets noPictures is refused from the manifest, before anything is extracted', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await skipWithoutOpfs(page);
-  await page.getByRole('button', { name: 'Goonpacks' }).click();
-
-  expect(
-    await importZip(
-      page,
-      'old-nopictures.zip',
-      packZip(v1Manifest({ base: 'autogoon.aimee', noPictures: true })),
-    ),
-  ).toEqual([
-    'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
-  ]);
-  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
-});
-
-test('a format 1 pack with a pictures/ folder extracts, fails validation, and deletes its own tree', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await skipWithoutOpfs(page);
-  await page.getByRole('button', { name: 'Goonpacks' }).click();
-
-  // The folder is only knowable from the tree, so this pack gets as far as
-  // being written to disk before anything can refuse it.
-  expect(
-    await importZip(
-      page,
-      'old-pictures.zip',
-      packZip(v1Manifest(), {
-        'pictures/one.png': new Uint8Array(TINY_PNG),
-        'pictures/one.txt': strToU8('a test picture'),
-      }),
-    ),
-  ).toEqual([
-    'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.',
-  ]);
-  expect(await treeExists(page, 'e2e.oldpack@1.0.0')).toBe(false);
-});
-
 test("a pack whose format is newer than the app's is refused outright", async ({
   page,
 }) => {
@@ -250,7 +187,13 @@ test("a pack whose format is newer than the app's is refused outright", async ({
     await importZip(
       page,
       'future.zip',
-      packZip({ ...v1Manifest(), format: 3 }),
+      packZip({
+        format: 2,
+        id: 'e2e.future',
+        version: '1.0.0',
+        aboutThePack: 'a pack from a later app',
+        companion: { name: 'Futurey', voiceId: 'v-e2e' },
+      }),
     ),
   ).toEqual(['This pack needs a newer version of the app.']);
 });

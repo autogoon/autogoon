@@ -1,8 +1,8 @@
 'use client';
 
 // Setup card: what `cumming` does. Tick any number of outcomes; the engine
-// picks one at random at the cumming point, so you never know which you'll
-// get. At least one must be ticked before Play (the panel gates on it). All
+// picks one at random at the cumming point. At least one must be ticked before
+// Play (the panel gates on it). All
 // but the wind-down ignore Stop once started — the safe word is the way out.
 
 import { RING } from '@/components/button';

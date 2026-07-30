@@ -7,16 +7,16 @@ const BUILT_IN = companionList[0]!.id;
 
 const manifest = (extra: object) =>
   JSON.stringify({
-    format: 2,
+    format: 1,
     version: '1.0.0',
     aboutThePack: 'a test pack',
     ...extra,
   });
 
 // A source over plain objects: key → { path → text }. `readText` covers
-// manifest.json, system-prompt.md and the caption sidecars — the only files
-// parsePack opens — so the .jpg/.mp4 entries carry empty text, and `mediaUrl`
-// stands in for reading their bytes.
+// manifest.json, system-prompt.md and the sidecars — the only files parsePack
+// opens — so the .jpg/.mp4 entries carry empty text, and `mediaUrl` stands in
+// for reading their bytes.
 function source(trees: Record<string, Record<string, string>>): LibrarySource {
   return {
     listKeys: () => Promise.resolve(Object.keys(trees)),
@@ -38,19 +38,35 @@ function source(trees: Record<string, Record<string, string>>): LibrarySource {
   };
 }
 
+// A sidecar as the describing script writes one: the caption quoted in
+// frontmatter, the long description as the body.
+const sidecar = (caption: string, description: string) =>
+  `---\ncaption: "${caption}"\n---\n\n${description}\n`;
+
 const completePack = (id: string) => ({
-  'manifest.json': manifest({ id, companion: { name: 'Testy', voiceId: 'v' } }),
+  'manifest.json': manifest({
+    id,
+    mediaSummary: 'A still and a video.',
+    companion: { name: 'Testy', voiceId: 'v' },
+  }),
   'system-prompt.md': 'You are Testy.',
   'media/a.jpg': '',
-  'media/a.txt': 'a still',
+  'media/a.md': sidecar('a still', 'a still, described at length'),
   'media/b.mp4': '',
+  'media/b.md': sidecar('a video', 'a video, described at length'),
 });
 
 const overlayPack = (id: string, base: string) => ({
-  'manifest.json': manifest({ id, base, companion: { voiceId: 'v2' } }),
+  'manifest.json': manifest({
+    id,
+    base,
+    mediaSummary: 'A still and a video.',
+    companion: { voiceId: 'v2' },
+  }),
   'media/a.jpg': '',
-  'media/a.txt': 'a still',
+  'media/a.md': sidecar('a still', 'a still, described at length'),
   'media/b.mp4': '',
+  'media/b.md': sidecar('a video', 'a video, described at length'),
 });
 
 describe('buildLibrary', () => {
@@ -90,7 +106,7 @@ describe('buildLibrary', () => {
       'goonpack:pub.comp@1.0.0/b',
     ]);
     expect(content.media[1]!.kind).toBe('video');
-    expect(content.media[0]!.description).toBe('a still');
+    expect(content.media[0]!.caption).toBe('a still');
   });
 
   it("leaves a media item's src unset until load() is called", async () => {
@@ -160,7 +176,7 @@ describe('buildLibrary', () => {
     );
     expect(lib.rows[0]!.peek).toEqual({ name: 'Broken', version: '1.0.0' });
     expect(lib.rows[0]!.incompatible).toEqual([
-      'manifest.json is missing the format field — add "format": 2.',
+      'manifest.json is missing the format field — add "format": 1.',
     ]);
   });
 
@@ -384,7 +400,13 @@ describe('carryMediaOver', () => {
     const before = await buildLibrary(twoPacks());
     await loadAll(before);
 
-    const { 'media/b.mp4': _gone, ...trimmed } = completePack('pub.a');
+    // The sidecar goes with the media file: one without the other is a pack
+    // parsePack refuses, which is a different test from this one.
+    const {
+      'media/b.mp4': _gone,
+      'media/b.md': _goneSidecar,
+      ...trimmed
+    } = completePack('pub.a');
     const after = await buildLibrary(
       source({ 'pub.a@1.0.0': trimmed, 'pub.b@1.0.0': completePack('pub.b') }),
     );

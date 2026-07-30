@@ -1,8 +1,8 @@
 'use client';
 
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
-// valves directly (voice "up"/"down" does the same, see useStrokeControls, and
-// highlights the matching button). Genuinely shared by every play mode panel —
+// valves (voice "up"/"down" does the same, see useStrokeControls, and
+// highlights the matching button). Shared by every play mode panel —
 // the stroke buttons operate on the device layer regardless of which play mode is
 // running. Finish/cumming are play-mode-specific, so each panel renders its own.
 
@@ -17,7 +17,7 @@ export function StrokeCard({
   onError,
   voice = true,
 }: {
-  // Manual stroke is valid whenever a device is connected.
+  // From useStrokeControls.canStroke, which owns when a stroke is possible.
   strokeDisabled: boolean;
   strokePulsing: 'plus' | 'minus' | null;
   onValvePlus: (state: boolean) => Promise<unknown>;

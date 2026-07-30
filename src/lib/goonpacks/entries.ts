@@ -21,6 +21,10 @@ const totalMedia = (c: MediaCount): number => c.images + c.videos;
 
 // The one tally of a media list, wherever the list comes from: a parsed tree,
 // a built-in companion's own media, or the authoring build script's pack.
+//
+// A media list only ever holds valid media (ParsedMedia in pack.ts), so this
+// counts what it is given. A pack still being described therefore climbs
+// towards its file count as the sidecars are written.
 export const countMedia = (
   media: readonly { kind: MediaKind }[],
 ): MediaCount => ({

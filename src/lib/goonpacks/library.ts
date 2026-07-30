@@ -4,6 +4,12 @@
 // screen as incompatible — with the reason — and is offered nowhere. An
 // incompatible pack heals on a later load (e.g. its base gets imported).
 //
+// Indexing runs parsePack, so the checks are exactly the ones the build runs
+// over a pack's source: an item is in the index only if its file format is
+// supported AND its sidecar is valid. What the index holds is therefore valid
+// media and nothing else, and every count and every set taken from it says the
+// same thing without re-testing anything.
+//
 // The source is injected so this whole pass is testable without OPFS; the app
 // passes the OPFS-backed one from store.ts.
 import { COMPANIONS, type CompanionMedia } from '@/lib/companions/companions';
@@ -95,6 +101,7 @@ function mediaEntry(
   let pending: Promise<string> | null = null;
   const entry: CompanionMedia = {
     kind: m.kind,
+    caption: m.caption,
     description: m.description,
     // Stable thread reference: object URLs die with the session, so the thread
     // persists this ref and rendering resolves it.
@@ -149,7 +156,7 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
       try {
         peek = peekManifest(await tree.readText(MANIFEST));
       } catch {
-        // a tree we can't even read a manifest out of describes itself as nothing
+        // a tree whose manifest won't read leaves the peek empty
       }
       bad.push({
         id: key,
@@ -220,9 +227,11 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
 // still installed and untouched keeps its very entry objects, URLs and all: a
 // Companion resolved before the rebuild — and everything already sent in the
 // thread — holds those objects, and revoking their URLs would break media that
-// is on screen. Only what the new index doesn't adopt is revoked: packs that
-// were removed, packs whose tree an import just replaced (`replaced`), and
-// individual files that have gone from a carried-over pack.
+// is on screen. Only what the new index doesn't adopt is revoked:
+//
+// - packs that were removed;
+// - packs whose tree an import just replaced (`replaced`);
+// - individual files that have gone from a carried-over pack.
 //
 // Still INSTALLED, note, not still offered: a pack can drop out of `content`
 // by turning incompatible (its base was removed) while its media is on screen

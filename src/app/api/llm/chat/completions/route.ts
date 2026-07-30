@@ -1,5 +1,6 @@
 // Proxy for the companion's LLM. The browser's openai SDK POSTs here (same-origin,
-// so no CORS juggling); we inject the OpenRouter API key server-side (it never
+// so no CORS headers or preflight); we inject the OpenRouter API key
+// server-side (it never
 // reaches the browser bundle) and stream OpenRouter's SSE response straight back.
 // The MODEL is chosen per-companion by the client and is NOT overridden here — a
 // multi-companion picker with differing models needs the client to name the model
@@ -7,7 +8,7 @@
 // forwarded upstream, so a client abort (barge-in / Stop) tears down generation.
 // Gated by the Companion access ID (checkAccess — open on the dev server,
 // fail-closed everywhere else), so a shared demo can't have this paid key
-// hammered by anyone with the URL.
+// spent by anyone with the URL.
 import { checkAccess } from '@/lib/companions/access-check';
 
 export const runtime = 'nodejs';

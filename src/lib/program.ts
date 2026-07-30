@@ -55,8 +55,8 @@ export interface UpcomingWindow {
   valves: ValveMarker[];
 }
 
-// The Player's transport state — the single source of truth the hooks, runner
-// and panels all read. "armed" = a program is built and previewed but the tick
+// The Player's transport state — the single source of truth the hooks and
+// panels all read. "armed" = a program is built and previewed but the tick
 // loop is not running; "paused" = halted with position held (Start resumes).
 export type PlayerState = 'armed' | 'playing' | 'paused';
 

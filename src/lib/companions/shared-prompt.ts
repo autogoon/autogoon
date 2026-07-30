@@ -8,11 +8,11 @@
 
 // The hard rule that every reply is only spoken words — no narration or stage
 // direction. Persona-neutral: it names no character and prescribes no tone, and
-// it holds whether the call is voice- or video-only, because either way the
+// it holds whether or not the session shows video, because either way the
 // only thing the model produces is what the companion says. It bans
 // stage-direction (describing yourself from the outside) but explicitly allows
 // candid spoken talk — a companion telling him out loud what they're doing is
-// speech, not narration, and stays in bounds. It ends with the rule and no
+// speech, not narration. It ends with the rule and no
 // trailing newline: each persona appends its OWN WRONG/RIGHT examples in its
 // own voice, so the illustrations don't drag every companion toward one tone.
 export const OUTPUT_FORMAT_SECTION = `OUTPUT FORMAT — THIS IS THE MOST IMPORTANT RULE:
@@ -44,7 +44,7 @@ export const SHARED_STYLE_BULLETS = `- Convey everything — mood, reactions, te
 // A one-bullet summary of the two knobs — intensity and variety — in plain,
 // in-character language, for a persona to drop into its INTIMACY section so the
 // vocabulary is introduced before its disposition bullets lean on it. Distinct
-// from CONTROL_SECTION below: this is the in-scene framing ("the user has a toy
+// from CONTROL_SECTION: this is the in-scene framing ("the user has a toy
 // you can control"), that is the mechanical discipline (use the tool, trust TOY
 // STATUS). Persona-neutral, starts with "- " and no trailing newline so it sits
 // among the other INTIMACY bullets.
@@ -53,23 +53,36 @@ export const CONTROL_SUMMARY_SECTION = `- The user has a toy you can control. **
   teases** him (mixing up the pace, easing off into slow dips before climbing
   again) from off through low, medium, high.`;
 
-// The media ability, for a companion who can send photos or videos of
-// themselves. Shared and persona-neutral so any companion can opt in, but only
-// interpolated into the prompt of one who actually has media. They send it by
-// calling the send_media tool, whose schema lists what they have and what each
-// one shows, so this block only has to tell them the ability exists and when
-// to reach for it. Starts with a header and ends with no trailing newline, so
-// the persona prompt's own blank line is the only gap between it and whatever
-// it places next.
-export const MEDIA_SECTION = `PICTURES AND VIDEOS:
+// The media ability, for a companion who can send pictures or videos of
+// themselves. Shared and persona-neutral so any companion can opt in, and
+// filled once at load with their pack's own summary of the set — the tool
+// schemas don't list what they have, so this is where they learn what there is
+// to ask for. No summary means no media, and the block says so outright
+// rather than being dropped: a persona prompt whose own character text mentions
+// photos would otherwise go unanswered, and a promised picture that never
+// arrives is the worst of the failures here. Both forms start with the header
+// and end with no trailing newline, so the persona prompt's own blank line is
+// the only gap between the block and whatever it places next.
+export const mediaSection = (summary: string | undefined): string =>
+  summary === undefined
+    ? `PICTURES AND VIDEOS:
+- You have no pictures or video available to send — there is nothing you can
+  show him on this call. If he asks for one, tell him you haven't got any,
+  rather than promising one that will never arrive.`
+    : `PICTURES AND VIDEOS:
 - You can send him a picture or a short video of yourself, right there in the
-  call, with the send_media tool. It lists what you have, each one marked
-  picture or video and what it shows — pick the one that fits the moment and
-  send it.
+  call. Here is what you have:
+
+${summary}
+
+- To send one, first call search_media with a description of what you want —
+  "me on my knees looking up", "something on a beach" — and pass kind if you
+  mean only a picture or only a video. It hands back matches, each with a ref.
+  Then call send_media with one of those refs.
 - Sending it is calling the tool — saying "here, look at this" in words does
-  nothing on its own. So when you want him to see you, USE THE TOOL. Right
-  after, you'll be told it sent, and THEN you say something about it — teasing,
-  shy, telling him to look.
+  nothing on its own. So when you want him to see you, USE THE TOOL.
+- If nothing matches, you'll be told so. Ask for something else rather than
+  talking about a picture that never arrived.
 - Send one when it fits and feels natural — when he asks to see you, or when you
   want to show off for him — not constantly. You love showing him your body
   because you know how much he loves it, so lean into that when you do.`;
@@ -82,7 +95,7 @@ export const MEDIA_SECTION = `PICTURES AND VIDEOS:
 // it only hands the model two contradictory instructions. Who leads the
 // encounter is the persona's, in its INTIMACY section; who drives the toy is
 // not. It talks about the TOY STATUS line, which arrives separately
-// (liveStateMessage below) — every value here is fixed, so a prompt built from
+// (liveStateMessage) — every value here is fixed, so a prompt built from
 // it is byte-identical turn to turn.
 //
 // THE TOY opens it rather than being its own export because every prompt
@@ -196,9 +209,9 @@ export const TIME_SECTION = `TIME:
 
 // The two values that change every turn, as their own system message at the end
 // of a request rather than inside the persona prompt. Prompt caching matches a
-// prefix of tokens: with these at the foot of the first message, the request
-// diverged from the last one within a few hundred tokens of its start, so
-// nothing after them — including the whole conversation — could ever be reused.
+// prefix of tokens: with these inside the persona prompt, a request would
+// diverge from the last one within a few hundred tokens of its start, so
+// nothing after them — including the whole conversation — could be reused.
 // Last means everything before is byte-identical turn to turn.
 //
 // TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY

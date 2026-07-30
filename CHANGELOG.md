@@ -1,5 +1,109 @@
 # Changelog
 
+## 2026-07-30
+
+- internal: **One sentence shape repeated is a style fault** — A claim, a gloss
+  on a dash or colon, then a consequence on `so…`, used for every sentence down
+  a page, reads as talk however well each sentence stands alone. Written into
+  [CLAUDE.md](./CLAUDE.md), enforced by a `/style-check` pass that counts glosses
+  and consequence tails across a whole document instead of reading sentence by
+  sentence, and applied to the user-facing and developer docs, the roadmap
+  threads and TODO.md.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+## 2026-07-29
+
+- enhancement: **Describe a pack's pictures in random order** —
+  `npm run goonpack:describe-missing` took pictures in filename order, which is
+  shoot order, so a run stopped part-way through had described one shoot and
+  left the rest untouched. It now shuffles, so a part-described pack is a spread
+  of the whole set. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- bug: **Finish leaves your Autopilot settings alone** — Pressing Finish used to
+  snap Intensity to High, Edge Control to Moderate and Vacuum Maintenance to
+  Off. It now pushes to full speed and closes the valves without touching what
+  you had set. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+## 2026-07-28
+
+- feature: **Companions find a picture instead of picking one** — A companion
+  used to pick from a numbered list of everything they had, which stops working
+  past a few dozen. They now describe what they want in their own words and send
+  one of the matches, never the same picture twice in a conversation. Each
+  picture carries a caption and a fuller description in a `.md` sidecar beside
+  it, and a pack carries a summary of the whole set.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- enhancement: **A companion can do two things in one turn** — A tool call used
+  to be the only one a companion got per turn: whatever they did next had to
+  wait for the turn after it. They can now carry on — find a picture and send it
+  in the same breath, or move the intensity and the variety together — and the
+  turn ends when they have something to say about what they did.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- enhancement: **Work on one pack instead of all of them** —
+  `npm run goonpack:describe-missing`, `npm run goonpack:summarise` and
+  `npm run goonpack:build` all take a pack directory now, so a change to one
+  pack doesn't mean waiting for every other — and the three run in that order
+  to take a new pack from pictures to a built zip.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- enhancement: **A built pack is the directory you built it from** —
+  `npm run goonpack:build` now zips every file in the pack source, compressed
+  the way a zip tool would compress it, so building a pack and zipping the
+  folder yourself produce the same archive. It also says which media files still
+  have no sidecar instead of building silently over them, naming the first few
+  and counting the rest. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- bug: **Stroke is only offered when it can do something** — The Stroke buttons
+  and the "up"/"down" words were live whenever a device was connected, but the
+  stroke valves only move the device while it is running, so using them with
+  nothing playing did nothing at all. They now stay out until a session is
+  playing. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- bug: **A session runs to the length it says** — Program time ran slow by
+  however long the device took to answer each command, so a 30-minute Goon build
+  took nearer 36 minutes and the preview labelled "+60s" covered longer than a
+  minute. A manual stroke pulse was short by the same margin.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- bug: **The microphone is handed back when listening fails to start** — If the
+  app got the microphone but couldn't bring up the rest of the listening
+  pipeline, it kept the microphone anyway: the browser's recording indicator
+  stayed lit with nothing being heard, and every retry took another one. It now
+  releases the microphone before reporting the failure.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **A thread that fails to save says so** — Writing a companion's
+  conversation to browser storage can fail, most likely on a long thread passing
+  the storage quota, and the error was discarded. Nothing went wrong until the
+  next load found the conversation rewound to the last version that fit. The
+  failure now appears in the Companions debug log as it happens.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **The install marker moved out of the pack** — The file marking an
+  extracted tree complete was written inside the pack's own directory, so
+  validation had to be told to ignore it and extraction had to refuse a zip
+  entry that would forge it. It is now a sibling of the directory, which drops
+  both special cases and makes the tree an import validates the same set of
+  names the zip carried. A re-import clears the previous marker before it starts
+  writing, since removing the tree no longer takes it.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **One writer for the sidecar format** — The describing scripts wrote
+  a sidecar's frontmatter themselves, since a `.mjs` can't import the app's
+  format module, leaving a second implementation nothing tested. They are
+  TypeScript run through `tsx` now, like the build and summarise scripts, and
+  call the same `renderSidecar` the round-trip test covers — so the writer and
+  the validator can't drift, and both scripts are typechecked and linted with
+  everything else. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **Ending a voice session cancels a connect in flight** — Stopping a
+  Companions session while its speech-to-text socket was still being opened
+  could not stop it: the token request was already away, and the socket came up
+  after teardown with nothing owning it. The connect is now abandoned when the
+  token arrives. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 ## 2026-07-27
 
 - enhancement: **See how much of the prompt was cached** — The debug tab now
@@ -26,6 +130,22 @@
   placeholder now stays in the prompt exactly as typed.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
+- bug: **Building a pack could silently drop its media** — A folder inside
+  `media/` stopped the build collecting files, and depending on its name that
+  could mean losing every picture in the pack. The build reported success and
+  wrote the pack anyway, so the first sign of it was a companion with nothing to
+  send. Building now refuses a pack that holds anything a pack can't hold,
+  naming the file. ([#25](https://github.com/autogoon/autogoon/pull/25))
+
+- internal: **One pack format, and one tree** — `goonpack:build` hand-picked the
+  files it fed the validator, so the validator judged a different tree from the
+  one that shipped; it now walks the source, validates that, and zips what it
+  validated, with `parsePack` refusing any path that isn't the manifest, the
+  prompt or something under `media/`. The two accepted pack-format versions
+  become one, numbered `1`: the compatibility path for the older layout is gone
+  along with the bespoke check that stood in for the validator not seeing it.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
+
 - internal: **Split the developer docs by task** — DEVELOPERS.md separates
   running the app from changing it, so someone who only wants to run Autogoon
   isn't handed the requirements for working on it.
@@ -49,6 +169,17 @@
   `model` field gains a note that refusal behaviour and reliable tool-calling
   belong to the model, not the prompt.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
+
+- internal: **Settle how a companion will find a picture** — The replacement for
+  picking media by number from the tool schema:
+  two texts per item in a `.md` sidecar, a summary of the set in the manifest,
+  and two tools in place of one — `search_media` returning a bounded set of refs
+  and captions, `send_media` sending one by ref. The questions it deliberately
+  leaves open — what a description should contain, which model writes it, how
+  the search ranks, what the summary says — move into
+  [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), since none of
+  them can be measured until the plumbing exists.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 ## 2026-07-26
 
@@ -92,23 +223,9 @@
   they can't drift, and all three decisions have tests.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
-- internal: **Tests that can actually fail** — Reviewed every unit test file and
-  every Playwright spec against the code they test, mutation-testing each claim.
-  Tests that passed with the behaviour they named broken are gone — replaced by
-  real ones where the contract mattered. The two
-  engine `reset()` tests and the VAD debounce test asserted only that output was
-  non-empty, `library.test.ts` called `rows.every(...)` over arrays a defect
-  empties, `stt-token`'s expectation restated its own fixture, and the voice e2e
-  spec had matched no element since card titles became spans. Comments asserting
-  behaviour the code does not have were corrected throughout, including two in
-  `extract.test.ts`. Contracts that had no test now have one: `mediaRef` —
-  including that `toLlmMessages` never sends it to the model — the Player's
-  one-engine-at-a-time invariant, a rejected access id on each paid route, the
-  `internal` changelog tag, safe words outside a–z, the `PackError` name a
-  storage failure has to keep to avoid being reported as a bad zip, that asking
-  the browser for persistent storage never waits on the permission prompt
-  Firefox raises, and that a pack imported while a removal is still rebuilding
-  the library survives it.
+- internal: **Tests that can actually fail** — Tests that passed with the
+  behaviour they named broken are gone, replaced by real ones where the contract
+  mattered, and contracts that had no test now have one.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 - internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
@@ -137,7 +254,8 @@
   commentary once things are underway.
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
-- enhancement: **Companions know when the call has turned** — Every persona
+- enhancement: **Companions know when the conversation has turned** — Every
+  persona
   described the moment it stops being a chat and becomes something else in terms
   only they could judge — "once things heat up", "once there's a spark", "once
   he's got you going". Nothing said what that meant, so when a companion dropped
@@ -175,9 +293,9 @@
   ([#23](https://github.com/autogoon/autogoon/pull/23))
 
 - enhancement: **The message box shimmers while you speak** — The same shimmer
-  that marks the message she's saying aloud now rings the message box while
-  she's listening to you, so both halves of the conversation show whose turn is
-  live in the same way. It appears the moment you start talking, not when the
+  that marks the message they're saying aloud now rings the message box while
+  they're listening to you, so both halves of the conversation show whose turn
+  is live in the same way. It appears the moment you start talking, not when the
   transcript catches up.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
@@ -188,19 +306,19 @@
   or you've actually stopped.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- enhancement: **Quicker to interrupt her** — The app no longer drops the speech
-  connection a few seconds after you stop talking, so interrupting her shortly
-  after she starts replying doesn't wait for a new connection to be set up
-  first. Your microphone audio is only sent while you're actually saying
+- enhancement: **Quicker to interrupt a companion** — The app no longer drops
+  the speech connection a few seconds after you stop talking, so interrupting
+  them shortly after they start replying doesn't wait for a new connection to be
+  set up first. Your microphone audio is only sent while you're actually saying
   something, so holding the line open costs nothing. The transcription service
   still closes an unused connection after a while of its own accord, so a very
   late interruption reconnects as before.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- enhancement: **The message she's speaking shimmers** — Instead of a separate
-  "Loading voice" and "Speaking" row in the conversation, her message itself now
-  carries a slow shimmer around its edge: faint and unhurried while her voice
-  loads, brighter and quicker once she's actually saying the words. The message
+- enhancement: **The message being spoken shimmers** — Instead of a separate
+  "Loading voice" and "Speaking" row in the conversation, the message itself now
+  carries a slow shimmer around its edge: faint and unhurried while the voice
+  loads, brighter and quicker once the words are being said. The message
   being spoken is the thing you're reading, so it's the thing that's marked.
   Listening, Thinking and Replying keep their own row — there's no message on
   screen yet for those. Over an open picture, the corner badge still names every
@@ -210,8 +328,8 @@
 - enhancement: **Companions reply faster** — Every companion's model now routes
   by throughput (OpenRouter's `:nitro`) instead of the default price-weighted
   load balancing, which had been spreading requests across providers regardless
-  of speed. Her reply is spoken, so the wait before she starts talking is what
-  the conversation actually feels like.
+  of speed. A companion's reply is spoken, so the wait before they start talking
+  is what the conversation actually feels like.
   ([#21](https://github.com/autogoon/autogoon/pull/21))
 
 - bug: **A companion won't start the toy on you** — Starting it now needs your
@@ -244,8 +362,8 @@
   came back, by which point you had usually stopped. A transcript is now
   believed on the evidence of the speech that produced it — how long you were
   audible for, or simply carrying more than one word — so it shows up as you
-  talk. Interrupting her works on short interjections too, which previously
-  couldn't cut her off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
+  talk. Interrupting a companion works on short interjections too, which
+  previously couldn't cut them off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - internal: **The request is shaped so it can be cached** — The clock and the
   toy's status now ride their own system message at the end of each LLM
@@ -295,7 +413,7 @@
   colour of one you have. A Goonpacks tab (say `packs`) manages the library —
   import with a confirm step, see what every pack brings, remove per version —
   and versions of a pack install side by side. Companion cards gain pack
-  pickers: her version and an overlay, newest first and remembered per
+  pickers: their version and an overlay, newest first and remembered per
   companion. Every load re-checks stored packs against the current rules; one
   that fails lists as incompatible with plain-English reasons instead of
   half-working. Packs cache in browser storage with your zip as the source of
@@ -303,8 +421,8 @@
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 - enhancement: **Better picture captions** — The captioning scripts now have the
-  vision model observe a picture out loud — what her weight is on, where the
-  knees and heels are, how each garment sits — before condensing that into the
+  vision model observe a picture out loud — where the weight is, where the knees
+  and heels are, how each garment sits — before condensing that into the
   one-line caption, with explicit tests for the poses models confuse (sitting
   versus kneeling versus squatting), and a check that stops a close-fitting
   opaque garment being read as see-through. Both `npm run goonpack:describe` and
@@ -312,7 +430,7 @@
   and (in iTerm2) show the picture itself under its caption at the size the
   model saw it — so you can watch a run go past and judge each caption against
   what it describes. The caption itself now has to carry the setting, the
-  garments, her hair and what's actually on show — down to what's only faintly
+  garments, the hair and what's actually on show — down to what's only faintly
   visible, stated as precisely as the model saw it — and leaves mood out. The
   `DESCRIBE_MODEL` environment variable is now just `MODEL`.
   ([#20](https://github.com/autogoon/autogoon/pull/20))
@@ -340,7 +458,7 @@
 
 - enhancement: **Live voice-stage indicators** — The conversation now shows
   what's happening as it happens: you speaking, the companion thinking, the
-  reply streaming in, her voice loading, and her speaking. In the chat it's a
+  reply streaming in, their voice loading, and them speaking. In the chat it's a
   typing-indicator-style bubble on the talker's side; over an open picture it's
   a chunky badge in the lightbox's top corner. Icons pulse, the words shimmer,
   and both disappear when nothing is going on.
@@ -410,8 +528,9 @@
 ## 2026-07-23
 
 - feature: **Companions notice time passing** — A companion now knows the real
-  date and time on every turn, and when you step away — an hour, overnight — she
-  comes back aware of how long you were gone instead of resuming mid-sentence.
+  date and time on every turn, and when you step away — an hour, overnight —
+  they come back aware of how long you were gone instead of resuming
+  mid-sentence.
   The conversation shows each message's time and a date line where a new day
   starts. Conversations saved before this update have no times on their older
   messages. ([#17](https://github.com/autogoon/autogoon/pull/17))
@@ -445,8 +564,8 @@
   ([#17](https://github.com/autogoon/autogoon/pull/17))
 
 - internal: **Caption images with their colours** — `npm run describe` now asks
-  the vision model for the specific colours of what she's wearing, so a caption
-  is precise enough to pick by when you ask for a particular outfit.
+  the vision model for the specific colours of the clothing in the picture, so a
+  caption is precise enough to pick by when you ask for a particular outfit.
   ([#16](https://github.com/autogoon/autogoon/pull/16))
 
 - internal: **Keep Claude session links out of commits** — Project settings now
@@ -485,8 +604,8 @@
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 - feature: **Companions can send you pictures** — During play, a companion with
-  pictures can send you a photo of herself, choosing one that fits the moment —
-  ask her for a particular pose and she'll pick accordingly. It opens filling
+  pictures can send you a photo of themselves, choosing one that fits the moment
+  — ask for a particular pose and they'll pick accordingly. It opens filling
   the screen in a lightbox (tap the backdrop, ✕ or Escape to close), and stays
   in your conversation as a thumbnail you can tap to reopen; send another while
   the lightbox is open and it swaps to the newest.
@@ -495,7 +614,8 @@
 - enhancement: **Companions run a Groove program** — The companion now drives a
   smooth Groove-style program (the same dip pattern the Groove and Goon
   algorithms use) instead of the old Autopilot-style one, and you steer it
-  through two controls she can also turn herself: Intensity (how hard and fast,
+  through two controls they can also turn themselves: Intensity (how hard and
+  fast,
   0–100%) and Variety (how much it teases and mixes up the pace). The old edge
   and vacuum controls are gone.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
@@ -512,7 +632,7 @@
   opens at the bottom, showing your most recent exchange.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Add `npm run describe` / `describe:missing`** — Caption a single
+- internal: **Add the describe scripts** — Caption a single
   companion image, or every image that's still missing a description, with a
   vision model (Qwen3-VL on OpenRouter by default, `DESCRIBE_MODEL` to
   override), writing the sidecar `.txt` the picture glob reads.

@@ -97,10 +97,9 @@ export function Card({
       .join(' '),
   );
 
-  // The top-right cluster: controls first, the voice chip rightmost. Floated
-  // (not absolute) so it never stretches the title line, yet the card still
-  // grows to contain a tall control — the flow-root wrapper in `core` makes
-  // the float count toward the card's height, and text wraps around it.
+  // The top-right cluster: controls first, the voice chip rightmost. The
+  // flow-root wrapper in `core` is what makes the float count toward the card's
+  // height.
   const corner = (action !== undefined || voiceCommand !== undefined) && (
     <span
       className="float-right mb-1 ml-4 flex items-center gap-2"

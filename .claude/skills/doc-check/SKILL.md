@@ -14,15 +14,14 @@ it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
 What this check must not miss has a right answer in another file: a path that no
 longer resolves, an identifier that was renamed, a claim the code stopped
-supporting. How a sentence is _written_ is another check's subject — a document
-can pass this one and still be badly written.
+supporting. How a sentence is _written_ is another check's subject.
 
 ## Scope
 
 - **Default: the branch.** `git diff main...HEAD --name-only` plus the
   identifiers the diff renamed, removed, or added. Then find every doc that
   mentions any of them. The documents are the ones classed in
-  [The document set](#the-document-set) below.
+  [The document set](#the-document-set).
 - **Code comments are docs too.** **Every comment the diff touched is in
   scope**, whatever file it sits in: if the branch wrote or edited it, read it
   as a doc — what it names, and whether it still describes the repo around it.
@@ -36,26 +35,31 @@ can pass this one and still be badly written.
 
 ## The document set
 
-A document's class and audience decide how it is read:
+A document's class and audience decide how it is read. Which documents are
+user-facing, and which files future work may live in, are
+[CLAUDE.md](../../../CLAUDE.md) → Documentation's to say; the table restates
+them so the set is scannable, and follows that file when it changes:
 
-|                                           | class         | audience  |
-| ----------------------------------------- | ------------- | --------- |
-| README.md, MODES.md, `modes/*.md`         | current-state | user      |
-| ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md | current-state | developer |
-| GOONPACKS.md, CHANGELOG.md                | current-state | both      |
-| `.env.example`                            | current-state | developer |
-| `.claude/skills/*/SKILL.md`               | current-state | developer |
-| TODO.md, ROADMAP.md, `roadmap/*.md`       | future        | developer |
-| dated plans and specs under `docs/`       | future        | developer |
+|                                             | class         | audience  |
+| ------------------------------------------- | ------------- | --------- |
+| README.md, MODES.md, `modes/*.md`           | current-state | user      |
+| ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md   | current-state | developer |
+| GOONPACKS.md, CHANGELOG.md                  | current-state | both      |
+| `.env.example`                              | current-state | developer |
+| `.claude/skills/*/SKILL.md`                 | current-state | developer |
+| TODO.md, BUG.md, ROADMAP.md, `roadmap/*.md` | future        | developer |
+| dated plans and specs under `docs/`         | future        | developer |
 
 `.env.example`'s comments are the documented env contract.
 
-**Current-state** docs describe only what is implemented today. **Future** docs
-describe intent and churn as plans change: check only the claims they make about
-the _current_ code ("Groove's floor is fixed at 60"), never flag an unbuilt
-idea.
+**Current-state** and **future** docs are distinguished in
+[CLAUDE.md](../../../CLAUDE.md) → Documentation. In a future doc, check only the
+claims it makes about the _current_ code ("Groove's floor is fixed at 60"),
+never flag an unbuilt idea.
 
-`modes/AUTOPILOT.md`'s constants must match `autopilot-engine.ts` exactly.
+`modes/AUTOPILOT.md` records an algorithm this repo does not own —
+[CLAUDE.md](../../../CLAUDE.md) → Documentation says what settles a disagreement
+between it and the code.
 
 ## What to check, per doc
 
@@ -63,8 +67,7 @@ idea.
 is a check.** Read them there. They are not repeated here, so a rule added to
 either is checked without this file changing.
 
-Plus these, which answer to no rule: verifications nothing in CLAUDE.md would
-tell you to perform.
+Plus these:
 
 1. **Paths and links** — every file path, markdown link and heading anchor
    resolves.
@@ -74,11 +77,9 @@ tell you to perform.
    `package.json`.
 4. **Env vars** — names and semantics match `.env.example`.
 5. **Enumerations** — for any list of modes, tools, tabs, knobs, words, globs or
-   config values, ask in this order: should it exist, and only then, is it
-   complete? A list copied out of a source file is a finding whether or not it
-   is currently accurate — checking it for completeness passes the copy and
-   misses the defect. A list the reader is the audience for stays, and is
-   checked against the code for entries added since it was written.
+   config values, ask in this order: should it exist at all (CLAUDE.md →
+   Documentation), and only then, is it complete? Asking only about completeness
+   passes a copy and misses the defect.
 6. **Behavioural claims** — read the referenced code and confirm the sentence is
    still true.
 
@@ -92,8 +93,8 @@ serious first. Then:
 - **Ask first:** restructuring a doc (converting duplicated detail to pointers)
   — that changes the doc's shape, not just its accuracy.
 
-Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
-workflow.
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
 Run `npm run format` after edits. A clean run reports "no drift found" — don't
 invent findings to seem useful.

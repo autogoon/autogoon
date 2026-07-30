@@ -1,6 +1,6 @@
 // Goonpack manifest: parsing + validation. Pure — no React, no browser APIs.
-// The manifest is the identity/config half of a pack (see
-// docs/superpowers/specs/2026-07-23-goonpacks-design.md for the format).
+// The manifest is the identity/config half of a pack; GOONPACKS.md documents
+// every field for a pack author.
 
 // Terse, user-facing import errors — every message here can surface in the UI.
 // Validation collects everything wrong with a pack, not just the first hit:
@@ -47,12 +47,7 @@ const ACCENT_COLOURS = new Set([
 const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
-export const PACK_FORMAT = 2;
-
-// Formats 1 and 2 differ only in the media folder's name and noPictures, so
-// this is what "written for the old format" concretely means.
-export const OLD_LAYOUT_PROBLEM =
-  'This pack uses the old pictures/ layout — rebuild it with a media/ folder and "format": 2.';
+export const PACK_FORMAT = 1;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
@@ -61,6 +56,7 @@ const TOP_FIELDS = new Set([
   'version',
   'base',
   'aboutThePack',
+  'mediaSummary',
   'noMedia',
   'companion',
 ]);
@@ -103,6 +99,11 @@ export type PackManifest = {
   // What the pack adds or changes — about the PACK, not the companion
   // (that's `companion.description`).
   aboutThePack: string;
+  // What the pack's media set contains, as one opaque block of text shown to
+  // the companion instead of a list of items. Generated from the pack's own
+  // sidecars (npm run goonpack:summarise); what it should say belongs to
+  // roadmap/INFERENCE-LIBRARY.md, so nothing here reads into it.
+  mediaSummary?: string;
   // Overlay only: the resolved variant has NO media, deliberately — distinct
   // from omitting media/, which keeps the base's set.
   noMedia?: boolean;
@@ -126,22 +127,16 @@ export function parseManifest(raw: unknown): PackManifest {
   // field rules may not apply, so any further "problems" could be junk.
   if (typeof m.format !== 'number') {
     throw new PackError(
-      'manifest.json is missing the format field — add "format": 2.',
+      'manifest.json is missing the format field — add "format": 1.',
     );
   }
   if (m.format > PACK_FORMAT) {
     throw new PackError('This pack needs a newer version of the app.');
   }
-  if (m.format !== PACK_FORMAT && m.format !== 1) {
+  if (m.format !== PACK_FORMAT) {
     throw new PackError(
       "This pack uses a format version this app doesn't recognise.",
     );
-  }
-  // A format 1 pack that used noPictures is genuinely written to the old
-  // format; one that didn't may still be a format 2 pack in every respect,
-  // which only the tree can say — parsePack finishes the judgement.
-  if (m.format === 1 && m.noPictures !== undefined) {
-    throw new PackError(OLD_LAYOUT_PROBLEM);
   }
 
   const problems: string[] = [];
@@ -176,6 +171,7 @@ export function parseManifest(raw: unknown): PackManifest {
   } else if (typeof m.aboutThePack !== 'string') {
     problems.push('The aboutThePack field must be text.');
   }
+  const mediaSummary = optionalString(m.mediaSummary, 'mediaSummary');
   if (m.base !== undefined) {
     if (typeof m.base !== 'string' || !PACK_ID_RE.test(m.base)) {
       problems.push(
@@ -284,6 +280,7 @@ export function parseManifest(raw: unknown): PackManifest {
     version: m.version as string,
     base: m.base as string | undefined,
     aboutThePack: m.aboutThePack as string,
+    mediaSummary,
     noMedia: m.noMedia as boolean | undefined,
     companion: {
       name,

@@ -1,15 +1,11 @@
-// CompanionEngine — the motion backbone for the Companions play mode. A faithful,
-// self-contained port of GrooveEngine's dip generation (PEAK -> floor -> PEAK,
-// with a live Speed% magnitude knob and timing/dip Variability shape knobs),
-// duplicated rather than imported because engines don't import each other (see
-// ARCHITECTURE.md; Goon duplicates Groove for the same reason). One companion-only
-// addition over Groove: a one-shot stroke-minus tease held at session start
-// (ported from Goon's STROKE_MINUS_APPLY_MS). Everything Autopilot-shaped is gone
-// — the template blocks, edge/suction knobs, and the boundary-based narration
-// overlay. The chattiness-paced ambient-chat cues are a later phase (Phase 7),
-// generated here once a chattiness knob and an orchestrator consumer exist; there
-// is no narration overlay in the meantime. Pure event generation/scaling: no
-// React, no device, no LLM, no personas.
+// CompanionEngine — the motion backbone for the Companions play mode. A
+// faithful, self-contained port of GrooveEngine's dip generation (PEAK ->
+// floor -> PEAK, with a live Speed% magnitude knob and timing/dip Variability
+// shape knobs), duplicated rather than imported because engines don't import
+// each other (see ARCHITECTURE.md; Goon duplicates Groove for the same
+// reason). One companion-only addition over Groove: a one-shot stroke-minus
+// tease held at session start (ported from Goon's STROKE_MINUS_APPLY_MS). Pure
+// event generation/scaling: no React, no device, no LLM, no personas.
 
 import {
   type PlayerContext,
@@ -56,8 +52,8 @@ const CUMMING_START_SPEED = 30;
 const CUMMING_MID_SPEED = 20;
 const CUMMING_END_SPEED = 5;
 const CUMMING_STEP_MS = 500;
-// One-shot stroke-minus tease held for this long at session start (ported from
-// Goon's STROKE_MINUS_APPLY_MS). A teasing lead-in, independent of the dip
+// One-shot stroke-minus tease held for this long at session start. A teasing
+// lead-in, independent of the dip
 // pattern, re-derived per window so it only fires on the window covering start.
 const STROKE_TEASE_MS = 10_000;
 

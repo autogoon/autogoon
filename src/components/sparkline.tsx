@@ -3,7 +3,7 @@
 // A glanceable sparkline of the upcoming speed over a fixed time window: a step
 // line, save for the closely-spaced points of a sampled ramp (see SMOOTH_GAP_MS).
 // Deliberately minimal — no axes, legend, or hover: it redraws ~10x/sec as the
-// script plays, so it's a moving preview, not an interrogable chart.
+// script plays.
 //
 // Colour encodes speed, not identity: a vertical green -> yellow -> red gradient
 // mapped to the absolute 0..max axis (green = idle, red = full), so the same
@@ -27,7 +27,7 @@ const VIEW_H = SPEED_H + VALVE_GAP + VALVE_LANE_H;
 const VALVE_MIN_W = 0.6; // keep very short pulses visible after horizontal squash
 const VALVE_COLOUR = { minus: '#ef4444', plus: '#22c55e' } as const;
 
-// The device holds each speed until the next event, so the honest drawing of the
+// The device holds each speed until the next event, so the accurate drawing of the
 // curve is a step line. But an engine ramping between two speeds samples that ramp
 // at about one event a second, and stepping those makes a smooth ramp look like a
 // staircase. So gaps this short are drawn as a straight line between the two

@@ -1,8 +1,7 @@
 // Browser mic pipeline for Companions: open getUserMedia with AEC, load the
 // capture worklet, and on each frame do the DSP on the main thread (via the
 // single tested path in audio-encoding.ts), feed VAD + pre-roll, and emit
-// events. Integration code — no unit test (needs a real mic + worklet);
-// verified in the Task 13 acceptance run.
+// events. Integration code — no unit test (needs a real mic + worklet).
 import {
   downsampleTo16k,
   floatTo16BitPcm,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { MEDIA_SECTION, TIME_SECTION } from '@/lib/companions/shared-prompt';
+import { TIME_SECTION, mediaSection } from '@/lib/companions/shared-prompt';
 import {
   DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
@@ -33,7 +33,11 @@ const base: Companion = {
   playfulness: 4,
 };
 const overlay = (
-  extra: { companion?: CompanionConfig; noMedia?: boolean } = {},
+  extra: {
+    companion?: CompanionConfig;
+    noMedia?: boolean;
+    mediaSummary?: string;
+  } = {},
   media = [] as Companion['media'],
 ) => ({
   manifest: {
@@ -42,6 +46,7 @@ const overlay = (
     version: '1.0.0',
     base: 'autogoon.aimee',
     aboutThePack: 'test overlay',
+    mediaSummary: extra.mediaSummary,
     noMedia: extra.noMedia,
     companion: extra.companion ?? {},
   },
@@ -49,7 +54,8 @@ const overlay = (
 });
 const still = (src: string): CompanionMedia => ({
   kind: 'image',
-  description: 'd',
+  caption: 'd',
+  description: 'a longer d',
   ref: `goonpack:test.pack@1/${src}`,
   src,
   load: () => Promise.resolve(src),
@@ -100,16 +106,18 @@ describe('applyOverlay', () => {
   it("never takes the overlay's name — the base's is kept", () => {
     // The base's name survives only by omission: `name` is absent from the
     // field-by-field merge in applyOverlay and arrives with `...base`. Adding
-    // `name: c.name ?? base.name` beside the other eight lines would let an
+    // `name: c.name ?? base.name` beside the other merged fields would let an
     // overlay rename a companion and take over their thread.
     const out = applyOverlay(base, overlay({ companion: { name: 'Amy' } }));
     expect(out.name).toBe('Aimee');
   });
-  it('fills MEDIA_SECTION when the overlay brings pictures', () => {
+  it('writes the media section from the summary of the set the overlay brought', () => {
     const pics = [still('blob:x')];
-    expect(body(applyOverlay(base, overlay({}, pics)).systemPrompt)).toBe(
-      `hi\n${MEDIA_SECTION}`,
+    const out = applyOverlay(
+      base,
+      overlay({ mediaSummary: 'Overlay set.' }, pics),
     );
+    expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection('Overlay set.')}`);
   });
   it("replaces the base's pictures with the overlay's own media set", () => {
     const pics = [still('blob:overlay')];
@@ -126,12 +134,33 @@ describe('applyOverlay', () => {
     );
     expect(out.media).toBeUndefined();
   });
-  it('noMedia drops MEDIA_SECTION from the prompt', () => {
+  it('noMedia turns the media section into the one saying there is nothing to send', () => {
     const out = applyOverlay(
-      { ...base, media: [still('blob:b')] },
+      { ...base, media: [still('blob:b')], mediaSummary: 'Base set.' },
       overlay({ noMedia: true }),
     );
-    expect(body(out.systemPrompt)).toBe('hi\n');
+    expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection(undefined)}`);
+  });
+  it('takes the summary from whichever pack supplied the media', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ mediaSummary: 'Overlay set.' }, [still('blob:overlay')]),
+    );
+    expect(out.mediaSummary).toBe('Overlay set.');
+  });
+  it('keeps the base summary when an overlay supplies no media', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ mediaSummary: 'Overlay set.' }),
+    );
+    expect(out.mediaSummary).toBe('Base set.');
+  });
+  it('drops the summary with the media when an overlay sets noMedia', () => {
+    const out = applyOverlay(
+      { ...base, media: [still('blob:base')], mediaSummary: 'Base set.' },
+      overlay({ noMedia: true }),
+    );
+    expect(out.mediaSummary).toBeUndefined();
   });
 });
 
@@ -150,14 +179,17 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
       systemPrompt: 'hi\n{{MEDIA_SECTION}}',
       media: [],
     });
-  it('restores MEDIA_SECTION when the overlay brings pictures over a pictureless base', () => {
+  it('restores the media section when the overlay brings pictures over a pictureless base', () => {
     const pics = [still('blob:overlay')];
-    const out = applyOverlay(pictureLessBase(), overlay({}, pics));
-    expect(body(out.systemPrompt)).toBe(`hi\n${MEDIA_SECTION}`);
+    const out = applyOverlay(
+      pictureLessBase(),
+      overlay({ mediaSummary: 'Overlay set.' }, pics),
+    );
+    expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection('Overlay set.')}`);
   });
-  it('leaves MEDIA_SECTION out when neither the pack-shaped base nor the overlay bring pictures', () => {
+  it('says there is nothing to send when neither the pack-shaped base nor the overlay bring pictures', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
-    expect(body(out.systemPrompt)).toBe('hi\n');
+    expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection(undefined)}`);
   });
 });
 
@@ -168,6 +200,7 @@ describe('packToCompanion', () => {
       id: 'some.one',
       version: '1',
       aboutThePack: 'a complete pack',
+      mediaSummary: 'Pack set.',
       companion,
     },
     systemPrompt: 'p\n{{MEDIA_SECTION}}',
@@ -184,9 +217,9 @@ describe('packToCompanion', () => {
     expect(c.gender).toBe('female');
     expect(c.accentColour).toBe('pink');
   });
-  it('fills MEDIA_SECTION for a pack that ships media of its own', () => {
+  it('writes the media section from the summary of a pack that ships media of its own', () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
-    expect(body(c.systemPrompt)).toBe(`p\n${MEDIA_SECTION}`);
+    expect(body(c.systemPrompt)).toBe(`p\n${mediaSection('Pack set.')}`);
   });
   it("falls back to the pack's aboutThePack when the companion section carries no description", () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
@@ -199,13 +232,19 @@ describe('packToCompanion', () => {
 });
 
 describe('resolveDefault', () => {
-  it('drops MEDIA_SECTION for a built-in with no pictures', () => {
-    expect(body(resolveDefault(base).systemPrompt)).toBe('hi\n');
+  it('tells a built-in with no pictures that it has nothing to send', () => {
+    expect(body(resolveDefault(base).systemPrompt)).toBe(
+      `hi\n${mediaSection(undefined)}`,
+    );
   });
-  it('fills MEDIA_SECTION for a built-in that has pictures of its own', () => {
-    const withPics: Companion = { ...base, media: [still('blob:builtin')] };
+  it('writes the media section from the summary of a built-in that has pictures of its own', () => {
+    const withPics: Companion = {
+      ...base,
+      media: [still('blob:builtin')],
+      mediaSummary: 'Built-in set.',
+    };
     expect(body(resolveDefault(withPics).systemPrompt)).toBe(
-      `hi\n${MEDIA_SECTION}`,
+      `hi\n${mediaSection('Built-in set.')}`,
     );
   });
 });
@@ -213,7 +252,8 @@ describe('resolveDefault', () => {
 describe('resolveMediaRef', () => {
   const entry = (ref: string, src: string): CompanionMedia => ({
     kind: 'image',
-    description: 'd',
+    caption: 'd',
+    description: 'a longer d',
     ref,
     src,
     load: () => Promise.resolve(src),

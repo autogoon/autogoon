@@ -52,7 +52,7 @@ function fakeDir(written: Set<string>, prefix = ''): FileSystemDirectoryHandle {
 // through as a window onto the archive read-chunk, so an entry's first chunk
 // starts partway into it — byteOffset > 0, backed by the whole chunk — where a
 // deflated entry always arrives in a fresh exact-size buffer. A default-level
-// zip therefore can't catch the bug the chunk-buffer test below is about, with
+// zip therefore can't catch the bug the WebKit chunk-buffer test is about, with
 // or without the fix.
 const storedZipFile = (files: Record<string, Uint8Array>): File =>
   new File([zipSync(files, { level: 0 })], 'pack.zip', {
@@ -64,7 +64,7 @@ const storedZipFile = (files: Record<string, Uint8Array>): File =>
 // `TypeError: ctr is not a constructor` out through unzip.push() — the throw
 // peekZip's own catch exists for. Bytes that simply aren't a zip
 // don't throw at all, so a patched header is the only fixture that keeps that
-// catch honest; without it the failure reaches the user as the panel's generic
+// catch at all; without it the failure reaches the user as the panel's generic
 // "Import failed." The patch is the compression-method field of the first local
 // file header, 2 bytes at offset 8.
 const unsupportedMethodZipFile = (): File => {
@@ -118,21 +118,20 @@ describe('extractZip', () => {
     expect([...written].sort()).toEqual(['manifest.json', 'media/a.jpg']);
   });
 
-  // `.complete` is the marker markComplete() writes last, after validation, to
-  // mean the tree is installed. A zip entry of that name would land during
-  // extraction instead, so an import that crashed part-way would leave a tree
-  // that sweepIncomplete() spares and listCompletePackKeys() then serves as a
-  // real pack — a half-extracted pack that never heals.
-  it('does not write a .complete entry, which would forge the install marker', async () => {
+  // The install marker is a sibling of the pack directory, so a zip entry named
+  // `.complete` cannot forge it — it is an ordinary file inside the tree, and
+  // parsePack refuses it by name like any other path that isn't the manifest,
+  // the prompt or media/.
+  it('writes a .complete entry like any other file, since the marker lives outside the tree', async () => {
     const written = new Set<string>();
     await extractZip(
       zipFile({
         'manifest.json': manifest('test.pack'),
-        '.complete': strToU8('not mine to write'),
+        '.complete': strToU8('an ordinary file'),
       }),
       fakeDir(written),
     );
-    expect([...written]).toEqual(['manifest.json']);
+    expect([...written].sort()).toEqual(['.complete', 'manifest.json']);
   });
 
   // Found in Safari 27: WebKit's FileSystemWritableFileStream.write() writes a

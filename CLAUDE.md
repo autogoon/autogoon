@@ -3,6 +3,27 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+## Talking to me
+
+Replies in this conversation are held to → Writing style, like any other
+sentence written here. Two things on top of it:
+
+- **Precise, concise, technical.** An assertion carries its evidence: a file and
+  line, a command's output, a measurement. Cut anything that is not information
+  — flourish, a sentence restating the one before it, a summary of something
+  short enough to quote.
+- **Anything proposed comes in four parts**, in this order:
+
+  - the problem;
+  - the current situation, with the evidence for it;
+  - the proposed change, or the options with what each costs;
+  - the resulting text, where it is short enough to read.
+
+  Quote verbatim in the reply itself — a description of a change cannot be
+  judged against the change, and `sed` or `cat` output in a tool call is not
+  reliably shown to you. A sentence, a comment or a small function goes in full;
+  anything larger is named rather than pasted, and quoted on request.
+
 ## Commands
 
 - `npm run dev` — Next dev server on http://localhost:8931 (bound to `0.0.0.0`).
@@ -15,16 +36,18 @@ code in this repository.
 
 ## Editing files
 
-Change files with **Edit and Write, never a shell rewrite** — no heredoc script,
-`sed -i`, `perl -pi`, redirect into a tracked path, or `git checkout --` over
-uncommitted work. Those render no diff, so the change can't be reviewed and has
-to be taken on trust from a summary; batching several of them into one script is
-what makes a bad edit hard to catch. Several small Edit calls beat one clever
-script. A PreToolUse hook backs this up
-([.claude/hooks/no-shell-edits.sh](./.claude/hooks/no-shell-edits.sh)) — it
-screens the shapes a regex can spot and denies the ones that turn out to be
-edits, so it is a backstop for the rule rather than the whole of it. Shell that
-only reads — greps, tests, mutation runs against a scratchpad copy — is
+Change files with **Edit and Write, never a shell rewrite**. None of these:
+
+- a heredoc script;
+- `sed -i`;
+- `perl -pi`;
+- a redirect into a tracked path;
+- `git checkout --` over uncommitted work.
+
+Those render no diff, so the change can't be reviewed and has to be taken on
+trust from a summary; batching several of them into one script is what makes a
+bad edit hard to catch. Several small Edit calls beat one clever script. Shell
+that only reads — greps, tests, mutation runs against a scratchpad copy — is
 unaffected.
 
 ## Secrets / environment
@@ -33,28 +56,30 @@ unaffected.
 
 Real keys live in **`.env`** (gitignored via `.env` / `.env.*`), **not**
 `.env.local`. Copy [`.env.example`](./.env.example) to `.env` and fill in real
-values; never commit a real key (the repo is public). All secret-bearing vars
-(`ELEVENLABS_API_KEY`, `OPENROUTER_API_KEY`, `LLM_URL`) are read server-side
-only — none are `NEXT_PUBLIC_*`.
+values; never commit a real key (the repo is public). Every var it documents is
+read server-side only and none is `NEXT_PUBLIC_*`, so no secret reaches the
+browser bundle.
 
 ### What must never be committed
 
 This repo is **public and pseudonymous**. Never commit identifying details: real
 names, `/Users/<name>` or other machine-local paths, personal emails or URLs,
 session links. When a doc or plan needs a concrete path, genericize it
-(`~/.claude/jobs/<job-id>/tmp`, not the real one). Also never: a platform name
-in a downloading or collecting context (the app is source-agnostic), anything
-describing the local media set under `goonpacks/<dir>/media/` (gitignored and
-personal — write about the feature, never its contents), and analysis of the
-author's own legal exposure. `/personal-check` is the backstop, not the defence
-— history rewrites are the only fix once pushed.
+(`~/.claude/jobs/<job-id>/tmp`, not the real one). Also never:
+
+- a platform name in a downloading or collecting context (the app is
+  source-agnostic);
+- anything describing the local media set under `goonpacks/<dir>/media/`
+  (gitignored and personal — write about the feature, never its contents);
+- analysis of the author's own legal exposure. `/personal-check` is the
+  backstop, not the defence — history rewrites are the only fix once pushed.
 
 ## Verifying changes
 
-- `npm test` — Jest unit tests (colocated, import from `@jest/globals`). Cover
-  pure logic: engine contracts, device-client accounting. Node is the default
-  environment; a test that renders a hook or component opts into jsdom per file
-  (see the Testing section in [DEVELOPERS.md](./DEVELOPERS.md#testing)).
+- `npm test` — Jest unit tests (colocated, import from `@jest/globals`; the
+  match set is in `jest.config.mjs`). Node is the default environment; a test
+  that renders a hook or component opts into jsdom per file (see the Testing
+  section in [DEVELOPERS.md](./DEVELOPERS.md#testing)).
 - `npm run test:e2e` — Playwright (`tests/e2e/`), running each spec on real
   Chromium, Firefox and WebKit; starts (or reuses) the dev server on :8931. The
   voice test fakes only the microphone (a `MediaDevices.prototype.getUserMedia`
@@ -82,10 +107,16 @@ the app in the browser and watching behaviour.
   what that one pins — the result is a new test that can fail, not an old one
   with a patched fixture. Never leave a contract that matters with no coverage.
 - **A fake stands at a boundary** so a test can assert what the code sent across
-  it, or so a module needing storage or a clock can run at all. Never fake the
-  LLM, TTS or STT — the app always has them, so exercise them in `tests/e2e/`. A
-  fake may supply the input; the assertion must be on something the code under
-  test decided.
+  it, or so a module needing storage or a clock can run at all. A fake may
+  supply the input; the assertion must be on something the code under test
+  decided — if replacing the code under test with a pass-through would leave the
+  test passing, it asserts its own fixture and is a dud.
+- **Fake the transport, never the reply.** A canned completion or transcript
+  proves nothing about the pipeline that produces it; exercise the LLM, TTS and
+  STT in `tests/e2e/`. Faking what sits under them — the socket, the `fetch` —
+  to assert what the code put on the wire, or how it behaves when the far end
+  closes, is the permitted kind, and is often the only way to reach a lifecycle
+  path at all.
 - **Anything with a job has a test.** Doing I/O decides how a module is tested,
   never whether.
 - **A test name stands alone.** `describe` is the exported symbol under test;
@@ -141,6 +172,14 @@ work done.
   like) gets a developer-friendly description of _what changed_, tagged
   `internal`. Don't force a user angle onto a pure refactor, and don't drop a
   change just because users won't notice it.
+- **One entry for the branch's feature, not one per piece of it.** The work a
+  feature needed to exist — the format it stores, the validation, the script
+  that writes it — is the feature, and goes in its entry. Something that stands
+  on its own still earns its own entry on the same branch; the test is whether
+  it means anything to someone who doesn't care about the feature.
+- **The entry says what changed; the PR it links carries the detail.** Don't
+  explain the mechanism, list the parts, or narrate how the branch arrived at
+  it. If a sentence would only matter to someone reading the diff, cut it.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.
@@ -163,11 +202,24 @@ invariants, the why, and the cross-file shape. Concretely:
 - If a sentence goes stale when someone renames a field or adds an entry, it's
   implementation detail — replace it with a pointer.
 - Current-state docs describe **only what's implemented**. Future work lives in
-  [TODO.md](./TODO.md) (defined work), [ROADMAP.md](./ROADMAP.md) and
-  `roadmap/*.md` (direction, one file per thread), or a dated plan or spec under
-  `docs/` — nowhere else; a pointer to those files is fine, describing the
-  future in place is not. Program-time "future events" and experiential copy
-  ("you never know what's coming") are not future work.
+  one of these, and nowhere else:
+
+  - [TODO.md](./TODO.md) — new features, additions and changes meant for soon.
+  - [BUG.md](./BUG.md) — known defects in behaviour that is already implemented.
+  - [ROADMAP.md](./ROADMAP.md) and `roadmap/*.md` — longer-term features and
+    direction, one file per thread.
+  - A dated plan or spec under `docs/`.
+
+  A pointer to those files is fine; describing the future in place is not.
+  Program-time "future events" and experiential copy ("you never know what's
+  coming") are not future work.
+
+  A nice way to think about it:
+
+  - ROADMAP.md says what could be, framed in how things are.
+  - TODO.md how they should be.
+  - BUG.md how they shouldn't be.
+
 - **This applies to code comments too, in both directions.** A comment says what
   the code does now — not what it replaced ("replaces the old spinners", "this
   used to…", "renamed from…"), and not what might come ("we'll add…", "for a
@@ -187,21 +239,32 @@ invariants, the why, and the cross-file shape. Concretely:
   rule added here is checked without touching them. Two exceptions, both of
   which still link the source: a user-facing doc restating a developer-facing
   rule in user terms, and a summary naming what a longer doc covers.
-- **[modes/AUTOPILOT.md](./modes/AUTOPILOT.md) is a specification, not a
-  description of code.** It records Autoblow's Autopilot, reverse-engineered
-  from their client bundle, so it carries the constants instead of pointing at
-  `autopilot-engine.ts`. Truth runs the other way here — the code must match the
-  doc.
+- **[modes/AUTOPILOT.md](./modes/AUTOPILOT.md) records an algorithm this repo
+  does not own.** Autoblow's client bundle is the specification and is not
+  published; `autopilot-engine.ts` is derived from reading it, and the doc from
+  the engine. The doc carries the constants rather than pointing at the engine
+  because they record the original. Where the doc and the engine disagree,
+  neither settles it — re-read the bundle. The doc describes the patterns as
+  templates, which is not what playback looks like, so it is the likelier of the
+  two to have lost a detail.
+- **[GOONPACKS.md](./GOONPACKS.md) is the pack format's reference for authors.**
+  A pack author does not read TypeScript, so the field-by-field prose lives
+  there, while `src/lib/goonpacks/manifest.ts` carries the types and the terse
+  comments a developer reads. Where the two disagree, the parser settles it: it
+  is what rejects a pack. `modes/*.md` states its play mode's engine values —
+  speed ranges, dip floors, durations, knob defaults — because a user reading
+  what a play mode does is not reading the engine. Changing one in the engine
+  changes it there too, in the same commit.
 - When code you change is mentioned in a doc, updating the doc is part of the
   change. Run `/doc-check` before opening a PR — and again before merging — to
   catch what slipped.
 
 ## Writing style
 
-How a sentence is written, wherever it sits: `*.md`, a code comment, a skill, a
-commit message. Whether the sentence is _true_ belongs to → Documentation and
-the checks that read against code; a sentence can be accurate and still break
-every rule here. `/style-check` is the one that reads for these.
+How text is written, wherever it sits: `*.md`, a code comment, a skill, a commit
+message, a reply in this conversation. Whether it is _true_ belongs to →
+Documentation and the checks that read against code; text can be accurate and
+still break every rule here. `/style-check` is the one that reads for these.
 
 - **Documentation is precise.** It is instruction and reference, not prose —
   writing it as prose is what produces padding and hedging. Name the mechanism
@@ -219,6 +282,17 @@ every rule here. `/style-check` is the one that reads for these.
   filename. Where the target has no name, give it a heading rather than counting
   to it. (A `file:line` in a review finding is fine — it describes one moment,
   not a standing reference.)
+- **A list gets bullets.** Three or more items run together in a sentence become
+  a bulleted list. A comma-separated run can't be scanned, and a sentence
+  pointing back at it — "the four levers", "the last one" — can't be matched to
+  an item without reading the whole run again. Two things named in a sentence
+  are not a list.
+- **A construction repeated down a page becomes a register.** One shape used for
+  every sentence reads as talk, however well each sentence carries on its own.
+  The recurring shape here is a claim, a gloss on it, then a trailing
+  consequence. The gloss arrives on dashes, a colon or a comma; the consequence
+  on `so…` or `which is…`. Use it where the reader needs it, not by default:
+  reference prose states a thing and stops.
 - Docs speak the app's vocabulary — play mode, program, play/session — never a
   persona's fiction ("during a call" is the companions' own call framing), and
   capabilities belong to features, not to whichever companion has them.
@@ -245,32 +319,34 @@ every rule here. `/style-check` is the one that reads for these.
   merge**: push with `git push -u origin <branch>`, then open a PR against
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
-  `npm run typecheck`, `lint` and `format` clean (see Verifying changes), tests
-  run, the CHANGELOG entry written, and the five checks, **in this order**:
+  `npm run typecheck`, `lint` and `format` clean, `npm test` and
+  `npm run test:e2e` both run (see Verifying changes for what each covers), the
+  CHANGELOG entry written, and the five checks, **in this order**:
   `/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
   All five run on every branch: a check that only runs when someone judges it
   relevant is a check that never runs, and each one reports "nothing found"
   cheaply when a branch didn't go near its subject.
-- **A check reports what it finds, including outside its own subject.** The
-  divisions say what each one must not miss, never what it may pass over: two
-  checks reporting one thing costs a duplicate line, and a check staying silent
-  because another one owns it costs the finding. Say it and name whose it is.
+- **Never discard a valid finding for being outside the check's remit.** Report
+  it. A duplicate line costs nothing; a finding dropped because another check
+  owns it is lost.
 - **The order matters**, because each check changes what the next one reads.
   `/code-check` settles what the code does, so the tests and docs are judged
   against code that is finished rather than code still moving. `/test-check`
   comes next because a test it rewrites is itself something the docs may
-  describe. `/doc-check` then reads every doc and comment against a settled
-  branch, establishing that they are true. `/style-check` follows, because the
-  three before it all write new sentences while fixing what they find, and
-  nothing else reads those. `/personal-check` is last so it sees the final text
-  of everything the other four wrote — it is the only check whose miss can't be
-  fixed after a push.
+  describe. `/doc-check` then reads every doc against a settled branch,
+  establishing that they are true. Comments divide: `/code-check` takes each one
+  the diff touched against the code beneath it, `/test-check` those in test
+  files, and `/doc-check` whether a comment still describes the repo around it.
+  `/style-check` follows, because the three before it all write new sentences
+  while fixing what they find, and nothing else reads those. `/personal-check`
+  is last so it sees the final text of everything the other four wrote — it is
+  the only check whose miss can't be fixed after a push.
 - **Before merging**, run all five again, in the same order — the branch has
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
   reads them. Run them even on a branch that hasn't moved, and for the same
-  reason as above: a re-run skipped on judgement is a re-run that never happens.
-  Treat `gh pr merge` as blocked until all five have run against the final diff.
+  reason: a re-run skipped on judgement is a re-run that never happens. Treat
+  `gh pr merge` as blocked until all five have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and
@@ -278,6 +354,12 @@ every rule here. `/style-check` is the one that reads for these.
   at once, and a digest followed by one open question is unanswerable. If the
   report ran long, restate the single change in the question rather than
   pointing back at it.
+- **One finding is carried to a commit before the next is named.** The cycle is
+  propose, wait for a yes or no, fix, then commit on a second yes — and only
+  then does the next finding get mentioned. An edit made ahead of its yes, or a
+  commit question carrying the next proposal, puts two findings in flight at
+  once: every answer then has to say which one it meant, and a change that needs
+  re-doing can't be backed out cleanly.
 - **Check `main` hasn't moved** before pushing and again before merging:
   `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
   it isn't, merge `origin/main` into the branch and **verify nothing was lost**
@@ -324,11 +406,11 @@ things worth knowing up front:
   voice session has its own orchestrator hook, but the Player path is the same).
 - **One Player = mutual exclusion; no runner**: the Player is the single path to
   the device and holds **one engine at a time** — a panel arming its engine
-  replaces whoever was there, so "starting one stops the others" is a Player
-  invariant, not a coordinator. Navigation, the global voice words and the
-  play-mode registry all live in `src/app/page.tsx`; **adding a play mode** is a
-  new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy to
-  get wrong about the pair, are in
+  replaces whatever engine was armed, so "starting one stops the others" is a
+  Player invariant, not a coordinator. Navigation, the global voice words and
+  the play-mode registry all live in `src/app/page.tsx`; **adding a play mode**
+  is a new engine + panel + one `PLAY_MODES` entry — the shape, and what is easy
+  to get wrong about the pair, are in
   [ARCHITECTURE.md](./ARCHITECTURE.md#play-modes).
 - **Commands are declared once**: each action is a `Command` (the type is
   commented in `src/hooks/use-voice-commands.ts`) — the button and the spoken

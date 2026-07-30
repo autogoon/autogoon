@@ -62,6 +62,12 @@ export function createStt(events: SttEvents): Stt {
   // Frames actually put on the wire, so a session can report how much audio it
   // streamed and that can be checked against the bill.
   let sent = 0;
+  // An open() still waiting on its token has no socket for close() to close,
+  // so close() sets this instead and open() reads it when the fetch resolves.
+  // Without it the socket comes up after teardown and nothing owns it: the
+  // session that asked for it is gone, and ElevenLabs hold it until their own
+  // idle timeout.
+  let connectAbandoned = false;
   // Frames captured after open() is called but before the socket is live
   // (session_started) — the token fetch + WebSocket handshake, often 1–2s.
   // Without this they'd be dropped, losing the opening seconds of speech; they
@@ -119,10 +125,11 @@ export function createStt(events: SttEvents): Stt {
   }
 
   async function open(preRoll: Int16Array[]): Promise<void> {
-    // Guard double-open: only start from a fully closed socket.
+    // Guard double-open.
     if (phase !== 'closed') return;
     setPhase('connecting');
     pending = [];
+    connectAbandoned = false;
 
     let token: string;
     try {
@@ -133,9 +140,16 @@ export function createStt(events: SttEvents): Stt {
       if (!res.ok) throw new Error(`stt-token ${res.status}`);
       ({ token } = (await res.json()) as { token: string });
     } catch (err) {
-      // Token fetch failed: roll straight back to closed.
       setPhase('closed');
       throw err;
+    }
+
+    // close() ran while the token was in flight: abandon the connect rather
+    // than opening a socket nothing will own. No socket, no utterance — the
+    // next onset opens both. The minted token goes unused.
+    if (connectAbandoned) {
+      streaming = false;
+      return;
     }
 
     const url =
@@ -175,9 +189,16 @@ export function createStt(events: SttEvents): Stt {
           break;
         }
         default: {
-          // Every error the server can raise — insufficient audio activity,
-          // quota, throttling, rate limits, session time limit — arrives as its
-          // own message_type, and several of them precede a close. Match on the
+          // Every error the server can raise arrives as its own message_type,
+          // and several of them precede a close:
+          //
+          // - insufficient audio activity;
+          // - quota;
+          // - throttling;
+          // - rate limits;
+          // - session time limit.
+          //
+          // Match on the
           // name rather than listing them, so a type added upstream still shows
           // up. The payload goes through raw: we don't model these, and a
           // truncated one is worse than useless when a session drops.
@@ -208,14 +229,16 @@ export function createStt(events: SttEvents): Stt {
 
     socket.addEventListener('error', () => {
       // Errors are followed by a close event, which drives the phase back to
-      // closed; nothing extra to do here.
+      // closed.
     });
   }
 
   function close(): void {
     if (phase === 'closed' || phase === 'closing') return;
     if (ws === null) {
-      // No socket yet (token still in flight): nothing to wait on.
+      // The token is still in flight, so there is no socket to close yet.
+      // Flagging the connect is what ends it (see connectAbandoned).
+      connectAbandoned = true;
       setPhase('closed');
       return;
     }

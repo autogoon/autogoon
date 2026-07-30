@@ -2,7 +2,8 @@
 
 // A press-and-hold button: opens a valve on press, closes on release. Used for
 // the manual stroke overrides. The valve stays open a minimum of 300ms even on
-// a quick tap, mirroring the original's useMinPressDuration hook.
+// a quick tap, mirroring the useMinPressDuration hook in Autoblow's own client
+// bundle.
 
 import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/button';
@@ -24,7 +25,7 @@ export function HoldButton({
   // Highlight the button even without a pointer press — e.g. a voice pulse
   // driving the same valve.
   forcedActive?: boolean;
-  // The voice command that pulses this valve, shown as a voiceCommand.
+  // The voice command that pulses this valve.
   voiceCommand?: string;
 }) {
   const [active, setActive] = useState(false);

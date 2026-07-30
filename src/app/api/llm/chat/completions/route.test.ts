@@ -110,7 +110,8 @@ describe('POST /api/llm/chat/completions', () => {
     );
 
     // Request() wraps the given signal in a following signal, so identity with
-    // controller.signal never holds — abort propagation is what the route owes.
+    // controller.signal never holds — abort propagation is what the route must
+    // do.
     const forwarded = (fetchMock.mock.calls[0]?.[1] as RequestInit).signal;
     expect(forwarded?.aborted).toBe(false);
     controller.abort();

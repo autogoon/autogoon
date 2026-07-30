@@ -11,17 +11,21 @@ import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 // companions here use the "autogoon" publisher.
 export type CompanionId = string;
 
-// One thing a companion can send: a still or a video. `description` is what the
-// model reads to pick a fitting one, from the pack's <basename>.txt sidecar, or
-// "" when there's none. `ref` is the thread-stable reference — object URLs die
-// with the session, so a sent item persists as `ref` and rendering resolves it
-// against whatever's currently loaded. `src` is that object URL once it exists:
-// `load()` mints it on first render (a pack's media is thousands of files, most
-// of which are never shown) and memoises it here, and it stays alive as long as
-// this entry does — `forget()` is what ends that, for the owner of the URL once
-// it has revoked it.
+// One thing a companion can send: a still or a video — one entry per item of
+// valid media, since that is all a pack's `media` holds (parsePack). Both texts
+// therefore always carry something: they come from the pack's <basename>.md
+// sidecar, and an item without one is not in the set at all. `caption` is the
+// one line the model reads to pick a fitting one, `description` the long prose
+// behind it. `ref` is the
+// thread-stable reference — object URLs die with the session, so a sent item
+// persists as `ref` and rendering resolves it against whatever's currently
+// loaded. `src` is that object URL once it exists: `load()` mints it on first
+// render (a pack's media is thousands of files, most of which are never shown)
+// and memoises it here, and it stays alive as long as this entry does —
+// `forget()` is what ends that, for the owner of the URL once it has revoked it.
 export type CompanionMedia = {
   kind: MediaKind;
+  caption: string;
   description: string;
   ref: string;
   src?: string;
@@ -41,10 +45,9 @@ export type Companion = {
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
   model: string; // OpenRouter model slug the client requests for this companion
   // The chosen model's context window, in tokens. Nothing reads it yet —
-  // deliberately captured anyway, because it belongs to whoever picked `model`.
-  // Compaction (TODO.md) is what will need it, and a pack authored before then
-  // would otherwise have to be revisited to supply a number its author knew all
-  // along. Cheap to carry, expensive to backfill across every pack in the wild.
+  // deliberately captured anyway, because it belongs to whoever picked `model`,
+  // and a pack authored without it would have to be revisited to supply a number
+  // its author knew all along.
   contextWindow: number;
   passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
   // How readily this companion fills a silence, 1–5, as two separate appetites:
@@ -54,18 +57,24 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
-  // The media they can send during a call — filled by an installed goonpack
-  // (src/lib/goonpacks/). Empty (or omitted) for a companion with no pack
-  // installed: the panel then offers no send_media tool, and their prompt gets
-  // no media section.
+  // The media they can send during a session — filled by an installed goonpack
+  // (src/lib/goonpacks/), and valid media only, so every entry is one they can
+  // actually be offered. Empty (or omitted) for a companion with no pack
+  // installed, or one whose pack's sidecars aren't written yet: the panel then
+  // offers neither media tool, and their prompt's media section is the one
+  // saying they have nothing to send.
   media?: CompanionMedia[];
+  // What that set holds, as one block of text — present whenever `media` is,
+  // because a pack carrying media must carry a summary of it (parsePack).
+  // Written by npm run goonpack:summarise; nothing here reads into it.
+  mediaSummary?: string;
 };
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default
 // price-weighted load balancing — a companion's reply is spoken, so time to
-// first token is what the conversation feels like.
+// first token is the pause before they answer.
 export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
 // MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
@@ -110,7 +119,7 @@ export const COMPANIONS: Record<string, Companion> = {
   },
 };
 
-// The picker order, derived from the one source above: alphabetical by name.
+// The picker order, derived from COMPANIONS: alphabetical by name.
 export const companionList: Companion[] = Object.values(COMPANIONS).sort(
   (a, b) => a.name.localeCompare(b.name),
 );

@@ -1,11 +1,13 @@
 'use client';
 
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
-// for a beat then closes it, mimicking a manual tap. Lives here (rather than
+// for a fixed pulse length then closes it, mimicking a manual tap. Lives here
+// (rather than
 // inside one play mode) so every play mode panel can offer the same Stroke
-// controls without duplicating the pulse logic — it drives the valves
-// directly through the VacuglideDeviceController, independent of whichever
-// play mode is currently running.
+// controls without duplicating the pulse logic. Where a pulse goes — into the
+// running program as valve events, or straight at the device — is the
+// VacuglideDeviceController's call, not this file's; what this file decides is
+// the pulse lengths, the highlight, and yielding to a scheduled stroke.
 
 import { useCallback, useMemo, useState } from 'react';
 import type { Command } from '@/hooks/use-voice-commands';
@@ -47,12 +49,14 @@ export function useStrokeControls(
     [valvePlus, valveMinus, log],
   );
 
-  // Manual stroke needs a connected device — regardless of play state — and
-  // yields to a scheduled stroke: while an engine-generated stroke is holding
-  // a valve open, the manual controls are out (ruin/torture endings depend on
-  // their schedule playing out untouched). This one flag is the source of
-  // truth for both the voice words below and the Stroke buttons' enabled state.
-  const canStroke = connected && !player.strokeBusy;
+  // Manual stroke needs a connected device and a running program — the stroke
+  // valves only move the device while it is stroking, so off-play the control
+  // would send a request that changes nothing. It also yields to a scheduled
+  // stroke: while an engine-generated stroke is holding a valve open, the
+  // manual controls are out (ruin/torture endings depend on their schedule
+  // playing out untouched). This one flag is the source of truth for both the
+  // voice words below and the Stroke buttons' enabled state.
+  const canStroke = connected && player.isPlaying && !player.strokeBusy;
 
   const keywords = useMemo<Command[]>(
     () => [

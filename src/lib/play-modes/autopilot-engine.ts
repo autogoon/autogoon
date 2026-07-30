@@ -1,4 +1,4 @@
-// Autopilot as an PlayModeEngine — a faithful port of the original
+// Autopilot as a PlayModeEngine — a faithful port of the original
 // fun.autoblow.com/vacuglide/autopilot client bundle (its pattern templates and
 // constants). Pure event generation/scaling — no React, no device; generation
 // helpers are private to this file.
@@ -190,6 +190,8 @@ function buildBlock(
   intensity: IntensityLevel,
   edge: EdgeControlLevel,
 ): { events: SpeedEvent[]; endAt: number } {
+  // The original opens each draw with this before the first template step, and
+  // does not remap it into the intensity range.
   const events: SpeedEvent[] = [
     { kind: 'speed', at: startAt, speed: BLOCK_LEAD_IN_SPEED },
   ];
@@ -202,6 +204,8 @@ function buildBlock(
       const scaled = scaleSpeedToIntensity(step.speed, intensity);
       const speed = applyPlateauJitter(scaled, edge);
       const duration = scaleDurationToEdge(step.speed, step.duration, edge);
+      // Emitted at the end of its own duration, as the original does, so each
+      // speed is held for the following step's duration.
       at += duration;
       events.push({ kind: 'speed', at, speed });
     }
@@ -246,9 +250,6 @@ export class AutopilotEngine implements PlayModeEngine {
   beginFinish(): void {
     this.finishing = true;
     this.finishEmitted = false;
-    this.intensityLevel = 'high';
-    this.edgeControlLevel = 'moderate';
-    this.suctionControlLevel = 'off';
   }
 
   generateSpeed(

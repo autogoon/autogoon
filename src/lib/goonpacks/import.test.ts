@@ -5,7 +5,7 @@ import { PackError } from './manifest';
 
 // Everything that writes a tree is a worker, OPFS and Web Locks, and is covered
 // by tests/e2e/goonpack-import.spec.ts. What's decided here needs none of it:
-// which story a failure inside the worker tells the user, and the errors
+// which sentence a failure inside the worker shows the user, and the errors
 // prepareImport raises off the zip peek alone, before a byte is written.
 
 const zipFile = (files: Record<string, Uint8Array>): File =>
@@ -49,7 +49,8 @@ describe('prepareImport', () => {
   // commonest way to zip the folder by mistake. It spans peekZip and
   // wrapperFolder: junk left in the names makes __MACOSX/ a second top-level
   // folder, wrapperFolder finds no single wrapper, and the one message that
-  // names the mistake degrades to the generic one below.
+  // names the mistake degrades to the generic "No manifest.json at the zip
+  // root" one.
   it('names the wrapper folder when a Finder zip holds the pack folder itself', async () => {
     await expect(
       prepareImport(

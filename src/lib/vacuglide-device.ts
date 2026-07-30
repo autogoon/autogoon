@@ -50,7 +50,7 @@ interface ApiErrorBody {
 // log reflects device traffic regardless of who issued it (manual controls or
 // an autopilot engine). Kept structural so this client stays independent of the
 // React/logging layer.
-export type CommandLog = (text: string, kind: 'send') => void;
+type CommandLog = (text: string, kind: 'send') => void;
 
 export class VacuglideDevice {
   readonly token: string;

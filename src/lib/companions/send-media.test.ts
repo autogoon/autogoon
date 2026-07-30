@@ -1,39 +1,28 @@
-// What the model is offered and what a choice resolves to. The tool's schema
-// and the lightbox it opens are the panel's (companions-panel/index.tsx); the
-// dialect a choice arrives in when the model writes the call out as text is
-// textual-tool-calls.test.ts's.
+// How a search result reads back to the model, and what a ref resolves to. The
+// tools' schemas and the lightbox a send opens are the panel's
+// (companions-panel/index.tsx); the dialect a call arrives in when the model
+// writes it out as text is textual-tool-calls.test.ts's.
 import { describe, expect, it } from '@jest/globals';
 import type { CompanionMedia } from './companions';
-import { describeMediaList, pickMedia } from './send-media';
+import { countHits, describeHits, pickMedia } from './send-media';
 
 const item = (
   kind: CompanionMedia['kind'],
-  description: string,
+  caption: string,
 ): CompanionMedia => ({
   kind,
-  description,
-  ref: `goonpack:pub.pack@1.0.0/${description}`,
+  caption,
+  description: `${caption}, at length`,
+  ref: `goonpack:pub.pack@1.0.0/${caption}`,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},
 });
 
-const ITEMS = [
-  item('image', 'on the beach'),
-  item('video', 'dancing'),
-  item('image', 'in the mirror'),
-];
-
-describe('describeMediaList', () => {
-  it('numbers the items from 1, marking each a picture or a video', () => {
-    expect(describeMediaList(ITEMS)).toBe(
-      '1 — (picture) on the beach\n2 — (video) dancing\n3 — (picture) in the mirror',
-    );
-  });
-});
+const ITEMS = [item('image', 'on the beach'), item('video', 'dancing')];
 
 describe('pickMedia', () => {
-  it('resolves a number to the item describeMediaList gave it', () => {
-    const pick = pickMedia(ITEMS, { which: 2 });
+  it('shows the item whose ref was asked for and reports what went', () => {
+    const pick = pickMedia(ITEMS, { ref: ITEMS[1]!.ref });
     expect(pick.show).toBe(ITEMS[1]);
     expect(pick.sent).toEqual({
       result: 'Sent him the video: dancing',
@@ -41,39 +30,52 @@ describe('pickMedia', () => {
     });
   });
 
-  it('clamps a number past either end of the list to the nearest item', () => {
-    expect(pickMedia(ITEMS, { which: 0 }).show).toBe(ITEMS[0]);
-    expect(pickMedia(ITEMS, { which: 99 }).show).toBe(ITEMS[2]);
-  });
-
-  it('sends the first item for a which that is not a number at all', () => {
-    // A model that writes the call out as text can produce anything here, and
-    // the schema does not stop it — sending something beats failing the call.
-    expect(pickMedia(ITEMS, { which: 'the red one' }).show).toBe(ITEMS[0]);
-    expect(pickMedia(ITEMS, {}).show).toBe(ITEMS[0]);
-    expect(pickMedia(ITEMS, { which: Number.NaN }).show).toBe(ITEMS[0]);
-  });
-
-  it('refuses a kind that disagrees with the number, showing nothing and naming both', () => {
-    const pick = pickMedia(ITEMS, { which: 2, kind: 'picture' });
+  it('sends nothing for a ref that is not in the set, and says to search first', () => {
+    const pick = pickMedia(ITEMS, { ref: 'goonpack:pub.pack@1.0.0/invented' });
     expect(pick.show).toBeNull();
-    expect(pick.sent).toBe(
-      'number 2 is a video, not a picture — check the list and pick again',
+    expect(pick.sent).toMatch(/search_media/);
+  });
+
+  it('sends nothing when the ref is missing rather than standing something in', () => {
+    // A model that writes the call out as text can produce anything here, and
+    // the schema does not stop it. A ref is either theirs or invented, so
+    // there is nothing to stand in.
+    expect(pickMedia(ITEMS, {}).show).toBeNull();
+    expect(pickMedia(ITEMS, { ref: '' }).show).toBeNull();
+    expect(pickMedia(ITEMS, { ref: 7 }).show).toBeNull();
+  });
+});
+
+describe('describeHits', () => {
+  it('gives one line per hit, each carrying the ref that sends it', () => {
+    expect(
+      describeHits(
+        ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
+      ),
+    ).toBe(
+      'goonpack:pub.pack@1.0.0/on the beach — (picture) on the beach\n' +
+        'goonpack:pub.pack@1.0.0/dancing — (video) dancing',
     );
   });
 
-  it('names the number it clamped to when refusing, not the one it was given', () => {
-    const pick = pickMedia(ITEMS, { which: 99, kind: 'video' });
-    expect(pick.sent).toBe(
-      'number 3 is a picture, not a video — check the list and pick again',
-    );
+  it('says nothing matched rather than returning an empty list', () => {
+    expect(describeHits([])).toMatch(/nothing/i);
+  });
+});
+
+describe('countHits', () => {
+  const hit = (ref: string) => ({
+    ref,
+    caption: 'on the beach',
+    kind: 'image' as const,
   });
 
-  it('sends the item when the stated kind agrees with the number', () => {
-    expect(pickMedia(ITEMS, { which: 2, kind: 'video' }).show).toBe(ITEMS[1]);
+  it('counts the hits rather than naming any of them', () => {
+    expect(countHits([hit('a'), hit('b'), hit('c')])).toBe('3 matches');
+    expect(countHits([])).toBe('0 matches');
   });
 
-  it('sends the item when no kind is stated at all', () => {
-    expect(pickMedia(ITEMS, { which: 2 }).show).toBe(ITEMS[1]);
+  it('says match rather than matches for a single hit', () => {
+    expect(countHits([hit('a')])).toBe('1 match');
   });
 });

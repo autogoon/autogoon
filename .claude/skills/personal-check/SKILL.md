@@ -21,19 +21,18 @@ scanned for without this file changing.
 
 Below is where those leaks hide, which the rules alone would not tell you:
 
-- **A leak wearing the clothes of a project fact** — the author's own library
-  sizes, folder layouts, hardware or workflow, stated as though describing the
-  app. Reframe as a generic worked example ("say 40k images", "a 64GB machine")
-  or delete.
+- **A personal fact stated as a project fact** — the author's own library sizes,
+  folder layouts, hardware or workflow, stated as though describing the app.
+  Reframe as a generic worked example ("say 40k images", "a 64GB machine") or
+  delete.
 - **A sentence about the local media set that reads as a sentence about the
-  feature.** `goonpacks/<dir>/media/` is gitignored and exists on one machine,
-  so anything about its contents is private: a persona note justified by "which
-  is what her pictures are", a cost estimate that needs a real count. Both have
-  slipped from the feature to the set. **Do not quote the offending sentence
-  when reporting it** — restating it is the same leak.
-- **Sourcing implied rather than stated** — a platform name in a
-  downloading/collecting context, a scraper or downloader tool name. The app is
-  source-agnostic (DEVELOPERS.md → Content policy).
+  feature** — a persona note justified by "which is what her pictures are", a
+  cost estimate that needs a real count. Both have slipped from the feature to
+  the set. **Do not quote the offending sentence when reporting it** — restating
+  it is the same leak.
+- **Sourcing implied rather than stated** — a scraper or downloader tool name,
+  which the rule's "platform name" does not cover (DEVELOPERS.md → Content
+  policy).
 - **Leaky meta-files** — a `.gitignore` entry or a script name can reveal what
   it hides; weigh the wording, not just the file it points at.
 - **Commit messages** — a surface of their own: session links and attribution
@@ -99,10 +98,10 @@ Once a finding exists, the cheap next move is to grep the rest of history for
 its wording — which finds more of what is already known and nothing else. The
 identifier patterns come from **What to look for** and run in full regardless.
 For the categories no regex covers — a set's size, a folder layout, hardware,
-sourcing — reading is the only pass that works, so the remainder above gets
-read, not searched.
+sourcing — reading is the only pass that works, so that remainder gets read, not
+searched.
 
-## History — the part that actually matters
+## History
 
 For **every** finding, determine exposure before calling it fixed:
 
@@ -126,15 +125,43 @@ explicit approval for the rewrite/force-push, then finish it. Report what
 remains exposed (retained server-side objects, other clones) rather than
 claiming complete removal.
 
+## The check ends without a push
+
+**Report, then stop.** Never push, force-push or open a PR as the last step of
+this check — hand the report over and ask, naming the push you would run.
+
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
+
+**An instruction to push given _before_ the check does not carry through it.**
+"Run the checks and push", or a push asked for earlier in the session, is
+permission that predates every finding: it was given by someone who did not yet
+know what the check would turn up, or how it was performed. So it is not
+permission to push what the check has just read. Ask again afterwards, with the
+findings in front of them. Per [CLAUDE.md](../../../CLAUDE.md) → Git workflow,
+pushing is its own action and is only done when asked; this says which asking
+counts.
+
+Every other check can be re-run and its findings fixed with an ordinary commit.
+This one's miss becomes a history rewrite and a force-push the moment the branch
+goes up, and GitHub keeps the objects even then — so the minute before the push
+is the last cheap minute there is, and spending it on a question costs nothing.
+
+State what the check actually did, in the words of **Scope** — a cumulative
+`git diff main...HEAD` is not "every revision", and reporting it as one gets the
+push approved on a pass that was never run.
+
 ## Red flags
 
-| Thought                              | Reality                                                  |
-| ------------------------------------ | -------------------------------------------------------- |
-| "It's only in an old commit"         | History is one click away on a public repo.              |
-| "It's just my hardware/folder names" | Identifying details compound across files.               |
-| "I'll clean history later"           | Later is when someone else finds it. Same piece of work. |
-| "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                |
-| "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision. |
-| "The pictures aren't committed"      | Describing them publishes them anyway.                   |
-| "It's not in the final diff"         | A pushed branch published every commit on the way.       |
-| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.          |
+| Thought                              | Reality                                                                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| "It's only in an old commit"         | History is one click away on a public repo.                                         |
+| "It's just my hardware/folder names" | Identifying details compound across files.                                          |
+| "I'll clean history later"           | Later is when someone else finds it. Same piece of work.                            |
+| "Force-pushed, so it's gone"         | GitHub keeps once-pushed objects. Say so.                                           |
+| "It's only the PR description"       | Public, unsearchable by git, and edits leave a revision.                            |
+| "The pictures aren't committed"      | Describing them publishes them anyway.                                              |
+| "It's not in the final diff"         | A pushed branch published every commit on the way.                                  |
+| "I grepped for it and it's clean"    | Grepping the findings finds the findings. Read.                                     |
+| "They already told me to push"       | That was before the findings existed. Ask again.                                    |
+| "Close enough to every revision"     | Say which pass ran. A wrong scope reported as the right one is worse than no check. |

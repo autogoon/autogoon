@@ -5,8 +5,8 @@
 // the same session, will call correctly one turn and write this the next:
 //
 //   <tool_call>
-//   <function=send_media>
-//   <parameter=which>504</parameter>
+//   <function=intensity>
+//   <parameter=percent>40</parameter>
 //   </function>
 //   </tool_call>
 //
@@ -15,7 +15,8 @@
 // in their voice. So it's parsed back into a real call and cut out of the text.
 //
 // This is deliberately narrow: one dialect, matched on a distinctive opening
-// tag. It is a repair for a provider that didn't hold up its end, not a second
+// tag. It is a repair for a provider that emitted the syntax instead of
+// calling, not a second
 // tool-calling protocol to maintain — anything it doesn't recognise is left
 // exactly as it is rather than guessed at.
 
@@ -42,10 +43,10 @@ export function parseTextualToolCalls(text: string): ToolCall[] {
       if (key === undefined) continue;
       const raw = (param[2] ?? '').trim();
       // The dialect is untyped — every value arrives as text — but the tools
-      // are schema-typed and check what they get: send_media's `which` is an
-      // integer, and a string there silently falls back to the first item
-      // rather than failing. So recover the number the structured channel
-      // would have carried. Anything not cleanly numeric stays a string.
+      // are schema-typed and check what they get: intensity's `percent` is an
+      // integer, and a string there is refused rather than acted on. So recover
+      // the number the structured channel would have carried. Anything not
+      // cleanly numeric stays a string.
       args[key] = /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : raw;
     }
     calls.push({

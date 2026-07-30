@@ -1,12 +1,11 @@
-// TTS playback for Companions: POST the reply text to the /api/tts proxy
-// (Task 7), which streams back mp3, and play it through a shared <audio>
-// element. Barge-in is the point here — stop() must cut mid-sentence with no
-// audible tail — so the abort signal pauses and resets the element instantly
-// and cancels the fetch. Where the browser supports mp3 in Media Source
-// Extensions we feed chunks into a SourceBuffer for progressive playback;
-// otherwise we buffer the whole (short, fixed) reply into a Blob URL, which
-// still stops instantly on pause(). Integration code — no unit test (needs
-// real audio playback); verified in the Task 13 acceptance run.
+// TTS playback for Companions: POST the reply text to the /api/tts proxy, which
+// streams back mp3, and play it through a shared <audio> element. Barge-in is
+// the point here — stop() must cut mid-sentence with no audible tail — so the
+// abort signal pauses and resets the element instantly and cancels the fetch.
+// Where the browser supports mp3 in Media Source Extensions we feed chunks into
+// a SourceBuffer for progressive playback; otherwise we buffer the whole
+// (short, fixed) reply into a Blob URL, which still stops instantly on pause().
+// Integration code — no unit test (needs real audio playback).
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type TtsPlayer = {
@@ -22,6 +21,10 @@ export type TtsPlayer = {
   stop: () => void;
 };
 
+// Firefox forces the fallback: it has MediaSource but reports
+// isTypeSupported('audio/mpeg') false, so mp3 cannot go through a SourceBuffer
+// there. Chromium and Playwright's WebKit both report true — which is not proof
+// for Safari, whose MSE behaviour Playwright cannot stand in for.
 function canStreamMp3(): boolean {
   return (
     typeof MediaSource !== 'undefined' &&
@@ -129,7 +132,11 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
           onFirstByte?.();
 
           if (canStreamMp3()) {
-            // Progressive path: pump the stream into a MediaSource.
+            // Progressive path: pump the stream into a MediaSource so playback
+            // starts on the first chunk instead of the last. The Blob fallback
+            // below runs in every engine, so this second path exists only to
+            // cut time-to-first-audio — the delay between a companion deciding
+            // to speak and being heard.
             const mediaSource = new MediaSource();
             objectUrl = URL.createObjectURL(mediaSource);
             audioEl.src = objectUrl;

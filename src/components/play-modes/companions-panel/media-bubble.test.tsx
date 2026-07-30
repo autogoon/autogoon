@@ -1,9 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-// Which of the three things a transcript bubble renders for one media entry:
-// the placeholder that holds the thumbnail's space, the thumbnail itself, or
-// the never-substitute notice. When an entry reaches each state is
+// What a transcript bubble renders for one media entry: the placeholder that
+// holds the thumbnail's space, the thumbnail itself, or the notice that stands
+// in place of one. When an entry reaches each state is
 // use-media-url.test.ts's.
 import { describe, expect, it, jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -29,7 +29,8 @@ function entry(
 ): CompanionMedia {
   const media: CompanionMedia = {
     kind,
-    description: 'a still',
+    caption: 'a still',
+    description: 'a still, described at length',
     ref: 'goonpack:pub.pack@1.0.0/one',
     load: () =>
       open().then((url) => {

@@ -132,7 +132,7 @@
 /*
  * Base styles. These must live in the base layer: unlayered rules outrank
  * every @layer, so an unlayered `*` border-color silently overrides Tailwind's
- * border-* colour utilities app-wide (which is how it shipped for a while).
+ * border-* colour utilities app-wide.
  */
 @layer base {
   * {

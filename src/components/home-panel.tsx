@@ -27,8 +27,7 @@ export function HomePanel({
     id: string;
     label: string;
     description: string;
-    // An optional second paragraph shouting about something new on this
-    // play mode.
+    // An optional second paragraph naming something new on this play mode.
     highlight?: string;
     icon: LucideIcon;
     iconClass: string;

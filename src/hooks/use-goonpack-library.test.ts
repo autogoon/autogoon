@@ -79,7 +79,7 @@ const flush = () =>
   });
 
 // Drive every rebuild to completion. Each round first lets everything that can
-// start reach its read, releasing nothing — so rebuilds genuinely in the air at
+// start reach its read, releasing nothing — so rebuilds in flight at
 // once are all waiting together. Then they go newest first, each driven to
 // completion before the next is let go, which lands the OLDEST read's rebuild
 // last, holding the oldest view of the disk. Releasing them as they appeared
@@ -103,7 +103,7 @@ async function untilReading(): Promise<void> {
 
 describe('useGoonpackLibrary', () => {
   // Both operations write the trees first and rebuild the index second, so two
-  // rebuilds are in the air at once, each listing the packs when it gets to it.
+  // rebuilds are in flight at once, each listing the packs when it gets to it.
   // Run concurrently, the one that FINISHES last becomes the index whatever
   // order they started in — and here that is the removal's, whose listing was
   // taken before the import wrote its tree, so the imported pack is missing

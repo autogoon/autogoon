@@ -24,7 +24,8 @@ import type { VacuglideDevice } from './vacuglide-device';
 // Player's own duties over any engine: arming one displaces whoever was there,
 // regeneration drops and re-pulls the future, and speed is rescaled every tick
 // but sent only when the output changes. What an engine generates is decided in
-// each engine's own test.
+// each engine's own test. Every test here runs on fake timers except
+// `Player clock`, which needs real ones and says why.
 
 // A minimal engine: constant speed 1 every 10 s, plus a fixed valve overlay
 // handed to the constructor. Keeps its own speed cursor so repeated
@@ -264,7 +265,9 @@ describe('Player transport', () => {
     const { player, valveCalls } = playingPlayer();
     manualStroke(player, 'minus', 4_000);
     await jest.advanceTimersByTimeAsync(200);
-    player.forward();
+    // Anywhere past the pending close at 4000 will do — what matters is that
+    // the cursor lands beyond it, not how far the jump went.
+    player.seekTo(60_000);
     await jest.advanceTimersByTimeAsync(5_000);
     // The release fires at the jump. The pending manual close at 4000 stays in
     // the program — cancelPendingManual() only scans past the cursor and this
@@ -342,7 +345,7 @@ describe('Player.pause', () => {
 
 // A stub whose generateSpeed records the ctx.currentRawSpeed it was handed, and
 // whose first cycle after a knob change starts FROM that speed (like the real
-// Groove/companion engines' startFromCurrent). Lets us assert the resume point.
+// Groove/companion engines' startFromCurrent).
 class ResumeStubEngine implements PlayModeEngine {
   seenRawSpeed: number | null = null;
   private resumeNext = false;
@@ -454,4 +457,85 @@ describe('Player regeneration', () => {
     ]);
     await player.pause();
   });
+});
+
+// How long the clock test plays for, and what one send costs it. The latency is
+// a plausible round-trip to the cloud API; the run is long enough to hold ~50
+// ticks, so a per-tick shortfall accumulates into a ratio rather than noise.
+const SEND_LATENCY_MS = 150;
+const CLOCK_RUN_MS = 5_000;
+
+const realSleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// A device whose speed sends take real time, the way the cloud API's do.
+// fakeDevice resolves instantly, which is what keeps every fake-timer test
+// deterministic — and exactly what hides the defect this one pins.
+const slowDevice = () =>
+  ({
+    targetSpeedSet: async () => {
+      await realSleep(SEND_LATENCY_MS);
+    },
+    targetSpeedStop: async () => {},
+    valveStrokePlusSet: async () => {},
+    valveStrokeMinusSet: async () => {},
+  }) as unknown as VacuglideDevice;
+
+// One speed event a second — the cadence the real engines generate at — with
+// the speed alternating so every event is a change the Player actually sends,
+// and every second of play therefore costs a send.
+class SecondTickerEngine implements PlayModeEngine {
+  private nextAt = 0;
+  private n = 0;
+  reset(): void {
+    this.nextAt = 0;
+    this.n = 0;
+  }
+  generateSpeed(fromTime: number, untilTime: number): SpeedEvent[] {
+    const out: SpeedEvent[] = [];
+    let t = Math.max(this.nextAt, fromTime);
+    while (t < untilTime) {
+      out.push({ kind: 'speed', at: t, speed: 40 + (this.n++ % 2) * 10 });
+      t += 1_000;
+    }
+    this.nextAt = t;
+    return out;
+  }
+  generateValves(): ValveEvent[] {
+    return [];
+  }
+  scale(event: SpeedEvent): number {
+    return event.speed;
+  }
+}
+
+// The only test here on real timers, and it has to be: the defect is that
+// program-time falls behind wall time, and fake timers advance the clock by
+// exactly what the test asks for — a send costing 150 ms costs nothing, so the
+// shortfall this measures cannot happen under them.
+describe('Player clock', () => {
+  it(
+    'tracks wall time when each device send costs real milliseconds',
+    async () => {
+      jest.useRealTimers();
+      const device = slowDevice();
+      const player = new Player({ getDevice: () => device });
+      player.arm(new SecondTickerEngine());
+
+      const startedAt = Date.now();
+      player.play();
+      await realSleep(CLOCK_RUN_MS);
+      await player.pause();
+      const realMs = Date.now() - startedAt;
+
+      // Advancing the clock by the nominal TICK_MS rather than the span that
+      // actually elapsed put this ratio at about 0.82 with a 150 ms send, and
+      // the ratio fell further the slower the device answered. The band is wide because
+      // the exact figure is timer slop, not a contract; what it pins is that
+      // the clock neither lags the wall nor races it.
+      const ratio = player.getState().clock / realMs;
+      expect(ratio).toBeGreaterThan(0.95);
+      expect(ratio).toBeLessThan(1.05);
+    },
+    CLOCK_RUN_MS + 15_000,
+  );
 });

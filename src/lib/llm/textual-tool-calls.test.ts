@@ -4,8 +4,10 @@ import {
   stripTextualToolCalls,
 } from './textual-tool-calls';
 
-// A live turn's shape: the model narrated, then wrote the call out instead of
-// making it. The picture never arrived and the markup was committed as speech.
+// A live turn's shape as it was observed: the model narrated, then wrote the
+// call out instead of making it. The picture never arrived and the markup was
+// committed as speech. The call it wrote is send_media as it was then — an
+// index — which is what makes it a recording rather than an example.
 const OBSERVED = `Don't move. Not yet.
 
 <tool_call>
@@ -20,28 +22,26 @@ describe('parseTextualToolCalls', () => {
       {
         id: 'textual-0',
         name: 'send_media',
-        // 504, not "504": send_media's run() silently sends items[0] for a
-        // non-number (companions-panel/index.tsx).
         arguments: JSON.stringify({ which: 504 }),
       },
     ]);
   });
 
-  it('recovers the number from a parameter written on its own line, which as text would send the first item', () => {
+  it('recovers the number from a parameter written on its own line', () => {
     const calls = parseTextualToolCalls(
-      '<tool_call>\n<function=send_media>\n<parameter=which>\n2\n</parameter>\n</function>\n</tool_call>',
+      '<tool_call>\n<function=intensity>\n<parameter=percent>\n40\n</parameter>\n</function>\n</tool_call>',
     );
-    expect(calls[0]!.arguments).toBe(JSON.stringify({ which: 2 }));
+    expect(calls[0]!.arguments).toBe(JSON.stringify({ percent: 40 }));
   });
 
-  it('reads both parameters of a block, since send_media checks kind against which', () => {
+  it('reads both parameters of a block, since search_media takes a kind beside its description', () => {
     const calls = parseTextualToolCalls(
-      '<tool_call><function=send_media>' +
-        '<parameter=which>2</parameter><parameter=kind>picture</parameter>' +
+      '<tool_call><function=search_media>' +
+        '<parameter=description>on a beach</parameter><parameter=kind>picture</parameter>' +
         '</function></tool_call>',
     );
     expect(calls[0]!.arguments).toBe(
-      JSON.stringify({ which: 2, kind: 'picture' }),
+      JSON.stringify({ description: 'on a beach', kind: 'picture' }),
     );
   });
 

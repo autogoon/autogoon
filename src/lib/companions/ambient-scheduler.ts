@@ -1,6 +1,6 @@
 // The ambient-chat scheduler: the timer that decides when the companion next
 // fills a silence, and the latch for calling an end to it. Kept out of the voice
-// session deliberately — that hook already carries some twenty refs read by
+// session deliberately — that hook already carries a row of refs read by
 // callbacks created once and outliving every render, and this would have added
 // two more. The session holds one of these instead and drives it by events.
 //
@@ -15,7 +15,7 @@ export type AmbientScheduler = {
   // out. Called at the end of every assistant turn, including the ambient ones —
   // that's what makes the loop self-sustaining.
   arm: (companion: Companion, playing: boolean) => void;
-  // Something real is on its way, so there's no silence left to fill.
+  // A user turn is on its way, so there's no silence left to fill.
   cancel: () => void;
   // The companion has said their piece and wants the next move to be yours.
   // Survives however many generations a turn produces: a tool call is followed

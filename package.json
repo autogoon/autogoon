@@ -5,14 +5,15 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "goonpack:describe": "node --env-file-if-exists=.env scripts/describe-image.mjs",
-    "goonpack:describe-missing": "node --env-file-if-exists=.env scripts/describe-missing.mjs",
+    "goonpack:describe": "tsx --env-file-if-exists=.env scripts/describe-image.ts",
+    "goonpack:describe-missing": "tsx --env-file-if-exists=.env scripts/describe-missing.ts",
+    "goonpack:summarise": "tsx --env-file-if-exists=.env scripts/summarise-pack.ts",
     "goonpack:build": "tsx scripts/goonpack-build.ts",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.{ts,mjs}\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\"",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "playwright test"
@@ -29,7 +30,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.6.0",
-    "vosk-browser": "^0.0.8"
+    "vosk-browser": "^0.0.8",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

@@ -1,12 +1,11 @@
 // The shared Player: owns the program-clock, the tick loop, device sends (with
 // duplicate-send suppression), and the 5-minute lookahead. It plays a
-// PlayModeEngine; it knows nothing about any specific play mode. Lives in
-// src/lib (no React) and reaches the device through a getDevice accessor, like
-// the engines it replaces.
+// PlayModeEngine; nothing in it is specific to a play mode. No React, and
+// it takes a getDevice accessor rather than a device because it is constructed
+// before one is connected — every send reads whatever the accessor returns.
 
 import type { VacuglideDevice } from '@/lib/vacuglide-device';
 import {
-  JUMP_MS,
   LOOKAHEAD_MS,
   MAX_RATE,
   MIN_RATE,
@@ -23,7 +22,7 @@ import {
 
 export type { UpcomingWindow };
 
-export interface PlayerOptions {
+interface PlayerOptions {
   getDevice: () => VacuglideDevice | null;
   onError?: (message: string) => void;
 }
@@ -47,6 +46,12 @@ export class Player {
 
   protected clock = 0;
   protected rate = 1;
+  // Wall-clock time the current tick cycle started, so the clock advances by
+  // the real time that actually passed rather than by the nominal TICK_MS: a
+  // tick awaits its device send, and setTimeout only ever fires late, so a
+  // constant increment runs program-time slow by the send latency. Set on
+  // play() (a resume must not count the paused span) and on every tick.
+  private lastTickAt = 0;
   protected events: ProgramEvent[] = [];
   protected cursor = 0; // index of the next unfired event
   // Live valve ownership, per valve: whether a manual (inserted) or scheduled
@@ -138,8 +143,8 @@ export class Player {
   }
 
   // Build the preview lookahead for a source WITHOUT starting the tick loop.
-  // This is "the Player minus the tick loop and device sends": upcomingWindow()
-  // and seek() work off it, so a panel can preview/scrub before Start.
+  // upcomingWindow() and seek() work off it, so a panel can preview/scrub
+  // before Start.
   arm(source: PlayModeEngine | null): void {
     this.setSource(source);
     this.ensureLookahead();
@@ -147,15 +152,10 @@ export class Player {
     this.notify();
   }
 
-  // Re-arm the current source from scratch (fresh program at position 0). The
-  // hook layer also restores its knobs to defaults; this handles the program.
-  reset(): void {
-    this.arm(this.source);
-  }
-
   play(): void {
     if (this.state === 'playing' || this.source === null) return;
     this.state = 'playing';
+    this.lastTickAt = Date.now();
     this.scheduleNextTick();
     this.notify();
   }
@@ -229,6 +229,11 @@ export class Player {
 
   private async tick(): Promise<void> {
     if (this.state !== 'playing' || this.source === null) return;
+    // Stamped before any work, so the next tick's span covers this one's
+    // duration as well as the timer wait — no real time goes unaccounted.
+    const tickStart = Date.now();
+    const elapsed = tickStart - this.lastTickAt;
+    this.lastTickAt = tickStart;
     this.ensureLookahead();
 
     // Fire every event due at/before the clock. Speed events just advance the
@@ -254,7 +259,7 @@ export class Player {
       this.lastDeviceSpeed = output;
     }
 
-    this.clock += TICK_MS * this.rate;
+    this.clock += elapsed * this.rate;
   }
 
   // Apply a due valve event, honouring stroke precedence: scheduled
@@ -338,17 +343,9 @@ export class Player {
     }
   }
 
-  // ---- Transport (generic; a panel chooses whether to surface each) ----
+  // ---- Transport ----
 
-  forward(): void {
-    this.seek(this.clock + JUMP_MS);
-  }
-
-  back(): void {
-    this.seek(Math.max(0, this.clock - JUMP_MS));
-  }
-
-  // Jump the clock to an absolute program-time — an play-mode-specific transport
+  // Jump the clock to an absolute program-time — a play-mode-specific transport
   // (e.g. Goon's "finish" jumping to the end of its build). Clamped to >= 0; the
   // source decides what a position past its content means (Goon parks at the top).
   seekTo(to: number): void {
@@ -385,7 +382,7 @@ export class Player {
     this.notify();
   }
 
-  // ---- Regeneration (the "push" a source triggers on a knob/finish/cumming) ----
+  // ---- Regeneration (what a panel calls after a knob change, finish or cumming) ----
 
   // Drop everything after the cursor (keep the past + the in-effect event) and
   // re-pull generate from now. The source reflects its new state on the re-pull.
@@ -403,8 +400,7 @@ export class Player {
   // Re-lay ONLY the valve overlay, keeping the speed script byte-identical — for a
   // knob that shapes valves but not speed (Autopilot's vacuum maintenance). Drop
   // the not-yet-played valve events, ask the source to overlay fresh valves across
-  // the retained future speed, and splice them back in. The speed the user is
-  // riding is untouched; only the suction reshapes from here on.
+  // the retained future speed, and splice them back in.
   invalidateValves(): void {
     if (this.source === null) return;
     const ctx = this.context();

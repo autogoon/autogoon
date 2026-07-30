@@ -4,7 +4,7 @@
 // includes or overrides — and remove them. Picking who to play (and which
 // variant) stays on the Companions chooser; this screen only manages the
 // library. Buttons only, no voice words: importing is a file dialog and
-// removal is destructive-ish — neither wants a spoken trigger.
+// removal deletes an installed pack — neither gets a spoken trigger.
 
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/button';

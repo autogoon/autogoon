@@ -90,6 +90,8 @@ describe('publisher', () => {
   });
 });
 
+// A media list only ever holds valid media — parsePack is what decides that,
+// and pack.test.ts is what pins it — so this counts everything it is handed.
 describe('countMedia', () => {
   it('tallies a media list into images and videos by kind', () => {
     expect(
@@ -100,6 +102,10 @@ describe('countMedia', () => {
         { kind: 'image' },
       ]),
     ).toEqual({ images: 3, videos: 1 });
+  });
+
+  it('tallies an empty list as no media of either kind', () => {
+    expect(countMedia([])).toEqual({ images: 0, videos: 0 });
   });
 });
 

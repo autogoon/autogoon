@@ -16,15 +16,17 @@ it reads as coverage in exactly the place you would stop looking.
 
 ## Scope
 
-- **Default: the branch.** `git diff main...HEAD --name-only` gives you three
-  things to review: every `*.test.ts` and `tests/e2e/*.spec.ts` the diff
-  touched; the source modules those tests cover; and every new or changed export
-  under `src/lib/**`, whether or not it has a test.
+- **Default: the branch.** `git diff main...HEAD --name-only` gives you what to
+  review:
+  - every `*.test.ts` and `tests/e2e/*.spec.ts` the diff touched;
+  - the source modules those tests cover;
+  - every new or changed export under `src/lib/**`, whether or not it has a
+    test.
 - **`/test-check all`: full sweep.** Every test file against its source. Fan out
   one subagent per file or tight cluster — each needs room to read the source
   and run mutations. Expensive; this is not the per-PR mode.
-- **Always read the source.** Never review a test in isolation from the code it
-  tests. Most findings only exist in the gap between the two.
+- **Always read the source.** Most findings only exist in the gap between the
+  two.
 
 ## What to check
 
@@ -34,19 +36,20 @@ added there is checked without this file changing. The rest of § Verifying
 changes — the commands, the zero-warning gate, the pre-commit run — is procedure
 for the author, not something to review a branch against.
 
-Two techniques, neither of which follows from knowing the rule:
+Two things that do not follow from knowing the rule:
 
 **Would this test fail if the behaviour it names broke?** Mutation testing
 answers it — § Mutation testing. Reading does not.
 
-**Would this test pass if the code under test were a pass-through?** If yes, the
-assertion is on a value the fake supplied. A fake upstream returning a 429 so
-the route can be seen turning it into a 502 is sound — the 502 is the route's
-decision. A fake returning `{ token: 'x' }` where the test asserts
-`{ token: 'x' }` is not. Quieter forms: a fake method that is a pure function of
-its arguments, so a memoised call and an unmemoised one look identical; a fake
-that discards a constructor argument, so the secret it was handed is never
-observed; expected and actual derived from the same source.
+**Where a test asserting its own fixture hides.** CLAUDE.md carries the rule and
+its pass-through check. These shapes supply the asserted value without appearing
+to:
+
+- a fake method that is a pure function of its arguments, so a memoised call and
+  an unmemoised one look identical;
+- a fake that discards a constructor argument, so the secret it was handed is
+  never observed;
+- expected and actual derived from the same source.
 
 ## Where to look
 
@@ -61,8 +64,8 @@ the rules would not tell you:
    `it` string alone, as a CI failure list shows it, not in file order where the
    surrounding tests supply the missing context.
 3. **A comment asserting behaviour the code does not have.** Verify each against
-   the source and quote `file:line`. These are always written confidently, which
-   is why reading past them is easy.
+   the source and quote `file:line`. These read confidently, which is why
+   reading past them is easy.
 4. **A skip is not a pass.** Where a capability probe can skip a whole suite
    (`tests/e2e/opfs.ts`), say what a green run did not cover.
 
@@ -99,8 +102,8 @@ summary: which files are clean, which need work, anything systemic.
 - **Ask first:** splitting tests, and genuinely new coverage — a contract
   nothing pinned before.
 
-Put those questions **one at a time** — [CLAUDE.md](../../../CLAUDE.md) → Git
-workflow.
+Put those questions **one at a time**, in the four-part form —
+[CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
 Run `npm run format` after edits, and `npm test` before reporting done. A clean
 run reports "no findings" — don't invent findings to seem useful.

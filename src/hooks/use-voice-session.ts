@@ -7,9 +7,11 @@
 // when asked, speaking it. The mic/STT callbacks are created once (they outlive
 // many renders) but must read LIVE values — the current phase, whether a reply is
 // playing, the active turn's controller — so everything they touch lives in a
-// ref; useState only mirrors the `status` the panel renders. Integration code —
-// no unit test (the pure lifecycle/barge-in decisions live in session-policy.ts
-// and are unit-tested there); the wiring is exercised by driving the panel.
+// ref; useState only mirrors the `status` the panel renders. The mic and STT
+// wiring is integration code, exercised by driving the panel — the pure
+// lifecycle/barge-in decisions live in session-policy.ts and are unit-tested
+// there. What a turn commits, and when, is unit-tested against faked LLM and
+// TTS boundaries.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
@@ -76,7 +78,7 @@ export type VoiceStatus = {
   // usage dashboard, and the one that should stay flat between turns.
   sentFrames: number;
   // Ambient chat's whole state: when the next unprompted turn is due (null when
-  // none is pending) and whether the companion has bowed out until you speak.
+  // none is pending) and whether the companion is holding off until you speak.
   // Surfaced so the debug tab can show what's coming — otherwise a poke that
   // never comes and a poke that was never armed look identical.
   ambientDueAt: number | null;
@@ -94,7 +96,7 @@ export type VoiceStatus = {
   // True from when a spoken reply's TTS request is sent until the first audio
   // bytes come back — the "waiting for speech" state. Cleared once audio starts.
   awaitingSpeech: boolean;
-  // True while the companion's reply audio is actually playing: set where awaitingSpeech
+  // True while the companion's reply audio is playing: set where awaitingSpeech
   // clears (first audio bytes), cleared when the utterance finishes or the
   // turn is cancelled/superseded. The bit replyPlaying can't give a display —
   // that flag spans the whole turn, generation included.
@@ -187,6 +189,13 @@ const WAIT_FOR_USER_TOOL: CompanionTool = {
   run: () => 'waiting for him',
 };
 
+// How many times in one turn the companion may be offered the tools. More than
+// one because a call often needs a second to be worth anything — search_media
+// returns refs that only send_media can act on. Capped because nothing else
+// stops a model that answers every round with another call, and a turn that
+// never reaches a spoken reply is a companion who has gone silent.
+const MAX_TOOL_ROUNDS = 5;
+
 // Persistence key, namespaced per companion so each keeps its own thread.
 const threadKeyFor = (companion: Companion): string =>
   `companions:thread:${companion.id}`;
@@ -223,7 +232,7 @@ export function useVoiceSession(opts: {
   tools?: CompanionTool[];
   getDeviceState?: () => string;
   // Whether a program is running right now. Ambient chat reads it to pick which
-  // appetite applies — talking over a running device is a different situation
+  // set of intervals applies — talking over a running device is a different situation
   // from filling a conversational pause. It never gates whether they speak.
   isPlaying?: () => boolean;
   onToolRun?: (name: string, result: string) => void;
@@ -323,15 +332,20 @@ export function useVoiceSession(opts: {
   }, []);
 
   // Write-through persistence: every thread mutation updates the ref, the
-  // mirror, and localStorage together. Storage failures (quota/unavailable) are
-  // swallowed — the in-memory thread still works for this session.
+  // mirror, and localStorage together. A storage failure (quota, or unavailable)
+  // doesn't end the session — the in-memory thread carries on — but it is
+  // logged rather than swallowed: nothing else goes wrong until the reload
+  // that finds the thread rewound to the last version that fit.
   const persistThread = useCallback((thread: Thread): void => {
     threadRef.current = thread;
     setStatus((s) => ({ ...s, thread }));
     try {
       localStorage.setItem(threadKeyRef.current, serialize(thread));
-    } catch {
-      // ignore: storage full or unavailable
+    } catch (e) {
+      onLogRef.current?.(
+        `thread not saved: ${e instanceof Error ? e.message : String(e)}`,
+        'info',
+      );
     }
   }, []);
 
@@ -545,8 +559,8 @@ export function useVoiceSession(opts: {
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
-        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool line, then
-        // the reaction — so this is factored out. Returns false if the turn was
+        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool
+        // line, then the reaction. Returns false if the turn was
         // aborted/superseded mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
           const ttsStart = performance.now();
@@ -577,7 +591,7 @@ export function useVoiceSession(opts: {
         };
 
         try {
-          // Read the device once for the whole turn, so call 1 and call 2 agree
+          // Read the device once for the whole turn, so every call in it agrees
           // about the toy even if a knob moves between them.
           const deviceState = getDeviceStateRef.current();
           const systemPrompt = buildSystemPrompt(
@@ -600,37 +614,50 @@ export function useVoiceSession(opts: {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
 
-          // Call 1 — offer the tools. The companion may speak, call a tool, or do BOTH: a
-          // pre-tool line ("mm, let me get you going") and the call in one turn.
-          const r1 = await runLlm(baseMessages, true, 'call-1');
-          if (r1 === null) return;
+          // The tool rounds. Each offers the tools, and the companion may speak,
+          // call a tool, or do BOTH: a pre-tool line ("mm, let me get you
+          // going") and the call in one turn. A round they answer with a call
+          // runs it and goes round again, because a call's only useful follow-up
+          // is often another one. A round they answer with words alone is their
+          // reaction, and ends the turn.
+          let reply = '';
+          let reasoning: unknown[] | undefined;
+          // Where the next call reads from: the opening projection, then the
+          // thread as each round's results are persisted into it.
+          let messages = baseMessages;
+          // Set when the cap stops a companion who was still calling, so they
+          // are given a last toolless call to say something about what they did.
+          let owedReaction = false;
 
-          let reply = r1.content;
-          let reasoning = r1.reasoning;
+          for (let round = 1; ; round++) {
+            const r = await runLlm(messages, true, `call-${round}`);
+            if (r === null) return;
+            reply = r.content;
+            reasoning = r.reasoning;
+            if (r.toolCalls.length === 0) break;
 
-          if (r1.toolCalls.length > 0) {
             // Speak the pre-tool line first, if the companion said one, BEFORE
             // the device acts — the line plays, THEN the toy starts/changes,
             // THEN their reaction. A barge-in here bails before anything is run
             // or stored.
-            if (speak && r1.content.trim() !== '') {
-              if (!(await speakText(r1.content))) return;
+            if (speak && r.content.trim() !== '') {
+              if (!(await speakText(r.content))) return;
             }
 
             // Persist the full agentic sequence: the assistant tool-call turn
-            // (content + calls + any Call-1 reasoning) then each tool result
-            // linked back by id, committed together so the stored history is
-            // always a valid call/result pair. This is also what later turns
+            // (content + calls + any of that call's reasoning) then each tool
+            // result linked back by id, committed together so the stored history
+            // is always a valid call/result pair. This is also what later turns
             // replay so the companion sees they have actually called tools before —
             // without it they drift back to narrating "*starting*" instead of calling.
             let next = appendAssistant(
               threadRef.current,
-              r1.content,
-              companion.passesReasoning ? r1.reasoning : undefined,
-              r1.toolCalls,
+              r.content,
+              companion.passesReasoning ? r.reasoning : undefined,
+              r.toolCalls,
               Date.now(),
             );
-            for (const call of r1.toolCalls) {
+            for (const call of r.toolCalls) {
               // wait_for_user is the session's own, not the panel's: it acts on
               // the scheduler rather than the device, so it's dispatched here
               // instead of being looked up among the declared tools.
@@ -658,46 +685,59 @@ export function useVoiceSession(opts: {
               } catch {
                 // ignore: malformed arguments → run with no args
               }
-              // run() returns either the result string or a { result, mediaRef }
-              // object (send_media): normalise to both. mediaRef rides onto the
-              // tool turn for rendering; only `result` is fed to the model.
+              // run() returns either the result string or a { result, mediaRef,
+              // display } object: normalise to all three. mediaRef and display
+              // ride onto the tool turn for rendering; only `result` is fed to
+              // the model.
               const raw = tool === undefined ? 'unknown tool' : tool.run(args);
               const result = typeof raw === 'string' ? raw : raw.result;
               const mediaRef =
                 typeof raw === 'string' ? undefined : raw.mediaRef;
-              onToolRunRef.current?.(call.name, result);
+              const display = typeof raw === 'string' ? undefined : raw.display;
+              onToolRunRef.current?.(call.name, display ?? result);
               next = appendTool(
                 next,
                 call.name,
                 result,
                 call.id,
                 mediaRef,
+                display,
                 Date.now(),
               );
             }
             persistThread(next);
+            // The pre-tool line now has a turn of its own, so drop the streamed
+            // copy: the pending bubble stands for text with nowhere else to
+            // render, and the next round streams into it from empty.
+            setStatus((s) => ({ ...s, replyText: '' }));
             if (controller.signal.aborted || turnRef.current !== controller) {
               return;
             }
 
-            // Call 2 — feed the tool results back so the companion reacts to
-            // them in words. Rebuilt from the just-persisted thread (which now
-            // holds the tool-call turn + results), so the request and the stored
-            // history are one and the same. No tools this call: it's their
-            // spoken reaction, not a place to chain more actions.
-            const call2 = toLlmMessages(
+            // Feed the results back by rebuilding from the just-persisted
+            // thread (which now holds the tool-call turn + results), so the
+            // request and the stored history are one and the same.
+            messages = toLlmMessages(
               threadRef.current,
               systemPrompt,
               companion.passesReasoning,
             );
-            call2.push(liveState(deviceState));
-            // The reaction is the second spoken block; clear the streamed
-            // pre-tool text so it streams fresh.
-            setStatus((s) => ({ ...s, replyText: '' }));
-            const r2 = await runLlm(call2, false, 'call-2');
-            if (r2 === null) return;
-            reply = r2.content;
-            reasoning = r2.reasoning;
+            messages.push(liveState(deviceState));
+
+            if (round === MAX_TOOL_ROUNDS) {
+              owedReaction = true;
+              break;
+            }
+          }
+
+          // The cap stopped them mid-chain, so the last word was a tool result
+          // rather than anything spoken. One more call, toolless — it can only
+          // be the reaction, which is what ends every turn.
+          if (owedReaction) {
+            const last = await runLlm(messages, false, 'reaction');
+            if (last === null) return;
+            reply = last.content;
+            reasoning = last.reasoning;
           }
 
           // Commit the (final) spoken reply — the reaction when the companion
@@ -713,6 +753,9 @@ export function useVoiceSession(opts: {
                 Date.now(),
               ),
             );
+            // Same as each round's commit: the reply has a bubble now, so the
+            // pending one must go before TTS starts.
+            setStatus((s) => ({ ...s, replyText: '' }));
           }
           if (
             controller.signal.aborted ||
@@ -825,11 +868,9 @@ export function useVoiceSession(opts: {
         // Barge-in fires here, not on VAD onset: cut the companion off only once
         // the STT has decoded a real word, so raw mic energy (a cough, a thump,
         // their voice leaking past AEC) doesn't interrupt them mid-sentence. It
-        // asks for more voicing than the composer does — the cost of being wrong
-        // is the companion being cut off mid-sentence, not a word appearing and vanishing
-        // — but it is not sticky: each partial is judged on the evidence so far,
-        // so a confirmed utterance can't leave a latch set that lets the next
-        // phantom through.
+        // is not sticky: each partial is judged on the evidence so far, so a
+        // confirmed utterance can't leave a latch set that lets the next
+        // hallucinated token through.
         const speechConfirmed = confirmSpeech(
           false,
           text,
@@ -872,7 +913,7 @@ export function useVoiceSession(opts: {
       onClosed: ({ local, code, reason, wasClean }) => {
         // Our own hang-up is expected and already visible as the phase change.
         // One from the far end is the interesting case: it's how an idle
-        // socket's death shows up, and the code and reason are all we get.
+        // socket closing shows up, and the code and reason are all we get.
         if (local) return;
         const why = reason !== '' ? ` ${reason}` : '';
         onLogRef.current?.(

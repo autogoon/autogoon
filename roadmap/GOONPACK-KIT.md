@@ -1,36 +1,38 @@
 # Goonpack kit
 
 Move goonpack authoring — creating, captioning, checking, building — out of the
-npm scripts and a text editor, and into the app itself as a screen you work in.
+npm scripts and a text editor, and into the app itself as a screen.
 
 The app today only _consumes_ packs: import a zip, and it lives in browser
-storage. Everything that goes into making one happens elsewhere — captions come
-from `scripts/describe-image.mjs`, the manifest and `system-prompt.md` are hand-
-edited files, and `goonpack:build` zips a directory. That split is the problem:
-the one job that genuinely needs a screen is looking at a picture next to what a
-model said about it.
+storage. Everything that goes into making one happens elsewhere:
+
+- Captions come from `scripts/describe-image.ts`.
+- The manifest and `system-prompt.md` are hand-edited files.
+- `goonpack:build` zips a directory.
+
+That split is the problem. The one job that needs a screen is looking at a
+picture next to what a model said about it.
 
 ## Why captions come first
 
-Captioning is good but never perfect, and it can't be — a single frame is
-sometimes genuinely ambiguous, and a model that gets a pose right on one run
-gets it wrong on the next. So there will always be captions to correct and small
-tweaks to make, whatever the pack's size, and doing that in a terminal means
-running one script per picture; the inline-image preview the describe scripts
-print is a workaround for not having a screen.
+Captioning is good but never perfect, and it can't be. A single frame is
+sometimes ambiguous, and a model that gets a pose right on one run gets it wrong
+on the next. So there will always be captions to correct and small tweaks to
+make, whatever the pack's size. Doing that in a terminal means running one
+script per picture, and the inline-image preview the describe scripts print is a
+workaround for not having a screen.
 
-So the first piece is a review surface: pick a pack, leaf through its pictures,
+So the first piece is a review surface. Pick a pack, leaf through its pictures,
 see each one beside its caption and the model's full observations, jump into the
-caption with a keystroke, and save. Fast leafing and keyboard editing are the
-whole point — the value is in how quickly you can get through a lot of pictures.
+caption with a keystroke, and save.
 
 **What changes as a pack grows.** Reading every caption is the right workflow
 while a pack is a curated few hundred. Past that nobody will read them all — see
-the two regimes in [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md) — and the
-kit's main jobs become the ones that scale: running the description pass over a
-whole pack and watching it work, creating the voice, and packaging the result.
-Review doesn't go away, it stops being exhaustive: you go to the pictures a
-sampling pass or a search flags, rather than to all of them.
+the two regimes in [INFERENCE-LIBRARY.md](./INFERENCE-LIBRARY.md). The kit's
+main jobs become the ones that scale: running the description pass over a whole
+pack and watching it work, creating the voice, and packaging the result. Review
+doesn't go away, it stops being exhaustive. You go to the pictures a sampling
+pass or a search flags, rather than to all of them.
 
 ## The pieces
 
@@ -56,28 +58,24 @@ keep:
 
 ## The constraint that shapes it
 
-Nothing in `src/` touches the filesystem today: every API route is a network
-proxy, and packs reach the app as uploaded zips. A kit that edits pictures and
-sidecars where they actually live would be the app's first filesystem route —
-and it can only exist on the machine holding the pack sources, which means
-**dev-only**, present under `npm run dev` and absent from any deploy.
+Nothing in `src/` touches the filesystem today: no API route reads or writes
+disk, and packs reach the app as uploaded zips. A kit that edits pictures and
+sidecars where they actually live would be the app's first filesystem route. It
+can only exist on the machine holding the pack sources, so it is **dev-only** —
+present under `npm run dev`, absent from any deploy.
 
 That gating is the first design question, and it is not just a feature flag: the
-routes must not be reachable in a deployed build at all. Worth settling before
-anything else, because it decides whether the editing logic can assume a
-directory or has to assume a zip.
+routes must not be reachable in a deployed build at all. The answer decides
+whether the editing logic can assume a directory or has to assume a zip.
 
 Open questions:
 
-- **Where the observations live.** The sidecar holds one caption line; the
-  model's full notes are printed and thrown away. Reviewing a caption is far
-  easier with them, so they'd need storing — a second sidecar, or a change to
-  the pack format, which is a compatibility question. Being decided elsewhere:
-  retrieval stores the long description too, so the sidecar's shape is settled
-  in [TODO.md](../TODO.md#media-descriptions-and-retrieval) rather than here.
+- **Where the observations live.** Answered elsewhere: the sidecar is a `.md`
+  per item carrying the caption in frontmatter and the model's full notes as the
+  body, so reviewing a caption beside what it was condensed from comes free.
 - **What happens to the scripts.** `describe`, `describe-missing` and `build`
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the
   captioning logic to move out of `scripts/`.
-- **Re-captioning from the screen** — one picture, or a selection — which puts a
-  paid API call behind a button and needs the model choice surfaced.
+- **Re-captioning from the screen**, one picture or a selection. It puts a paid
+  API call behind a button and needs the model choice surfaced.

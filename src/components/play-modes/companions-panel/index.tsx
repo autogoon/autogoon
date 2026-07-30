@@ -51,7 +51,12 @@ import {
   isSilentAssistantTurn,
   sameLocalDay,
 } from '@/lib/companions/conversation';
-import { describeMediaList, pickMedia } from '@/lib/companions/send-media';
+import { searchMedia } from '@/lib/companions/media-search';
+import {
+  countHits,
+  describeHits,
+  pickMedia,
+} from '@/lib/companions/send-media';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LibraryEntry } from '@/lib/goonpacks/entries';
 import { voiceStage } from '@/lib/voice/session-policy';
@@ -177,7 +182,7 @@ export function CompanionsPanel({
     void device.pause();
   }, [device]);
 
-  // Transition log for the acceptance run. Hoisted above the voice session
+  // Transition log. Hoisted above the voice session
   // (rather than left with the other status-derived effects below) because
   // its `append` is the tool-dispatch log callback passed into useVoiceSession.
   const [log, setLog] = useState<LogEntry[]>([]);
@@ -230,14 +235,23 @@ export function CompanionsPanel({
   );
   const showMedia = useCallback((m: CompanionMedia) => setLightboxMedia(m), []);
 
+  // What they have already sent, excluded from later searches so a second
+  // request on the same topic doesn't return the same picture. Derived from the
+  // thread rather than accumulated alongside it — every turn carrying a
+  // mediaRef is a send that happened — so a resumed conversation excludes what
+  // it sent before the reload, and clearing the thread clears these with it.
+  // A ref because the tool closures outlive the render that made them; the
+  // effect below is what keeps it current.
+  const sentRefs = useRef<Set<string>>(new Set());
+
   // The tools the companion can call, and the live device-state line injected each turn.
   // Return type annotated on the callback (not via useMemo's generic) so each
   // array element is checked against CompanionTool individually — otherwise TS's
   // array-literal inference merges the differently-shaped `intensity`/`variety`
   // `parameters.properties` into one shape before the check, and fails.
   const tools = useMemo((): CompanionTool[] => {
-    // The companion's media, if any. Empty → the send_media tool is left out
-    // entirely, so a companion with no media never offers it.
+    // The companion's media, if any. Empty → both media tools are left out
+    // entirely, so a companion with no media never offers them.
     const items = companion.media ?? [];
     return [
       {
@@ -313,38 +327,77 @@ export function CompanionsPanel({
           return `variety → ${level}`;
         },
       },
-      // send_media — only when the companion has media. They pick by number
-      // from the list in the description; run() resolves it to an item, opens
-      // the lightbox, and returns its ref so it renders inline in the
+      // The media tools — only when the companion has media. They ask in words,
+      // the app searches, and they send one of the refs it hands back. Nothing
+      // lists the whole set: send_media's run() resolves the ref to an item,
+      // opens the lightbox, and returns that ref so it renders inline in the
       // transcript too.
       ...(items.length > 0
         ? [
             {
-              name: 'send_media',
+              name: 'search_media',
               description:
-                'Send him a picture or a video of yourself, shown to him right now in the call. Pass `which` — the number of the one to send. Optionally pass `kind` to say which sort you mean; the call is refused if it disagrees with the number. What you can send:\n' +
-                describeMediaList(items),
+                'Look through your own pictures and videos for ones matching a description — "me on my knees looking up", "something on a beach". Optionally pass `kind` to search only pictures or only videos. Returns up to a couple of dozen matches, each with a ref and what it shows. Call this before send_media; the refs it returns are what send_media takes.',
               parameters: {
                 type: 'object',
                 properties: {
-                  which: {
-                    type: 'integer',
-                    minimum: 1,
-                    maximum: items.length,
-                    description: 'the number of the one to send',
+                  description: {
+                    type: 'string',
+                    description:
+                      'what you want a picture of, in your own words',
                   },
                   kind: {
                     type: 'string',
                     enum: ['picture', 'video'],
                     description:
-                      'optional: the sort you mean to send, checked against the number',
+                      'optional: search only this sort; omit to search both',
                   },
                 },
-                required: ['which'],
+                required: ['description'],
+              },
+              run: (args: Record<string, unknown>) => {
+                const query =
+                  typeof args.description === 'string' ? args.description : '';
+                // 'picture' is the word the companion is given for a still;
+                // MediaKind calls it 'image'. Anything else is no filter — a
+                // model writing the call out as text can put anything here, and
+                // searching both beats refusing.
+                const kind =
+                  args.kind === 'picture'
+                    ? 'image'
+                    : args.kind === 'video'
+                      ? 'video'
+                      : undefined;
+                const found = searchMedia(items, query, {
+                  exclude: sentRefs.current,
+                  kind,
+                });
+                return {
+                  result: describeHits(found),
+                  display: countHits(found),
+                };
+              },
+            } satisfies CompanionTool,
+            {
+              name: 'send_media',
+              description:
+                'Send him one of your pictures or videos, shown to him right now in the call. Pass `ref` — one of the refs search_media returned. Search first; a ref you made up sends nothing.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  ref: {
+                    type: 'string',
+                    description: 'a ref from search_media',
+                  },
+                },
+                required: ['ref'],
               },
               run: (args: Record<string, unknown>) => {
                 const pick = pickMedia(items, args);
-                if (pick.show !== null) showMedia(pick.show);
+                if (pick.show !== null) {
+                  sentRefs.current.add(pick.show.ref);
+                  showMedia(pick.show);
+                }
                 return pick.sent;
               },
             } satisfies CompanionTool,
@@ -401,6 +454,20 @@ export function CompanionsPanel({
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
+
+  // Re-read the exclusions from the thread whenever it changes — a load, a
+  // send, or a clear. send_media also adds its ref as it sends, because a model
+  // can search again in the same turn, before the turn carrying that send has
+  // been appended.
+  useEffect(() => {
+    sentRefs.current = new Set(
+      status.thread.flatMap((turn) =>
+        turn.role === 'tool' && turn.mediaRef !== undefined
+          ? [turn.mediaRef]
+          : [],
+      ),
+    );
+  }, [status.thread]);
 
   // Manual stroke state only — its `keywords` are intentionally NOT wired to
   // voice (Companions registers no vosk words).
@@ -513,22 +580,20 @@ export function CompanionsPanel({
   // is locked. It runs from the VAD onset that opens an utterance to the point
   // the server commits it — a decision about speech, not about mic energy, so
   // it doesn't blink between words the way the raw VAD does and needs no
-  // debouncing. `partial` is redundant with it, and kept as belt and braces:
-  // text on screen should never sit in an unlocked box.
+  // debouncing. `partial` is redundant with it, and kept because text on screen
+  // should never sit in an unlocked box.
   const dictating = status.utteranceOpen || status.partial !== '';
 
   // The session's live stage, shared by the lightbox badge and the
   // transcript's stage bubble.
   const stage = voiceStage(status);
 
-  // In-progress reply bubble: shown only until the assistant turn commits —
-  // once the thread's last non-tool turn is the assistant turn, the committed
-  // bubble replaces it, even while a spoken reply is still playing.
+  // In-progress reply bubble: the streamed text that has no turn of its own
+  // yet. Every commit clears replyText, so this is exactly what is unstored —
+  // a pre-tool line in any tool round included, since those are spoken before
+  // the round they belong to is written.
   const pendingReplyVisible =
-    status.replyPlaying &&
-    status.replyText !== '' &&
-    [...status.thread].reverse().find((t) => t.role !== 'tool')?.role !==
-      'assistant';
+    status.replyPlaying && status.replyText.trim() !== '';
 
   // From the moment the companion's words are headed for the speaker, their most
   // recent turn wears the shimmer instead of a status row — faint while the
@@ -553,7 +618,7 @@ export function CompanionsPanel({
   const [menuOpen, setMenuOpen] = useState(false);
   // The LLM request viewer: the pretty-printed JSON of the exact request a
   // turn sent right now would make, or null when closed. Snapshotted on click,
-  // not live — it's a "what would go out" inspector.
+  // not live.
   const [llmRequestJson, setLlmRequestJson] = useState<string | null>(null);
   const showLlmRequest = useCallback(
     () => setLlmRequestJson(JSON.stringify(previewLlmMessages(), null, 2)),
@@ -691,7 +756,8 @@ export function CompanionsPanel({
         // screen (page.tsx), so this column owns the viewport.
         <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col gap-3">
           {/* The slim bar — all that's left of the chrome: back to the picker
-              (locked while the program runs, the breadcrumb's old rule), the
+              (locked while the program runs, the same nav lock as every other
+              screen), the
               mic with its loudness sliver, and the hamburger. */}
           <div className="flex shrink-0 items-center gap-2">
             <Button
@@ -853,7 +919,10 @@ export function CompanionsPanel({
                           );
                       } else {
                         row = (
-                          <ToolChip name={turn.name} result={turn.result} />
+                          <ToolChip
+                            name={turn.name}
+                            result={turn.display ?? turn.result}
+                          />
                         );
                       }
                     } else if (isSilentAssistantTurn(turn)) {
@@ -890,9 +959,8 @@ export function CompanionsPanel({
                   {status.thread.length === 0 && !status.replyPlaying && (
                     <p>No messages yet.</p>
                   )}
-                  {/* Live stage as a chat-style bubble — the "other person is
-                  typing" slot, same icon vocabulary as the lightbox badge, for
-                  the stages with no message on screen yet. Once one exists the
+                  {/* Live stage as a chat-style bubble, for the stages with no
+                  message on screen yet. Once one exists the
                   message carries the state itself: the pending bubble while the
                   reply streams into it, then its shimmer through voice-loading
                   and speaking. */}
@@ -910,7 +978,7 @@ export function CompanionsPanel({
                   )}
                   {/* The ring mirrors the one on a message the companion is
                       speaking: theirs shimmers while they talk, the composer
-                      while we're listening to you. It rides the wrapper because a textarea
+                      while the mic is open. It rides the wrapper because a textarea
                       can't carry the pseudo-element that draws it, and because
                       the ring shouldn't dim with the disabled box inside. */}
                   <div

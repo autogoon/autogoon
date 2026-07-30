@@ -1,10 +1,13 @@
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import type { PlayerContext, SpeedEvent } from '../program';
+import type { EdgeControlLevel, IntensityLevel } from './autopilot-engine';
 import { AutopilotEngine } from './autopilot-engine';
 
-// The rules these tests pin — the pulse gate and the pulse-length formula —
-// are stated at generateValves in autopilot-engine.ts and tabulated in
-// modes/AUTOPILOT.md ("Vacuum maintenance").
+// Autopilot recreates Autoblow's algorithm, so modes/AUTOPILOT.md is the
+// specification and these values are contract rather than tuning. The pulse
+// gate and the pulse-length formula are tabulated there under "Vacuum
+// maintenance"; the layout, remap and edge-control rules under "Intensity" and
+// "Edge control".
 
 const CTX: PlayerContext = { clock: 0, currentRawSpeed: 0 };
 
@@ -101,5 +104,98 @@ describe('AutopilotEngine.generateValves (vacuum maintenance)', () => {
       { kind: 'valve', at: 1_000, valve: 'minus', open: false },
       { kind: 'valve', at: 1_000, valve: 'plus', open: false },
     ]);
+  });
+});
+
+// PATTERN_TEMPLATES is not exported, so the draw is pinned through Math.random.
+// 0.8 of the eight templates selects "Max plateaus, shrinking rests"
+// (modes/AUTOPILOT.md, pattern 7) — the one whose step durations all differ, so
+// a step laid out against a neighbour's duration shows up. Adding a template
+// shifts the draw, which fails these tests rather than silently exercising a
+// different pattern.
+const MAX_PLATEAU_DRAW = 0.8;
+
+// The template behind the expectations below, as {speed, duration} pairs:
+// 20@5s 40@10s 100@10s 30@9s 100@10s 20@8s …
+const speedsFrom = (
+  intensity: IntensityLevel,
+  edge: EdgeControlLevel,
+): SpeedEvent[] => {
+  jest.spyOn(Math, 'random').mockReturnValue(MAX_PLATEAU_DRAW);
+  return new AutopilotEngine(intensity, edge, 'off').generateSpeed(
+    0,
+    200_000,
+    CTX,
+  );
+};
+
+const holds = (events: SpeedEvent[], count: number) =>
+  Array.from({ length: count }, (_, i) => events[i + 1]!.at - events[i]!.at);
+
+const pairs = (events: SpeedEvent[], count: number) =>
+  Array.from(
+    { length: count },
+    (_, i) => `${events[i]!.speed}@${events[i + 1]!.at - events[i]!.at}`,
+  );
+
+describe('AutopilotEngine.generateSpeed', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('holds each step for the following step duration', () => {
+    // The original emits a step at the end of its own duration, so a speed is
+    // in effect for the next step's span, and the lead-in covers the first.
+    expect(pairs(speedsFrom('high', 'moderate'), 12)).toEqual([
+      '10@5000',
+      '41@10000',
+      '56@10000',
+      '100@9000',
+      '48@10000',
+      '100@8000',
+      '41@10000',
+      '100@7000',
+      '34@10000',
+      '100@6000',
+      '30@10000',
+      '100@5000',
+    ]);
+  });
+
+  it('opens a draw with an unscaled lead-in speed', () => {
+    const [first] = speedsFrom('high', 'moderate');
+    // 10 is below High's floor of 30: the lead-in skips the intensity remap.
+    expect(first).toEqual({ kind: 'speed', at: 0, speed: 10 });
+  });
+
+  it('remaps each template speed into the intensity range', () => {
+    // modes/AUTOPILOT.md: a template step of 100 becomes 20 on Warmup and 70
+    // on Medium. The pattern tops out at 100, so its peak is that top value.
+    const peak = (intensity: IntensityLevel) =>
+      Math.max(...speedsFrom(intensity, 'moderate').map((e) => e.speed));
+    expect(peak('warmup')).toBe(20);
+    expect(peak('low')).toBe(30);
+    expect(peak('medium')).toBe(70);
+    expect(peak('high')).toBe(100);
+  });
+
+  it('multiplies a step duration by the intense edge control factors', () => {
+    // ×1.5 above 70, ×0.5 below 30, keyed off the template speed; the 40 and
+    // the 30 sit between the bands and are left alone.
+    expect(holds(speedsFrom('high', 'intense'), 6)).toEqual([
+      2_500, 10_000, 15_000, 9_000, 15_000, 4_000,
+    ]);
+  });
+
+  it('multiplies a step duration by the gentle edge control factors', () => {
+    expect(holds(speedsFrom('high', 'gentle'), 6)).toEqual([
+      10_000, 10_000, 5_000, 9_000, 5_000, 16_000,
+    ]);
+  });
+
+  it('shaves the plateau under gentle edge control', () => {
+    // Applied to the intensity-scaled speed, so only a scaled value above 70
+    // is touched: 100 − round(min(100 − 50, 20) × 0.5).
+    expect(speedsFrom('high', 'gentle').map((e) => e.speed)).toContain(90);
   });
 });

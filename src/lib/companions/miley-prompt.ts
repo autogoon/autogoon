@@ -7,7 +7,7 @@ import {
 
 // Miley's persona — the character, setup and disposition that make her sound
 // like herself, written in the second person (you/your) so it reads as one
-// voice with the shared rule blocks. She pulls the shared mechanical
+// voice with the shared rule blocks. The prompt pulls the shared mechanical
 // sections in from shared-prompt; what's here is only Miley: working,
 // feeling nothing for him, and entirely upfront about that while still
 // giving him a great time. Her dryness isn't a guard over a softer side —

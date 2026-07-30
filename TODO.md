@@ -1,212 +1,112 @@
 # TODO
 
-Concrete, intended work. Speculative direction and design thinking lives in
-[ROADMAP.md](./ROADMAP.md).
+New features, additions and changes, including "run the experiment and see"
+where the task is defined but the answer isn't. The divide against the other
+files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## General
 
-- **Stop the program when the device disconnects.** A device that drops mid-run
-  leaves the Player ticking against nothing. The speed send throws,
-  `scheduleNextTick` reports the failure and schedules the next tick anyway, and
-  `lastDeviceSpeed` is only updated on a send that succeeded — so every tick
-  re-sends the same speed and logs the same error, several times a second, for
-  as long as the program has left to run. Valve sends don't even report:
-  `setValve` discards its rejection. Stopping belongs in the Player rather than
-  in each engine — it is the single path to the device, so one stop covers Goon,
-  Groove, Autopilot and Companions together, and no engine needs to know the
-  device exists. To settle: whether a disconnect stops or pauses (a pause would
-  let a reconnect carry on where it left off), how many consecutive failures
-  mean gone rather than a blip, and what the screen says — a device that has
-  dropped is the one failure the user can't otherwise see.
+### Don't connect to the microphone on load
 
-- **Show remaining provider credits in the app.** Both providers expose balances
-  (OpenRouter's credits endpoint; ElevenLabs' subscription endpoint — character
-  quota used/limit), so surface them in the app instead of two dashboards —
-  presumably a pair of trivial proxied lookups. Maybe also record usage over
-  time (per session?). To settle: where it lives (Settings, or on the Companions
-  screen), and how it composes with the bring-your-own-keys feature below (with
-  BYO keys it's the _user's_ balance — arguably more useful, same lookups).
+Particularly annoying during development, where the app sits open and listening
+for keywords without being used. Connecting on load gains little when playing
+either. Turning listening on is one click, once.
 
-- **Finish intensity.** One global percentage in Settings: the intensity you'd
-  want to finish at. **Finish** goes to it; **companion-set intensity** is
-  multiplied by it (they set 100, it lands on 50, and they never see the setting
-  or the scaled number); and **the wind-down** starts at it and ramps down.
-  Torture and the two ruins don't take it — they're absolute on purpose — and
-  Autopilot doesn't change, being a faithful recreation of Autoblow's Autopilot.
-  A companion picking a number has no idea what it does to you, and the only fix
-  today is saying so in words, every session and every new companion.
+### Stop the program when the device disconnects
 
-- **Put the wind-down on a curve.** It glides down in two straight-line phases.
-  Give it the `RAMP_GAMMA` curve Goon's dips ramp on, so it thins out as it
-  approaches a standstill instead of stepping evenly the whole way — a 5-unit
-  change at speed 10 is felt far more than the same change at speed 90. Goon,
-  Groove and Companions each carry their own copy of the constants.
+A device that drops mid-run leaves the Player's tick loop running. The speed
+send throws. `scheduleNextTick` reports the failure and schedules the next tick
+anyway, and `lastDeviceSpeed` only updates on a send that succeeded. Every tick
+re-sends the same speed and logs the same error, several times a second, until
+the program would have ended. Valve sends report nothing at all: `setValve`
+discards its rejection.
 
-## Media descriptions and retrieval
+Stopping belongs in the Player, not in each engine. The Player is the single
+path to the device, so one stop covers every play mode and no engine needs a
+device reference. To settle:
 
-**The next thing.** A companion with a collected set of a couple of thousand
-pictures can't use them: every item's description goes into the `send_media`
-schema and they pick by number, which stops working long before the window fills
-— a model choosing between two thousand near-identical descriptions chooses
-badly. And the descriptions themselves are written for one woman alone in a
-pose, so a second body, a man, and anything happening between people have
-nowhere to go.
+- whether a disconnect stops or pauses (a pause would let a reconnect carry on
+  where it left off);
+- how many consecutive failures mean gone rather than a blip;
+- what the screen says. A device that has dropped is the one failure the user
+  can't otherwise see.
 
-The target design — what they've asked for, who does the searching, what gets
-stored per item — is
-[roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md). The short of it:
-they ask in words, the app searches, and the tool result tells them what
-actually went. What's below is the work, staged so each stage answers one
-question and the next depends on it. Stages 0–2 are worth doing even if the
-retrieval half slips.
+### Show remaining provider credits in the app
 
-### Stage 0 — the yardstick
+Saves visiting the providers' dashboards.
 
-A yardstick of around a hundred images, deliberately loaded with the hard cases:
-sheer versus opaque, nipples through fabric, topless versus covered, a cock in
-frame, penetration, oral, more than one person, watermarks, near duplicates.
-Hand-write the ground truth once.
+### Finish intensity
 
-It's a dull afternoon's work and nothing else should start first — without it
-every later comparison is an impression rather than a number, which is exactly
-how the current prompt got to be confidently wrong in a few places.
+One global percentage in Settings: the intensity you'd want to finish at. What
+reads it:
 
-### Stage 1 — what a description should contain
+- **Finish** goes straight to it;
+- **companion-set intensity** is multiplied by it. They set 100, it lands on 50,
+  and they never see the setting or the scaled number;
+- **the wind-down** starts at it and ramps down.
 
-Two texts per item, not one: a long description of everything in the picture,
-and a one-line caption condensed from it. `scripts/describe-image.mjs` already
-works this way — it has the model observe at length and then condense — and
-currently throws the observations away, so this is mostly plumbing rather than
-new inference.
+What doesn't:
 
-The schema needs rescoping. Establish the scene first — how many people, which
-sexes, what is happening between them — then describe each person, then any text
-in the image. Two specific errors to chase while here: bare breasts called
-covered and covered called bare, which is a discrimination the prompt already
-asks for explicitly; and nipples through fabric missed, where the suspect is
-that prompt's own anti-false-positive wording over-correcting into false
-negatives — a one-line change with a measurable answer.
+- **torture** and **the ruins**, absolute on purpose;
+- **Autopilot**, which recreates Autoblow's own.
 
-**Blocking decision:** two texts plus an attribute panel outgrows the one-line
-`.txt` sidecar that `parsePack` reads straight in as a description. Settle the
-sidecar's shape before anything writes captions at scale, since it's a pack
-format change.
+A companion picking a number has no idea what it does to you. The only fix today
+is saying so in words, every session and every new companion.
 
-### Stage 2 — model and resolution
+### Put the wind-down on a curve
 
-Same yardstick, same prompt. Vary resolution and tiling first — that's the
-bigger lever for fine detail and it's a config rather than a model swap — then
-compare three or four models with a frontier one as the ceiling. Settles whether
-the remaining errors are the model or the prompt, and picks the model for the
-bulk pass.
+It steps down in two straight-line phases. Give it the `RAMP_GAMMA` curve Goon's
+dips ramp on, so its steps shrink as it approaches a standstill instead of
+stepping evenly the whole way. A 5-unit change at speed 10 is felt far more than
+the same change at speed 90.
 
-### Stage 3 — retrieval, offline
-
-Thirty to fifty realistic requests in a companion's own words ("me on my knees
-looking up", "something with a man in it", "topless but not explicit", "filthier
-than the last one"), scored by hand against four implementations: a cheap LLM
-reading all the captions; caption-embedding top-k; top-k plus an LLM rerank over
-the long descriptions; and the same with an image embedding added.
-
-The output is the minimum that works and where it breaks — which is what decides
-the shape of the tool. Also settled here: whether hard constraints (no nudes
-ever; must contain a man) need the structured attribute filters or fall out of
-ranking.
-
-### Stage 4 — the set summary
-
-An LLM over all the captions, producing a paragraph on what the collection is —
-proportions, who's in it, which acts appear, the range of undress. Test whether
-a companion given only that asks answerable questions and stops offering what
-isn't there.
-
-Open while testing: whether one neutral summary serves every persona, or whether
-it wants generating per persona — different companions care about different
-dimensions of the same facts, and a neutral one stays cacheable.
-
-### Stage 5 — wire it in
-
-Only now: the tool takes a description instead of a number, the summary goes
-into the prompt like the other app-owned sections, and the index gets somewhere
-to live. Two things fall out for free at this point — `send_media`'s argument
-stops being a positional index, which today means a historical call in a thread
-can denote a different picture once a pack version or overlay changes the set;
-and the search owns "don't send the same thing twice", which nothing does today.
+Goon, Groove and Companions each carry their own copy of the constants.
 
 ## Companions
 
-Remaining companion features — largely independent, picked off in any order,
-with any dependencies noted in place (they began as the numbered phase plans of
-[#13](https://github.com/autogoon/autogoon/pull/13) and
-[#14](https://github.com/autogoon/autogoon/pull/14)). The full design and
-rationale live in the design doc:
-[docs/superpowers/specs/2026-07-18-companions-design.md](./docs/superpowers/specs/2026-07-18-companions-design.md).
-What's already built is described in
-[modes/COMPANIONS.md](./modes/COMPANIONS.md).
+### Split use-voice-session.ts and companions-panel/index.tsx
 
-### Split the voice session and the companions panel
+`use-voice-session.ts` and `companions-panel/index.tsx` have both grown long
+enough that several unrelated concerns sit in one file. The coupling is
+deliberate. The mic and STT callbacks are created once and outlive many renders,
+so everything they read has to be a ref, and anything moved out still needs
+those refs. The work is a structure that carries them, not smaller files.
 
-`use-voice-session.ts` (~1000 lines, ~20 refs in one closure) and
-`companions-panel/index.tsx` (~1000) have both accreted past what's comfortable
-to hold in the head. The coupling is deliberate rather than careless — the mic
-and STT callbacks are created once and outlive many renders, so everything they
-read has to be a ref — which is why "just split it" isn't the fix.
-
-Three seams are visible in the hook. **Thread persistence** (`persistThread`,
-`clearThread`, the load effect) touches two refs and nothing else: a clean lift
-with no design needed. **The turn runner** — `submitText` and its helpers: LLM
-streaming, metrics, tool dispatch, the reaction, the TTS handoff — is the bulk
-and needs most of the refs, so extracting it means inventing an explicit
-session-context to carry them, which is the real work and the reason this hasn't
-happened. **What remains** is the mic/STT/VAD wiring and start/stop, which is
-what a hook of that name should mostly be.
+`submitText` and its helpers are the bulk of the hook and need most of the refs.
+Extracting the turn runner means inventing an explicit session-context to carry
+them, which is why this hasn't happened.
 
 ### Activity cutoff
 
 A spend backstop, separate from ambient chat's own `wait_for_user` stop (shipped
-— see [modes/COMPANIONS.md](./modes/COMPANIONS.md)): after long enough with no
-sign of anyone — no user turn, no control touched — stop the program. Stopping
-the program already stops ambient chat, so the one cutoff covers a session left
-running in an empty room, which is where LLM and TTS spend would otherwise run
-indefinitely.
+— see [modes/COMPANIONS.md](./modes/COMPANIONS.md)). After long enough with no
+user turn and no control touched, stop the program.
+
+Stopping the program already stops ambient chat, so the one cutoff covers a
+session left running in an empty room, where LLM and TTS spend would otherwise
+run indefinitely.
 
 The hard part is the number, not the mechanism. Long silences during play are
-normal — the device is working and there is nothing to say — so a cutoff tuned
-for an empty room must not fire on someone who is simply quiet. Worth warning
-before it stops rather than stopping silently.
+normal: the device is working and there is nothing to say. A cutoff tuned for an
+empty room must not fire on someone who is simply quiet.
 
-### Safeword as a hard stop
+Worth warning before it stops.
 
-Vosk KWS reserved for the safeword → a hard stop that tears down the voice
-session (LLM + TTS), not just the device. Today the safeword only pauses the
-Player, so they keep talking through it; and it is only in the grammar while a
-program runs, so with the device stopped there is no spoken way to stop them at
-all. Also the nav/global-word lockdown a running session needs, and reconciling
-the two concurrent mic captures (vosk vs. ElevenLabs STT) so the word that stops
-them isn't also transcribed as a turn.
+### Reply length belongs to the companion
 
-### Context compaction / rolling window
+`SHARED_STYLE_BULLETS` in `shared-prompt.ts` tells every companion to keep
+replies short, "usually a few sentences". So a terse persona and a verbose one
+get the same instruction, and an author who wants a talker has to contradict the
+shared block rather than write their own rule.
 
-Keep the ever-growing thread within the model's context (recorded per companion
-as `contextWindow`): summarize older turns and/or keep a rolling window of
-recent turns verbatim, trimming old `reasoning_details` along with the messages
-they belong to. Headroom for very long sessions rather than a near-term limit.
-
-### Turn-commit review, reply-length tuning & prompt polish
-
-With the loop running on hardware, tune the conversational feel: revisit the
-interrupted-turn commit rule (the user turn is committed immediately, the
-assistant turn only on generation-complete, which can leave a dangling user turn
-when a mid-generation barge-in cuts a reply before it finishes) — confirm or
-adjust; keep replies short enough for TTS latency; and a review/polish pass over
-the system prompts. _(The on-hardware feel tuning remains.)_
+How talkative a companion is belongs in their persona.
 
 ### The companion picks the after-play
 
 The companion gets a tool for each after-play and picks which one to use when
-you say you're cumming. The persona decides, so the ending stops being a setting
-and becomes something they do to you. And because they can choose, they can say
-they will without saying which.
+you say you're cumming, so the ending stops being a setting and becomes
+something they do to you. And because they can choose, they can say they will,
+and do something else.
 
 ### Pick packs up off disk in dev
 
@@ -215,179 +115,130 @@ tab, pick the zip, confirm the replace. Every time. The build is the only step
 doing anything the app couldn't do itself.
 
 On a locally-run server, have the app ask a route on load what pack directories
-are sitting in `goonpacks/`, and import each one exactly as though it had been
-chosen in the picker and replaced — the same validation, the same storage.
-Reload becomes the whole loop.
+are sitting in `goonpacks/`. Import each one exactly as though it had been
+chosen in the picker and replaced: the same validation, the same storage. Reload
+becomes the whole loop.
 
 The source directory rather than a built zip, because validation now runs on the
-extracted tree: the tree is the thing that ships, and the zip only carries it,
-so importing the directory imports what would ship. That also drops the build
-step from the loop entirely.
+extracted tree. The tree is the thing that ships and the zip only carries it, so
+importing the directory imports what would ship.
 
-Deliberately not watching for changes: load-time only. A reload is a small
+Deliberately load-time only, with no watching for changes. A reload is a small
 enough ask, and polling can come later if it isn't.
 
 **Dev-server only, and it has to be enforced server-side.** The route reads the
-developer's own filesystem, which is exactly what a deploy must not do —
+developer's own filesystem, which is what a deploy must not do.
 `access-check.ts` already has the `NODE_ENV === 'development'` precedent to
-follow. Also worth deciding what happens when a disk pack and an installed one
-collide, and whether a pack imported this way should be visibly marked as having
-come from disk rather than chosen.
+follow.
 
-A stopgap, not the destination — [Goonpack kit](./roadmap/GOONPACK-KIT.md) is
-where authoring properly moves into the app. This is worth doing anyway because
-it's small and pays off immediately.
+Also worth deciding what happens when a disk pack and an installed one collide,
+and whether a pack imported this way should be visibly marked as having come
+from disk rather than chosen.
+
+A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
+moves into the app properly. Small enough to be worth doing anyway.
 
 ### Streaming per companion
 
-`stream: true` is hardcoded for every request, and on a spoken turn it buys
+`stream: true` is hardcoded for every request, and on a spoken turn it gains
 nothing: the reply is buffered in full and handed to TTS complete (the
 `submitText` comment in `use-voice-session.ts` says so). All streaming does is
-fill the transcript word by word — nice on a typed turn, invisible on a voice
-one, because the audio can't start until the text is finished anyway.
+fill the transcript word by word, worth having on a typed turn.
 
 So make it a per-companion field like `model` and `passesReasoning`, and a
 manifest field packs can set.
 
-**The reason this is worth building: it's what rules MiniMax M3 out today.** The
-problem there was specifically in the streamed response — OpenRouter not cleanly
-separating the model's reasoning from its reply, so thinking leaked into what
-the companion said. A non-streamed response carries them as separate fields and
-can't blur the two, which makes "don't stream" the fix rather than a workaround,
-and hands back a model currently unusable for a reason that has nothing to do
-with the model itself.
+**Where this came from:** a streamed MiniMax reply whose reasoning leaked into
+what the companion said, because OpenRouter didn't cleanly separate the two.
+`mergeReasoning` in `llm/client.ts` handles that one, folding
+`reasoning_details` into its own array. A non-streamed response carries
+reasoning and content as separate fields and can't blur them. "Don't stream" is
+then a real setting rather than a workaround for the next model that behaves
+that way.
 
-Two things to handle when it's built: `reasoning_details` and `tool_calls` are
-currently assembled from stream deltas (`mergeReasoning`, `mergeToolCalls` in
-`llm/client.ts`), so the non-streamed response shape needs its own path to the
-same place; and the transcript should show something sensible while a
-non-streaming turn generates, since there'll be no text arriving until it's
-done.
+To settle: what the transcript shows while a non-streaming turn generates, since
+no text arrives until it's done.
 
-### Pin a provider, and see what upstream actually said
+### Pin a provider
 
-Two things that made a five-minute throughput test into a long one.
+A companion's model is a slug, and OpenRouter can route each turn to any
+provider serving it. Consecutive turns can land on different providers, making
+comparison by hand impossible and defeating prompt caching, which is
+per-provider.
 
-**Choosing the provider.** A companion's model is a slug and nothing more, so
-routing is whatever OpenRouter decides — `:nitro` sorts by throughput and can
-land consecutive turns on different providers. What prompted this: whichever
-provider mimo landed on was badly slow, with no way to say "not that one". A
-guess worth testing rather than believing — that throughput routing leans on
-figures too coarse or too stale to notice a provider degrading in the moment, so
-a spike takes a while to route around. That makes provider-level comparison
-impossible to do by hand, and it defeats prompt caching, which is per-provider.
-Wants to be a setting rather than an edit: a provider (or endpoint tag, e.g.
-`xiaomi/fp8`) sent as OpenRouter's `provider` field, with fallbacks off so a pin
-that can't be served fails loudly instead of quietly going elsewhere. Worth
-surfacing which provider actually served a turn, too — it comes back on every
-response.
+Send a provider (or endpoint tag, e.g. `xiaomi/fp8`) as OpenRouter's `provider`
+field, with fallbacks off so a pin that can't be served fails loudly. Show which
+provider served each turn: it comes back on every response.
 
-**Seeing the error.** `/api/llm` turns any upstream failure into a flat 502 with
-upstream's own message discarded, so a provider rejecting a request is
-indistinguishable from the key being wrong. Pass the status and body through:
-the one that cost the most time here said exactly what was wrong
-(`messages[31].tool_calls[1] is missing a function name`) and we couldn't see
-it.
+### Pass the LLM proxy's upstream error through
 
-That error is also a real bug worth chasing separately: a stream can open a
-tool_call index that never gets a name, and we persist it — so it replays on
-every later turn and a strict provider rejects the whole conversation. Clearing
-the thread is an acceptable fix for an already-poisoned one; what matters is not
-writing a nameless call in the first place, and skipping one (and its orphaned
-result) when projecting an old thread.
+`/api/llm` turns every upstream failure into a 502 and discards upstream's own
+message, so a provider rejecting a request looks the same as a wrong key. Pass
+the status and body through.
 
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,
-and the toy-start rule doubled the density of it. The premise is reasonable —
-it's a male masturbator, so nearly every user is male — but it's an assumption
-baked into copy rather than a setting, and the companions themselves aren't
-gendered anywhere else in the app.
+and the toy-start rule added more of it. The premise is reasonable. It's a male
+masturbator, and nearly every user is male.
 
-Worth deciding deliberately rather than by default. The options are roughly:
-leave it (and say so somewhere, so it reads as a choice); neutralise the prompt
-copy; or make it a setting, which is the most work and the only one that costs a
-compatibility surface — pack prompts are author-written and would have to follow
-whatever convention is picked. Note that neutral pronouns in prompt copy also
-cost some clarity: "he" and "she" in the same block disambiguate who is being
-talked about in a way "they" twice over does not.
+But it is an assumption sitting in copy rather than a setting, and the
+companions themselves aren't gendered anywhere else in the app.
 
-### Personas shape their programs
+Worth deciding deliberately rather than by default. The options:
 
-Map a companion's traits onto **Groove's knobs** — `intensity` to the
-speed-percent magnitude, `variety` to the timing/dip-variability level — so
-their program stops being random and becomes **theirs**. This is the missing
-piece for the companions' _programs_ (not just their chat) to diverge.
+- leave it (and say so somewhere, so it reads as a choice);
+- neutralise the prompt copy;
+- make it a setting. That is the most work, and the only option pack authors
+  have to follow: pack prompts are author-written and would have to match
+  whatever convention is picked.
 
-**First settle which of these are code at all.** `chattiness` and `playfulness`
-shipped with ambient chat because they drive a timer. The rest may not need any:
-`dominance` is really how readily a companion overrides what you asked for, and
-that is a disposition the system prompt can carry on its own — plausibly
-`variety` too. A trait only earns a manifest field and a mapping if code reads
-it; one that only colours how a companion behaves belongs in the prompt, where
-an author can already write it. Work out which is which before adding fields,
-because a manifest field is a compatibility surface and packs in the wild make
-it expensive to take back.
-
-### Trait-driven companion contrast
-
-Depends on [Personas shape their programs](#personas-shape-their-programs) —
-it's that feature's payoff, kept separate because it's the thing to _prove_:
-character bends _both_ the chat _and_ the generated program. The chooser and the
-further companions (Aimee, Miley) have shipped; today their contrast is
-prompt/disposition-only, because the personas' programs don't yet diverge by
-trait.
+Neutral pronouns in prompt copy also cost some clarity. "He" and "she" in the
+same block disambiguate who is being talked about in a way "they" twice over
+does not.
 
 ### Bring-your-own API keys
 
 Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
-app** instead of the server's `.env` — entered once, stored client-side, never
-on the server. This is what makes a **hosted public build** viable: every user
-funds their own usage, so there's nothing for accounts or per-user rate limiting
-to protect. [Goonpacks](#goonpacks) are orthogonal — an imported pack runs on
-whatever keys the build has (locally the server's `.env`, on a hosted build the
-user's own), the same way companions do today.
+app** instead of the server's `.env`:
+
+- entered once;
+- stored client-side;
+- never on the server.
+
+A **hosted public build** becomes viable this way. Every user funds their own
+usage, so there's nothing for accounts or per-user rate limiting to protect.
+[Goonpacks](#goonpacks) are orthogonal: an imported pack runs on whatever keys
+the build has, the same way companions do today. Locally that is the server's
+`.env`; on a hosted build, the user's own.
 
 To settle: whether the browser calls providers directly or the proxy routes
 accept the user's key per-request, and what `.env` keys remain as a local-dev
-convenience. The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the
-server keys** — its only job was protecting them.
+convenience.
+
+The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the server keys**.
+Its only job was protecting them.
 
 ### Companion time zones
 
-The personas are located (Riga, Pembrokeshire, Portland) but only the user's
-clock is real — the prompt's TIME line is his browser's time. Give a located
-persona their own: an IANA `timezone` field on `Companion` and a second TIME
-line ("TIME (yours, in Riga): …") rendered via `Intl`'s `timeZone` option, so it
-can be the middle of their night in the middle of his day. The app does all the
-arithmetic — no LLM offset math (models are passable at offsets and quietly
-wrong about DST); they only roleplay the two clocks.
+A pack author can put a persona anywhere, but only the user's clock is real: the
+prompt's TIME line is the browser's.
 
-One rule ships with it: their clock colours the fiction, never gates it — they
-never refuse to play because it's 4am where they live.
+Give a located persona their own: an IANA `timezone` field and a second TIME
+line ("TIME (yours, in Riga): …"), so it can be the middle of their night while
+it is the middle of the user's day. The app does all the arithmetic, with no LLM
+offset math: models are passable at offsets and quietly wrong about DST.
+
+One rule ships with it: their clock shows up in what they say.
 
 ## Goonpacks
 
-Goonpacks — importing a companion as a portable pack — has shipped; see
-[GOONPACKS.md](./GOONPACKS.md). Two follow-ups remain:
-
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in
-  it, and today import rejects it as an unsupported file. The reason `.mov` is
-  excluded — it plays in Safari and unreliably elsewhere — doesn't apply: a gif
-  animates in an `<img>` everywhere. It's an entry in `MEDIA_TYPES`
-  (`src/lib/goonpacks/media.ts`), whose only non-test consumer is `parsePack`,
-  plus `IMAGE_RE` in `scripts/describe-missing.mjs`, which would otherwise skip
-  gifs and leave them silently uncaptioned; `scripts/describe-image.mjs` already
-  accepts one and describes its first frame. Two things to settle: the `kind`
-  has to be `image` either way (`<video>` can't play a gif), so an animated one
-  — a gif may equally be a still — arrives labelled a picture, which is a
-  mislabel only worth sniffing frames for if it turns out to matter; and whether
-  a widening like this needs a `PACK_FORMAT` bump — an older app rejects the gif
-  by name rather than misreading the pack, which argues it doesn't.
+  it, and today import rejects it as an unsupported file. The `kind` stays
+  `image` — `<video>` can't play a gif.
 
 - **Phase 2 — voices from prompts.** A `voiceId` is private to its ElevenLabs
-  account, so a pack's voice doesn't truly travel. The follow-up carries a voice
-  _prompt_ instead: the app submits it to ElevenLabs voice design, gets three
-  candidate voices back, and the user picks or iterates — a small in-app
-  recreation of that ElevenLabs UI. v1 ships `voiceId` and accepts the
-  limitation.
+  account, so a pack sent to someone else names a voice their account can't
+  play. The follow-up carries a voice _prompt_ instead: the app submits it to
+  ElevenLabs voice design, gets three candidate voices back, and the user picks
+  or iterates. v1 ships `voiceId` and accepts the limitation.

@@ -21,22 +21,25 @@ export type PackContent = {
   media: CompanionMedia[];
 };
 
-function fill(prompt: string, media: CompanionMedia[] | undefined) {
-  return fillSharedSections(prompt, {
-    includeMedia: (media?.length ?? 0) > 0,
-  });
+// The summary is what carries the media section, so it is what decides whether
+// there is one. A pack with media always has one (parsePack refuses otherwise),
+// so this is the same rule as "has media" with one input instead of two that
+// could disagree.
+function fill(prompt: string, mediaSummary: string | undefined) {
+  return fillSharedSections(prompt, { mediaSummary });
 }
 
 // A built-in (or complete pack) played as-is — "default" in the variant list.
 export function resolveDefault(base: Companion): Companion {
-  return { ...base, systemPrompt: fill(base.systemPrompt, base.media) };
+  return { ...base, systemPrompt: fill(base.systemPrompt, base.mediaSummary) };
 }
 
 // Pack → Companion with the prompt left UNFILLED — for a pack used as an
 // overlay's base, where applyOverlay does the (single) fill against the
 // merged media set. Filling here too would fill twice: the first pass
-// drops {{MEDIA_SECTION}} for good when the base itself is medialess,
-// so an overlay bringing media could never restore it.
+// spends {{MEDIA_SECTION}} on the base's own set — or, when the base is
+// medialess, on the block saying there is nothing to send — and an overlay
+// bringing media would then have no token left to fill.
 export function packToCompanionRaw(pack: PackContent): Companion {
   const m = pack.manifest;
   const c = m.companion;
@@ -57,6 +60,8 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
     playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
     media,
+    // The summary describes this pack's own set, so it goes wherever that does.
+    mediaSummary: media === undefined ? undefined : m.mediaSummary,
   };
 }
 
@@ -64,7 +69,7 @@ export function packToCompanionRaw(pack: PackContent): Companion {
 // imported complete pack. Fills once, here.
 export function packToCompanion(pack: PackContent): Companion {
   const raw = packToCompanionRaw(pack);
-  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.media) };
+  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.mediaSummary) };
 }
 
 // A thread's persisted media ref → the live entry, or null when the referenced
@@ -84,12 +89,20 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   // noMedia strips the base's set outright; a media/ folder replaces it;
   // neither keeps it. name and gender are never the overlay's to change (the
   // manifest rejects them; the spread keeps the base's regardless).
+  const overlayBringsMedia = overlay.media.length > 0;
   const media =
     m.noMedia === true
       ? undefined
-      : overlay.media.length > 0
+      : overlayBringsMedia
         ? overlay.media
         : base.media;
+  // The summary describes whichever set won, so it moves with it.
+  const mediaSummary =
+    m.noMedia === true
+      ? undefined
+      : overlayBringsMedia
+        ? m.mediaSummary
+        : base.mediaSummary;
   const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
   return {
     ...base, // id stays the base's — thread ownership; so do name and gender
@@ -102,6 +115,7 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     chattiness: c.chattiness ?? base.chattiness,
     playfulness: c.playfulness ?? base.playfulness,
     media,
-    systemPrompt: fill(rawPrompt, media),
+    mediaSummary,
+    systemPrompt: fill(rawPrompt, mediaSummary),
   };
 }

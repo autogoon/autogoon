@@ -42,7 +42,6 @@ describe('parseChangelog', () => {
 
   it('reads an entry with no bold summary as summary-less', () => {
     const days = parseChangelog(SAMPLE);
-    // Entries without one read as summary-less, not broken.
     expect(days[0]!.entries[1]!.summary).toBeNull();
     expect(days[0]!.entries[1]!.paragraphs).toEqual([
       [{ kind: 'text', text: 'Something was broken.' }],

@@ -29,6 +29,19 @@ const inPlayMs = (trait: number): number => 30_000 - 5_000 * trait;
 const JITTER_MIN = -0.5;
 const JITTER_MAX = 0.2;
 
+// The pause a companion's `chattiness` and `playfulness` buy — the two 1–5
+// knobs a pack sets, chattiness applying out of play and playfulness in it.
+// Base pause, with the jittered range in brackets. Tabulated for GOONPACKS.md's
+// readers, so regenerate it from the two curves and the jitter above whenever
+// any of them changes:
+//
+//   value   chattiness (idle)   playfulness (in play)
+//   1       50s (25–60s)        25s (12.5–30s)
+//   2       40s (20–48s)        20s (10–24s)
+//   3       30s (15–36s)        15s (7.5–18s)
+//   4       20s (10–24s)        10s (5–12s)
+//   5       10s (5–12s)         5s (2.5–6s)
+
 // The delay before the next ambient turn. `rand` is a 0–1 sample (the caller
 // passes Math.random) — an argument rather than a call inside, so the mapping
 // stays pure and the jitter is testable at its edges instead of by chance.

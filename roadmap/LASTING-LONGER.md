@@ -3,7 +3,7 @@
 Stop-start (the Semans technique) is a recognised behavioural treatment for
 premature ejaculation: build up to just before the point of no return, stop dead
 until the urge fades, then start again, repeating several times before finishing
-(one trial ran five stops, then finished on the sixth [2])
+(one trial ran five stops, then finished on the sixth [2]).
 
 Groove with variability off, plus the Stop/Start voice commands, already does
 the mechanical part. The open question is whether we can add anything that
@@ -33,19 +33,21 @@ What the research says:
   control significantly [5]. A larger RCT (n=50) from the same group had men
   hold a vibrator and move it away themselves as they neared the edge, and found
   large effect sizes persisting to 6 months [6]. In both, the man controlled the
-  stop — the device never stopped for him. That's the design to follow: the
-  device supplies the stimulation, the man watches his arousal and calls the
-  stop. (Caveats: both used a vibrator on the glans, not a stroker like the
-  Vacuglide; and the larger trial measured symptoms by questionnaire, not
-  stopwatch timing.)
+  stop; the device never stopped for him. That's the design to follow. (Caveats:
+  both used a vibrator on the glans, not a stroker like the Vacuglide; and the
+  larger trial measured symptoms by questionnaire, not stopwatch timing.)
 - **Anxiety** is central: it drives PE partly by pulling attention off bodily
   sensation [3]. That's the case against gamifying — a score or a distraction
   has him focused on the wrong thing. Confidence helps, but it comes from
   evidence he can last, not from beating a level.
 
-So the value we can add over "just use Groove" is: (a) teach the technique to
-men who don't know it exists, (b) structure the practice, (c) help build arousal
-awareness — not tracking, scoring, or automating the stop.
+So the value we can add over "just use Groove" is:
+
+- teach the technique to men who don't know it exists;
+- structure the practice;
+- help build arousal awareness.
+
+Not tracking, scoring, or automating the stop.
 
 ## Ideas for how to implement
 
