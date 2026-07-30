@@ -588,10 +588,11 @@ export function useVoiceSession(opts: {
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
           baseMessages.push(liveState(getDeviceStateRef.current()));
-          // The cue for an ambient turn rides this one request only — appended
-          // to the projection rather than written to the thread, so it prompts
-          // a turn without accumulating or showing in the transcript. After the
-          // state, so it reads as the last thing asked of them.
+          // An ambient turn has no message to answer: the timer fired, not him,
+          // so the cue stands in for one (see AMBIENT_CUE). It goes after the
+          // state, to read as the last thing asked of them, and only on this
+          // first request — the tool rounds below rebuild from the thread,
+          // which never holds it.
           if (ambient) {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
