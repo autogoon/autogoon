@@ -9,7 +9,7 @@ test-results/
 playwright-report/
 
 # Personal notes stay out of the public repo.
-LEGAL-AND-DISTRIBUTION.md
+/notes/
 
 # Env files — NEVER commit secrets (this repo is public). Real keys live in
 # .env, which is ignored here; .env.example is a committed, secret-free
