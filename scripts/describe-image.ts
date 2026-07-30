@@ -5,7 +5,7 @@
 // `npm run goonpack:describe <path>`, then `npm run goonpack:build` bundles it
 // into the pack.
 //
-//   npm run goonpack:describe goonpacks/aimee/media/whatever.jpg
+//   npm run goonpack:describe goonpacks/elise/media/whatever.jpg
 //
 // (npm runs the script from the repo root, so the path is relative to there,
 // not to your shell's directory.)

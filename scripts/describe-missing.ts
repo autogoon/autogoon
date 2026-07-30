@@ -1,7 +1,7 @@
 // Describe every goonpack image that doesn't have a description yet.
 //
 //   npm run goonpack:describe-missing                  every pack source
-//   npm run goonpack:describe-missing goonpacks/aimee  just that one
+//   npm run goonpack:describe-missing goonpacks/elise  just that one
 //
 // Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.md is
 // missing or empty, and describes each one (writing the .md) via the same

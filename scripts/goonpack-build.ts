@@ -2,7 +2,7 @@
 // where the file is written).
 //
 //   npm run goonpack:build                  every pack source
-//   npm run goonpack:build goonpacks/aimee  just that one
+//   npm run goonpack:build goonpacks/elise  just that one
 //
 // (runs under tsx, so it imports the app's validator directly: every pack
 // source passes parsePack — the same checks importing runs — before it is

@@ -284,7 +284,7 @@ root. If you're running the app from source, `npm run goonpack:build` zips every
 pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
 first with the app's own import checks. A pack that builds is a pack that
 imports. Name one to build just that pack:
-`npm run goonpack:build goonpacks/aimee`.
+`npm run goonpack:build goonpacks/elise`.
 
 Three helper scripts do the writing for you using your configured LLM:
 

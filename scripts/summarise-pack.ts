@@ -2,7 +2,7 @@
 // over the pack's own sidecars and written back into its manifest.json.
 //
 //   npm run goonpack:summarise                  every pack source with sidecars
-//   npm run goonpack:summarise goonpacks/aimee  just that one
+//   npm run goonpack:summarise goonpacks/elise  just that one
 //
 // Run it whenever the set changes — a summary is derived, never hand-written, so
 // re-running it is the way to fix one that has gone stale. A pack that carries
