@@ -217,12 +217,12 @@ being handed a catalogue to choose from.
 
 **Neutral or persona-aware?** Unsettled. A neutral summary is derived once per
 set and cached. Different personas care about different dimensions of the same
-facts — one needs to know nothing here is explicit, another that a third of it
-involves a man. A summary complete over the dimensions serves both and stays
-cacheable, with the persona's own prompt supplying the attitude to it.
-Generating it per persona is the alternative: more pointed, much less reusable.
-Worth testing rather than assuming. It is per resolved pack-plus-overlay either
-way, since an overlay changes the set.
+facts — one needs to know how explicit the set gets, another how often a man
+appears. A summary complete over the dimensions serves both and stays cacheable,
+with the persona's own prompt supplying the attitude to it. Generating it per
+persona is the alternative: more pointed, much less reusable. Worth testing
+rather than assuming. It is per resolved pack-plus-overlay either way, since an
+overlay changes the set.
 
 ## Producing the descriptions
 

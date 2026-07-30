@@ -72,8 +72,8 @@ your ticks are remembered on this device:
 
 - **Wind-down** — the device eases off in a slow, deliberate glide from a
   moderate pace down to a standstill over about ten seconds, the strokes
-  shortening as it goes, then rests. This is simply how the author likes to cum,
-  and it won't be to everyone's taste.
+  shortening as it goes, then rests. It's one way of finishing rather than the
+  default, and it won't be to everyone's taste.
 - **Torture** — straight to full speed and held there. Indefinitely.
 - **Ruin: stay in** — stops dead, leaving you seated with the vacuum seal held.
 - **Ruin: eject** — drives the toy to push you out (a steady pace with the
