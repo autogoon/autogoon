@@ -39,7 +39,7 @@ export type Companion = {
   id: CompanionId; // stable key — picker selection, thread namespace
   name: string;
   description: string; // one-line blurb shown on the picker card
-  gender: 'female' | 'male' | 'nonbinary'; // display-only; not currently rendered anywhere
+  gender: 'female' | 'male' | 'nonbinary';
   accentColour: string; // their signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
