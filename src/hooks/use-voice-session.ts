@@ -653,9 +653,10 @@ export function useVoiceSession(opts: {
                       },
                     }
                   : toolsRef.current.find((t) => t.name === call.name);
-              // Parse the tool-call arguments (`{}` for zero-arg tools like
-              // start/stop; e.g. `{ level: "warmup" }` for intensity/edge). A
-              // malformed blob runs the tool with no args — the tool validates.
+              // The tool-call arguments arrive as a JSON string. One that won't
+              // parse, or that parses to something other than an object, leaves
+              // the tool called with none — a tool that takes arguments checks
+              // them and returns a refusal instead of acting.
               let args: Record<string, unknown> = {};
               try {
                 const parsed: unknown = call.arguments
