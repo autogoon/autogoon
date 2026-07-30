@@ -158,5 +158,11 @@ describe('POST /api/llm/chat/completions', () => {
     const res = await POST(req({ messages: [], stream: true }));
     expect(res.status).toBe(502);
     expect(res.headers.get('content-type')).toContain('application/json');
+    // The upstream's own status and message reach the caller — a 402 and a 429
+    // read differently in the composer, which is the point of not collapsing
+    // them.
+    const { error } = (await res.json()) as { error: string };
+    expect(error).toContain('429');
+    expect(error).toContain('rate limited');
   });
 });

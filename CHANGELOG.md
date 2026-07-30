@@ -2,6 +2,11 @@
 
 ## 2026-07-31
 
+- enhancement: **A failed reply says what went wrong** — When a companion
+  can't reply, the error now carries what the provider actually said — out of
+  credit, rate limited, no such model — instead of reading `LLM upstream error`
+  whichever it was.
+
 - bug: **Companions see the toy they just changed** — A companion who started
   the toy, or turned it up, was told for the rest of that turn that nothing had
   changed, so they could start it a second time or tell you it was off just
