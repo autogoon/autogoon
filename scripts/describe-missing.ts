@@ -7,7 +7,7 @@
 // missing or empty, and describes each one (writing the .md) via the same
 // describeImage() the single-image `npm run goonpack:describe` uses, in random
 // order, so a run stopped part-way through covers a spread of the pack rather
-// than whichever shoot sorts first. Videos are left alone — their sidecars are
+// than whatever sorts first. Videos are left alone — their sidecars are
 // hand-written — as are stills that already have one, so it's safe to re-run
 // after dropping in more. Reads
 // OPENROUTER_API_KEY / LLM_URL from the environment (the npm script loads .env
@@ -59,10 +59,9 @@ function packDirs(): string[] {
     .map((e) => join(goonpacksDir, e.name));
 }
 
-// Filename order is shoot order — one shoot's pictures share a prefix and land
-// together — so describing in it means a part-described pack is one shoot
-// described and the rest untouched. Shuffled per pack directory, which leaves
-// the packs themselves in order.
+// Filename order is not a random sample of a pack, so describing in it would
+// leave a run stopped part-way biased toward whatever sorts first. Shuffled
+// per pack directory, which leaves the packs themselves in order.
 const shuffled = (files: string[]): string[] =>
   files
     .map((file) => ({ file, at: Math.random() }))
