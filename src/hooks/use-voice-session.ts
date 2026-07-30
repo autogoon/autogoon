@@ -580,9 +580,6 @@ export function useVoiceSession(opts: {
         };
 
         try {
-          // Read the device once for the whole turn, so every call in it agrees
-          // about the toy even if a knob moves between them.
-          const deviceState = getDeviceStateRef.current();
           const baseMessages = toLlmMessages(
             threadRef.current,
             companion.systemPrompt,
@@ -590,7 +587,7 @@ export function useVoiceSession(opts: {
           );
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
-          baseMessages.push(liveState(deviceState));
+          baseMessages.push(liveState(getDeviceStateRef.current()));
           // The cue for an ambient turn rides this one request only — appended
           // to the projection rather than written to the thread, so it prompts
           // a turn without accumulating or showing in the transcript. After the
@@ -701,13 +698,16 @@ export function useVoiceSession(opts: {
 
             // Feed the results back by rebuilding from the just-persisted
             // thread (which now holds the tool-call turn + results), so the
-            // request and the stored history are one and the same.
+            // request and the stored history are one and the same. The toy is
+            // read again rather than reused: the round just run may have
+            // started, stopped or re-set it, and this line is what the
+            // companion is told to trust over everything.
             messages = toLlmMessages(
               threadRef.current,
               companion.systemPrompt,
               companion.passesReasoning,
             );
-            messages.push(liveState(deviceState));
+            messages.push(liveState(getDeviceStateRef.current()));
 
             if (round === MAX_TOOL_ROUNDS) {
               owedReaction = true;

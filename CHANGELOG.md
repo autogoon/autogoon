@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-31
+
+- bug: **Companions see the toy they just changed** — A companion who started
+  the toy, or turned it up, was told for the rest of that turn that nothing had
+  changed, so they could start it a second time or tell you it was off just
+  after switching it on. They now read the toy again after each action they
+  take.
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss
