@@ -205,10 +205,6 @@ const threadKeyFor = (companion: Companion): string =>
 // before it are then byte-identical from turn to turn, which is what prompt
 // caching needs: providers match a prefix of tokens, so a single volatile value
 // early on makes every token after it uncacheable.
-//
-// A pack may still write {{TOY_STATUS}} or {{NOW}} into its own prompt —
-// goonpacks/prompt.ts deliberately leaves those markers for this function to
-// fill — and one that does opts itself out of a cached prefix.
 const liveState = (deviceState: string): LlmMessage => ({
   role: 'system',
   content: liveStateMessage(
@@ -216,13 +212,6 @@ const liveState = (deviceState: string): LlmMessage => ({
     deviceState === '' ? 'unknown' : deviceState,
   ),
 });
-
-// Fill a prompt's live markers, for a pack that placed them itself. A prompt
-// without them — every built-in — comes back untouched.
-const buildSystemPrompt = (template: string, deviceState: string): string =>
-  template
-    .replace('{{TOY_STATUS}}', deviceState === '' ? 'unknown' : deviceState)
-    .replace('{{NOW}}', describeClock(Date.now()));
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
@@ -380,7 +369,7 @@ export function useVoiceSession(opts: {
     return [
       ...toLlmMessages(
         threadRef.current,
-        buildSystemPrompt(companion.systemPrompt, deviceState),
+        companion.systemPrompt,
         companion.passesReasoning,
       ),
       liveState(deviceState),
@@ -594,13 +583,9 @@ export function useVoiceSession(opts: {
           // Read the device once for the whole turn, so every call in it agrees
           // about the toy even if a knob moves between them.
           const deviceState = getDeviceStateRef.current();
-          const systemPrompt = buildSystemPrompt(
-            companion.systemPrompt,
-            deviceState,
-          );
           const baseMessages = toLlmMessages(
             threadRef.current,
-            systemPrompt,
+            companion.systemPrompt,
             companion.passesReasoning,
           );
           // The clock and the toy, last: everything above is identical to last
@@ -719,7 +704,7 @@ export function useVoiceSession(opts: {
             // request and the stored history are one and the same.
             messages = toLlmMessages(
               threadRef.current,
-              systemPrompt,
+              companion.systemPrompt,
               companion.passesReasoning,
             );
             messages.push(liveState(deviceState));
