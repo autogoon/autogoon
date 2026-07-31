@@ -42,9 +42,10 @@ on top of that.
 
 It reads `TIME (yours, right now)`. Where a companion is belongs to the persona
 prompt, to state or to withhold, so a persona whose location is deliberately
-private still gets a correct clock. Deriving a city from the zone would take
-that choice away, and a zone's city is usually not where the persona lives —
-`Europe/London` covers the whole of the UK.
+private still gets a correct clock. Deriving a place from the zone would take
+that choice away, and it would be wrong as often as not: a zone is named for one
+city but covers a whole region, and the persona rarely lives in the city it is
+named for.
 
 ### A positional argument never defaults; a bag member may be absent
 
@@ -75,7 +76,7 @@ if (c.timezone !== undefined) {
     new Intl.DateTimeFormat('en-GB', { timeZone: c.timezone as string });
   } catch {
     problems.push(
-      `The timezone field must be an IANA time zone name, like "Europe/Riga".`,
+      `The timezone field must be an IANA time zone name, like "America/New_York".`,
     );
   }
 }
@@ -93,6 +94,17 @@ its absence is the signal that there is no second line. That follows `media` and
 defaulting. So it sets `timezone: c.timezone` with no `??`, and `applyOverlay`
 sets `timezone: c.timezone ?? base.timezone`, matching every other field it
 resolves.
+
+## The companions the repo ships
+
+Every companion this repo ships gets a zone: both built-ins, and the complete
+pack that stands as the worked example for authors. Each one's value is whatever
+its own persona already says about where it lives, so the zone records what the
+prompt has always claimed rather than deciding anything new. The values belong
+at their definition sites and are not repeated here.
+
+A pack whose persona states no place gets no zone, and behaves exactly as it
+does today.
 
 ## The prompt path
 
@@ -146,10 +158,11 @@ enters the persona prompt — the prefix stays reusable.
 - `liveStateMessage` — one TIME line without `companionNow`, two with it.
 - `fillSharedSections` — the second block present only when `companionTimeZone`
   is.
+- Every shipped companion — its zone constructs a formatter, so a typo in one is
+  caught where it is written rather than at the first turn that renders a clock.
 
 ## Out of scope
 
 - Clearing a zone from an overlay.
-- A zone on any built-in companion.
 - Anything reading the zone outside the prompt: the transcript's timestamps and
   date headers stay the user's throughout.
