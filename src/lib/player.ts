@@ -144,8 +144,11 @@ export class Player {
 
   // Build the preview lookahead for a source WITHOUT starting the tick loop.
   // upcomingWindow() and seek() work off it, so a panel can preview/scrub
-  // before Start.
+  // before Start. Arming over a playing program stops the device first — the
+  // timeline it was running is about to be discarded, and nothing would tick
+  // it down.
   arm(source: PlayModeEngine | null): void {
+    void this.pause();
     this.setSource(source);
     this.ensureLookahead();
     this.state = 'armed';

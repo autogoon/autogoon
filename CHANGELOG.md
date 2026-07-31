@@ -19,6 +19,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **Resetting mid-session stops the toy** — Resetting a Companions session
+  while it was playing replaced the program but left the toy running, and
+  neither Stop nor the safe word could reach it. Replacing a program now stops
+  the toy first.
+
 - bug: **Companions see the toy they just changed** — A companion who started
   the toy, or turned it up, was told for the rest of that turn that nothing had
   changed, so they could start it a second time or tell you it was off just

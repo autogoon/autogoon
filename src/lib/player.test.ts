@@ -292,7 +292,7 @@ describe('Player.arm', () => {
     player.arm(replacement);
     player.play();
     await jest.advanceTimersByTimeAsync(500);
-    expect(speedSends).toEqual([1, 50]);
+    expect(speedSends).toEqual([1, 'stop', 50]);
     await player.pause();
   });
 
@@ -303,7 +303,7 @@ describe('Player.arm', () => {
     player.arm(new KnobStubEngine());
     player.play();
     await jest.advanceTimersByTimeAsync(500);
-    expect(speedSends).toEqual([1, 1]);
+    expect(speedSends).toEqual([1, 'stop', 1]);
     await player.pause();
   });
 
