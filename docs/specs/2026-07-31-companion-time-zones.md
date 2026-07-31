@@ -1,170 +1,126 @@
 # Companion time zones
 
-A design, settled 2026-07-31, for the TODO.md → Companions entry of the same
-name. It covers what ships and why each choice was made; the implementation plan
-is separate.
+Design for the TODO.md → Companions entry of the same name, settled 2026-07-31.
+The implementation plan is separate.
 
 ## The problem
 
-A pack author can place a persona anywhere, but one clock is real. The prompt's
-TIME line is the browser's, so a companion written as living abroad is told the
-user's time and nothing else. Asked what time it is where they are, they either
-invent it or do offset arithmetic — which models are passable at and quietly
-wrong about across a DST transition.
+Every clock value the app puts in front of a companion is computed from the
+browser's zone. A persona written as living abroad is told the user's clock and
+nothing about its own, so anything it says about local time is invented or
+worked out from an offset. Models get offsets roughly right and DST transitions
+wrong.
 
 ## What ships
 
-An optional IANA `timezone` in a pack's `companion` section. When it is set, the
-companion is sent a second TIME line carrying their own local time beside the
-user's, computed by the app. When it is absent, every prompt and every line is
-exactly what it is today.
+An optional IANA `timezone` in a pack's `companion` section. Set, it adds a
+second TIME line carrying that companion's own local time beside the user's.
+Absent, nothing changes.
 
 ## Decisions
 
-### The zone is where they are now, not where they are from
+### The zone is where they are now
 
-Home belongs in the persona prompt. An overlay that takes a companion elsewhere
-sets its own `timezone`, and the prompt still says where home is — the two never
-compete, because only the zone moves.
+Not where they are from. A persona's home is stated in its prompt and stays
+there. An overlay that moves the companion sets its own `timezone`, and needs no
+other change.
 
 ### Overlays may set it
 
-`name` and `gender` are the two fields an overlay may never change. `timezone`
-is not one of them: it behaves like `description`, where the overlay's value
-wins while that overlay is selected. The case that decides it is a holiday pack
-— the same persona somewhere else, with their own prompt and their own pictures.
+`name` and `gender` are the only fields an overlay may never change. `timezone`
+resolves like `description`: the overlay's value applies while that overlay is
+selected. A holiday pack requires this. Such a pack carries the same persona
+elsewhere, with its own prompt and its own media.
 
-An overlay can set a zone but not clear one, which is how every overlay field
-already works (GOONPACKS.md → Overlays). Nothing about `timezone` needs saying
-on top of that.
+An overlay can set a zone but not clear one. Every overlay field resolves that
+way already (GOONPACKS.md → Overlays), so `timezone` needs no rule of its own.
 
-### The second line never names the place
+### The second line does not name the place
 
-It reads `TIME (yours, right now)`. Where a companion is belongs to the persona
-prompt, to state or to withhold, so a persona whose location is deliberately
-private still gets a correct clock. Deriving a place from the zone would take
-that choice away, and it would be wrong as often as not: a zone is named for one
-city but covers a whole region, and the persona rarely lives in the city it is
-named for.
+It reads `TIME (yours, right now)`. A companion's whereabouts belong to the
+persona prompt, which may state them or leave them out. A persona that withholds
+them still gets a correct clock. An IANA zone is not a location in any case: it
+is named for one city and covers a region.
 
 ### A positional argument never defaults; a bag member may be absent
 
-`describeClock(at, timeZone)` takes both positionally, both required. A
-defaulted zone would leave the caller unable to see which clock came back
-without reading the body.
+`describeClock(at, timeZone)` requires both. A defaulted zone would leave the
+caller unable to tell which clock it received without reading the body.
 
-`fillSharedSections` and `liveStateMessage` take objects whose members may be
-absent, which is not the same shape: an absent member is visible at the call
-site, and it states a fact — this companion has no zone.
+`fillSharedSections` and `liveStateMessage` take objects, and a member of one
+may be absent. An absent member is visible where the call is written, and it
+records a fact about the companion instead of substituting a value.
 
-Where a zone or a formatted time leaves the object that identifies its owner,
-its name carries the owner: `companionTimeZone`, `userNow`, `companionNow`.
-`describeClock`'s own parameter stays `timeZone`, because its call sites name
-the owner. The manifest field stays `timezone`, because it sits inside
-`companion`.
-
-## The data path
-
-`CompanionConfig` (`src/lib/goonpacks/manifest.ts`) gains `timezone?: string`,
-and `COMPANION_FIELDS` gains the key. Validation sits with the
-`chattiness`/`playfulness` block and collects a problem rather than failing
-alone:
-
-```ts
-if (c.timezone !== undefined) {
-  try {
-    new Intl.DateTimeFormat('en-GB', { timeZone: c.timezone as string });
-  } catch {
-    problems.push(
-      `The timezone field must be an IANA time zone name, like "America/New_York".`,
-    );
-  }
-}
-```
-
-Constructing the formatter the renderer will use is the point: a zone that
-validates is a zone that renders on that runtime. A regex would accept zones the
-renderer rejects, and `Intl.supportedValuesOf('timeZone')` omits aliases the
-renderer accepts. An empty string is already refused by the rule that rejects
-any empty manifest field.
-
-`Companion` (`src/lib/companions/companions.ts`) gains `timezone?: string`, and
-its absence is the signal that there is no second line. That follows `media` and
-`mediaSummary`, which `packToCompanionRaw` already leaves absent rather than
-defaulting. So it sets `timezone: c.timezone` with no `??`, and `applyOverlay`
-sets `timezone: c.timezone ?? base.timezone`, matching every other field it
-resolves.
+A name carries its owner wherever the value leaves the object that identified
+it: `companionTimeZone`, `userNow`, `companionNow`. `describeClock`'s parameter
+stays `timeZone`, because its call sites supply the owner. The manifest field
+stays `timezone`, because it sits inside `companion`.
 
 ## The app's own companions
 
-Every companion in the app's own directories gets a zone — the built-ins in
+Every companion in the app's own directories gets a zone: the built-ins in
 `src/lib/companions/`, and every pack source under `goonpacks/`. Each value is
-whatever that persona already says about where it lives, so the zone records
-what the prompt has always claimed rather than deciding anything new. The values
-belong at their definition sites and are not repeated here.
+what that persona's prompt already states about where it lives. The values sit
+at their definition sites.
 
-A persona that states no place gets no zone, and behaves exactly as it does
-today.
+A persona that states no place gets no zone.
+
+## The data path
+
+`CompanionConfig` and `COMPANION_FIELDS` (`src/lib/goonpacks/manifest.ts`) gain
+`timezone`. `parseManifest` validates it by constructing an
+`Intl.DateTimeFormat` for the zone and collecting a problem when that throws,
+which accepts exactly the zones the renderer accepts on that runtime. A regex
+accepts zones the renderer rejects; `Intl.supportedValuesOf('timeZone')` omits
+aliases the renderer accepts. An empty string is already refused for every
+manifest field.
+
+`Companion` (`src/lib/companions/companions.ts`) gains an optional `timezone`,
+and its absence is what suppresses the second line. `packToCompanionRaw` leaves
+it absent rather than defaulting, as it does for `media` and `mediaSummary`.
+`applyOverlay` resolves it against the base like every other field it resolves.
 
 ## The prompt path
 
-**The clock.** `describeClock(at: number, timeZone: string)` takes its parts
-from `Intl.DateTimeFormat.formatToParts` instead of the local-zone getters, and
-feeds the existing manual assembly unchanged — the assembly is manual so the
-string's shape cannot drift with the ICU version, and that reason is untouched.
-`formatToParts` is asked for `hourCycle: 'h23'`: `hour12: false` yields `24` for
-midnight under some ICU versions, and the existing `((h + 11) % 12) + 1` would
-render that as `12 pm`. A `browserTimeZone()` beside it wraps
-`Intl.DateTimeFormat().resolvedOptions().timeZone`, so the user's call site
-names its clock.
+`describeClock` takes its parts from `Intl.DateTimeFormat.formatToParts` instead
+of the local-zone getters, and feeds the existing manual assembly unchanged.
+That assembly is manual so the string's shape cannot drift with the ICU version,
+and that reason still holds. `formatToParts` is asked for `hourCycle: 'h23'`:
+under some ICU versions `hour12: false` yields 24 for midnight, which the
+existing arithmetic renders as `12 pm`. A `browserTimeZone()` beside it wraps
+`Intl.DateTimeFormat().resolvedOptions().timeZone`.
 
-**The live line.** `liveStateMessage` takes an object — three positional strings
-can be transposed and still typecheck:
+`liveStateMessage` takes an object of `userNow`, `companionNow` and `toyStatus`
+rather than three positional strings, which can be transposed without a type
+error. `companionNow` is the optional member. Absent, one TIME line is emitted.
+Present, it adds the second, above TOY STATUS.
 
-```ts
-export const liveStateMessage = ({
-  userNow,
-  companionNow,
-  toyStatus,
-}: {
-  userNow: string;
-  companionNow?: string;
-  toyStatus: string;
-}): string => …
-```
-
-An absent `companionNow` emits one TIME line exactly as today. A present one
-adds the second, above TOY STATUS.
-
-**The rules.** `TIME_SECTION` stays a constant appended to every prompt. Its
-first bullet says "the TIME line you are given", which a located companion
-receives two of, so it is amended to identify the one it means by its label. A
-second block, appended by `fillSharedSections` only when `companionTimeZone` is
-present, explains the second line and carries the rule the TODO entry asks for:
-their clock shows up in what they say. `fillSharedSections` runs once per
-companion in `resolve.ts`, so the zone is known at assembly and nothing volatile
-enters the persona prompt — the prefix stays reusable.
+`TIME_SECTION` remains a constant appended to every prompt. Its first bullet
+refers to "the TIME line you are given", which a located companion receives two
+of, so it is amended to name the one it means. A second block, appended by
+`fillSharedSections` only when `companionTimeZone` is present, explains the
+second line and carries the rule the TODO entry asks for: their clock shows up
+in what they say. `fillSharedSections` runs once per companion in `resolve.ts`,
+so nothing volatile enters the persona prompt.
 
 ## Tests
 
-- `describeClock` — its three existing cases become fixed-epoch-plus-fixed-zone,
-  which also makes them independent of the machine's own zone for the first
-  time; a pair either side of a DST transition; and one instant rendered in two
-  zones, differing.
-- `parseManifest` — a valid zone accepted, an invalid one reported by name, and
-  a zone accepted on an overlay.
-- `applyOverlay` — an overlay's zone wins, and a base's survives an overlay that
+- `describeClock` — the three existing cases become fixed epoch plus fixed zone,
+  which also makes them independent of the machine's own zone; a pair either
+  side of a DST transition; one instant rendered in two zones.
+- `parseManifest` — a valid zone, an invalid one reported by name, a zone on an
+  overlay.
+- `applyOverlay` — an overlay's zone wins; a base's survives an overlay that
   sets none.
 - `liveStateMessage` — one TIME line without `companionNow`, two with it.
 - `fillSharedSections` — the second block present only when `companionTimeZone`
   is.
-- Each built-in — its zone constructs a formatter, so a typo is caught where it
-  is written rather than at the first turn that renders a clock. A pack's zone
-  needs no test of its own: `parseManifest` already refuses an invalid one, and
-  `npm run goonpack:build` runs that check over every pack source it builds.
+- Each built-in — its zone constructs a formatter. A pack's zone needs no test:
+  `parseManifest` refuses an invalid one, and `npm run goonpack:build` runs that
+  check over every pack source.
 
 ## Out of scope
 
 - Clearing a zone from an overlay.
-- Anything reading the zone outside the prompt: the transcript's timestamps and
-  date headers stay the user's throughout.
+- Anything outside the prompt reading the zone. The transcript's timestamps and
+  date headers stay the user's.
