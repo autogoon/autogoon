@@ -19,6 +19,11 @@
   appeared on no companion's card. It now lists as incompatible, with the
   reason.
 
+- bug: **A pack's empty field is refused** — A manifest field left as `""` was
+  read as a value rather than an omission, so it overrode the default it should
+  have fallen back to. A pack with one now fails to import, saying which field
+  is empty.
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss

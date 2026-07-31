@@ -146,6 +146,15 @@ export function parseManifest(raw: unknown): PackManifest {
       problems.push(`The ${field} field must be text.`);
       return undefined;
     }
+    // Not the same as leaving the field out: every reader defaults with `??`,
+    // which '' passes, so an empty field defeats its fallback instead of
+    // taking it.
+    if (v.trim() === '') {
+      problems.push(
+        `The ${field} field is empty — give it a value or remove it.`,
+      );
+      return undefined;
+    }
     return v;
   };
   if (m.id === undefined || m.id === '') {
