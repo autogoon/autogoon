@@ -91,7 +91,9 @@ export function useVacuglideDevice() {
   }, []);
 
   // Safety: if the page is closed while the player is running, ask the device to
-  // stop rather than leaving it at the last commanded speed.
+  // stop rather than leaving it at the last commanded speed. The request is
+  // hand-rolled rather than device.targetSpeedStop() because only `fetch` takes
+  // keepalive, and an unload cancels anything without it.
   useEffect(() => {
     const onPageHide = () => {
       const device = deviceRef.current;

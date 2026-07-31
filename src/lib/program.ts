@@ -77,11 +77,12 @@ export interface PlayModeEngine {
   // on the speed in effect at that moment). Splitting lets the Player re-lay the
   // valve overlay over an unchanged speed script (see Player.invalidateValves).
 
-  // Extend the speed timeline: return SpeedEvents with `at` in
-  // [fromTime, untilTime), sorted non-decreasing by `at`. Emitting in whole
-  // cycles isn't required, but it's convenient — each call then resumes from a
-  // clean boundary. May read ctx and keep private generation state. Return [] to
-  // park (nothing more until something changes).
+  // Extend the speed timeline: return SpeedEvents with `at` at or after
+  // fromTime, sorted non-decreasing by `at`, reaching at least untilTime.
+  // untilTime is a floor, not a bound — every engine emits in whole cycles, so
+  // the last one runs past it, and the Player tops up from the last event
+  // rather than from the horizon it asked for. May read ctx and keep private
+  // generation state. Return [] to park (nothing more until something changes).
   generateSpeed(
     fromTime: number,
     untilTime: number,
