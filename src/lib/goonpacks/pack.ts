@@ -263,6 +263,11 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
           'A complete pack needs a voiceId field in the companion section of manifest.json.',
         );
       }
+      if (!manifest.companion.description) {
+        problems.push(
+          'A complete pack needs a description field in the companion section of manifest.json.',
+        );
+      }
     }
     // Any media file at all contradicts noMedia, described or not — the
     // contradiction is the folder being there, not what is in it. So this reads

@@ -47,9 +47,9 @@ export function packToCompanionRaw(pack: PackContent): Companion {
   return {
     id: m.id,
     name: c.name ?? m.id,
-    // The companion's card description, else the pack's about-text — better
-    // than an empty card line.
-    description: c.description ?? m.aboutThePack ?? '',
+    // parsePack requires this on a complete pack, and a complete pack is all
+    // packToCompanionRaw is ever given.
+    description: c.description!,
     gender: c.gender ?? 'female',
     accentColour: c.accentColour ?? 'pink',
     voiceId: c.voiceId ?? '',

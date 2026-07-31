@@ -38,7 +38,12 @@ const complete = (
 ): LoadedPack => ({
   manifest: manifest(id, version, {
     top: e.top,
-    companion: { name: 'Comp', voiceId: 'v', ...e.companion },
+    companion: {
+      name: 'Comp',
+      description: 'a test companion',
+      voiceId: 'v',
+      ...e.companion,
+    },
   }),
   summary,
 });

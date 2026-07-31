@@ -7,6 +7,12 @@
   credit, rate limited, no such model — instead of reading `LLM upstream error`
   whichever it was.
 
+- enhancement: **A companion's card shows their own description** — A complete
+  pack could leave `description` out of its companion section, and the card then
+  showed the pack's `aboutThePack` blurb — what the pack adds — in place of a
+  line about the companion. A complete pack must now carry one; `aboutThePack`
+  stays on the Goonpacks screen, where it belongs.
+
 - enhancement: **Building a pack no longer holds it in memory** —
   `npm run goonpack:build` read the whole pack in and built the whole zip before
   writing a byte, so a large pack took several gigabytes and one big enough
