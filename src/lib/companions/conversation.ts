@@ -12,8 +12,8 @@ export type ThreadTurn =
   | { role: 'user'; content: string; at?: number }
   // reasoningDetails holds OpenRouter's opaque reasoning_details, captured from
   // the stream and replayed verbatim; we never inspect its shape. toolCalls is
-  // set on the turn where the companion called a tool (start/stop) — its content is
-  // usually empty, the calls are the payload.
+  // set on the turn where the companion called a tool — its content is usually
+  // empty, the calls are the payload.
   | {
       role: 'assistant';
       content: string;

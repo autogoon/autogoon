@@ -8,17 +8,10 @@
 // source passes parsePack — the same checks importing runs — before it is
 // zipped, or the build fails. Only the app-level cross-pack checks, like "is
 // the base installed", can't run here.)
-import {
-  readdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-  type Dirent,
-} from 'node:fs';
+import { readdirSync, readFileSync, statSync, type Dirent } from 'node:fs';
 import { join, dirname, basename, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { zipSync } from 'fflate';
 import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
 import {
@@ -30,12 +23,13 @@ import {
 import { SIDECAR_EXT } from '../src/lib/goonpacks/sidecar';
 import { captionWarning } from './lib/goonpack-report';
 import { collectPackFiles } from './lib/goonpack-source';
+import { writeZip } from './lib/goonpack-zip';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
 
-// Per-pack status lines: green for a clean build, red for errors. Plain when
-// piped.
+// Per-pack status lines: green for a clean build, yellow for a warning, red for
+// errors. Plain when piped.
 const green = (s: string): string =>
   process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
 const red = (s: string): string =>
@@ -77,7 +71,7 @@ function sourcesToBuild(): string[] {
 let built = 0;
 for (const dir of sourcesToBuild()) {
   const name = basename(dir);
-  // A directory without a manifest isn't a pack source — skip it quietly;
+  // A directory without a manifest isn't a pack source — name it and skip;
   // everything else is parsePack's to judge.
   try {
     statSync(join(dir, 'manifest.json'));
@@ -89,11 +83,11 @@ for (const dir of sourcesToBuild()) {
     console.warn(`skipping ${name}: no manifest.json`);
     continue;
   }
-  const files = collectPackFiles(dir);
+  const names = collectPackFiles(dir);
   // The pack source as a PackTree — the same name-level validation the app runs
   // over an extracted tree, so a pack that builds is a pack that imports.
   const tree: PackTree = {
-    names: Object.keys(files),
+    names,
     readText: (path) => Promise.resolve(readFileSync(join(dir, path), 'utf8')),
   };
   let parsed: ParsedPack;
@@ -114,10 +108,7 @@ for (const dir of sourcesToBuild()) {
   // directories can hold two versions of the same id without clobbering — and
   // sits beside that directory, wherever it was given from.
   const out = join(dirname(dir), `${name}.zip`);
-  // Deflated, like the `zip -r` an author would run. Stills and video barely
-  // shrink, but a pack's text does, and text is what a pack accumulates as more
-  // media is described.
-  writeFileSync(out, zipSync(files));
+  await writeZip(dir, names, out);
   const counts = describeMedia(countMedia(parsed.media));
   console.log(green(`${name}: 0 errors`));
   console.log(`  built, ${name}.zip${counts === '' ? '' : `, ${counts}`}`);

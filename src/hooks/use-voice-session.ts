@@ -205,10 +205,6 @@ const threadKeyFor = (companion: Companion): string =>
 // before it are then byte-identical from turn to turn, which is what prompt
 // caching needs: providers match a prefix of tokens, so a single volatile value
 // early on makes every token after it uncacheable.
-//
-// A pack may still write {{TOY_STATUS}} or {{NOW}} into its own prompt —
-// goonpacks/prompt.ts deliberately leaves those markers for this function to
-// fill — and one that does opts itself out of a cached prefix.
 const liveState = (deviceState: string): LlmMessage => ({
   role: 'system',
   content: liveStateMessage(
@@ -216,13 +212,6 @@ const liveState = (deviceState: string): LlmMessage => ({
     deviceState === '' ? 'unknown' : deviceState,
   ),
 });
-
-// Fill a prompt's live markers, for a pack that placed them itself. A prompt
-// without them — every built-in — comes back untouched.
-const buildSystemPrompt = (template: string, deviceState: string): string =>
-  template
-    .replace('{{TOY_STATUS}}', deviceState === '' ? 'unknown' : deviceState)
-    .replace('{{NOW}}', describeClock(Date.now()));
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
@@ -351,9 +340,13 @@ export function useVoiceSession(opts: {
 
   const clearThread = useCallback((): void => {
     // A full reset also tears down any live turn, so an in-flight reply can't
-    // commit an assistant turn back into the just-cleared thread (mirrors stop()).
+    // commit an assistant turn back into the just-cleared thread (mirrors
+    // stop()). An already-armed ambient poke would do the same a moment later,
+    // so it goes too; nothing re-arms until a turn ends, which needs you to
+    // speak first.
     turnRef.current?.abort();
     turnRef.current = null;
+    ambientRef.current?.cancel();
     threadRef.current = [];
     setStatus((s) => ({ ...s, thread: [] }));
     try {
@@ -380,7 +373,7 @@ export function useVoiceSession(opts: {
     return [
       ...toLlmMessages(
         threadRef.current,
-        buildSystemPrompt(companion.systemPrompt, deviceState),
+        companion.systemPrompt,
         companion.passesReasoning,
       ),
       liveState(deviceState),
@@ -396,7 +389,9 @@ export function useVoiceSession(opts: {
   } | null => {
     const audioEl = audioRef.current;
     if (audioEl === null) return null;
-    ttsRef.current ??= createTtsPlayer(audioEl);
+    ttsRef.current ??= createTtsPlayer(audioEl, (message) => {
+      onLogRef.current?.(message, 'error');
+    });
     // The LLM client is bound to a model; rebuild it if the companion (hence
     // the model) has changed since it was made. The TTS player is model-free
     // (the voice id is passed per utterance), so it's reused as-is.
@@ -559,9 +554,10 @@ export function useVoiceSession(opts: {
         };
 
         // Speak one utterance through TTS, with the awaitingSpeech/speaking
-        // stages and metrics. A tool-call turn can speak TWICE — a pre-tool
-        // line, then the reaction. Returns false if the turn was
-        // aborted/superseded mid-play (the caller then bails).
+        // stages and metrics. A turn can call this several times: once for each
+        // tool round the companion opened with a line, then once for the reply
+        // that ends the turn. Returns false if the turn was aborted/superseded
+        // mid-play (the caller then bails).
         const speakText = async (text: string): Promise<boolean> => {
           const ttsStart = performance.now();
           let ttsTtfbMs: number | null = null;
@@ -591,25 +587,19 @@ export function useVoiceSession(opts: {
         };
 
         try {
-          // Read the device once for the whole turn, so every call in it agrees
-          // about the toy even if a knob moves between them.
-          const deviceState = getDeviceStateRef.current();
-          const systemPrompt = buildSystemPrompt(
-            companion.systemPrompt,
-            deviceState,
-          );
           const baseMessages = toLlmMessages(
             threadRef.current,
-            systemPrompt,
+            companion.systemPrompt,
             companion.passesReasoning,
           );
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
-          baseMessages.push(liveState(deviceState));
-          // The cue for an ambient turn rides this one request only — appended
-          // to the projection rather than written to the thread, so it prompts
-          // a turn without accumulating or showing in the transcript. After the
-          // state, so it reads as the last thing asked of them.
+          baseMessages.push(liveState(getDeviceStateRef.current()));
+          // An ambient turn has no message to answer: the timer fired, not the
+          // user, so the cue stands in for one (see AMBIENT_CUE). It goes after
+          // the state, to read as the last thing asked of them, and only on
+          // this first request — the tool rounds below rebuild from the thread,
+          // which never holds it.
           if (ambient) {
             baseMessages.push({ role: 'system', content: AMBIENT_CUE });
           }
@@ -671,9 +661,10 @@ export function useVoiceSession(opts: {
                       },
                     }
                   : toolsRef.current.find((t) => t.name === call.name);
-              // Parse the tool-call arguments (`{}` for zero-arg tools like
-              // start/stop; e.g. `{ level: "warmup" }` for intensity/edge). A
-              // malformed blob runs the tool with no args — the tool validates.
+              // The tool-call arguments arrive as a JSON string. One that won't
+              // parse, or that parses to something other than an object, leaves
+              // the tool called with none — a tool that takes arguments checks
+              // them and returns a refusal instead of acting.
               let args: Record<string, unknown> = {};
               try {
                 const parsed: unknown = call.arguments
@@ -716,13 +707,16 @@ export function useVoiceSession(opts: {
 
             // Feed the results back by rebuilding from the just-persisted
             // thread (which now holds the tool-call turn + results), so the
-            // request and the stored history are one and the same.
+            // request and the stored history are one and the same. The toy is
+            // read again rather than reused: the round just run may have
+            // started, stopped or re-set it, and this line is what the
+            // companion is told to trust over everything.
             messages = toLlmMessages(
               threadRef.current,
-              systemPrompt,
+              companion.systemPrompt,
               companion.passesReasoning,
             );
-            messages.push(liveState(deviceState));
+            messages.push(liveState(getDeviceStateRef.current()));
 
             if (round === MAX_TOOL_ROUNDS) {
               owedReaction = true;

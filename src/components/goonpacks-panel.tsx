@@ -20,6 +20,7 @@ import {
   describeMedia,
   keyId,
   keyVersion,
+  newestFirst,
   packKey,
 } from '@/lib/goonpacks/entries';
 import type { ImportStage } from '@/lib/goonpacks/import';
@@ -49,19 +50,21 @@ function contents(row: PackRow): string {
 // A row's accent: the pack's own colour when its manifest names one, else the
 // base's (for an overlay) — the same either-or the resolved companion ends up
 // wearing. Incompatible rows stay plain.
-function rowAccent(row: PackRow, packs: PackRow[]): string | null {
+export function rowAccent(row: PackRow, packs: PackRow[]): string | null {
   const m = row.manifest;
   if (row.incompatible !== undefined || m === undefined) return null;
   if (m.companion.accentColour !== undefined) return m.companion.accentColour;
   if (m.base !== undefined) {
     const builtIn = COMPANIONS[m.base];
     if (builtIn !== undefined) return builtIn.accentColour;
-    // Any installed version of the base — newest first is the row order, so
-    // find() lands on the newest.
-    return (
-      packs.find((p) => keyId(p.id) === m.base)?.manifest?.companion
-        .accentColour ?? 'pink'
-    );
+    // The newest installed version of the base — the one the resolved
+    // companion is built from (buildEntries sorts versions newest first).
+    // Compared rather than taken by position: the rows are ordered oldest
+    // version first, and nothing ties that order to this.
+    const newest = packs
+      .filter((p) => keyId(p.id) === m.base)
+      .sort((a, b) => newestFirst(keyVersion(a.id), keyVersion(b.id)))[0];
+    return newest?.manifest?.companion.accentColour ?? 'pink';
   }
   return 'pink'; // a colourless complete pack — packToCompanion's default
 }

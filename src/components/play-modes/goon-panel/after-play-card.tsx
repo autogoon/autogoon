@@ -8,12 +8,13 @@
 import { RING } from '@/components/button';
 import { Card } from '@/components/card';
 import { useKeywordFlash } from '@/components/keyword-spotter';
+import type { RoutedWord } from '@/hooks/use-voice-commands';
 import type { AfterPlayOption } from '@/lib/play-modes/goon-engine';
 
 // The spoken word that toggles each outcome. Single words on purpose — the
 // recognizer fires per word, so the labels' phrases ("wind down", "stay in")
 // wouldn't match. The panel declares the Commands from this map.
-export const AFTER_PLAY_WORDS: Record<AfterPlayOption, string> = {
+export const AFTER_PLAY_WORDS: Record<AfterPlayOption, RoutedWord> = {
   'wind-down': 'gentle',
   torture: 'torture',
   'stay-in': 'stay',

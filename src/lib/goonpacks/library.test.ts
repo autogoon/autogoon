@@ -47,7 +47,7 @@ const completePack = (id: string) => ({
   'manifest.json': manifest({
     id,
     mediaSummary: 'A still and a video.',
-    companion: { name: 'Testy', voiceId: 'v' },
+    companion: { name: 'Testy', description: 'a test companion', voiceId: 'v' },
   }),
   'system-prompt.md': 'You are Testy.',
   'media/a.jpg': '',

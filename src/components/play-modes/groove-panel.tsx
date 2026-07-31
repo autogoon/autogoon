@@ -248,6 +248,7 @@ export function GroovePanel({
           value={dipVariability}
           onChange={changeDipVariability}
           activeClass="bg-purple-600 text-white"
+          disabled={!isCurrent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>flatter</code> / <code>hillier</code> to step down or up.
@@ -265,6 +266,7 @@ export function GroovePanel({
           value={variability}
           onChange={changeVariability}
           activeClass="bg-purple-600 text-white"
+          disabled={!isCurrent}
         />
       </Card>
 

@@ -12,7 +12,7 @@ type Sink = {
   // Each chunk in a buffer of its own, which is what a writable stream takes.
   queue: Uint8Array<ArrayBuffer>[];
   done: boolean;
-  writer: Promise<FileSystemWritableFileStream> | null;
+  writer: Promise<FileSystemWritableFileStream>;
 };
 
 // Open `media/x.jpg` inside the pack directory, creating `media/` as needed.
@@ -33,7 +33,7 @@ export async function extractZip(
   dir: FileSystemDirectoryHandle,
   onProgress?: (bytesRead: number) => void,
 ): Promise<void> {
-  const sinks: Sink[] = [];
+  const sinks = new Set<Sink>();
   const unzip = new Unzip((entry) => {
     if (isJunkPath(entry.name)) {
       entry.ondata = () => {
@@ -42,9 +42,12 @@ export async function extractZip(
       entry.start();
       return;
     }
-    const sink: Sink = { queue: [], done: false, writer: null };
-    sinks.push(sink);
-    sink.writer = fileHandle(dir, entry.name).then((h) => h.createWritable());
+    const sink: Sink = {
+      queue: [],
+      done: false,
+      writer: fileHandle(dir, entry.name).then((h) => h.createWritable()),
+    };
+    sinks.add(sink);
     entry.ondata = (err, chunk, final) => {
       if (err !== null) throw err;
       // slice() so the chunk owns its whole buffer before it reaches write().
@@ -60,17 +63,18 @@ export async function extractZip(
   unzip.register(UnzipInflate);
 
   // Drain every open sink: writes land in order because each sink's promise
-  // chain is sequential, and the caller awaits this between pushes.
+  // chain is sequential, and the caller awaits this between pushes. A finished
+  // sink leaves the set, so this walks the entries still being written rather
+  // than every entry the zip has held.
   const drain = async (): Promise<void> => {
     for (const sink of sinks) {
-      if (sink.writer === null) continue;
       const writer = await sink.writer;
       while (sink.queue.length > 0) {
         await writer.write(sink.queue.shift()!);
       }
       if (sink.done) {
         await writer.close();
-        sink.writer = null;
+        sinks.delete(sink);
       }
     }
   };
@@ -95,7 +99,7 @@ export async function extractZip(
     // whose handle never opened must not become the error the caller sees.
     for (const sink of sinks) {
       try {
-        if (sink.writer !== null) await (await sink.writer).close();
+        await (await sink.writer).close();
       } catch {
         // this one's stream is already broken — there is nothing to salvage
       }

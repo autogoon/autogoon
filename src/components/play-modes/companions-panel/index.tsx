@@ -413,6 +413,14 @@ export function CompanionsPanel({
     showMedia,
   ]);
 
+  // Is the toy running *this* panel's program? The source guard matters
+  // because the Player holds one engine at a time — asking only about the
+  // state would answer for whoever else is armed.
+  const isRunning = useCallback(
+    () => player.source === engine && player.state === 'playing',
+    [player.source, player.state, engine],
+  );
+
   // The toy's state in plain terms — connection, whether it's actually running
   // (running implies connected), and the current intensity/variety levels. This
   // is the ground-truth line the companion reads each turn; the level is here (not just
@@ -423,19 +431,11 @@ export function CompanionsPanel({
     if (!vacuglide.connected) {
       return `The toy is not connected and is not running. ${levels}`;
     }
-    const running = player.source === engine && player.state === 'playing';
-    const status = running
+    const status = isRunning()
       ? 'The toy is connected and running.'
       : 'The toy is connected and not running.';
     return `${status} ${levels}`;
-  }, [
-    vacuglide.connected,
-    player.source,
-    player.state,
-    engine,
-    intensity,
-    variety,
-  ]);
+  }, [vacuglide.connected, isRunning, intensity, variety]);
 
   const {
     start: startListening,
@@ -450,7 +450,7 @@ export function CompanionsPanel({
     companion,
     tools,
     getDeviceState,
-    isPlaying: () => player.state === 'playing',
+    isPlaying: isRunning,
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
@@ -477,9 +477,10 @@ export function CompanionsPanel({
   const state = isCurrent ? player.state : 'armed';
 
   // Arm the engine when the play view is up and the Player is free — mirrors
-  // Autopilot. Entering play via Begin also arms directly; arm() is idempotent,
-  // so at most one harmless re-arm happens before the player-view mirror catches
-  // up. The setup view itself renders no device side effects.
+  // Autopilot. Picking a companion on the chooser arms directly too (see
+  // enterPlay); arm() is idempotent, so at most one harmless re-arm happens
+  // before the player-view mirror catches up. The setup view itself renders no
+  // device side effects.
   useEffect(() => {
     if (
       active &&
@@ -884,6 +885,9 @@ export function CompanionsPanel({
                   value={variety}
                   onChange={changeVariety}
                   activeClass="bg-purple-600 text-white"
+                  // No vosk grammar here, so nothing can fall out of step with
+                  // it; the control is always available.
+                  disabled={false}
                 />
               </Card>
             </div>
@@ -1016,7 +1020,9 @@ export function CompanionsPanel({
                         submitText(text, { speak: false });
                         setText('');
                       }}
-                      disabled={text.trim() === '' || status.replyPlaying}
+                      disabled={
+                        dictating || text.trim() === '' || status.replyPlaying
+                      }
                     >
                       Send
                     </Button>
@@ -1025,7 +1031,9 @@ export function CompanionsPanel({
                         submitText(text, { speak: true });
                         setText('');
                       }}
-                      disabled={text.trim() === '' || status.replyPlaying}
+                      disabled={
+                        dictating || text.trim() === '' || status.replyPlaying
+                      }
                       className="text-foreground bg-blue-600"
                     >
                       Say it

@@ -16,13 +16,6 @@ import { Player } from '@/lib/player';
 
 const TOKEN_STORAGE_KEY = 'vacuglideToken';
 
-// The saved device token, read straight from storage — lets the app decide at
-// startup whether to route to Settings (no token) before the hook mounts.
-export function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
-}
-
 export type LogKind = 'send' | 'error' | 'info' | 'hit';
 
 export interface CommandLogEntry {
@@ -49,7 +42,6 @@ export function useVacuglideDevice() {
   const [deviceSpeed, setDeviceSpeed] = useState(0);
   const [strokePlusValve, setStrokePlusValve] = useState(false);
   const [strokeMinusValve, setStrokeMinusValve] = useState(false);
-  const [operationalMode, setOperationalMode] = useState('');
   const [logEntries, setLogEntries] = useState<CommandLogEntry[]>([]);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus>({
     used: 0,
@@ -70,9 +62,9 @@ export function useVacuglideDevice() {
   });
   const player = playerRef.current;
 
-  // The rate-limit window slides with time (old requests age out), so poll the
-  // device once a second rather than only on new requests. Skip the state
-  // update when nothing changed to avoid a re-render every tick while idle.
+  // resetSeconds counts down between requests, so poll once a second rather
+  // than only on new ones. Skip the state update when nothing changed to avoid
+  // a re-render every tick while idle.
   useEffect(() => {
     const tick = () => {
       const status = deviceRef.current?.rateLimitStatus();
@@ -99,7 +91,9 @@ export function useVacuglideDevice() {
   }, []);
 
   // Safety: if the page is closed while the player is running, ask the device to
-  // stop rather than leaving it at the last commanded speed.
+  // stop rather than leaving it at the last commanded speed. The request is
+  // hand-rolled rather than device.targetSpeedStop() because only `fetch` takes
+  // keepalive, and an unload cancels anything without it.
   useEffect(() => {
     const onPageHide = () => {
       const device = deviceRef.current;
@@ -133,7 +127,6 @@ export function useVacuglideDevice() {
           setDeviceSpeed(state.targetSpeed);
           setStrokePlusValve(state.strokePlusValve);
           setStrokeMinusValve(state.strokeMinusValve);
-          setOperationalMode(state.operationalMode);
         });
         deviceRef.current = device;
         localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
@@ -153,7 +146,6 @@ export function useVacuglideDevice() {
         setDeviceSpeed(0);
         setStrokePlusValve(false);
         setStrokeMinusValve(false);
-        setOperationalMode('');
         setDeviceStatus((err as Error).message);
         setDeviceStatusKind('error');
         return false;
@@ -243,7 +235,6 @@ export function useVacuglideDevice() {
     deviceSpeed,
     strokePlusValve,
     strokeMinusValve,
-    operationalMode,
     valvePlus,
     valveMinus,
     log,

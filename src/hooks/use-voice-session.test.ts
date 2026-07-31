@@ -8,7 +8,9 @@
 // as persistThread writes it (localStorage, synchronously), which is the same
 // state the panel renders without depending on when React flushed. The LLM
 // stream and the TTS player are faked at their boundaries; the tool rounds and
-// the abort handling are the real ones.
+// the abort handling are the real ones. Also what a reset has to take with it:
+// the mic and the STT socket are faked just enough for start() to build a
+// session, so a test can reach the scheduler a turn arms.
 
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
@@ -51,6 +53,35 @@ jest.mock('../lib/llm/client', () => ({
       },
     }),
   }),
+}));
+
+// The mic and the STT socket only need to exist for start() to build a session;
+// these tests drive turns through submitText, never through speech.
+jest.mock('../lib/voice/mic', () => ({
+  startMic: () =>
+    Promise.resolve({
+      preRoll: { length: 0, push: () => {}, flush: () => [] },
+      stop: () => {},
+    }),
+}));
+
+jest.mock('../lib/voice/stt', () => ({
+  createStt: () => ({
+    beginUtterance: () => {},
+    sendFrame: () => {},
+    close: () => {},
+    phase: () => 'closed',
+    framesSent: () => 0,
+  }),
+}));
+
+// The shortest real ambient pause is 2.5s (ambient.ts's table), far past the
+// event loop these tests run on. Only the number is faked — the scheduler, the
+// turn it starts and the thread it writes to are all real.
+let ambientDelay = 60_000;
+jest.mock('../lib/companions/ambient', () => ({
+  ...(jest.requireActual('../lib/companions/ambient') as object),
+  ambientDelayMs: () => ambientDelay,
 }));
 
 jest.mock('../lib/voice/tts', () => ({
@@ -133,6 +164,7 @@ beforeEach(() => {
   replies = [];
   played = [];
   onPlay = undefined;
+  ambientDelay = 60_000;
   localStorage.clear();
 });
 
@@ -212,5 +244,31 @@ describe('useVoiceSession', () => {
     expect(result.current.status.thread).toEqual([
       expect.objectContaining({ role: 'user', content: 'show me something' }),
     ]);
+  });
+
+  it('cancels an armed ambient poke when the thread is cleared, so nothing lands in the emptied thread', async () => {
+    // Long enough that the poke is still pending when settle() returns, short
+    // enough that it would have fired well inside the wait after the clear.
+    ambientDelay = 150;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+    await act(async () => {
+      result.current.start();
+    });
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+
+    act(() => {
+      result.current.clearThread();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    });
+
+    expect(localStorage.getItem(THREAD_KEY)).toBeNull();
+    expect(result.current.status.thread).toEqual([]);
   });
 });

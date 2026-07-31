@@ -5,7 +5,8 @@
 // it lives here and panels talk to it rather than each owning their own.
 //
 // The grammar is the union of two slots:
-//   - GLOBAL words (connect/start/stop/reset) — owned by the page.
+//   - GLOBAL words — navigation and the safe word, owned by the page (the
+//     setGlobalWords effect in page.tsx).
 //   - the PLAY MODE words — owned by whichever panel is currently active; it
 //     calls setPlayModeKeywords with its enabled words and clears them when it
 //     stops being active, so only one play mode's words are ever live.
@@ -48,8 +49,8 @@ export interface KeywordSpotter {
   // the app is listening for.
   listeningFor: string[];
   flashing: ReadonlySet<string>;
-  // The page sets the global words (connect, the mode names, tab words, exit —
-  // whatever is valid right now; see the globalWords memo in page.tsx).
+  // The page sets the global words: navigation plus the safe word, whatever is
+  // valid right now (the setGlobalWords effect in page.tsx).
   setGlobalWords: (words: string[]) => void;
   // The active panel sets its play mode words (and clears them on deactivate).
   setPlayModeKeywords: (words: string[]) => void;

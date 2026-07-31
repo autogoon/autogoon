@@ -18,9 +18,16 @@
 //   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
 import process from 'node:process';
-import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import {
+  readdirSync,
+  existsSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
 import { renderSidecar } from '../src/lib/goonpacks/sidecar';
 import {
   describeImage,
@@ -31,9 +38,10 @@ import {
   dim,
 } from './describe-image';
 
-// The pack format's still types only. Videos are skipped: their captions are
+// The stills MEDIA_TYPES lists. Videos are skipped: their captions are
 // hand-written.
-const IMAGE_RE = /\.(jpe?g|png|webp)$/i;
+const isImage = (file: string): boolean =>
+  MEDIA_TYPES[extname(file).slice(1).toLowerCase()]?.kind === 'image';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const goonpacksDir = join(root, 'goonpacks');
@@ -47,7 +55,7 @@ const explicit = named !== undefined && named !== '';
 function packDirs(): string[] {
   if (explicit) {
     const dir = resolve(named);
-    if (!existsSync(dir)) {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
       console.error(`${named} isn't a directory`);
       process.exit(1);
     }
@@ -83,7 +91,7 @@ function missingImages(): string[] {
       continue;
     }
     for (const file of shuffled(readdirSync(dir))) {
-      if (!IMAGE_RE.test(file)) continue;
+      if (!isImage(file)) continue;
       const image = join(dir, file);
       const sidecar = sidecarPath(image);
       const described =

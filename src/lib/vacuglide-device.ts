@@ -47,9 +47,9 @@ interface ApiErrorBody {
 }
 
 // Called with each command actually sent to the device, so the app's command
-// log reflects device traffic regardless of who issued it (manual controls or
-// an autopilot engine). Kept structural so this client stays independent of the
-// React/logging layer.
+// log reflects device traffic regardless of who issued it (the Player, or the
+// manual valve controls when nothing is playing). Kept structural so this
+// client stays independent of the React/logging layer.
 type CommandLog = (text: string, kind: 'send') => void;
 
 export class VacuglideDevice {

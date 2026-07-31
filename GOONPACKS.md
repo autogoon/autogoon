@@ -113,9 +113,9 @@ separated by commas:
 ### The companion section — their fields
 
 Everything about the companion goes inside `companion: { … }`. For a **complete
-pack**, `name` and `voiceId` are required (plus the `system-prompt.md` file next
-to the manifest); the rest are optional. An **overlay** includes only the fields
-it changes.
+pack**, `name`, `description` and `voiceId` are required (plus the
+`system-prompt.md` file next to the manifest); the rest are optional. An
+**overlay** includes only the fields it changes.
 
 - **`name`** — their name, as their card and picker show it. Required on a
   complete pack; forbidden on an overlay.
@@ -125,7 +125,7 @@ it changes.
 - **`gender`** — `female`, `male` or `nonbinary`. Optional; forbidden on an
   overlay.
 - **`description`** — a sentence about _them_, shown on their card on the
-  Companions screen. Optional.
+  Companions screen. Required on a complete pack.
 - **`accentColour`** — the colour of their card and chooser entry. One of: red,
   orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo,
   violet, purple, fuchsia, pink, rose. Optional (pink if omitted).

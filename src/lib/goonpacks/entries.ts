@@ -57,8 +57,9 @@ export const keyId = (key: string): string => key.split('@')[0]!;
 export const keyVersion = (key: string): string =>
   key.slice(key.indexOf('@') + 1);
 
-// Newest first. Versions are free text the app never interprets — beyond
-// this alphanumeric sort ("1.10" after "1.9", digits compared as numbers).
+// Newest first. Versions are free text the app never interprets — beyond this
+// alphanumeric sort, in which a run of digits compares as a number, so 1.10 is
+// newer than 1.9.
 export const newestFirst = (a: string, b: string): number =>
   b.localeCompare(a, undefined, { numeric: true });
 
@@ -82,7 +83,6 @@ export type PackOption = {
 };
 export type LibraryEntry = {
   companion: Companion;
-  builtIn: boolean;
   bases: PackOption[]; // newest first; a built-in has one key-null option
   overlays: PackOption[]; // newest first per overlay; none = no select
 };
@@ -148,7 +148,6 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       .map(overlayOption);
   const builtIns: LibraryEntry[] = companionList.map((c) => ({
     companion: c,
-    builtIn: true,
     bases: [
       {
         key: null,
@@ -176,7 +175,6 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       // The card's identity (name, fallbacks) comes from the newest version;
       // the selects override per pick.
       companion: packToCompanion({ manifest: newest.manifest, media: [] }),
-      builtIn: false,
       bases: versions.map(baseOption),
       overlays: overlaysFor(p.manifest.id),
     });

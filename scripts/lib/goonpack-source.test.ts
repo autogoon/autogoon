@@ -34,14 +34,12 @@ describe('collectPackFiles', () => {
     write('system-prompt.md', 'You are Testy.');
     write('media/a.jpg', 'bytes');
     write('notes.md', 'scratch');
-    const files = collectPackFiles(dir);
-    expect(Object.keys(files).sort()).toEqual([
+    expect(collectPackFiles(dir).sort()).toEqual([
       'manifest.json',
       'media/a.jpg',
       'notes.md',
       'system-prompt.md',
     ]);
-    expect(Buffer.from(files['media/a.jpg']!).toString()).toBe('bytes');
   });
 
   it('keeps the media files that sort after a subfolder, and names the subfolder by its contents', () => {
@@ -52,7 +50,7 @@ describe('collectPackFiles', () => {
     write('media/aaa-sub/x.jpg');
     write('media/b.jpg');
     write('media/c.mp4');
-    expect(Object.keys(collectPackFiles(dir)).sort()).toEqual([
+    expect(collectPackFiles(dir).sort()).toEqual([
       'manifest.json',
       'media/aaa-sub/x.jpg',
       'media/b.jpg',
@@ -66,9 +64,10 @@ describe('collectPackFiles', () => {
     write('elsewhere/a.jpg', 'bytes');
     write('pack/manifest.json', '{}');
     symlinkSync(join(dir, 'elsewhere'), join(dir, 'pack/media'));
-    const files = collectPackFiles(join(dir, 'pack'));
-    expect(Object.keys(files).sort()).toEqual(['manifest.json', 'media/a.jpg']);
-    expect(Buffer.from(files['media/a.jpg']!).toString()).toBe('bytes');
+    expect(collectPackFiles(join(dir, 'pack')).sort()).toEqual([
+      'manifest.json',
+      'media/a.jpg',
+    ]);
   });
 
   it('keeps macOS junk, so the zip carries what the directory carries', () => {
@@ -78,7 +77,7 @@ describe('collectPackFiles', () => {
     write('.DS_Store', 'junk');
     write('media/a.jpg');
     write('media/._a.jpg', 'junk');
-    expect(Object.keys(collectPackFiles(dir)).sort()).toEqual([
+    expect(collectPackFiles(dir).sort()).toEqual([
       '.DS_Store',
       'manifest.json',
       'media/._a.jpg',

@@ -124,7 +124,7 @@ export function DebugTab({
           markers and all.
         </p>
         <div className="mt-2">
-          <DebugLLMButton onClick={onShowLlmRequest} variant="long" />
+          <DebugLLMButton onClick={onShowLlmRequest} />
         </div>
       </Card>
 

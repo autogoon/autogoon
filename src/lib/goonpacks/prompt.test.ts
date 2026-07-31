@@ -23,10 +23,6 @@ describe('fillSharedSections', () => {
       `a{{NOT_A_SECTION}}b${TAIL}`,
     );
   });
-  it('leaves live markers untouched', () => {
-    const text = 'x {{TOY_STATUS}} y {{NOW}} z';
-    expect(fillSharedSections(text, {})).toBe(`${text}${TAIL}`);
-  });
 
   it('puts the set summary into the media section', () => {
     const text = '{{MEDIA_SECTION}}{{CONTROL_SECTION}}';

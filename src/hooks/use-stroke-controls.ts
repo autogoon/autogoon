@@ -1,7 +1,8 @@
 'use client';
 
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
-// for a fixed pulse length then closes it, mimicking a manual tap. Lives here
+// for a fixed length then closes it. The two directions hold for very different
+// lengths — see STROKE_PULSE_MINUS_MS and STROKE_PULSE_PLUS_MS. Lives here
 // (rather than
 // inside one play mode) so every play mode panel can offer the same Stroke
 // controls without duplicating the pulse logic. Where a pulse goes — into the
@@ -68,5 +69,3 @@ export function useStrokeControls(
 
   return { strokePulsing, canStroke, keywords };
 }
-
-export type StrokeControls = ReturnType<typeof useStrokeControls>;

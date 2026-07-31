@@ -4,6 +4,28 @@ Known defects in behaviour that is already implemented. Severity decides when
 one gets fixed, not whether it belongs here. The divide against the other files
 is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
+## Voice
+
+- **"Listening" can be shown with no audio flowing.** `start()` resumes the
+  AudioContext fire-and-forget (`void audioContext.resume()`) and then sets
+  `listening` regardless of `audioContext.state`. A suspended context is never
+  pulled, so the worklet never feeds the recognizer and no word is heard — the
+  safe word included — while the header shows the green mic. Nothing retries and
+  nothing reports it; only toggling Listen off and on recovers.
+
+  Reaching it needs an engine that refuses to resume a context created without a
+  user gesture, which the autostart-on-load path always is. Chromium and Firefox
+  appear not to, and Playwright's WebKit cannot stand in for Safari, so whether
+  Safari does is unverified.
+
+  Two candidate fixes, and which is right depends on that answer. Awaiting the
+  resume and failing the start unless the context is running tells the truth and
+  leaves the refs clean for a retry, but would hang on load in an engine that
+  keeps `resume()` pending until a gesture. Deriving `listening` from a
+  `statechange` listener never hangs, but `toggleListening` calls `start()`
+  whenever `listening` is false, so it would open a second stream and context
+  over the suspended one.
+
 ## Companions
 
 - **An exhausted media set reads as "nothing matches".** Once everything

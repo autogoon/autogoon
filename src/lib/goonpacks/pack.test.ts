@@ -11,7 +11,14 @@ const manifest = (extra: object = {}) =>
     ...extra,
   });
 const complete = (extra: object = {}) =>
-  manifest({ companion: { name: 'Testy', voiceId: 'v123' }, ...extra });
+  manifest({
+    companion: {
+      name: 'Testy',
+      description: 'a test companion',
+      voiceId: 'v123',
+    },
+    ...extra,
+  });
 
 // A sidecar as the describing script writes one: the caption quoted in
 // frontmatter, the long description as the body.
@@ -298,12 +305,28 @@ describe('parsePack', () => {
   it('rejects a complete pack whose companion has no name', async () => {
     const problems = await parsePack(
       tree({
-        'manifest.json': manifest({ companion: { voiceId: 'v' } }),
+        'manifest.json': manifest({
+          companion: { description: 'a test companion', voiceId: 'v' },
+        }),
         'system-prompt.md': 'x',
       }),
     ).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
       'A complete pack needs a name field in the companion section of manifest.json.',
+    ]);
+  });
+
+  it('rejects a complete pack whose companion has no description', async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          companion: { name: 'Testy', voiceId: 'v' },
+        }),
+        'system-prompt.md': 'x',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'A complete pack needs a description field in the companion section of manifest.json.',
     ]);
   });
 
@@ -350,6 +373,7 @@ describe('parsePack', () => {
       'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
+      'A complete pack needs a description field in the companion section of manifest.json.',
     ]);
   });
 

@@ -10,11 +10,17 @@ export function Segmented<T extends string>({
   value,
   onChange,
   activeClass,
+  disabled,
 }: {
   options: ReadonlyArray<{ value: T; label: string; voiceCommand?: string }>;
   value: T;
   onChange: (value: T) => void;
   activeClass: string;
+  // Gates every segment together. This and the matching Command's `enabled`
+  // must be the same flag, or a word leaves the grammar while its segment still
+  // runs. Required, not defaulted: an omitted gate is the defect this exists to
+  // prevent.
+  disabled: boolean;
 }) {
   return (
     // No overflow-hidden: it would clip the press/voice flash ring (which sits
@@ -26,6 +32,7 @@ export function Segmented<T extends string>({
           key={opt.value}
           onClick={() => onChange(opt.value)}
           voiceCommand={opt.voiceCommand}
+          disabled={disabled}
           className={`border-border flex-1 rounded-none border-0 bg-transparent py-3 enabled:hover:bg-transparent ${
             i > 0 ? 'border-l' : ''
           } ${i === 0 ? 'rounded-l-lg' : ''} ${

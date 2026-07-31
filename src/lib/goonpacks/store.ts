@@ -30,7 +30,7 @@ const markerName = (key: string): string => `${key}${MARKER_SUFFIX}`;
 const NO_STORAGE =
   "This browser can't store packs — private browsing and restricted storage settings are the usual cause.";
 
-export async function packsRoot(
+async function packsRoot(
   create = false,
 ): Promise<FileSystemDirectoryHandle | null> {
   try {
@@ -46,7 +46,7 @@ export async function packsRoot(
 const isDirectory = (h: FileSystemHandle): h is FileSystemDirectoryHandle =>
   h.kind === 'directory';
 
-export async function listPackKeys(): Promise<string[]> {
+async function listPackKeys(): Promise<string[]> {
   const packs = await packsRoot();
   if (packs === null) return [];
   const keys: string[] = [];
@@ -280,8 +280,10 @@ export async function requestPersistence(): Promise<void> {
   }
 }
 
-// One-off reclamation of the quota still held by pack zips from before packs
-// moved to OPFS. Nothing reads that database.
+// Some installs hold pack zips in an `autogoon-goonpacks` IndexedDB database
+// that nothing reads — packs live in the OPFS trees above. This reclaims that
+// quota; where there is no such database the delete is a no-op, so it runs on
+// every load rather than being tracked.
 export function purgeLegacyDatabase(): Promise<void> {
   return new Promise((resolve) => {
     try {

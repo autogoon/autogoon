@@ -43,13 +43,10 @@ describe('companionList', () => {
   // The prompt is the front of every request, so anything in it that changes
   // between turns moves the point where a cached prefix stops matching to the
   // very top — costing the whole conversation behind it, not just the prompt.
-  // The live values ride a trailing system message instead (liveStateMessage).
-  // {{MEDIA_SECTION}} is fine — it resolves once, when a companion is
-  // assembled.
+  // The live values ride a trailing system message instead (liveStateMessage),
+  // so what this catches is a persona prompt that grew its own copy of one.
   it("no companion's system prompt contains a per-turn value", () => {
     for (const companion of Object.values(COMPANIONS)) {
-      expect(companion.systemPrompt).not.toContain('{{TOY_STATUS}}');
-      expect(companion.systemPrompt).not.toContain('{{NOW}}');
       expect(companion.systemPrompt).not.toContain('TOY STATUS (trust this');
       expect(companion.systemPrompt).not.toContain('TIME (his local time');
     }

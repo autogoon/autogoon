@@ -22,7 +22,7 @@ const manifest = (
   version: string,
   e: Extra = {},
 ): PackManifest => ({
-  format: 2,
+  format: 1,
   id,
   version,
   aboutThePack: 'a test pack',
@@ -38,7 +38,12 @@ const complete = (
 ): LoadedPack => ({
   manifest: manifest(id, version, {
     top: e.top,
-    companion: { name: 'Comp', voiceId: 'v', ...e.companion },
+    companion: {
+      name: 'Comp',
+      description: 'a test companion',
+      voiceId: 'v',
+      ...e.companion,
+    },
   }),
   summary,
 });
@@ -173,7 +178,6 @@ describe('buildEntries', () => {
     const entries = buildEntries([]);
     expect(entries.map((e) => e.companion.id)).toEqual(BUILT_IN_IDS);
     for (const e of entries) {
-      expect(e.builtIn).toBe(true);
       expect(e.bases).toHaveLength(1);
       expect(e.bases[0]).toMatchObject({
         key: null,
@@ -200,7 +204,6 @@ describe('buildEntries', () => {
     const entries = buildEntries(packs);
     expect(entries).toHaveLength(BUILT_IN_IDS.length + 1);
     const entry = entries.find((e) => e.companion.id === 'pub.comp')!;
-    expect(entry.builtIn).toBe(false);
     expect(entry.bases.map((b) => b.key)).toEqual([
       'pub.comp@1.10.0',
       'pub.comp@1.0.0',

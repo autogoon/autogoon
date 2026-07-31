@@ -56,7 +56,7 @@ describe('prepareImport', () => {
       prepareImport(
         zipFile({
           'yourpack/manifest.json': strToU8(
-            JSON.stringify({ format: 2, id: 'test.pack', version: '1.0.0' }),
+            JSON.stringify({ format: 1, id: 'test.pack', version: '1.0.0' }),
           ),
           'yourpack/media/a.jpg': strToU8('x'),
           '__MACOSX/._manifest.json': strToU8('junk'),

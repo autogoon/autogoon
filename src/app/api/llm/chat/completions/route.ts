@@ -51,7 +51,19 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (!upstream.ok || upstream.body === null) {
-    return Response.json({ error: 'LLM upstream error' }, { status: 502 });
+    // Carry the upstream's status and message: 402 (out of credit), 429 (rate
+    // limited) and 400 (bad model slug) are different problems, and one
+    // three-word error for all of them is a paid dependency failing quietly.
+    // The status stays 502 — forwarding a 401 would be indistinguishable from
+    // this route's own access rejection. An auth failure's body is withheld:
+    // OpenAI-compatible endpoints quote the key back in it, and LLM_URL names
+    // whichever one the deployment chose.
+    const authFailed = upstream.status === 401 || upstream.status === 403;
+    const detail = authFailed ? '' : `: ${await upstream.text()}`;
+    return Response.json(
+      { error: `LLM upstream ${upstream.status}${detail}` },
+      { status: 502 },
+    );
   }
 
   return new Response(upstream.body, {

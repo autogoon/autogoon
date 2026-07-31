@@ -24,9 +24,8 @@
 // the caption line (see PROMPT). Both reach the sidecar, and both scripts print
 // them, so you can see what the caption was based on.
 //
-// describeImage(), sidecarPath() and the colour helpers are exported so
-// describe-missing.ts can reuse them; the CLI below runs only when this file is
-// the entry point.
+// What describe-missing.ts reuses is exported; the CLI in this file runs only
+// when it is the entry point.
 //
 // Strong vision models on OpenRouter (set MODEL to one of these) —
 // verify the exact slug + pricing at https://openrouter.ai/models (filter
@@ -55,20 +54,12 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
 import {
   renderSidecar,
   SIDECAR_EXT,
   type Sidecar,
 } from '../src/lib/goonpacks/sidecar';
-
-const MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.avif': 'image/avif',
-};
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
 // this many pixels — plenty for a reliable description and a fraction of the
@@ -235,12 +226,12 @@ export function sidecarPath(imagePath: string): string {
 export async function describeImage(
   imagePath: string,
   {
-    onStep = () => {},
-    onImage = () => {},
+    onStep,
+    onImage,
   }: {
-    onStep?: (step: string) => void;
-    onImage?: (base64: string) => void;
-  } = {},
+    onStep: (step: string) => void;
+    onImage: (base64: string) => void;
+  },
 ): Promise<Sidecar> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {
@@ -251,9 +242,14 @@ export async function describeImage(
   // MODEL to try another (see the list at the top of this file).
   const model = process.env.MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
 
-  const ext = extname(imagePath).toLowerCase();
-  if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
+  // parsePack fails a pack over a file MEDIA_TYPES doesn't list, so a sidecar
+  // for one is written for nothing. Stills only: MEDIA_TYPES lists videos as
+  // well, and a video's caption is hand-written.
+  const ext = extname(imagePath).slice(1).toLowerCase();
+  if (MEDIA_TYPES[ext]?.kind !== 'image') {
+    throw new Error(
+      `Not a picture a pack can carry: ${extname(imagePath) || '(no extension)'}`,
+    );
   }
   // Always send a downscaled JPEG, whatever the source format.
   onStep(`Resizing to ${MAX_EDGE}px…`);

@@ -20,7 +20,7 @@ export class PackError extends Error {
 
 // publisher.name — both halves strict slugs, single dot. Ids end up in storage
 // keys and thread keys, so the charset is locked down at the format level.
-export const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
+const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 
 // The accent hues safelisted in globals.css — a pack colour outside this set
 // would silently render unstyled, so reject it at import instead.
@@ -47,7 +47,7 @@ const ACCENT_COLOURS = new Set([
 const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
-export const PACK_FORMAT = 1;
+const PACK_FORMAT = 1;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
@@ -115,9 +115,8 @@ export type PackManifest = {
 // of the pack's tree (a complete pack needing system-prompt.md, name, voiceId)
 // live in parsePack — this checks only the manifest's own fields. Field
 // problems are collected and thrown together, so a bad manifest reports
-// everything wrong
-// with it at once; only a manifest we can't judge at all (not an object, a
-// format this app doesn't know) fails alone.
+// everything wrong with it at once; only a manifest we can't judge at all (not
+// an object, a format this app doesn't know) fails alone.
 export function parseManifest(raw: unknown): PackManifest {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new PackError("manifest.json doesn't contain a JSON object.");
@@ -144,6 +143,15 @@ export function parseManifest(raw: unknown): PackManifest {
     if (v === undefined) return undefined;
     if (typeof v !== 'string') {
       problems.push(`The ${field} field must be text.`);
+      return undefined;
+    }
+    // Not the same as leaving the field out: every reader defaults with `??`,
+    // which '' passes, so an empty field defeats its fallback instead of
+    // taking it.
+    if (v.trim() === '') {
+      problems.push(
+        `The ${field} field is empty — give it a value or remove it.`,
+      );
       return undefined;
     }
     return v;

@@ -28,7 +28,9 @@ const FUNCTION_NAME = /<function=([^>\s]+)>/;
 const PARAMETER = /<parameter=([^>\s]+)>([\s\S]*?)<\/parameter>/g;
 
 // The calls a model wrote out in text. Ids are synthesised — the wire format
-// has none, and the caller only needs them to key results back to their call.
+// has none — and number from zero on every call, so they are unique within one
+// turn and no further. Making them unique across a thread is the caller's, at
+// the point they leave here (see client.ts).
 export function parseTextualToolCalls(text: string): ToolCall[] {
   const calls: ToolCall[] = [];
   for (const match of text.matchAll(BLOCK)) {

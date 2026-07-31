@@ -163,10 +163,14 @@ async function summarisePack(packDir: string): Promise<boolean> {
     dim(`${captions.length} caption(s), ${input.length} characters.`),
   );
 
-  const summary = await summarise(input);
+  // Read the manifest before the paid call: packsToSummarise only checks that
+  // the file exists, so a malformed one would otherwise throw after the summary
+  // was billed, and a summary that isn't written is unrecoverable.
   const manifestPath = join(packDir, 'manifest.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const replacing = typeof manifest.mediaSummary === 'string';
+
+  const summary = await summarise(input);
   manifest.mediaSummary = summary;
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 

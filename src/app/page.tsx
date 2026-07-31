@@ -38,6 +38,7 @@ import {
 import { useCompanionsAccess } from '@/hooks/use-companions-access';
 import { usePlayer } from '@/hooks/use-player';
 import { useVacuglideDevice } from '@/hooks/use-vacuglide-device';
+import { ROUTED_WORDS } from '@/hooks/use-voice-commands';
 import {
   DEFAULT_SAFE_WORD,
   SAFE_WORD_STORAGE_KEY,
@@ -135,20 +136,8 @@ const parentOf = (s: Screen): Screen =>
   s.includes('/') ? (s.split('/')[0] as Screen) : 'home';
 
 // Words the safe word may not take: everything the grammar already routes
-// elsewhere — the global words plus the shared transport words the panels
-// declare. One utterance must never mean two things.
-const SAFE_WORD_RESERVED = [
-  'connect',
-  'exit',
-  'home',
-  'settings',
-  'start',
-  'stop',
-  'reset',
-  'changes',
-  'packs', // the Goonpacks tab's spoken word
-  ...PLAY_MODES.map((a) => a.id),
-];
+// elsewhere. One utterance must never mean two things.
+const SAFE_WORD_RESERVED = [...ROUTED_WORDS, ...PLAY_MODES.map((a) => a.id)];
 // The validator the editing surfaces use, with the reserved list applied.
 const sanitizeCandidate = (input: string): string | null =>
   sanitizeSafeWord(input, SAFE_WORD_RESERVED);

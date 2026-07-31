@@ -41,7 +41,7 @@ const overlay = (
   media = [] as Companion['media'],
 ) => ({
   manifest: {
-    format: 2,
+    format: 1,
     id: 'g00ner.aimee',
     version: '1.0.0',
     base: 'autogoon.aimee',
@@ -170,7 +170,7 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
   const pictureLessBase = () =>
     packToCompanionRaw({
       manifest: {
-        format: 2,
+        format: 1,
         id: 'some.base',
         version: '1',
         aboutThePack: 'a base pack',
@@ -196,7 +196,7 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
 describe('packToCompanion', () => {
   const completePack = (companion: CompanionConfig) => ({
     manifest: {
-      format: 2,
+      format: 1,
       id: 'some.one',
       version: '1',
       aboutThePack: 'a complete pack',
@@ -221,9 +221,11 @@ describe('packToCompanion', () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
     expect(body(c.systemPrompt)).toBe(`p\n${mediaSection('Pack set.')}`);
   });
-  it("falls back to the pack's aboutThePack when the companion section carries no description", () => {
-    const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
-    expect(c.description).toBe('a complete pack');
+  it("carries the companion's own description to the card", () => {
+    const c = packToCompanion(
+      completePack({ name: 'One', description: 'quiet', voiceId: 'v1' }),
+    );
+    expect(c.description).toBe('quiet');
   });
   it('names the companion after the pack id when the manifest gives no name', () => {
     const c = packToCompanion(completePack({ voiceId: 'v1' }));

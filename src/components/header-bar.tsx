@@ -65,9 +65,9 @@ export function HeaderBar({
             <MicOff className="size-4" />
           )}
           <span className="hidden sm:inline">
-            {kws.starting === true
+            {kws.starting
               ? 'Starting…'
-              : kws.listening === true
+              : kws.listening
                 ? 'Listening'
                 : 'Listen'}
           </span>

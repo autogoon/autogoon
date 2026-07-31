@@ -1,15 +1,8 @@
+// The built-in companions. An imported goonpack adds further companions at
+// runtime (src/lib/goonpacks/).
 import type { MediaKind } from '@/lib/goonpacks/media';
 import { AIMEE_SYSTEM_PROMPT } from './aimee-prompt';
 import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
-
-// The built-in companions. One persona = one entry: its voice, model and
-// system prompt travel together here as pure data, so a new built-in is a new
-// entry, nothing else — and imported goonpacks add further companions at
-// runtime (src/lib/goonpacks/). The picker, the play session and the saved
-// thread all key off a companion's id.
-// Ids are `publisher.name` (see src/lib/goonpacks/manifest.ts) — the stock
-// companions here use the "autogoon" publisher.
-export type CompanionId = string;
 
 // One thing a companion can send: a still or a video — one entry per item of
 // valid media, since that is all a pack's `media` holds (parsePack). Both texts
@@ -36,10 +29,13 @@ export type CompanionMedia = {
 };
 
 export type Companion = {
-  id: CompanionId; // stable key — picker selection, thread namespace
+  // `publisher.name` (src/lib/goonpacks/manifest.ts); the built-ins use the
+  // "autogoon" publisher. The picker selection, the play session and the saved
+  // thread all key off it.
+  id: string;
   name: string;
   description: string; // one-line blurb shown on the picker card
-  gender: 'female' | 'male' | 'nonbinary'; // display-only; not currently rendered anywhere
+  gender: 'female' | 'male' | 'nonbinary';
   accentColour: string; // their signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)

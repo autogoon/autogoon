@@ -1,7 +1,6 @@
 // Load-time fill of {{PLACEHOLDER}} tokens in a persona prompt with the app's
 // current shared sections, so the mechanical rules stay app-owned (spec:
-// "System prompt placeholders"). Runtime markers are a different layer: they
-// pass through here and are filled per-turn by the voice session.
+// "System prompt placeholders").
 import {
   CONTROL_SECTION,
   CONTROL_SUMMARY_SECTION,
@@ -32,10 +31,9 @@ export function fillSharedSections(
       // A companion with no media has no summary, and gets the section's
       // other form — the one saying there is nothing to send.
       if (name === 'MEDIA_SECTION') return mediaSection(opts.mediaSummary);
-      // Anything that isn't a shared section is left exactly as written: the
-      // live markers {{TOY_STATUS}} and {{NOW}} because the voice session fills
-      // them per turn, and everything else so a misspelled token shows up in
-      // the prompt instead of silently becoming nothing.
+      // Anything that isn't a shared section is left exactly as written, so a
+      // misspelled token shows up in the prompt instead of silently becoming
+      // nothing.
       return SECTIONS[name] ?? token;
     },
   );

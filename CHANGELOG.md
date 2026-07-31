@@ -1,5 +1,140 @@
 # Changelog
 
+## 2026-07-31
+
+- enhancement: **The browser tab says Autogoon** — The tab title and share card
+  still named an early version of the app rather than the play modes and
+  companions it has now.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- enhancement: **A failed reply says what went wrong** — When a companion
+  can't reply, the error now carries what the provider actually said — out of
+  credit, rate limited, no such model — instead of reading `LLM upstream error`
+  whichever it was.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- enhancement: **A companion's card shows their own description** — A complete
+  pack could leave `description` out of its companion section, and the card then
+  showed the pack's `aboutThePack` blurb — what the pack adds — in place of a
+  line about the companion. A complete pack must now carry one; `aboutThePack`
+  stays on the Goonpacks screen, where it belongs.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- enhancement: **Building a pack no longer holds it in memory** —
+  `npm run goonpack:build` read the whole pack in and built the whole zip before
+  writing a byte, so a large pack took several gigabytes and one big enough
+  could not be built at all. It now streams file by file, and peak memory no
+  longer grows with the pack.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **A control you can't use no longer offers a word** — A greyed button
+  kept its voice chip, so Goon's Stop during an unstoppable after-play showed
+  `stop` next to a note saying only the safe word would work. Segmented controls
+  had the opposite half: their words could be withdrawn while the segments
+  stayed pressable.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Summarising checks the manifest before it pays** — The
+  `npm run goonpack:summarise` command generated a pack's summary and only then
+  read its `manifest.json`, so a manifest that didn't parse cost a request and
+  lost the summary it had bought.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **The changelog's tags are readable in light mode** — The `feature`,
+  `enhancement`, `bug` and `internal` tags took their lettering from the theme
+  while their fills stayed dark, so in the light theme each one was near-black
+  on a dark pill.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **An overlay is coloured like the companion it plays as** — With more
+  than one version of a base pack installed, an overlay's row on the Goonpacks
+  screen took its colour from the oldest of them while the companion you played
+  wore the newest, so the two disagreed.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Send can't fire off what you can't see** — With something already typed
+  in the box, starting to speak swapped the display to what you were saying but
+  left Send and Say it wired to the typed text, so pressing either sent the
+  hidden line. Both are now out of reach while you're speaking, like the box
+  itself.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Clearing the conversation stays cleared** — A companion with a pause
+  already timed would break it seconds after you cleared the conversation,
+  putting a line back into the thread you had just emptied. Clearing now takes
+  the pending one with it; they wait until you speak.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **The Stroke controls come back after a jump** — Skipping forward, or
+  turning a knob, while the program was holding a stroke valve open left the
+  valve open and the Stroke buttons and their words dead for the rest of the
+  session. The hold now ends when the part of the program it belonged to is
+  discarded.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **A failed connection no longer costs the rest of the session** — If the
+  speech connection didn't come up — a blip on the network, or the service
+  refusing once — the companion stopped hearing anything until you stopped and
+  started again, and nothing said why. It now tries again on the next thing you
+  say, and the failure shows in the event log.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **The safe word can't be a word the app already uses** — Settings
+  accepted `up`, `off`, `finish`, `torture` and most of the play modes' own
+  spoken words as a safe word, so saying it halted the session and worked that
+  control as well. Every word the app routes is now refused.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Resetting mid-session stops the toy** — Resetting a Companions session
+  while it was playing replaced the program but left the toy running, and
+  neither Stop nor the safe word could reach it. Replacing a program now stops
+  the toy first.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Companions see the toy they just changed** — A companion who started
+  the toy, or turned it up, was told for the rest of that turn that nothing had
+  changed, so they could start it a second time or tell you it was off just
+  after switching it on. They now read the toy again after each action they
+  take.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **A stranded overlay now says why** — An overlay whose base pack was
+  itself unusable — two installed versions of it disagreeing about being an
+  overlay or a complete companion — listed as fine on the Goonpacks screen but
+  appeared on no companion's card. It now lists as incompatible, with the
+  reason.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **A pack's empty field is refused** — A manifest field left as `""` was
+  read as a value rather than an omission, so it overrode the default it should
+  have fallen back to. A pack with one now fails to import, saying which field
+  is empty.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- bug: **Describing refuses a file a pack can't hold** — The
+  `npm run goonpack:describe` command accepted a `.gif` or `.avif` and wrote the
+  sidecar for it, which the build then rejected because the pack format carries
+  neither. It now refuses the file instead.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- internal: **Dead surface removed** — A sweep removed everything exported or
+  passed around that no caller read.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- internal: **A TTS failure reaches the event log** — A non-OK `/api/tts`
+  response resolved `play()` exactly as the end of playback does, so a failure
+  was indistinguishable from a companion that didn't speak. `createTtsPlayer`
+  now takes an error sink; a barge-in, which is how a reply normally ends early,
+  stays silent.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
+- internal: **Extraction walks only the entries still being written** — The zip
+  extractor kept every entry it had opened in one list and marked the finished
+  ones, so each chunk of the stream rescanned the whole pack's worth of closed
+  entries. Finished entries now leave the set, which also drops the nullable
+  writer and the two null checks that went with it.
+  ([#26](https://github.com/autogoon/autogoon/pull/26))
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss
