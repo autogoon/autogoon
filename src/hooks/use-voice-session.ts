@@ -340,9 +340,13 @@ export function useVoiceSession(opts: {
 
   const clearThread = useCallback((): void => {
     // A full reset also tears down any live turn, so an in-flight reply can't
-    // commit an assistant turn back into the just-cleared thread (mirrors stop()).
+    // commit an assistant turn back into the just-cleared thread (mirrors
+    // stop()). An already-armed ambient poke would do the same a moment later,
+    // so it goes too; nothing re-arms until a turn ends, which needs you to
+    // speak first.
     turnRef.current?.abort();
     turnRef.current = null;
+    ambientRef.current?.cancel();
     threadRef.current = [];
     setStatus((s) => ({ ...s, thread: [] }));
     try {

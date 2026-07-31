@@ -23,6 +23,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **Clearing the conversation stays cleared** — A companion with a pause
+  already timed would break it seconds after you cleared the conversation,
+  putting a line back into the thread you had just emptied. Clearing now takes
+  the pending one with it; they wait until you speak.
+
 - bug: **The Stroke controls come back after a jump** — Skipping forward, or
   turning a knob, while the program was holding a stroke valve open left the
   valve open and the Stroke buttons and their words dead for the rest of the
