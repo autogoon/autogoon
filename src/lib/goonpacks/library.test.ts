@@ -43,11 +43,19 @@ function source(trees: Record<string, Record<string, string>>): LibrarySource {
 const sidecar = (caption: string, description: string) =>
   `---\ncaption: "${caption}"\n---\n\n${description}\n`;
 
-const completePack = (id: string) => ({
+const completePack = (id: string, companion: object = {}) => ({
   'manifest.json': manifest({
     id,
     mediaSummary: 'A still and a video.',
-    companion: { name: 'Testy', description: 'a test companion', voiceId: 'v' },
+    companion: {
+      name: 'Testy',
+      description: 'a test companion',
+      voiceId: 'v',
+      // Clocks are not what these tests pin, and a complete pack on real time
+      // needs a zone (parsePack).
+      usesRealTime: false,
+      ...companion,
+    },
   }),
   'system-prompt.md': 'You are Testy.',
   'media/a.jpg': '',
@@ -56,12 +64,12 @@ const completePack = (id: string) => ({
   'media/b.md': sidecar('a video', 'a video, described at length'),
 });
 
-const overlayPack = (id: string, base: string) => ({
+const overlayPack = (id: string, base: string, companion: object = {}) => ({
   'manifest.json': manifest({
     id,
     base,
     mediaSummary: 'A still and a video.',
-    companion: { voiceId: 'v2' },
+    companion: { voiceId: 'v2', ...companion },
   }),
   'media/a.jpg': '',
   'media/a.md': sidecar('a still', 'a still, described at length'),

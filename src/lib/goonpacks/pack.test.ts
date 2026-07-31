@@ -16,6 +16,9 @@ const complete = (extra: object = {}) =>
       name: 'Testy',
       description: 'a test companion',
       voiceId: 'v123',
+      // Clocks are not what these cases pin, and a complete pack on real time
+      // needs a zone (parsePack).
+      usesRealTime: false,
     },
     ...extra,
   });
@@ -306,7 +309,11 @@ describe('parsePack', () => {
     const problems = await parsePack(
       tree({
         'manifest.json': manifest({
-          companion: { description: 'a test companion', voiceId: 'v' },
+          companion: {
+            description: 'a test companion',
+            voiceId: 'v',
+            usesRealTime: false,
+          },
         }),
         'system-prompt.md': 'x',
       }),
@@ -320,7 +327,7 @@ describe('parsePack', () => {
     const problems = await parsePack(
       tree({
         'manifest.json': manifest({
-          companion: { name: 'Testy', voiceId: 'v' },
+          companion: { name: 'Testy', voiceId: 'v', usesRealTime: false },
         }),
         'system-prompt.md': 'x',
       }),
@@ -328,6 +335,40 @@ describe('parsePack', () => {
     expect(problems).toEqual([
       'A complete pack needs a description field in the companion section of manifest.json.',
     ]);
+  });
+
+  it('rejects a complete pack on real time with no timezone', async () => {
+    await expect(
+      parsePack(
+        tree({
+          'manifest.json': manifest({
+            companion: {
+              name: 'Testy',
+              description: 'a test companion',
+              voiceId: 'v',
+            },
+          }),
+          'system-prompt.md': 'x',
+        }),
+      ),
+    ).rejects.toThrow(/needs a timezone field/);
+  });
+
+  it('accepts a complete pack with no timezone when usesRealTime is false', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          companion: {
+            name: 'Testy',
+            description: 'a test companion',
+            voiceId: 'v',
+            usesRealTime: false,
+          },
+        }),
+        'system-prompt.md': 'x',
+      }),
+    );
+    expect(pack.manifest.companion.usesRealTime).toBe(false);
   });
 
   it('names the wrapper folder when the folder was zipped instead of its contents', async () => {
@@ -374,6 +415,7 @@ describe('parsePack', () => {
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
       'A complete pack needs a description field in the companion section of manifest.json.',
+      'A complete pack needs a timezone field in the companion section of manifest.json, or usesRealTime: false if the persona sets its own time of day.',
     ]);
   });
 
