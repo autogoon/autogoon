@@ -11,8 +11,53 @@
 import { useEffect, useRef } from 'react';
 import { useKeywordSpotter } from '@/components/keyword-spotter';
 
+// Every word a Command may claim — the page's navigation words plus each
+// panel's transport and knob words. `word` is typed as this union, so a panel
+// declaring a word that isn't here fails to compile, and page.tsx reserves the
+// whole list against the safe word: one utterance must never mean two things.
+export const ROUTED_WORDS = [
+  'connect',
+  'exit',
+  'home',
+  'settings',
+  'changes',
+  'packs',
+  'start',
+  'stop',
+  'reset',
+  'play',
+  'finish',
+  'cumming',
+  'more',
+  'less',
+  'faster',
+  'slower',
+  'forward',
+  'back',
+  'shorter',
+  'longer',
+  'up',
+  'down',
+  'gentle',
+  'moderate',
+  'intense',
+  'off',
+  'light',
+  'heavy',
+  'hillier',
+  'flatter',
+  'low',
+  'medium',
+  'high',
+  'torture',
+  'stay',
+  'eject',
+] as const;
+
+export type RoutedWord = (typeof ROUTED_WORDS)[number];
+
 export interface Command {
-  word: string;
+  word: RoutedWord;
   enabled: boolean;
   run: () => void | Promise<void>;
 }

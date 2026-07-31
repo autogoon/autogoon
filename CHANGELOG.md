@@ -19,6 +19,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **The safe word can't be a word the app already uses** — Settings
+  accepted `up`, `off`, `finish`, `torture` and most of the play modes' own
+  spoken words as a safe word, so saying it halted the session and worked that
+  control as well. Every word the app routes is now refused.
+
 - bug: **Resetting mid-session stops the toy** — Resetting a Companions session
   while it was playing replaced the program but left the toy running, and
   neither Stop nor the safe word could reach it. Replacing a program now stops
