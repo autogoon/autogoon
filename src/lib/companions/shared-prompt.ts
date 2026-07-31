@@ -88,8 +88,8 @@ ${summary}
   because you know how much he loves it, so lean into that when you do.`;
 
 // What the device is, how it's driven, and that TOY STATUS is ground truth. The
-// clock is TIME_SECTION's, not this one's: a companion with no device is sent a
-// TIME line and no toy at all. Persona-neutral in tone, not in authority: it
+// clock is the clock sections', not this one's: a companion with no device is
+// sent a TIME line and no toy at all. Persona-neutral in tone, not in authority: it
 // settles toy control identically for every companion — never started without
 // his say-so, theirs to steer once it is running — so a persona written against
 // it only hands the model two contradictory instructions. Who leads the
@@ -193,30 +193,58 @@ CONTROL:
   speaks. Use it rather than trailing off: without it you'll be given another
   quiet beat, and talking into an empty room is worse than letting one sit.`;
 
-// How to read the TIME line, and the gap markers a break in the conversation
-// leaves behind. Deliberately not a {{token}} and not part of CONTROL_SECTION:
-// time is a fact about the session, not about the toy, so a companion with no
-// device — or a pack whose author never placed a token for it — still has to be
-// told. prompt.ts appends it to every prompt it assembles, which is the only
-// arrangement no one can opt out of.
-export const TIME_SECTION = `TIME:
-- Time on this call is real: the TIME line you are given is the actual date and
-  time right now WHERE HE IS, refreshed every turn — trust it over any time of
-  day your setup assumes.
+// The clock rules, one block per line the companion may be sent, so a
+// companion who is not given a line is never told how to read it. Deliberately
+// not {{token}}s: a pack author who never heard of them would leave their
+// companion unable to read a line they are still sent. prompt.ts appends
+// whichever apply.
+export const USER_CLOCK_SECTION = `HIS TIME:
+- THEIR TIME is the real date and time right now where HE is, refreshed every
+  turn. Trust it over any time of day your setup assumes.`;
+
+export const COMPANION_CLOCK_SECTION = `YOUR TIME:
+- MY TIME is the real date and time right now where YOU are, refreshed every
+  turn. It is yours, not his: he may be hours ahead of you or behind you.
+- Let it show. What time it is where you are belongs in what you say — being
+  tired, having just eaten, the light going — the way it would for anyone.`;
+
+// A break in the conversation, which is about neither clock, so it is sent to
+// every companion whatever they are told about time.
+export const CONVERSATION_GAPS_SECTION = `GAPS:
 - A note like "(3 hours pass.)" in the conversation means he really went away
   for that long and just came back — react like someone who noticed the break,
   don't carry on as if mid-sentence.`;
 
-// The two values that change every turn, as their own system message at the end
-// of a request rather than inside the persona prompt. Prompt caching matches a
+// The values that change every turn, as their own system message at the end of
+// a request rather than inside the persona prompt. Prompt caching matches a
 // prefix of tokens: with these inside the persona prompt, a request would
 // diverge from the last one within a few hundred tokens of its start, so
 // nothing after them — including the whole conversation — could be reused.
 // Last means everything before is byte-identical turn to turn.
 //
-// TIME_SECTION and CONTROL_SECTION talk about "the TIME line" and "the TOY
-// STATUS line", so renaming a label here leaves those sections pointing at a
-// line the companion is never sent.
-export const liveStateMessage = (now: string, toyStatus: string): string =>
-  `TIME (his local time, right now): ${now}
-TOY STATUS (trust this over everything else): ${toyStatus}`;
+// An object rather than positional strings, which could be transposed without
+// a type error. An absent member states a fact about the companion — no clock
+// of their own, or not told the user's — so nothing is substituted for it.
+//
+// Ownership is in the label, not after it: a companion sent a single line read
+// it as their own. MY TIME leads for the same reason. USER_CLOCK_SECTION and
+// COMPANION_CLOCK_SECTION name these labels, so renaming one here leaves a
+// section describing a line the companion is never sent.
+export const liveStateMessage = ({
+  userNow,
+  companionNow,
+  toyStatus,
+}: {
+  userNow?: string;
+  companionNow?: string;
+  toyStatus: string;
+}): string =>
+  [
+    companionNow === undefined
+      ? undefined
+      : `MY TIME (right now): ${companionNow}`,
+    userNow === undefined ? undefined : `THEIR TIME (right now): ${userNow}`,
+    `TOY STATUS (trust this over everything else): ${toyStatus}`,
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join('\n');

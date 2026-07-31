@@ -2,14 +2,15 @@ import { describe, expect, it } from '@jest/globals';
 import {
   CONTROL_SECTION,
   OUTPUT_FORMAT_SECTION,
-  TIME_SECTION,
+  USER_CLOCK_SECTION,
+  CONVERSATION_GAPS_SECTION,
   mediaSection,
 } from '@/lib/companions/shared-prompt';
 import { fillSharedSections } from './prompt';
 
-// Every assembled prompt ends with the time rules, so each expectation
-// carries them too.
-const TAIL = `\n\n${TIME_SECTION}`;
+// Every assembled prompt ends with the clock rules that apply to it, so each
+// expectation carries them too.
+const TAIL = `\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_GAPS_SECTION}`;
 
 describe('fillSharedSections', () => {
   it('substitutes shared sections by export name', () => {
@@ -68,6 +69,6 @@ describe('fillSharedSections', () => {
   it('appends the time rules even when the toy section is left out', () => {
     const out = fillSharedSections('{{OUTPUT_FORMAT_SECTION}}', {});
     expect(out).not.toContain(CONTROL_SECTION);
-    expect(out).toContain(TIME_SECTION);
+    expect(out).toContain(USER_CLOCK_SECTION);
   });
 });

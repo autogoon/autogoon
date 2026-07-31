@@ -6,7 +6,8 @@ import {
   CONTROL_SUMMARY_SECTION,
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
-  TIME_SECTION,
+  USER_CLOCK_SECTION,
+  CONVERSATION_GAPS_SECTION,
   mediaSection,
 } from '@/lib/companions/shared-prompt';
 
@@ -42,5 +43,5 @@ export function fillSharedSections(
   // out — by a pack author who never heard of it, or by one with no device that
   // places no {{CONTROL_SECTION}}. Called once per companion (resolve.ts), so
   // it lands once.
-  return `${filled}\n\n${TIME_SECTION}`;
+  return `${filled}\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_GAPS_SECTION}`;
 }

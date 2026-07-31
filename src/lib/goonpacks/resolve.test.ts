@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { TIME_SECTION, mediaSection } from '@/lib/companions/shared-prompt';
+import {
+  USER_CLOCK_SECTION,
+  CONVERSATION_GAPS_SECTION,
+  mediaSection,
+} from '@/lib/companions/shared-prompt';
 import {
   DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
@@ -62,10 +66,13 @@ const still = (src: string): CompanionMedia => ({
   forget: () => {},
 });
 
-// fillSharedSections appends the time rules to every prompt it assembles; that
-// append is prompt.test.ts's to pin, and only noise in these media cases.
+// fillSharedSections appends the clock rules to every prompt it assembles;
+// that append is prompt.test.ts's to pin, and only noise in these media cases.
 const body = (prompt: string): string =>
-  prompt.replace(`\n\n${TIME_SECTION}`, '');
+  prompt.replace(
+    `\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_GAPS_SECTION}`,
+    '',
+  );
 
 describe('applyOverlay', () => {
   it("keeps the base's id, not the overlay pack's own id", () => {

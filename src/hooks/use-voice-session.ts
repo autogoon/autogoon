@@ -208,10 +208,10 @@ const threadKeyFor = (companion: Companion): string =>
 // early on makes every token after it uncacheable.
 const liveState = (deviceState: string): LlmMessage => ({
   role: 'system',
-  content: liveStateMessage(
-    describeClock(Date.now(), browserTimeZone()),
-    deviceState === '' ? 'unknown' : deviceState,
-  ),
+  content: liveStateMessage({
+    userNow: describeClock(Date.now(), browserTimeZone()),
+    toyStatus: deviceState === '' ? 'unknown' : deviceState,
+  }),
 });
 
 export function useVoiceSession(opts: {
