@@ -165,4 +165,18 @@ describe('POST /api/llm/chat/completions', () => {
     expect(error).toContain('429');
     expect(error).toContain('rate limited');
   });
+
+  it('withholds the upstream body on an auth failure, so a key quoted in it never reaches the client', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('{"error":"Incorrect API key provided: sk-or-test"}', {
+        status: 401,
+      }),
+    );
+    const { POST } = await import('./route');
+    const res = await POST(req({ messages: [], stream: true }));
+    expect(res.status).toBe(502);
+    const { error } = (await res.json()) as { error: string };
+    expect(error).toContain('401');
+    expect(error).not.toContain('sk-or-test');
+  });
 });
