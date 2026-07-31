@@ -124,3 +124,14 @@ and fast strokes short ones.
   to full speed, leaving your other settings as you had them. The original ends
   the script there. The 30-minute hold is this app's, since it lays out a
   program ahead of time rather than driving the device from a live timer.
+
+## Voice control
+
+On top of the transport words every play mode has (see [MODES.md](../MODES.md)):
+
+- `more` / `less` — step Intensity up/down.
+- `gentle` / `moderate` / `intense` — set Edge control.
+- `off` / `light` / `heavy` — set Vacuum maintenance.
+- `finish` — the run to full speed (see [Manual override](#manual-override)).
+- plus the shared stroke `up` / `down` words — lengthen (`up`) or shorten
+  (`down`) the stroke by hand.
