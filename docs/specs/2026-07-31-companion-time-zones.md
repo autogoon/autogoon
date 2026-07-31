@@ -12,9 +12,13 @@ not fix that: a model's offset arithmetic is unreliable across a DST transition.
 
 ## What ships
 
-An optional IANA `timezone` in a pack's `companion` section. Set, it adds a
-second TIME line carrying that companion's own local time beside the user's.
-Absent, nothing changes.
+Two optional fields in a pack's `companion` section.
+
+`timezone`, an IANA zone. Set, it adds a second TIME line carrying that
+companion's own local time beside the user's. Absent, nothing changes.
+
+`knowsUserTime`. Set to `false`, the user's TIME line is left out of that
+companion's prompt.
 
 ## Decisions
 
@@ -24,15 +28,35 @@ Not where they are from. A persona's home is stated in their prompt and stays
 there. An overlay that moves the companion sets its own `timezone`, and needs no
 other change.
 
-### Overlays may set it
+### Overlays may set both
 
-`name` and `gender` are the only fields an overlay may never change. `timezone`
-resolves like `description`: the overlay's value applies while that overlay is
-selected. A holiday pack requires this. Such a pack carries the same persona
-elsewhere, with its own prompt and its own media.
+`name` and `gender` are the only fields an overlay may never change. Both new
+fields resolve like `description`: the overlay's value applies while that
+overlay is selected. A holiday pack requires this of `timezone`. Such a pack
+carries the same persona elsewhere, with its own prompt and its own media.
 
-An overlay can set a zone but not clear one. Every overlay field resolves that
-way already (GOONPACKS.md → Overlays), so `timezone` needs no rule of its own.
+An overlay can set either field but clear neither. Every overlay field resolves
+that way already (GOONPACKS.md → Overlays), so neither needs a rule of its own.
+
+### A persona may fix its own time of day
+
+A persona prompt can assert a time of day, such as a scene that always happens
+late at night. Giving that companion a `timezone` puts a real clock in the same
+prompt as the fixed one, and the two contradict each other.
+
+Omitting the zone is how an author says the persona's own time is fictional.
+That is why `timezone` is optional rather than required.
+
+### A companion may be given no user clock
+
+A persona who has never met the user has no reason to know what time it is where
+they are. `knowsUserTime: false` keeps the user's TIME line out of that
+companion's prompt.
+
+The field is independent of `timezone`. Either may be set without the other, and
+a companion with neither is given no clock at all. Nothing rejects that
+combination: a persona whose prompt fixes a time of day supplies its own, and
+whether that is what the author wrote is not something the manifest can tell.
 
 ### The second line does not name the place
 
@@ -57,27 +81,37 @@ stays `timezone`, because it sits inside `companion`.
 
 ## The app's own companions
 
-Every companion in the app's own directories gets a zone: the built-ins in
-`src/lib/companions/`, and every pack source under `goonpacks/`. Each value is
-what that persona's prompt already states about where they live. The values sit
-at their definition sites.
+Every companion in the app's own directories is settled here: the built-ins in
+`src/lib/companions/`, and every pack source under `goonpacks/`. A companion
+takes a zone when their prompt states where they live and does not fix a time of
+day, and the value is what that prompt already says. The values sit at their
+definition sites.
 
-A persona that states no place gets no zone.
+Between them they demonstrate all three states, which is why no new companion is
+written for this:
+
+- a zone set, on a built-in placed far enough from the user that the two TIME
+  lines visibly differ;
+- no zone, on the pack whose persona is built around a fixed late-night scene;
+- `knowsUserTime: false`, on that same pack, whose persona talks to someone
+  whose whereabouts they would have no way of knowing.
 
 ## The data path
 
 `CompanionConfig` and `COMPANION_FIELDS` (`src/lib/goonpacks/manifest.ts`) gain
-`timezone`. `parseManifest` validates it by constructing an
-`Intl.DateTimeFormat` for the zone and collecting a problem when that throws,
-which accepts exactly the zones the renderer accepts on that runtime. A regex
-accepts zones the renderer rejects; `Intl.supportedValuesOf('timeZone')` omits
-aliases the renderer accepts. An empty string is already refused for every
+`timezone` and `knowsUserTime`. `parseManifest` validates the zone by
+constructing an `Intl.DateTimeFormat` for it and collecting a problem when that
+throws, which accepts exactly the zones the renderer accepts on that runtime. A
+regex accepts zones the renderer rejects; `Intl.supportedValuesOf('timeZone')`
+omits aliases the renderer accepts. `knowsUserTime` is checked for being a
+boolean, like `passesReasoning`. An empty string is already refused for every
 manifest field.
 
 `Companion` (`src/lib/companions/companions.ts`) gains an optional `timezone`,
 and its absence is what suppresses the second line. `packToCompanionRaw` leaves
 it absent rather than defaulting, as it does for `media` and `mediaSummary`.
-`applyOverlay` resolves it against the base like every other field it resolves.
+`knowsUserTime` defaults to `true` there, like every other flag. `applyOverlay`
+resolves both against the base like every other field it resolves.
 
 ## The prompt path
 
@@ -91,16 +125,17 @@ existing arithmetic renders as `12 pm`. A `browserTimeZone()` beside it wraps
 
 `liveStateMessage` takes an object of `userNow`, `companionNow` and `toyStatus`
 rather than three positional strings, which can be transposed without a type
-error. `companionNow` is the optional member. Absent, one TIME line is emitted.
-Present, it adds the second, above TOY STATUS.
+error. `userNow` and `companionNow` are both optional, and each emits its TIME
+line when present. A companion with neither gets no TIME line, and TOY STATUS
+alone.
 
 `TIME_SECTION` remains a constant appended to every prompt. Its first bullet
-refers to "the TIME line you are given", which a located companion receives two
-of, so it is amended to name the one it means. A second block, appended by
-`fillSharedSections` only when `companionTimeZone` is present, explains the
-second line and carries the rule the TODO entry asks for: their clock shows up
-in what they say. `fillSharedSections` runs once per companion in `resolve.ts`,
-so nothing volatile enters the persona prompt.
+refers to "the TIME line you are given", which is wrong for a companion sent two
+and for one sent none, so it is amended to describe whichever lines arrive. A
+second block, appended by `fillSharedSections` when the companion has a zone,
+explains the second line and carries the rule the TODO entry asks for: their
+clock shows up in what they say. `fillSharedSections` runs once per companion in
+`resolve.ts`, so nothing volatile enters the persona prompt.
 
 ## Tests
 
@@ -108,15 +143,24 @@ so nothing volatile enters the persona prompt.
   which also makes them independent of the machine's own zone; a pair either
   side of a DST transition; one instant rendered in two zones.
 - `parseManifest` — a valid zone, an invalid one reported by name, a zone on an
-  overlay.
+  overlay, and a non-boolean `knowsUserTime` reported.
 - `applyOverlay` — an overlay's zone wins; a base's survives an overlay that
-  sets none.
-- `liveStateMessage` — one TIME line without `companionNow`, two with it.
+  sets none; `knowsUserTime` resolves the same way.
+- `liveStateMessage` — each of the four combinations of the two optional
+  members, including the one that emits no TIME line at all.
 - `fillSharedSections` — the second block present only when `companionTimeZone`
   is.
-- Each built-in — its zone constructs a formatter. A pack's zone needs no test:
-  `parseManifest` refuses an invalid one, and `npm run goonpack:build` runs that
-  check over every pack source.
+- Each built-in that carries a zone — it constructs a formatter. A pack's zone
+  needs no test: `parseManifest` refuses an invalid one, and
+  `npm run goonpack:build` runs that check over every pack source.
+
+## Documentation
+
+GOONPACKS.md gains both fields. Beyond describing them it has one thing to
+explain: a persona may fix its own time of day, and omitting `timezone` is how
+an author says so. The committed example pack is the case to point at, and its
+system prompt can be linked on GitHub — that doc is written for pack authors,
+who read prompts.
 
 ## Out of scope
 
