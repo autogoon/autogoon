@@ -170,12 +170,6 @@ Send a provider (or endpoint tag, e.g. `xiaomi/fp8`) as OpenRouter's `provider`
 field, with fallbacks off so a pin that can't be served fails loudly. Show which
 provider served each turn: it comes back on every response.
 
-### Pass the LLM proxy's upstream error through
-
-`/api/llm` turns every upstream failure into a 502 and discards upstream's own
-message, so a provider rejecting a request looks the same as a wrong key. Pass
-the status and body through.
-
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,
