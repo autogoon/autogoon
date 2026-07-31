@@ -5,7 +5,8 @@
 // Where the browser supports mp3 in Media Source Extensions we feed chunks into
 // a SourceBuffer for progressive playback; otherwise we buffer the whole
 // (short, fixed) reply into a Blob URL, which still stops instantly on pause().
-// Integration code — no unit test (needs real audio playback).
+// Integration code: playback itself needs a real element and is exercised in
+// tests/e2e; tts.test.ts covers only what a faked transport can reach.
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
 
 export type TtsPlayer = {
@@ -57,7 +58,13 @@ function appendChunk(sb: SourceBuffer, chunk: Uint8Array): Promise<void> {
   });
 }
 
-export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
+export function createTtsPlayer(
+  audioEl: HTMLAudioElement,
+  // Called when playback fails for a reason that isn't a barge-in. Nothing acts
+  // on it; it exists so a paid dependency failing doesn't read as a companion
+  // that chose not to speak.
+  onError: (message: string) => void,
+): TtsPlayer {
   // Teardown for the in-flight playback, if any: cancels the reader, revokes
   // the object URL, removes listeners, and resolves the pending play()
   // promise. Cleared once run so stop() is idempotent.
@@ -91,14 +98,14 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
       let done = false;
 
       const onEnded = (): void => stop();
-      const onError = (): void => stop();
+      const onElementError = (): void => stop();
       const onAbort = (): void => stop();
 
       cleanup = (): void => {
         if (done) return;
         done = true;
         audioEl.removeEventListener('ended', onEnded);
-        audioEl.removeEventListener('error', onError);
+        audioEl.removeEventListener('error', onElementError);
         signal.removeEventListener('abort', onAbort);
         reader?.cancel().catch(() => {});
         reader = null;
@@ -110,7 +117,7 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
       };
 
       audioEl.addEventListener('ended', onEnded);
-      audioEl.addEventListener('error', onError);
+      audioEl.addEventListener('error', onElementError);
       signal.addEventListener('abort', onAbort);
 
       void (async (): Promise<void> => {
@@ -126,6 +133,11 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
           });
           if (done) return;
           if (!res.ok || res.body === null) {
+            // Resolving play() here is the same signal as playback ending, so
+            // without this the turn just carries on as if the reply was spoken.
+            onError(
+              `TTS ${res.status}${res.body === null ? ' (no body)' : ''}`,
+            );
             stop();
             return;
           }
@@ -169,9 +181,14 @@ export function createTtsPlayer(audioEl: HTMLAudioElement): TtsPlayer {
             audioEl.src = objectUrl;
             void audioEl.play().catch(() => {});
           }
-        } catch {
-          // Aborted fetch/read, decode failure, or MediaSource error: settle
-          // the promise and leave the element reset.
+        } catch (err) {
+          // A barge-in aborts the fetch or the read — the normal way a reply
+          // ends early, so it says nothing. A decode or MediaSource failure is
+          // a real fault and would otherwise be indistinguishable from silence.
+          // Either way, settle the promise and leave the element reset.
+          if (!signal.aborted) {
+            onError(`TTS ${err instanceof Error ? err.message : String(err)}`);
+          }
           if (!done) stop();
         }
       })();

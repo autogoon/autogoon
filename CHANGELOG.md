@@ -67,6 +67,12 @@
   sidecar for it, which the build then rejected because the pack format carries
   neither. It now refuses the file instead.
 
+- internal: **A TTS failure reaches the event log** — A non-OK `/api/tts`
+  response resolved `play()` exactly as the end of playback does, so a failure
+  was indistinguishable from a companion that didn't speak. `createTtsPlayer`
+  now takes an error sink; a barge-in, which is how a reply normally ends early,
+  stays silent.
+
 - internal: **Extraction walks only the entries still being written** — The zip
   extractor kept every entry it had opened in one list and marked the finished
   ones, so each chunk of the stream rescanned the whole pack's worth of closed

@@ -385,7 +385,9 @@ export function useVoiceSession(opts: {
   } | null => {
     const audioEl = audioRef.current;
     if (audioEl === null) return null;
-    ttsRef.current ??= createTtsPlayer(audioEl);
+    ttsRef.current ??= createTtsPlayer(audioEl, (message) => {
+      onLogRef.current?.(message, 'error');
+    });
     // The LLM client is bound to a model; rebuild it if the companion (hence
     // the model) has changed since it was made. The TTS player is model-free
     // (the voice id is passed per utterance), so it's reused as-is.
