@@ -18,7 +18,8 @@ Two optional fields in a pack's `companion` section.
 companion's own local time beside the user's. Absent, nothing changes.
 
 `knowsUserTime`. Set to `false`, the user's TIME line is left out of that
-companion's prompt.
+companion's prompt. If missing or `true`, the companion sees the user's time as
+before.
 
 ## Decisions
 
@@ -156,11 +157,29 @@ clock shows up in what they say. `fillSharedSections` runs once per companion in
 
 ## Documentation
 
-GOONPACKS.md gains both fields. Beyond describing them it has one thing to
-explain: a persona may fix its own time of day, and omitting `timezone` is how
-an author says so. The committed example pack is the case to point at, and its
-system prompt can be linked on GitHub — that doc is written for pack authors,
-who read prompts.
+This spec is deleted once the work lands, so every reason it records has to
+exist somewhere permanent first. They divide by audience.
+
+GOONPACKS.md carries what a pack author decides:
+
+- what each field does, and that both are optional;
+- that a zone is where the companion is now, not where they are from, so an
+  overlay that moves them sets its own;
+- that a persona may fix its own time of day, and that omitting `timezone` is
+  how an author says so. The committed example pack is the case, and its system
+  prompt is linked on GitHub: that doc is written for people who read prompts;
+- that the second TIME line never names a place, leaving a persona's whereabouts
+  theirs to state or withhold;
+- what `knowsUserTime: false` is for, and that a companion may end up with
+  neither clock.
+
+Comments at the definition sites carry what a maintainer needs:
+
+- `describeClock` — why the zone argument is required rather than defaulted, and
+  why `hourCycle: 'h23'`;
+- `liveStateMessage` — why it takes an object, and what an absent member means;
+- `TIME_SECTION` and the block appended beside it — which lines each describes;
+- `Companion.timezone` — why it is absent rather than defaulted.
 
 ## Out of scope
 
