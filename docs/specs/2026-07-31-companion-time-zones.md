@@ -71,28 +71,31 @@ its own time talking to someone whose whereabouts they have no way of knowing.
 
 ### The second line does not name the place
 
-It reads `TIME (yours, right now)`. A companion's whereabouts belong to the
-persona prompt, which may state them or leave them out. A persona that withholds
-them still gets a correct clock. An IANA zone is not a location in any case: it
-is named for one city and covers a region.
+It reads `MY TIME (right now)`. A companion's whereabouts belong to the persona
+prompt, which may state them or leave them out. A persona that withholds them
+still gets a correct clock. An IANA zone is not a location in any case: it is
+named for one city and covers a region.
 
 ## The app's own companions
 
-Every companion in the app's own directories is settled here: the built-ins in
-`src/lib/companions/`, and every pack source under `goonpacks/`. A companion
-takes the zone their prompt already states, unless that prompt fixes a time of
-day, in which case they take `usesRealTime: false` instead. The values sit at
-their definition sites.
+Every companion in the app's own directories takes values here: the built-ins in
+`src/lib/companions/`, and every pack source under `goonpacks/`. Each one's
+values come from reading their persona, and the values sit at their definition
+sites. Between them they must demonstrate every state:
 
-Between them they demonstrate every state, which is why no new companion is
-written for this:
+- a companion on real time, placed far enough from the user that the two TIME
+  lines visibly differ;
+- a companion on a fixed time of day;
+- a companion given no user clock.
 
-- a zone on real time, on a built-in placed far enough from the user that the
-  two TIME lines visibly differ;
-- `usesRealTime: false`, on the pack whose persona is built around a fixed
-  late-night scene;
-- `knowsUserTime: false`, on that same pack, whose persona talks to someone
-  whose whereabouts they would have no way of knowing.
+Two things can go wrong, and both are settled before anything is played. A value
+can contradict the persona it is applied to, such as a real clock under a prompt
+that already says what time it is. Or the set can leave a state with no
+demonstrator. Where either happens a persona is amended rather than the state
+left uncovered: a prompt that fixes an hour for no reason can stop fixing it.
+
+A contradiction of that kind surfaces as a companion behaving oddly rather than
+as an error, so the pass is made deliberately and then repeated by hand.
 
 ## The data path
 
@@ -134,6 +137,15 @@ rather than three positional strings, which can be transposed without a type
 error. `userNow` and `companionNow` are both optional, and each emits its TIME
 line when present. A companion with neither gets no TIME line, and TOY STATUS
 alone.
+
+Ownership moves into the label, where it cannot be skipped:
+
+    MY TIME (right now): Saturday 1 August 2026, 4:11 pm
+    THEIR TIME (right now): Saturday 1 August 2026, 12:11 am
+    TOY STATUS (trust this over everything else): …
+
+`TIME_SECTION` and `CONTROL_SECTION` refer to these labels by name
+(`shared-prompt.ts:217`), so the rename lands in both in the same change.
 
 `TIME_SECTION` remains a constant appended to every prompt. Its first bullet
 refers to "the TIME line you are given", which is wrong for a companion sent two
