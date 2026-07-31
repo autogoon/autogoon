@@ -4,9 +4,9 @@
 // surface partial/committed transcripts. With commit_strategy=vad the server
 // VAD emits committed transcripts, so we never send commits ourselves — and
 // nothing here closes an idle socket, which is ElevenLabs' to end (see
-// ARCHITECTURE.md, Companions' voice subsystem). Integration code — no unit
-// test (the pure lifecycle decisions live in session-policy.ts and are tested
-// there).
+// ARCHITECTURE.md, Companions' voice subsystem). Integration code: the pure
+// lifecycle decisions live in session-policy.ts and are tested there, and
+// stt.test.ts covers only what needs a faked transport to reach.
 import { pcm16ToBase64 } from './audio-encoding';
 import { type SttPhase, shouldOpenSocket } from './session-policy';
 import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
@@ -15,8 +15,9 @@ export type SttEvents = {
   onPartial: (text: string) => void;
   onCommitted: (text: string) => void;
   onPhase: (phase: SttPhase) => void;
-  // An error message from the server, verbatim. Nothing acts on these — they
-  // exist so a socket that drops or throttles says why in the event log
+  // An error message from the STT path, verbatim — one from the server, or a
+  // connect that never reached a socket. Nothing acts on these — they exist so
+  // a session that drops, throttles or fails to start says why in the event log
   // instead of just going quiet.
   onServerError: (raw: string) => void;
   // How the socket ended. `local` separates our own close() from one the far
@@ -115,6 +116,7 @@ export function createStt(events: SttEvents): Stt {
     if (streaming) return;
     streaming = true;
     if (shouldOpenSocket(phase, true)) {
+      // open() reports its own failure through onServerError.
       void open(getPreRoll()).catch(() => {});
       return;
     }
@@ -140,7 +142,15 @@ export function createStt(events: SttEvents): Stt {
       if (!res.ok) throw new Error(`stt-token ${res.status}`);
       ({ token } = (await res.json()) as { token: string });
     } catch (err) {
+      // No socket was created, so no close event will clear the utterance
+      // gate. Clearing it here is what lets the next onset try again — left
+      // set, every later onset returns at `if (streaming)` and the session
+      // never hears anything again.
+      streaming = false;
       setPhase('closed');
+      events.onServerError(
+        `connect failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
       throw err;
     }
 

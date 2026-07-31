@@ -23,6 +23,12 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **A failed connection no longer costs the rest of the session** — If the
+  speech connection didn't come up — a blip on the network, or the service
+  refusing once — the companion stopped hearing anything until you stopped and
+  started again, and nothing said why. It now tries again on the next thing you
+  say, and the failure shows in the event log.
+
 - bug: **The safe word can't be a word the app already uses** — Settings
   accepted `up`, `off`, `finish`, `torture` and most of the play modes' own
   spoken words as a safe word, so saying it halted the session and worked that
