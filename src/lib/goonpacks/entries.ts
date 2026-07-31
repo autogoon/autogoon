@@ -82,7 +82,6 @@ export type PackOption = {
 };
 export type LibraryEntry = {
   companion: Companion;
-  builtIn: boolean;
   bases: PackOption[]; // newest first; a built-in has one key-null option
   overlays: PackOption[]; // newest first per overlay; none = no select
 };
@@ -148,7 +147,6 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       .map(overlayOption);
   const builtIns: LibraryEntry[] = companionList.map((c) => ({
     companion: c,
-    builtIn: true,
     bases: [
       {
         key: null,
@@ -176,7 +174,6 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
       // The card's identity (name, fallbacks) comes from the newest version;
       // the selects override per pick.
       companion: packToCompanion({ manifest: newest.manifest, media: [] }),
-      builtIn: false,
       bases: versions.map(baseOption),
       overlays: overlaysFor(p.manifest.id),
     });

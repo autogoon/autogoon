@@ -16,13 +16,6 @@ import { Player } from '@/lib/player';
 
 const TOKEN_STORAGE_KEY = 'vacuglideToken';
 
-// The saved device token, read straight from storage — lets the app decide at
-// startup whether to route to Settings (no token) before the hook mounts.
-export function getStoredToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
-}
-
 export type LogKind = 'send' | 'error' | 'info' | 'hit';
 
 export interface CommandLogEntry {
@@ -49,7 +42,6 @@ export function useVacuglideDevice() {
   const [deviceSpeed, setDeviceSpeed] = useState(0);
   const [strokePlusValve, setStrokePlusValve] = useState(false);
   const [strokeMinusValve, setStrokeMinusValve] = useState(false);
-  const [operationalMode, setOperationalMode] = useState('');
   const [logEntries, setLogEntries] = useState<CommandLogEntry[]>([]);
   const [rateLimit, setRateLimit] = useState<RateLimitStatus>({
     used: 0,
@@ -133,7 +125,6 @@ export function useVacuglideDevice() {
           setDeviceSpeed(state.targetSpeed);
           setStrokePlusValve(state.strokePlusValve);
           setStrokeMinusValve(state.strokeMinusValve);
-          setOperationalMode(state.operationalMode);
         });
         deviceRef.current = device;
         localStorage.setItem(TOKEN_STORAGE_KEY, trimmed);
@@ -153,7 +144,6 @@ export function useVacuglideDevice() {
         setDeviceSpeed(0);
         setStrokePlusValve(false);
         setStrokeMinusValve(false);
-        setOperationalMode('');
         setDeviceStatus((err as Error).message);
         setDeviceStatusKind('error');
         return false;
@@ -243,7 +233,6 @@ export function useVacuglideDevice() {
     deviceSpeed,
     strokePlusValve,
     strokeMinusValve,
-    operationalMode,
     valvePlus,
     valveMinus,
     log,

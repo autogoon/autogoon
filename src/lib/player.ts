@@ -129,7 +129,7 @@ export class Player {
   }
 
   // Set the active source and reset the timeline for a fresh session.
-  setSource(source: PlayModeEngine | null): void {
+  private setSource(source: PlayModeEngine | null): void {
     this.source = source;
     this.clock = 0;
     this.rate = 1;
@@ -463,16 +463,12 @@ export class Player {
   // now. inMs = 0 lands it at the current clock so the next tick fires it.
   // No-op while not playing (nothing is ticking) — the caller should drive the
   // device directly in that case.
-  insertEvent(
-    event: Omit<SpeedEvent, 'at'> | Omit<ValveEvent, 'at'>,
-    inMs = 0,
-  ): void {
+  insertEvent(event: Omit<ValveEvent, 'at'>, inMs = 0): void {
     if (!this.isPlaying) return;
     const at = this.clock + inMs * this.rate;
-    const ev = { ...event, at } as ProgramEvent;
     // Inserted valve events are manual by definition — the tag is what lets
     // scheduled (engine-generated) strokes take precedence over them.
-    if (ev.kind === 'valve') ev.manual = true;
+    const ev: ValveEvent = { ...event, at, manual: true };
     let i = this.cursor;
     while (i < this.events.length && this.events[i]!.at < at) i++;
     this.events.splice(i, 0, ev);

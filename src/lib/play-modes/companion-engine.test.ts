@@ -151,9 +151,9 @@ describe('CompanionEngine.scale', () => {
   it('scales raw speed by the live speed percent', () => {
     const engine = new CompanionEngine(50, 'medium', 'medium');
     const event: SpeedEvent = { kind: 'speed', at: 0, speed: 60 };
-    expect(engine.scale(event, CTX)).toBe(30);
+    expect(engine.scale(event)).toBe(30);
     engine.setSpeedPercent(100);
-    expect(engine.scale(event, CTX)).toBe(60);
+    expect(engine.scale(event)).toBe(60);
   });
 
   it('passes unscaled events through untouched', () => {
@@ -164,6 +164,6 @@ describe('CompanionEngine.scale', () => {
       speed: 25,
       unscaled: true,
     };
-    expect(engine.scale(event, CTX)).toBe(25);
+    expect(engine.scale(event)).toBe(25);
   });
 });

@@ -30,7 +30,7 @@ const markerName = (key: string): string => `${key}${MARKER_SUFFIX}`;
 const NO_STORAGE =
   "This browser can't store packs — private browsing and restricted storage settings are the usual cause.";
 
-export async function packsRoot(
+async function packsRoot(
   create = false,
 ): Promise<FileSystemDirectoryHandle | null> {
   try {

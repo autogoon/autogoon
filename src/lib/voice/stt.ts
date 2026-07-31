@@ -45,7 +45,6 @@ export type Stt = {
   // them from their end with a clean 1000, so the only close we make is this
   // deliberate one, when the voice session itself stops.
   close: () => void;
-  phase: () => SttPhase;
   framesSent: () => number;
 };
 
@@ -261,7 +260,6 @@ export function createStt(events: SttEvents): Stt {
     beginUtterance,
     sendFrame,
     close,
-    phase: () => phase,
     framesSent: () => sent,
   };
 }

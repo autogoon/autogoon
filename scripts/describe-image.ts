@@ -227,12 +227,12 @@ export function sidecarPath(imagePath: string): string {
 export async function describeImage(
   imagePath: string,
   {
-    onStep = () => {},
-    onImage = () => {},
+    onStep,
+    onImage,
   }: {
-    onStep?: (step: string) => void;
-    onImage?: (base64: string) => void;
-  } = {},
+    onStep: (step: string) => void;
+    onImage: (base64: string) => void;
+  },
 ): Promise<Sidecar> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {

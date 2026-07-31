@@ -6,8 +6,8 @@
 // script plays.
 //
 // Colour encodes speed, not identity: a vertical green -> yellow -> red gradient
-// mapped to the absolute 0..max axis (green = idle, red = full), so the same
-// speed is always the same colour regardless of the pattern's range.
+// mapped to the absolute 0..SPEED_MAX axis (green = idle, red = full), so the
+// same speed is always the same colour regardless of the pattern's range.
 
 import { useId } from 'react';
 import type { CurvePoint, ValveMarker } from '@/lib/program';
@@ -21,6 +21,9 @@ const VIEW_W = 100;
 // Units are viewBox units; at the rendered height (~0.64px/unit) the gap is ~1px
 // and the lane ~2px. stroke − is red, stroke + green.
 const SPEED_H = 100;
+// The top of the speed axis, in device speed — the same for every play mode, so
+// a speed draws at one height and one colour throughout the app.
+const SPEED_MAX = 100;
 const VALVE_GAP = 2;
 const VALVE_LANE_H = 3;
 const VIEW_H = SPEED_H + VALVE_GAP + VALVE_LANE_H;
@@ -38,19 +41,15 @@ const SMOOTH_GAP_MS = 1500;
 export function Sparkline({
   points,
   valves = [],
-  max = 100,
-  className,
 }: {
   points: CurvePoint[];
   valves?: ValveMarker[];
-  max?: number;
-  className?: string;
 }) {
   const gradientId = useId();
   const domainT = points[points.length - 1]?.t || 1;
   const x = (t: number) => (t / domainT) * VIEW_W;
   const y = (speed: number) =>
-    SPEED_H - (Math.max(0, Math.min(max, speed)) / max) * SPEED_H;
+    SPEED_H - (Math.max(0, Math.min(SPEED_MAX, speed)) / SPEED_MAX) * SPEED_H;
 
   // Pair each valve's open → close into a drawable span. A dangling open (close
   // is beyond the window) runs to the window end; a close with no open in-window
@@ -99,12 +98,13 @@ export function Sparkline({
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="none"
-      className={`h-[67px] w-full ${className ?? ''}`}
+      className="h-[67px] w-full"
       aria-hidden="true"
     >
       <defs>
         {/* userSpaceOnUse so the stops map to the absolute speed axis (y=0 is
-            max/red, y=SPEED_H is 0/green), not the path's bounding box. */}
+            SPEED_MAX/red, y=SPEED_H is 0/green), not the path's bounding
+            box. */}
         <linearGradient
           id={gradientId}
           gradientUnits="userSpaceOnUse"

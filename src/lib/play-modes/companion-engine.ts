@@ -265,7 +265,7 @@ export class CompanionEngine implements PlayModeEngine {
     return [];
   }
 
-  scale(event: SpeedEvent, _ctx?: PlayerContext): number {
+  scale(event: SpeedEvent): number {
     if (event.unscaled === true) return event.speed;
     return scaleSpeed(event.speed, this.speedPercent);
   }

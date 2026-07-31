@@ -68,5 +68,3 @@ export function useStrokeControls(
 
   return { strokePulsing, canStroke, keywords };
 }
-
-export type StrokeControls = ReturnType<typeof useStrokeControls>;

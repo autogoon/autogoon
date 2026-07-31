@@ -99,6 +99,9 @@
   sidecar for it, which the build then rejected because the pack format carries
   neither. It now refuses the file instead.
 
+- internal: **Dead surface removed** — A sweep removed everything exported or
+  passed around that no caller read.
+
 - internal: **A TTS failure reaches the event log** — A non-OK `/api/tts`
   response resolved `play()` exactly as the end of playback does, so a failure
   was indistinguishable from a companion that didn't speak. `createTtsPlayer`

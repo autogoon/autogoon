@@ -24,13 +24,11 @@ export function LogCard({
   title,
   entries,
   header,
-  className,
 }: {
   title: string;
   entries: readonly LogEntry[];
   // Optional content pinned above the scrolling log (e.g. a rate-limit meter).
   header?: ReactNode;
-  className?: string;
 }) {
   const boxRef = useRef<HTMLDivElement | null>(null);
 
@@ -43,7 +41,7 @@ export function LogCard({
   if (process.env.NODE_ENV !== 'development') return null;
 
   return (
-    <Card title={title} className={className} bordered>
+    <Card title={title} bordered>
       {header}
       <div
         ref={boxRef}

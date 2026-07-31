@@ -178,7 +178,6 @@ describe('buildEntries', () => {
     const entries = buildEntries([]);
     expect(entries.map((e) => e.companion.id)).toEqual(BUILT_IN_IDS);
     for (const e of entries) {
-      expect(e.builtIn).toBe(true);
       expect(e.bases).toHaveLength(1);
       expect(e.bases[0]).toMatchObject({
         key: null,
@@ -205,7 +204,6 @@ describe('buildEntries', () => {
     const entries = buildEntries(packs);
     expect(entries).toHaveLength(BUILT_IN_IDS.length + 1);
     const entry = entries.find((e) => e.companion.id === 'pub.comp')!;
-    expect(entry.builtIn).toBe(false);
     expect(entry.bases.map((b) => b.key)).toEqual([
       'pub.comp@1.10.0',
       'pub.comp@1.0.0',
