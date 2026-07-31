@@ -76,20 +76,6 @@ persona prompt, which may state them or leave them out. A persona that withholds
 them still gets a correct clock. An IANA zone is not a location in any case: it
 is named for one city and covers a region.
 
-### A positional argument never defaults; a bag member may be absent
-
-`describeClock(at, timeZone)` requires both. A defaulted zone would leave the
-caller unable to tell which clock it received without reading the body.
-
-`fillSharedSections` and `liveStateMessage` take objects, and a member of one
-may be absent. An absent member is visible where the call is written, and it
-records a fact about the companion instead of substituting a value.
-
-A name carries its owner wherever the value leaves the object that identified
-it: `companionTimeZone`, `userNow`, `companionNow`. `describeClock`'s parameter
-stays `timeZone`, because its call sites supply the owner. The manifest field
-stays `timezone`, because it sits inside `companion`.
-
 ## The app's own companions
 
 Every companion in the app's own directories is settled here: the built-ins in
@@ -134,12 +120,13 @@ a discriminated union does not survive.
 
 ## The prompt path
 
-`describeClock` takes its parts from `Intl.DateTimeFormat.formatToParts` instead
-of the local-zone getters, and feeds the existing manual assembly unchanged.
-That assembly is manual so the string's shape cannot drift with the ICU version,
-and that reason still holds. `formatToParts` is asked for `hourCycle: 'h23'`:
-under some ICU versions `hour12: false` yields 24 for midnight, which the
-existing arithmetic renders as `12 pm`. A `browserTimeZone()` beside it wraps
+`describeClock(at, timeZone)` takes a required zone, and its parts from
+`Intl.DateTimeFormat.formatToParts` instead of the local-zone getters. The
+existing manual assembly is unchanged. That assembly is manual so the string's
+shape cannot drift with the ICU version, and that reason still holds.
+`formatToParts` is asked for `hourCycle: 'h23'`: under some ICU versions
+`hour12: false` yields 24 for midnight, which the existing arithmetic renders as
+`12 pm`. A `browserTimeZone()` beside it wraps
 `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 
 `liveStateMessage` takes an object of `userNow`, `companionNow` and `toyStatus`
