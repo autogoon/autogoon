@@ -23,6 +23,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **The changelog's tags are readable in light mode** — The `feature`,
+  `enhancement`, `bug` and `internal` tags took their lettering from the theme
+  while their fills stayed dark, so in the light theme each one was near-black
+  on a dark pill.
+
 - bug: **An overlay is coloured like the companion it plays as** — With more
   than one version of a base pack installed, an overlay's row on the Goonpacks
   screen took its colour from the oldest of them while the companion you played

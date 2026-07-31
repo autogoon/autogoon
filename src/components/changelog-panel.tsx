@@ -62,7 +62,7 @@ export function ChangelogPanel() {
                       // text-base: the pill keeps its own size against the
                       // title's larger type.
                       <span
-                        className={`text-foreground mr-2 rounded-full px-3 py-1 text-base font-semibold tracking-wide whitespace-nowrap ${TAG_CLASS[entry.tag]}`}
+                        className={`mr-2 rounded-full px-3 py-1 text-base font-semibold tracking-wide whitespace-nowrap text-white ${TAG_CLASS[entry.tag]}`}
                       >
                         {entry.tag}
                       </span>
