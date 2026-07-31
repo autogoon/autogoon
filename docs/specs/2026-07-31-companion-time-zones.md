@@ -95,16 +95,16 @@ defaulting. So it sets `timezone: c.timezone` with no `??`, and `applyOverlay`
 sets `timezone: c.timezone ?? base.timezone`, matching every other field it
 resolves.
 
-## The companions the repo ships
+## The app's own companions
 
-Every companion this repo ships gets a zone: both built-ins, and the complete
-pack that stands as the worked example for authors. Each one's value is whatever
-its own persona already says about where it lives, so the zone records what the
-prompt has always claimed rather than deciding anything new. The values belong
-at their definition sites and are not repeated here.
+Every companion in the app's own directories gets a zone — the built-ins in
+`src/lib/companions/`, and every pack source under `goonpacks/`. Each value is
+whatever that persona already says about where it lives, so the zone records
+what the prompt has always claimed rather than deciding anything new. The values
+belong at their definition sites and are not repeated here.
 
-A pack whose persona states no place gets no zone, and behaves exactly as it
-does today.
+A persona that states no place gets no zone, and behaves exactly as it does
+today.
 
 ## The prompt path
 
@@ -158,8 +158,10 @@ enters the persona prompt — the prefix stays reusable.
 - `liveStateMessage` — one TIME line without `companionNow`, two with it.
 - `fillSharedSections` — the second block present only when `companionTimeZone`
   is.
-- Every shipped companion — its zone constructs a formatter, so a typo in one is
-  caught where it is written rather than at the first turn that renders a clock.
+- Each built-in — its zone constructs a formatter, so a typo is caught where it
+  is written rather than at the first turn that renders a clock. A pack's zone
+  needs no test of its own: `parseManifest` already refuses an invalid one, and
+  `npm run goonpack:build` runs that check over every pack source it builds.
 
 ## Out of scope
 
