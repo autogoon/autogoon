@@ -8,18 +8,10 @@
 // source passes parsePack — the same checks importing runs — before it is
 // zipped, or the build fails. Only the app-level cross-pack checks, like "is
 // the base installed", can't run here.)
-import {
-  createReadStream,
-  createWriteStream,
-  readdirSync,
-  readFileSync,
-  statSync,
-  type Dirent,
-} from 'node:fs';
+import { readdirSync, readFileSync, statSync, type Dirent } from 'node:fs';
 import { join, dirname, basename, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { Zip, ZipDeflate } from 'fflate';
 import { countMedia, describeMedia } from '../src/lib/goonpacks/entries';
 import { PackError } from '../src/lib/goonpacks/manifest';
 import {
@@ -31,6 +23,7 @@ import {
 import { SIDECAR_EXT } from '../src/lib/goonpacks/sidecar';
 import { captionWarning } from './lib/goonpack-report';
 import { collectPackFiles } from './lib/goonpack-source';
+import { writeZip } from './lib/goonpack-zip';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
@@ -43,46 +36,6 @@ const red = (s: string): string =>
   process.stderr.isTTY ? `\x1b[31m${s}\x1b[0m` : s;
 const yellow = (s: string): string =>
   process.stderr.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
-
-// The pack streamed into its zip: one file open at a time, deflated as it is
-// read, so peak memory is a chunk rather than the pack. The reader pauses when
-// the output stream is full, and fflate's Zip is callback-based, hence the
-// promise around it.
-function writeZip(dir: string, names: string[], out: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const sink = createWriteStream(out);
-    sink.on('error', reject);
-    const zip = new Zip((err, chunk, final) => {
-      if (err !== null) return reject(err);
-      sink.write(chunk);
-      if (final) sink.end(() => resolve());
-    });
-    const next = (i: number): void => {
-      if (i === names.length) return zip.end();
-      const name = names[i]!;
-      // Deflated, like the `zip -r` an author would run. Stills and video
-      // barely shrink, but a pack's text does, and text is what a pack
-      // accumulates as more media is described.
-      const entry = new ZipDeflate(name, { level: 6 });
-      zip.add(entry);
-      const source = createReadStream(join(dir, name));
-      source.on('error', reject);
-      source.on('data', (chunk: string | Buffer) => {
-        // The stream is opened with no encoding, so every chunk is a Buffer.
-        entry.push(chunk as Buffer);
-        if (sink.writableNeedDrain) {
-          source.pause();
-          sink.once('drain', () => source.resume());
-        }
-      });
-      source.on('end', () => {
-        entry.push(new Uint8Array(0), true);
-        next(i + 1);
-      });
-    };
-    next(0);
-  });
-}
 
 // One pack source directory was named on the command line, rather than the
 // whole of goonpacks/. It also makes a named source with no manifest.json an
