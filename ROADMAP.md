@@ -36,6 +36,10 @@ index.
 - [Context compaction](roadmap/CONTEXT-COMPACTION.md) — a companion's thread
   only grows and is re-sent whole every turn, and a few dozen searches in it
   reach the browser's storage quota before the model's window.
+- [Theming](roadmap/THEMING.md) — the app has a light theme and a mostly
+  hard-coded palette, and nothing reconciles them. Either the palette moves onto
+  tokens or light mode goes; today a colour that fails in one theme is caught
+  only by eye.
 - [Freestyle](roadmap/FREESTYLE.md) — a mode with no program at all: the raw
   device controls (speed, stroke, valves), you drive.
 - [Rounds](roadmap/ROUNDS.md) — play-mode candidate: the only one to continue
