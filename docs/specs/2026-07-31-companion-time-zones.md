@@ -7,9 +7,9 @@ The implementation plan is separate.
 
 A companion is given the time where the user is, and nothing about the time
 where the companion is. A persona written as living elsewhere therefore has no
-basis for anything the companion says about the companion's own clock. Supplying
-an offset instead would not fix that: a model's offset arithmetic is unreliable
-across a DST transition.
+basis for anything said about that companion's own clock. Supplying an offset
+instead would not fix that: a model's offset arithmetic is unreliable across a
+DST transition.
 
 ## What ships
 
@@ -41,8 +41,7 @@ overlay is selected. A holiday pack requires this of `timezone`. Such a pack
 carries the same persona elsewhere, with its own prompt and its own media.
 
 An overlay can set a field but clear none, which is how every overlay field
-already resolves (GOONPACKS.md → Overlays). That is why the state an author
-would otherwise express by omission is a flag instead.
+already resolves (GOONPACKS.md → Overlays).
 
 ### A persona may fix its own time of day
 
@@ -58,7 +57,7 @@ The flag exists because absence could not carry that meaning. An overlay may set
 a field but never clear one. If omitting `timezone` were how an author said
 "fixed time", an overlay on a base that has a zone could never say it, and that
 state would be unreachable for overlays entirely. The flag is settable by an
-overlay like any other field, which reaches what omission cannot.
+overlay like any other field.
 
 ### A companion may be given no user clock
 
@@ -75,8 +74,8 @@ of knowing.
 
 It reads `MY TIME (right now)`. Where a companion is belongs to the persona
 prompt, which may state the place or leave it out. A persona that leaves it out
-still gets a correct clock. An IANA zone is not a location in any case: it is
-named for one city and covers a region.
+still gets a correct clock. An IANA zone is not a location: it is named for one
+city and covers a region.
 
 ## The app's own companions
 
@@ -96,8 +95,8 @@ that already says what time it is. Or the set can leave a state with no
 demonstrator. Where either happens a persona is amended rather than the state
 left uncovered: a prompt that fixes an hour for no reason can stop fixing it.
 
-A contradiction of that kind surfaces as a companion behaving oddly rather than
-as an error, so the pass is made deliberately and then repeated by hand.
+A contradiction surfaces as a companion behaving oddly rather than as an error,
+which is why the pass is run twice: once as part of the work, once by hand.
 
 ## The data path
 
@@ -107,7 +106,8 @@ all three. `parseManifest` validates the zone by constructing an
 accepts exactly the zones the renderer accepts on that runtime. A regex accepts
 zones the renderer rejects; `Intl.supportedValuesOf('timeZone')` omits aliases
 the renderer accepts. The two flags are checked for being booleans, like
-`passesReasoning`. An empty string is already refused for every manifest field.
+`passesReasoning`. An empty string needs no check of its own: `optionalString`
+already refuses one for every optional string field, `timezone` among them.
 
 That a companion on real time has a zone is a second check, and it needs two
 homes because an overlay may rely on its base for the value. `parsePack`
@@ -134,11 +134,10 @@ shape cannot drift with the ICU version, and that reason still holds.
 `12 pm`. A `browserTimeZone()` beside it wraps
 `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 
-`liveStateMessage` takes an object of `userNow`, `companionNow` and `toyStatus`
-rather than three positional strings, which can be transposed without a type
-error. `userNow` and `companionNow` are both optional, and each emits its TIME
-line when present. A companion with neither gets no TIME line, and TOY STATUS
-alone.
+`liveStateMessage` takes an object of `userNow`, `companionNow` and `toyStatus`.
+Three positional strings could be transposed without a type error. `userNow` and
+`companionNow` are both optional, and each emits its TIME line when present. A
+companion with neither gets no TIME line, and TOY STATUS alone.
 
 Ownership moves into the label, where it cannot be skipped:
 
@@ -146,23 +145,23 @@ Ownership moves into the label, where it cannot be skipped:
     THEIR TIME (right now): Saturday 1 August 2026, 12:11 am
     TOY STATUS (trust this over everything else): …
 
-`TIME_SECTION` and `CONTROL_SECTION` refer to these labels by name
-(`shared-prompt.ts:217`), so the rename lands in both in the same change.
+`TIME_SECTION` remains a constant appended to every prompt, and names the TIME
+line in its own text, so the rename lands there in the same change.
+`CONTROL_SECTION` names TOY STATUS, which does not change.
 
-`TIME_SECTION` remains a constant appended to every prompt. Its first bullet
-refers to "the TIME line you are given", which is wrong for a companion sent two
-and for one sent none, so it is amended to describe whichever lines arrive. A
-second block, appended by `fillSharedSections` when the companion is on real
-time, explains `MY TIME` and carries the rule the TODO entry asks for: the
-companion's own clock shows up in what the companion says. `fillSharedSections`
-runs once per companion in `resolve.ts`, so nothing volatile enters the persona
-prompt.
+`TIME_SECTION` says "the TIME line you are given" is the time where the user is,
+which is wrong for a companion sent two lines and for one sent none, so it is
+amended to describe whichever lines arrive. A second block, appended by
+`fillSharedSections` when the companion is on real time, explains `MY TIME` and
+carries the rule the TODO entry asks for: the companion's own clock shows up in
+what the companion says. `fillSharedSections` runs once per companion in
+`resolve.ts`, so nothing volatile enters the persona prompt.
 
 ## Tests
 
-- `describeClock` — the three existing cases become fixed epoch plus fixed zone,
-  which also makes them independent of the machine's own zone; a pair either
-  side of a DST transition; one instant rendered in two zones.
+- `describeClock` — the existing cases become fixed epoch plus fixed zone, which
+  also makes them independent of the machine's own zone; a pair either side of a
+  DST transition; one instant rendered in two zones.
 - `parseManifest` — a valid zone, an invalid one reported by name, a zone on an
   overlay, and a non-boolean flag reported.
 - `parsePack` — a complete pack on real time with no zone refused; the same pack
@@ -183,7 +182,7 @@ prompt.
 ## Documentation
 
 This spec is deleted once the work lands, so every reason it records has to
-exist somewhere permanent first. They divide by audience.
+exist somewhere permanent first.
 
 GOONPACKS.md carries what a pack author decides:
 
