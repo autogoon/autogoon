@@ -24,6 +24,11 @@
   have fallen back to. A pack with one now fails to import, saying which field
   is empty.
 
+- bug: **Describing refuses a file a pack can't hold** — The
+  `npm run goonpack:describe` command accepted a `.gif` or `.avif` and wrote the
+  sidecar for it, which the build then rejected because the pack format carries
+  neither. It now refuses the file instead.
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss

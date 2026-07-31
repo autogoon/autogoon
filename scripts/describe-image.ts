@@ -55,20 +55,12 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
+import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
 import {
   renderSidecar,
   SIDECAR_EXT,
   type Sidecar,
 } from '../src/lib/goonpacks/sidecar';
-
-const MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.avif': 'image/avif',
-};
 
 // Before sending, the image is downscaled to a JPEG with its long edge at most
 // this many pixels — plenty for a reliable description and a fraction of the
@@ -251,9 +243,14 @@ export async function describeImage(
   // MODEL to try another (see the list at the top of this file).
   const model = process.env.MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
 
-  const ext = extname(imagePath).toLowerCase();
-  if (MIME[ext] === undefined) {
-    throw new Error(`Unsupported image type: ${ext || '(none)'}`);
+  // parsePack fails a pack over a file MEDIA_TYPES doesn't list, so a sidecar
+  // for one is written for nothing. Stills only: MEDIA_TYPES lists videos as
+  // well, and a video's caption is hand-written.
+  const ext = extname(imagePath).slice(1).toLowerCase();
+  if (MEDIA_TYPES[ext]?.kind !== 'image') {
+    throw new Error(
+      `Not a picture a pack can carry: ${extname(imagePath) || '(no extension)'}`,
+    );
   }
   // Always send a downscaled JPEG, whatever the source format.
   onStep(`Resizing to ${MAX_EDGE}px…`);
