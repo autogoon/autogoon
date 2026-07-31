@@ -535,21 +535,42 @@ describe('describeGap', () => {
 });
 
 describe('describeClock', () => {
-  it('formats a local timestamp as weekday, date and 12-hour time', () => {
-    // Built from local parts so the assertion holds in any timezone.
-    const at = new Date(2026, 6, 23, 14, 5).getTime(); // 23 July 2026, 2:05 pm
-    expect(describeClock(at)).toBe('Thursday 23 July 2026, 2:05 pm');
+  it('formats a timestamp as weekday, date and 12-hour time in the zone it is given', () => {
+    // 13:05 UTC on 23 July 2026 is 14:05 in London, which is on BST by then.
+    expect(describeClock(Date.UTC(2026, 6, 23, 13, 5), 'Europe/London')).toBe(
+      'Thursday 23 July 2026, 2:05 pm',
+    );
   });
 
   it('renders midnight as 12:00 am', () => {
-    expect(describeClock(new Date(2026, 0, 5, 0, 0).getTime())).toBe(
+    expect(describeClock(Date.UTC(2026, 0, 5, 0, 0), 'Europe/London')).toBe(
       'Monday 5 January 2026, 12:00 am',
     );
   });
 
   it('renders half past noon as 12:30 pm', () => {
-    expect(describeClock(new Date(2026, 0, 5, 12, 30).getTime())).toBe(
+    expect(describeClock(Date.UTC(2026, 0, 5, 12, 30), 'Europe/London')).toBe(
       'Monday 5 January 2026, 12:30 pm',
+    );
+  });
+
+  it('renders one instant differently in two zones', () => {
+    const at = Date.UTC(2026, 6, 23, 13, 5);
+    expect(describeClock(at, 'Europe/London')).toBe(
+      'Thursday 23 July 2026, 2:05 pm',
+    );
+    expect(describeClock(at, 'America/Los_Angeles')).toBe(
+      'Thursday 23 July 2026, 6:05 am',
+    );
+  });
+
+  it('follows a DST transition rather than a fixed offset', () => {
+    // London moves to BST at 01:00 UTC on 29 March 2026, the last Sunday.
+    expect(describeClock(Date.UTC(2026, 2, 29, 0, 30), 'Europe/London')).toBe(
+      'Sunday 29 March 2026, 12:30 am',
+    );
+    expect(describeClock(Date.UTC(2026, 2, 29, 1, 30), 'Europe/London')).toBe(
+      'Sunday 29 March 2026, 2:30 am',
     );
   });
 });

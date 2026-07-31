@@ -42,6 +42,7 @@ import {
   appendAssistant,
   appendTool,
   appendUser,
+  browserTimeZone,
   describeClock,
   parse,
   serialize,
@@ -208,7 +209,7 @@ const threadKeyFor = (companion: Companion): string =>
 const liveState = (deviceState: string): LlmMessage => ({
   role: 'system',
   content: liveStateMessage(
-    describeClock(Date.now()),
+    describeClock(Date.now(), browserTimeZone()),
     deviceState === '' ? 'unknown' : deviceState,
   ),
 });
