@@ -5,8 +5,9 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Keyword Spotting — Vacuglide',
-  description: "Voice keyword spotting and Vacuglide's Autopilot",
+  title: 'Autogoon — voice-controlled gooning',
+  description:
+    'Voice-controlled play modes and companions for an Autoblow Vacuglide.',
 };
 
 export default function RootLayout({

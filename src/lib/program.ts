@@ -19,7 +19,8 @@ export const UPCOMING_WINDOW_MS = 60_000;
 
 // A target-speed change. `speed` is raw (pattern space); the Player runs it
 // through PlayModeEngine.scale() at send time. `unscaled` bypasses scale() —
-// only wind-down (cumming/finish) ramps set it.
+// Goon's after-play outcomes set it so the intensity ceiling can't soften the
+// outcome, which includes torture's hold at full speed.
 export interface SpeedEvent {
   kind: 'speed';
   at: number;

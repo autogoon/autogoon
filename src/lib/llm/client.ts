@@ -172,7 +172,7 @@ export function createLlmClient(model: string): LlmClient {
       : 'http://localhost/api/llm';
   const client = new OpenAI({
     baseURL,
-    apiKey: 'unused', // proxy is unauthenticated locally; not a real secret
+    apiKey: 'unused', // the SDK requires one; the proxy gates on the access header
     dangerouslyAllowBrowser: true, // we intentionally run in the browser, next to the device
   });
 

@@ -2,6 +2,10 @@
 
 ## 2026-07-31
 
+- enhancement: **The browser tab says Autogoon** — The tab title and share card
+  still named an early version of the app rather than the play modes and
+  companions it has now.
+
 - enhancement: **A failed reply says what went wrong** — When a companion
   can't reply, the error now carries what the provider actually said — out of
   credit, rate limited, no such model — instead of reading `LLM upstream error`

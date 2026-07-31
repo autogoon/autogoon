@@ -70,9 +70,9 @@ export function useVacuglideDevice() {
   });
   const player = playerRef.current;
 
-  // The rate-limit window slides with time (old requests age out), so poll the
-  // device once a second rather than only on new requests. Skip the state
-  // update when nothing changed to avoid a re-render every tick while idle.
+  // resetSeconds counts down between requests, so poll once a second rather
+  // than only on new ones. Skip the state update when nothing changed to avoid
+  // a re-render every tick while idle.
   useEffect(() => {
     const tick = () => {
       const status = deviceRef.current?.rateLimitStatus();
