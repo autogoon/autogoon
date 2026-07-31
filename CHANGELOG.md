@@ -23,6 +23,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **Summarising checks the manifest before it pays** — The
+  `npm run goonpack:summarise` command generated a pack's summary and only then
+  read its `manifest.json`, so a manifest that didn't parse cost a request and
+  lost the summary it had bought.
+
 - bug: **The changelog's tags are readable in light mode** — The `feature`,
   `enhancement`, `bug` and `internal` tags took their lettering from the theme
   while their fills stayed dark, so in the light theme each one was near-black
