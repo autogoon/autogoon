@@ -23,6 +23,11 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **An overlay is coloured like the companion it plays as** — With more
+  than one version of a base pack installed, an overlay's row on the Goonpacks
+  screen took its colour from the oldest of them while the companion you played
+  wore the newest, so the two disagreed.
+
 - bug: **Send can't fire off what you can't see** — With something already typed
   in the box, starting to speak swapped the display to what you were saying but
   left Send and Say it wired to the typed text, so pressing either sent the
