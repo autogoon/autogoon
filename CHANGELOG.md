@@ -41,6 +41,12 @@
   sidecar for it, which the build then rejected because the pack format carries
   neither. It now refuses the file instead.
 
+- internal: **Extraction walks only the entries still being written** — The zip
+  extractor kept every entry it had opened in one list and marked the finished
+  ones, so each chunk of the stream rescanned the whole pack's worth of closed
+  entries. Finished entries now leave the set, which also drops the nullable
+  writer and the two null checks that went with it.
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss
