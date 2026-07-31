@@ -42,7 +42,9 @@ export function Button({
   // selected tab), so they opt out of the press/voice flash with flash={false}.
   const activeRing = flash ? ACTIVE_RING : '';
 
-  if (voiceCommand === undefined) {
+  // A disabled control is out of the grammar — its Command's `enabled` gates
+  // both — so it must not advertise a word that won't work.
+  if (voiceCommand === undefined || props.disabled === true) {
     return (
       <button
         {...props}

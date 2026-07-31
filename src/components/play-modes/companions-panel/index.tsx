@@ -884,6 +884,9 @@ export function CompanionsPanel({
                   value={variety}
                   onChange={changeVariety}
                   activeClass="bg-purple-600 text-white"
+                  // No vosk grammar here, so nothing can fall out of step with
+                  // it; the control is always available.
+                  disabled={false}
                 />
               </Card>
             </div>

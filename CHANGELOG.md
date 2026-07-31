@@ -23,6 +23,12 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **A control you can't use no longer offers a word** — A greyed button
+  kept its voice chip, so Goon's Stop during an unstoppable after-play showed
+  `stop` next to a note saying only the safe word would work. Segmented controls
+  had the opposite half: their words could be withdrawn while the segments
+  stayed pressable.
+
 - bug: **Summarising checks the manifest before it pays** — The
   `npm run goonpack:summarise` command generated a pack's summary and only then
   read its `manifest.json`, so a manifest that didn't parse cost a request and

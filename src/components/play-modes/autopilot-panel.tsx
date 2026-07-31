@@ -204,6 +204,7 @@ export function AutopilotPanel({
           value={intensity}
           onChange={changeIntensity}
           activeClass="bg-blue-600 text-white"
+          disabled={!isCurrent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
           Say <code>less</code> / <code>more</code> to step to the previous or
@@ -221,6 +222,7 @@ export function AutopilotPanel({
           value={edge}
           onChange={changeEdge}
           activeClass="bg-orange-500 text-white"
+          disabled={!isCurrent}
         />
       </Card>
 
@@ -234,6 +236,7 @@ export function AutopilotPanel({
           value={suction}
           onChange={changeSuction}
           activeClass="bg-cyan-600 text-white"
+          disabled={!isCurrent}
         />
       </Card>
 
