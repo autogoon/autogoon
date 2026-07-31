@@ -413,6 +413,14 @@ export function CompanionsPanel({
     showMedia,
   ]);
 
+  // Is the toy running *this* panel's program? The source guard matters
+  // because the Player holds one engine at a time — asking only about the
+  // state would answer for whoever else is armed.
+  const isRunning = useCallback(
+    () => player.source === engine && player.state === 'playing',
+    [player.source, player.state, engine],
+  );
+
   // The toy's state in plain terms — connection, whether it's actually running
   // (running implies connected), and the current intensity/variety levels. This
   // is the ground-truth line the companion reads each turn; the level is here (not just
@@ -423,19 +431,11 @@ export function CompanionsPanel({
     if (!vacuglide.connected) {
       return `The toy is not connected and is not running. ${levels}`;
     }
-    const running = player.source === engine && player.state === 'playing';
-    const status = running
+    const status = isRunning()
       ? 'The toy is connected and running.'
       : 'The toy is connected and not running.';
     return `${status} ${levels}`;
-  }, [
-    vacuglide.connected,
-    player.source,
-    player.state,
-    engine,
-    intensity,
-    variety,
-  ]);
+  }, [vacuglide.connected, isRunning, intensity, variety]);
 
   const {
     start: startListening,
@@ -450,7 +450,7 @@ export function CompanionsPanel({
     companion,
     tools,
     getDeviceState,
-    isPlaying: () => player.state === 'playing',
+    isPlaying: isRunning,
     onToolRun: (name, result) => append(`tool: ${name} → ${result}`, 'hit'),
     onLog: (text, kind) => append(text, kind),
   });
