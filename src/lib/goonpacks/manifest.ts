@@ -20,7 +20,7 @@ export class PackError extends Error {
 
 // publisher.name — both halves strict slugs, single dot. Ids end up in storage
 // keys and thread keys, so the charset is locked down at the format level.
-export const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
+const PACK_ID_RE = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 
 // The accent hues safelisted in globals.css — a pack colour outside this set
 // would silently render unstyled, so reject it at import instead.
@@ -47,7 +47,7 @@ const ACCENT_COLOURS = new Set([
 const GENDERS = new Set(['female', 'male', 'nonbinary']);
 
 // The pack-format version this app understands. Bump only with a format change.
-export const PACK_FORMAT = 1;
+const PACK_FORMAT = 1;
 
 // Every field the manifest's top level allows.
 const TOP_FIELDS = new Set([
