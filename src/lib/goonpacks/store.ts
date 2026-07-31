@@ -280,8 +280,10 @@ export async function requestPersistence(): Promise<void> {
   }
 }
 
-// One-off reclamation of the quota still held by pack zips from before packs
-// moved to OPFS. Nothing reads that database.
+// Some installs hold pack zips in an `autogoon-goonpacks` IndexedDB database
+// that nothing reads — packs live in the OPFS trees above. This reclaims that
+// quota; where there is no such database the delete is a no-op, so it runs on
+// every load rather than being tracked.
 export function purgeLegacyDatabase(): Promise<void> {
   return new Promise((resolve) => {
     try {
