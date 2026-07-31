@@ -22,7 +22,7 @@ const manifest = (
   version: string,
   e: Extra = {},
 ): PackManifest => ({
-  format: 2,
+  format: 1,
   id,
   version,
   aboutThePack: 'a test pack',

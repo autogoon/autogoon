@@ -477,9 +477,10 @@ export function CompanionsPanel({
   const state = isCurrent ? player.state : 'armed';
 
   // Arm the engine when the play view is up and the Player is free — mirrors
-  // Autopilot. Entering play via Begin also arms directly; arm() is idempotent,
-  // so at most one harmless re-arm happens before the player-view mirror catches
-  // up. The setup view itself renders no device side effects.
+  // Autopilot. Picking a companion on the chooser arms directly too (see
+  // enterPlay); arm() is idempotent, so at most one harmless re-arm happens
+  // before the player-view mirror catches up. The setup view itself renders no
+  // device side effects.
   useEffect(() => {
     if (
       active &&

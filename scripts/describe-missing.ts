@@ -18,7 +18,13 @@
 //   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
 
 import process from 'node:process';
-import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  readdirSync,
+  existsSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
@@ -49,7 +55,7 @@ const explicit = named !== undefined && named !== '';
 function packDirs(): string[] {
   if (explicit) {
     const dir = resolve(named);
-    if (!existsSync(dir)) {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
       console.error(`${named} isn't a directory`);
       process.exit(1);
     }

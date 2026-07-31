@@ -2,8 +2,8 @@
 // Lexical overlap over the two texts each item carries: deliberately simple,
 // deliberately replaceable, and pure — so it is pinned by tests rather than by
 // faking a model. Which retrieval method scores best needs a benchmark this
-// repo doesn't have yet (roadmap/INFERENCE-LIBRARY.md); the tool contract above
-// it doesn't change when the answer arrives.
+// repo doesn't have (roadmap/INFERENCE-LIBRARY.md). The tool contract above it
+// is independent of the method underneath.
 import type { MediaKind } from '@/lib/goonpacks/media';
 import type { CompanionMedia } from './companions';
 

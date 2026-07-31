@@ -115,9 +115,8 @@ export type PackManifest = {
 // of the pack's tree (a complete pack needing system-prompt.md, name, voiceId)
 // live in parsePack — this checks only the manifest's own fields. Field
 // problems are collected and thrown together, so a bad manifest reports
-// everything wrong
-// with it at once; only a manifest we can't judge at all (not an object, a
-// format this app doesn't know) fails alone.
+// everything wrong with it at once; only a manifest we can't judge at all (not
+// an object, a format this app doesn't know) fails alone.
 export function parseManifest(raw: unknown): PackManifest {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new PackError("manifest.json doesn't contain a JSON object.");

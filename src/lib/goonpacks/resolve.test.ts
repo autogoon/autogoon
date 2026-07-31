@@ -41,7 +41,7 @@ const overlay = (
   media = [] as Companion['media'],
 ) => ({
   manifest: {
-    format: 2,
+    format: 1,
     id: 'g00ner.aimee',
     version: '1.0.0',
     base: 'autogoon.aimee',
@@ -170,7 +170,7 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
   const pictureLessBase = () =>
     packToCompanionRaw({
       manifest: {
-        format: 2,
+        format: 1,
         id: 'some.base',
         version: '1',
         aboutThePack: 'a base pack',
@@ -196,7 +196,7 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
 describe('packToCompanion', () => {
   const completePack = (companion: CompanionConfig) => ({
     manifest: {
-      format: 2,
+      format: 1,
       id: 'some.one',
       version: '1',
       aboutThePack: 'a complete pack',

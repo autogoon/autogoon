@@ -57,8 +57,9 @@ export const keyId = (key: string): string => key.split('@')[0]!;
 export const keyVersion = (key: string): string =>
   key.slice(key.indexOf('@') + 1);
 
-// Newest first. Versions are free text the app never interprets — beyond
-// this alphanumeric sort ("1.10" after "1.9", digits compared as numbers).
+// Newest first. Versions are free text the app never interprets — beyond this
+// alphanumeric sort, in which a run of digits compares as a number, so 1.10 is
+// newer than 1.9.
 export const newestFirst = (a: string, b: string): number =>
   b.localeCompare(a, undefined, { numeric: true });
 

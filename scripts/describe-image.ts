@@ -24,9 +24,8 @@
 // the caption line (see PROMPT). Both reach the sidecar, and both scripts print
 // them, so you can see what the caption was based on.
 //
-// describeImage(), sidecarPath() and the colour helpers are exported so
-// describe-missing.ts can reuse them; the CLI below runs only when this file is
-// the entry point.
+// What describe-missing.ts reuses is exported; the CLI in this file runs only
+// when it is the entry point.
 //
 // Strong vision models on OpenRouter (set MODEL to one of these) —
 // verify the exact slug + pricing at https://openrouter.ai/models (filter

@@ -28,8 +28,8 @@ import { writeZip } from './lib/goonpack-zip';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
 
-// Per-pack status lines: green for a clean build, red for errors. Plain when
-// piped.
+// Per-pack status lines: green for a clean build, yellow for a warning, red for
+// errors. Plain when piped.
 const green = (s: string): string =>
   process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
 const red = (s: string): string =>
@@ -71,7 +71,7 @@ function sourcesToBuild(): string[] {
 let built = 0;
 for (const dir of sourcesToBuild()) {
   const name = basename(dir);
-  // A directory without a manifest isn't a pack source — skip it quietly;
+  // A directory without a manifest isn't a pack source — name it and skip;
   // everything else is parsePack's to judge.
   try {
     statSync(join(dir, 'manifest.json'));

@@ -1,7 +1,6 @@
 'use client';
 
-// A label/value stat line — the session's State row and the Debug tab's
-// latency readouts.
+// A label/value stat line — the Debug tab's latency readouts.
 
 import type { ReactNode } from 'react';
 

@@ -227,8 +227,9 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     // sidecar-pairing check sees it and a later sidecar for it isn't reported
     // as orphaned.
     stems.add(m.name);
-    // The sidecar check — the one that decides whether this is media at all. A file whose sidecar wouldn't parse isn't here either —
-    // that pushed a problem above, and problems are fatal.
+    // The sidecar check — the one that decides whether this counts as described
+    // media. A file whose sidecar wouldn't parse never reaches `described`
+    // either: that pushed a problem above, and problems are fatal.
     const parsed = sidecars.get(m.name);
     if (parsed === undefined) continue;
     m.caption = parsed.caption;

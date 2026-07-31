@@ -11,7 +11,7 @@ const zipFile = (files: Record<string, Uint8Array>): File =>
   new File([zipSync(files)], 'pack.zip', { type: 'application/zip' });
 
 const manifest = (id: string) =>
-  strToU8(JSON.stringify({ format: 2, id, version: '1.0.0' }));
+  strToU8(JSON.stringify({ format: 1, id, version: '1.0.0' }));
 
 // Deliberately incompressible, for the stop-reading test: it measures how much
 // of the zip peekZip left unread, and a repeating fill would deflate to a few
