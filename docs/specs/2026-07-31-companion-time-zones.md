@@ -145,17 +145,22 @@ Ownership moves into the label, where it cannot be skipped:
     THEIR TIME (right now): Saturday 1 August 2026, 12:11 am
     TOY STATUS (trust this over everything else): …
 
-`TIME_SECTION` remains a constant appended to every prompt, and names the TIME
-line in its own text, so the rename lands there in the same change.
-`CONTROL_SECTION` names TOY STATUS, which does not change.
+`TIME_SECTION` splits into three constants, each appended by
+`fillSharedSections` only when the line it describes is sent:
 
-`TIME_SECTION` says "the TIME line you are given" is the time where the user is,
-which is wrong for a companion sent two lines and for one sent none, so it is
-amended to describe whichever lines arrive. A second block, appended by
-`fillSharedSections` when the companion is on real time, explains `MY TIME` and
-carries the rule the TODO entry asks for: the companion's own clock shows up in
-what the companion says. `fillSharedSections` runs once per companion in
-`resolve.ts`, so nothing volatile enters the persona prompt.
+- `USER_CLOCK_SECTION`, for `THEIR TIME`;
+- `COMPANION_CLOCK_SECTION`, for `MY TIME`, carrying the rule the TODO entry
+  asks for: the companion's own clock shows up in what the companion says;
+- `CONVERSATION_GAPS_SECTION`, for the `(3 hours pass.)` marker, which is about
+  breaks in the conversation rather than either clock and is always sent.
+
+One block naming both lines would tell a companion who is not given the user's
+clock how to read a line they never get. `TIME_SECTION` covered two unrelated
+subjects under one name, which is what let that happen.
+
+`fillSharedSections` runs once per companion in `resolve.ts`, so nothing
+volatile enters the persona prompt. `CONTROL_SECTION` names TOY STATUS, which
+does not change.
 
 ## Tests
 
@@ -173,8 +178,8 @@ what the companion says. `fillSharedSections` runs once per companion in
   sets none; both flags resolve the same way.
 - `liveStateMessage` — each of the four combinations of the two optional
   members, including the one that emits no TIME line at all.
-- `fillSharedSections` — the second block present only when `companionTimeZone`
-  is.
+- `fillSharedSections` — each clock section present only when the line it
+  describes is sent.
 - Each built-in that carries a zone — it constructs a formatter. A pack's zone
   needs no test: `parseManifest` refuses an invalid one, and
   `npm run goonpack:build` runs that check over every pack source.
@@ -202,7 +207,7 @@ Comments at the definition sites carry what a maintainer needs:
 - `describeClock` — why the zone argument is required rather than defaulted, and
   why `hourCycle: 'h23'`;
 - `liveStateMessage` — why it takes an object, and what an absent member means;
-- `TIME_SECTION` and the block appended beside it — which lines each describes;
+- the three clock sections — which line each describes, and when each is sent;
 - `Companion.timezone` — why the type allows a pair that validation refuses;
 - `parsePack` and `library.ts` — why the same rule is checked in both.
 
