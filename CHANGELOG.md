@@ -7,6 +7,12 @@
   credit, rate limited, no such model — instead of reading `LLM upstream error`
   whichever it was.
 
+- enhancement: **Building a pack no longer holds it in memory** —
+  `npm run goonpack:build` read the whole pack in and built the whole zip before
+  writing a byte, so a large pack took several gigabytes and one big enough
+  could not be built at all. It now streams file by file, and peak memory no
+  longer grows with the pack.
+
 - bug: **Companions see the toy they just changed** — A companion who started
   the toy, or turned it up, was told for the rest of that turn that nothing had
   changed, so they could start it a second time or tell you it was off just
