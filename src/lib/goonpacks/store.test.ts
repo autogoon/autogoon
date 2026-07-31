@@ -9,7 +9,6 @@ import {
   hasMarker,
   importLock,
   listCompletePackKeys,
-  listPackKeys,
   markComplete,
   openPackDir,
   openPackTree,
@@ -179,7 +178,6 @@ describe('listCompletePackKeys', () => {
     seed('pub.done@1.0.0', { 'manifest.json': '{}' });
     seed('pub.half@1.0.0', { 'manifest.json': '{}' });
     await markComplete('pub.done@1.0.0');
-    expect(await listPackKeys()).toEqual(['pub.done@1.0.0', 'pub.half@1.0.0']);
     expect(await listCompletePackKeys()).toEqual(['pub.done@1.0.0']);
   });
 });
@@ -363,8 +361,8 @@ describe('a browser that refuses a directory', () => {
     });
   });
 
-  it('leaves listPackKeys empty and openPackTree null, so reading is a library with no packs in it', async () => {
-    expect(await listPackKeys()).toEqual([]);
+  it('leaves listCompletePackKeys empty and openPackTree null, so reading is a library with no packs in it', async () => {
+    expect(await listCompletePackKeys()).toEqual([]);
     expect(await openPackTree('pub.pack@1.0.0')).toBeNull();
   });
 

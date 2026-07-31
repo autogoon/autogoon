@@ -46,7 +46,7 @@ export async function packsRoot(
 const isDirectory = (h: FileSystemHandle): h is FileSystemDirectoryHandle =>
   h.kind === 'directory';
 
-export async function listPackKeys(): Promise<string[]> {
+async function listPackKeys(): Promise<string[]> {
   const packs = await packsRoot();
   if (packs === null) return [];
   const keys: string[] = [];
