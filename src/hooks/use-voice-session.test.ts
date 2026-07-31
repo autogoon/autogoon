@@ -119,6 +119,8 @@ const COMPANION: Companion = {
   passesReasoning: false,
   chattiness: 3,
   playfulness: 3,
+  usesRealTime: true,
+  knowsUserTime: true,
 };
 
 // The one tool the scripts call, recording that it ran: a tool must not run at

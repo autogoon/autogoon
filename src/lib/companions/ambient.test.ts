@@ -15,6 +15,8 @@ const companion = (chattiness: number, playfulness: number): Companion => ({
   passesReasoning: false,
   chattiness,
   playfulness,
+  usesRealTime: true,
+  knowsUserTime: true,
 });
 
 // rand 0 and 1 are the ends of the jitter, so they pin the range exactly;

@@ -35,6 +35,8 @@ const base: Companion = {
   passesReasoning: true,
   chattiness: 2,
   playfulness: 4,
+  usesRealTime: true,
+  knowsUserTime: true,
 };
 const overlay = (
   extra: {
@@ -169,6 +171,24 @@ describe('applyOverlay', () => {
     );
     expect(out.mediaSummary).toBeUndefined();
   });
+  it("takes the overlay's timezone over the base's", () => {
+    const out = applyOverlay(
+      { ...base, timezone: 'Europe/Paris' },
+      overlay({ companion: { timezone: 'Asia/Tokyo' } }),
+    );
+    expect(out.timezone).toBe('Asia/Tokyo');
+  });
+  it("keeps the base's timezone when the overlay sets none", () => {
+    const out = applyOverlay({ ...base, timezone: 'Europe/Paris' }, overlay());
+    expect(out.timezone).toBe('Europe/Paris');
+  });
+  it("takes the overlay's knowsUserTime over the base's", () => {
+    const out = applyOverlay(
+      { ...base, knowsUserTime: true },
+      overlay({ companion: { knowsUserTime: false } }),
+    );
+    expect(out.knowsUserTime).toBe(false);
+  });
 });
 
 describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
@@ -197,6 +217,11 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
   it('says there is nothing to send when neither the pack-shaped base nor the overlay bring pictures', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
     expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection(undefined)}`);
+  });
+  it('defaults both clock flags to true when a pack sets neither', () => {
+    const c = pictureLessBase();
+    expect(c.usesRealTime).toBe(true);
+    expect(c.knowsUserTime).toBe(true);
   });
 });
 

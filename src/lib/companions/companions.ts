@@ -53,6 +53,17 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
+  // IANA zone, absent when this companion has no clock of their own. Absent
+  // rather than defaulted, like `media` and `mediaSummary`: no zone is a fact
+  // about the companion, not a value waiting to be filled in.
+  //
+  // The type allows `usesRealTime: true` with no zone, which validation
+  // refuses (parsePack, library.ts) — a discriminated union would make it
+  // unrepresentable, but applyOverlay builds a Companion by spreading the base
+  // and a union does not survive that.
+  timezone?: string;
+  usesRealTime: boolean; // false: the persona prompt supplies its own time of day
+  knowsUserTime: boolean; // false: the user's TIME line is left out
   // The media they can send during a session — filled by an installed goonpack
   // (src/lib/goonpacks/), and valid media only, so every entry is one they can
   // actually be offered. Empty (or omitted) for a companion with no pack
@@ -79,6 +90,8 @@ export const DEFAULT_PASSES_REASONING = true;
 // you. A pack says otherwise by setting them.
 export const DEFAULT_CHATTINESS = 3;
 export const DEFAULT_PLAYFULNESS = 3;
+export const DEFAULT_USES_REAL_TIME = true;
+export const DEFAULT_KNOWS_USER_TIME = true;
 
 export const COMPANIONS: Record<string, Companion> = {
   'autogoon.aimee': {
@@ -95,6 +108,8 @@ export const COMPANIONS: Record<string, Companion> = {
     passesReasoning: DEFAULT_PASSES_REASONING,
     chattiness: DEFAULT_CHATTINESS,
     playfulness: DEFAULT_PLAYFULNESS,
+    usesRealTime: true,
+    knowsUserTime: true,
   },
   'autogoon.miley': {
     id: 'autogoon.miley',
@@ -112,6 +127,8 @@ export const COMPANIONS: Record<string, Companion> = {
     // so she's short of the top out of play and at it once things are running.
     chattiness: 4,
     playfulness: 5,
+    usesRealTime: true,
+    knowsUserTime: true,
   },
 };
 

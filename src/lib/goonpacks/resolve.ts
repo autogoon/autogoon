@@ -9,6 +9,8 @@ import {
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
   DEFAULT_PLAYFULNESS,
+  DEFAULT_USES_REAL_TIME,
+  DEFAULT_KNOWS_USER_TIME,
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
@@ -59,6 +61,9 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,
     chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
     playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
+    timezone: c.timezone,
+    usesRealTime: c.usesRealTime ?? DEFAULT_USES_REAL_TIME,
+    knowsUserTime: c.knowsUserTime ?? DEFAULT_KNOWS_USER_TIME,
     media,
     // The summary describes this pack's own set, so it goes wherever that does.
     mediaSummary: media === undefined ? undefined : m.mediaSummary,
@@ -114,6 +119,9 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     passesReasoning: c.passesReasoning ?? base.passesReasoning,
     chattiness: c.chattiness ?? base.chattiness,
     playfulness: c.playfulness ?? base.playfulness,
+    timezone: c.timezone ?? base.timezone,
+    usesRealTime: c.usesRealTime ?? base.usesRealTime,
+    knowsUserTime: c.knowsUserTime ?? base.knowsUserTime,
     media,
     mediaSummary,
     systemPrompt: fill(rawPrompt, mediaSummary),
