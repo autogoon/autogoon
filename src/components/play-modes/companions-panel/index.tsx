@@ -1016,7 +1016,9 @@ export function CompanionsPanel({
                         submitText(text, { speak: false });
                         setText('');
                       }}
-                      disabled={text.trim() === '' || status.replyPlaying}
+                      disabled={
+                        dictating || text.trim() === '' || status.replyPlaying
+                      }
                     >
                       Send
                     </Button>
@@ -1025,7 +1027,9 @@ export function CompanionsPanel({
                         submitText(text, { speak: true });
                         setText('');
                       }}
-                      disabled={text.trim() === '' || status.replyPlaying}
+                      disabled={
+                        dictating || text.trim() === '' || status.replyPlaying
+                      }
                       className="text-foreground bg-blue-600"
                     >
                       Say it

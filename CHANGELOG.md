@@ -23,6 +23,12 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **Send can't fire off what you can't see** — With something already typed
+  in the box, starting to speak swapped the display to what you were saying but
+  left Send and Say it wired to the typed text, so pressing either sent the
+  hidden line. Both are now out of reach while you're speaking, like the box
+  itself.
+
 - bug: **Clearing the conversation stays cleared** — A companion with a pause
   already timed would break it seconds after you cleared the conversation,
   putting a line back into the thread you had just emptied. Clearing now takes
