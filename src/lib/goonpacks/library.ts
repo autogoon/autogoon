@@ -177,12 +177,15 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
     set.add(p.manifest.base === undefined ? 'complete' : 'overlay');
     kinds.set(p.manifest.id, set);
   }
-  const isInstalled = (id: string): 'companion' | 'overlay' | undefined =>
-    COMPANIONS[id] !== undefined || kinds.get(id)?.has('complete') === true
-      ? 'companion'
-      : kinds.has(id)
-        ? 'overlay'
-        : undefined;
+  // An id whose versions disagree is rejected below, so it is not a base an
+  // overlay can sit on: without this the overlay survives, and appears on no
+  // card because its base has no entry.
+  const isInstalled = (id: string): 'companion' | 'overlay' | undefined => {
+    if (COMPANIONS[id] !== undefined) return 'companion';
+    const set = kinds.get(id);
+    if (set === undefined || set.size > 1) return undefined;
+    return set.has('complete') ? 'companion' : 'overlay';
+  };
 
   const survivors: typeof valid = [];
   for (const p of valid) {

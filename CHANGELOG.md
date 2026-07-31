@@ -13,6 +13,12 @@
   after switching it on. They now read the toy again after each action they
   take.
 
+- bug: **A stranded overlay now says why** — An overlay whose base pack was
+  itself unusable — two installed versions of it disagreeing about being an
+  overlay or a complete companion — listed as fine on the Goonpacks screen but
+  appeared on no companion's card. It now lists as incompatible, with the
+  reason.
+
 ## 2026-07-30
 
 - internal: **One sentence shape repeated is a style fault** — A claim, a gloss
