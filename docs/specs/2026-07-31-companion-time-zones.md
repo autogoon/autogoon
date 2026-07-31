@@ -5,11 +5,10 @@ The implementation plan is separate.
 
 ## The problem
 
-Every clock value the app puts in front of a companion is computed from the
-browser's zone. A persona written as living abroad is told the user's clock and
-nothing about its own, so anything it says about local time is invented or
-worked out from an offset. Models get offsets roughly right and DST transitions
-wrong.
+A companion is given the time where the user is. They are given nothing about
+the time where they are, so a persona written as living elsewhere has no basis
+for anything they say about their own clock. Supplying an offset instead would
+not fix that: a model's offset arithmetic is unreliable across a DST transition.
 
 ## What ships
 
@@ -21,7 +20,7 @@ Absent, nothing changes.
 
 ### The zone is where they are now
 
-Not where they are from. A persona's home is stated in its prompt and stays
+Not where they are from. A persona's home is stated in their prompt and stays
 there. An overlay that moves the companion sets its own `timezone`, and needs no
 other change.
 
@@ -60,7 +59,7 @@ stays `timezone`, because it sits inside `companion`.
 
 Every companion in the app's own directories gets a zone: the built-ins in
 `src/lib/companions/`, and every pack source under `goonpacks/`. Each value is
-what that persona's prompt already states about where it lives. The values sit
+what that persona's prompt already states about where they live. The values sit
 at their definition sites.
 
 A persona that states no place gets no zone.
