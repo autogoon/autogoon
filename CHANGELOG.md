@@ -23,6 +23,12 @@
   could not be built at all. It now streams file by file, and peak memory no
   longer grows with the pack.
 
+- bug: **The Stroke controls come back after a jump** — Skipping forward, or
+  turning a knob, while the program was holding a stroke valve open left the
+  valve open and the Stroke buttons and their words dead for the rest of the
+  session. The hold now ends when the part of the program it belonged to is
+  discarded.
+
 - bug: **A failed connection no longer costs the rest of the session** — If the
   speech connection didn't come up — a blip on the network, or the service
   refusing once — the companion stopped hearing anything until you stopped and

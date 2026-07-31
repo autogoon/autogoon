@@ -280,6 +280,53 @@ describe('Player transport', () => {
     ]);
     await player.pause();
   });
+
+  it('releases a running generated stroke when the clock jumps past its close', async () => {
+    const { player, valveCalls } = playingPlayer([
+      { kind: 'valve', at: 0, valve: 'minus', open: true },
+      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
+    ]);
+    await jest.advanceTimersByTimeAsync(200);
+    expect(player.getState().strokeBusy).toBe(true);
+
+    player.seekTo(60_000);
+    await jest.advanceTimersByTimeAsync(5_000);
+
+    expect(valveCalls('minus')).toEqual([
+      { open: true, at: 100 },
+      { open: false, at: 200 },
+    ]);
+    expect(player.getState().strokeBusy).toBe(false);
+    await player.pause();
+  });
+
+  it('releases a running generated stroke when a knob change drops the future', async () => {
+    const { player, valveCalls } = playingPlayer([
+      { kind: 'valve', at: 0, valve: 'minus', open: true },
+      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
+    ]);
+    await jest.advanceTimersByTimeAsync(200);
+
+    player.invalidateFuture();
+
+    expect(valveCalls('minus')).toContainEqual({ open: false, at: 200 });
+    expect(player.getState().strokeBusy).toBe(false);
+    await player.pause();
+  });
+
+  it('releases a running generated stroke when only the valve overlay is re-laid', async () => {
+    const { player, valveCalls } = playingPlayer([
+      { kind: 'valve', at: 0, valve: 'minus', open: true },
+      { kind: 'valve', at: 10_000, valve: 'minus', open: false },
+    ]);
+    await jest.advanceTimersByTimeAsync(200);
+
+    player.invalidateValves();
+
+    expect(valveCalls('minus')).toContainEqual({ open: false, at: 200 });
+    expect(player.getState().strokeBusy).toBe(false);
+    await player.pause();
+  });
 });
 
 describe('Player.arm', () => {
