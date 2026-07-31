@@ -225,6 +225,21 @@ offset math: models are passable at offsets and quietly wrong about DST.
 
 One rule ships with it: their clock shows up in what they say.
 
+### The user's own time zone
+
+The user's TIME line comes from the browser's zone, so it says wherever the
+machine is. There is no way to say otherwise, and there are reasons to want to:
+
+- a scene set somewhere the user isn't;
+- being away from home, and wanting the companion to carry on as though you
+  weren't;
+- not wanting a real location derivable from the prompt at all.
+
+A setting holding an IANA zone, used when it is set and the browser's when it
+isn't, is the whole of it. [Companion time zones](#companion-time-zones) leaves
+one place deriving the user's clock, with everything below it taking a zone
+explicitly, so this is an extension of that and is best done after it.
+
 ## Goonpacks
 
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in
