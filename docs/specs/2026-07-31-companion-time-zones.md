@@ -5,10 +5,11 @@ The implementation plan is separate.
 
 ## The problem
 
-A companion is given the time where the user is. They are given nothing about
-the time where they are, so a persona written as living elsewhere has no basis
-for anything they say about their own clock. Supplying an offset instead would
-not fix that: a model's offset arithmetic is unreliable across a DST transition.
+A companion is given the time where the user is, and nothing about the time
+where the companion is. A persona written as living elsewhere therefore has no
+basis for anything the companion says about the companion's own clock. Supplying
+an offset instead would not fix that: a model's offset arithmetic is unreliable
+across a DST transition.
 
 ## What ships
 
@@ -18,19 +19,19 @@ Three fields in a pack's `companion` section.
 own local time beside the user's.
 
 `usesRealTime`, defaulting to `true`. Set to `false`, no clock is computed for
-that companion and their prompt supplies whatever time it says. A companion that
-uses real time needs a `timezone`.
+that companion, and the persona prompt supplies whatever time it says. A
+companion that uses real time needs a `timezone`.
 
 `knowsUserTime`, defaulting to `true`. Set to `false`, the user's TIME line is
 left out of that companion's prompt.
 
 ## Decisions
 
-### The zone is where they are now
+### The zone is where the companion is now
 
-Not where they are from. A persona's home is stated in their prompt and stays
-there. An overlay that moves the companion sets its own `timezone`, and needs no
-other change.
+Not where the companion is from. A persona's home is stated in the persona
+prompt and stays there. An overlay that moves the companion sets its own
+`timezone`, and needs no other change.
 
 ### Overlays may set all three
 
@@ -62,26 +63,27 @@ overlay like any other field, which reaches what omission cannot.
 ### A companion may be given no user clock
 
 A persona who has never met the user has no reason to know what time it is where
-they are. `knowsUserTime: false` keeps the user's TIME line out of that
+the user is. `knowsUserTime: false` keeps the user's TIME line out of that
 companion's prompt.
 
 The field is independent of the other two. A companion may be given no clock of
-their own and no user clock at once, which is a persona whose prompt supplies
-its own time talking to someone whose whereabouts they have no way of knowing.
+the companion's own and no user clock at once: a persona whose prompt supplies
+its own time of day, talking to a user whose whereabouts that persona has no way
+of knowing.
 
 ### The second line does not name the place
 
-It reads `MY TIME (right now)`. A companion's whereabouts belong to the persona
-prompt, which may state them or leave them out. A persona that withholds them
+It reads `MY TIME (right now)`. Where a companion is belongs to the persona
+prompt, which may state the place or leave it out. A persona that leaves it out
 still gets a correct clock. An IANA zone is not a location in any case: it is
 named for one city and covers a region.
 
 ## The app's own companions
 
 Every companion in the app's own directories takes values here: the built-ins in
-`src/lib/companions/`, and every pack source under `goonpacks/`. Each one's
-values come from reading their persona, and the values sit at their definition
-sites. Between them they must demonstrate every state:
+`src/lib/companions/`, and every pack source under `goonpacks/`. Each
+companion's values come from reading that companion's persona, and each value
+sits at its definition site. Across the set, every state must be demonstrated:
 
 - a companion on real time, placed far enough from the user that the two TIME
   lines visibly differ;
@@ -151,9 +153,10 @@ Ownership moves into the label, where it cannot be skipped:
 refers to "the TIME line you are given", which is wrong for a companion sent two
 and for one sent none, so it is amended to describe whichever lines arrive. A
 second block, appended by `fillSharedSections` when the companion is on real
-time, explains the second line and carries the rule the TODO entry asks for:
-their clock shows up in what they say. `fillSharedSections` runs once per
-companion in `resolve.ts`, so nothing volatile enters the persona prompt.
+time, explains `MY TIME` and carries the rule the TODO entry asks for: the
+companion's own clock shows up in what the companion says. `fillSharedSections`
+runs once per companion in `resolve.ts`, so nothing volatile enters the persona
+prompt.
 
 ## Tests
 
@@ -185,13 +188,13 @@ exist somewhere permanent first. They divide by audience.
 GOONPACKS.md carries what a pack author decides:
 
 - what each field does, and which of them a pack has to supply;
-- that a zone is where the companion is now, not where they are from, so an
-  overlay that moves them sets its own;
+- that a zone is where the companion is now, not where the companion is from, so
+  an overlay that moves the companion sets its own;
 - that a persona may fix its own time of day, and that `usesRealTime: false` is
   how an author says so. The committed example pack is the case, and its system
   prompt is linked on GitHub: that doc is written for people who read prompts;
-- that the second TIME line never names a place, leaving a persona's whereabouts
-  theirs to state or withhold;
+- that `MY TIME` never names a place, leaving where the companion is for the
+  persona prompt to state or leave out;
 - what `knowsUserTime: false` is for, and that a companion may end up with
   neither clock.
 
