@@ -77,6 +77,13 @@ export type Companion = {
   mediaSummary?: string;
 };
 
+// The zone a companion's own clock is rendered in, or undefined when they have
+// none — a zone they are off real time for is not a clock. Both sides of the
+// pair that has to agree read it: the rules appended at load (resolve.ts) and
+// the MY TIME line sent each turn (use-voice-session.ts).
+export const companionClockZone = (companion: Companion): string | undefined =>
+  companion.usesRealTime ? companion.timezone : undefined;
+
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default

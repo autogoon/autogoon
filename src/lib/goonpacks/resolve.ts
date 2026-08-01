@@ -11,6 +11,7 @@ import {
   DEFAULT_PLAYFULNESS,
   DEFAULT_USES_REAL_TIME,
   DEFAULT_KNOWS_USER_TIME,
+  companionClockZone,
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
@@ -30,9 +31,7 @@ export type PackContent = {
 function fill(prompt: string, companion: Companion) {
   return fillSharedSections(prompt, {
     mediaSummary: companion.mediaSummary,
-    // A zone that is not used explains nothing, so a companion off real time
-    // gets no clock rules of their own however their pack set the zone.
-    companionTimeZone: companion.usesRealTime ? companion.timezone : undefined,
+    companionTimeZone: companionClockZone(companion),
     knowsUserTime: companion.knowsUserTime,
   });
 }

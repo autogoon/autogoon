@@ -14,7 +14,10 @@
 // TTS boundaries.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Companion } from '@/lib/companions/companions';
+import {
+  companionClockZone,
+  type Companion,
+} from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
 import { stripTextualToolCalls } from '@/lib/llm/textual-tool-calls';
 import { AMBIENT_CUE } from '@/lib/companions/ambient';
@@ -210,16 +213,14 @@ const liveState = (companion: Companion, deviceState: string): LlmMessage => {
   // One reading for both lines: rendered from separate ones they can straddle a
   // minute, and tell a companion in the user's own zone they are apart.
   const now = Date.now();
+  const zone = companionClockZone(companion);
   return {
     role: 'system',
     content: liveStateMessage({
       userNow: companion.knowsUserTime
         ? describeClock(now, browserTimeZone())
         : undefined,
-      companionNow:
-        companion.usesRealTime && companion.timezone !== undefined
-          ? describeClock(now, companion.timezone)
-          : undefined,
+      companionNow: zone === undefined ? undefined : describeClock(now, zone),
       toyStatus: deviceState === '' ? 'unknown' : deviceState,
     }),
   };
