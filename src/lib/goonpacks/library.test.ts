@@ -210,6 +210,37 @@ describe('buildLibrary', () => {
     ]);
   });
 
+  it('lists an overlay that turns on real time over a base with no zone as incompatible', async () => {
+    const lib = await buildLibrary(
+      source({
+        'pub.comp@1.0.0': completePack('pub.comp'),
+        'pub.over@1.0.0': overlayPack('pub.over', 'pub.comp', {
+          usesRealTime: true,
+        }),
+      }),
+    );
+    expect(
+      lib.rows.find((r) => r.id === 'pub.over@1.0.0')!.incompatible,
+    ).toEqual([
+      'This overlay uses real time but needs a timezone — its base companion has none.',
+    ]);
+  });
+
+  it('accepts an overlay that turns on real time and supplies its own zone', async () => {
+    const lib = await buildLibrary(
+      source({
+        'pub.comp@1.0.0': completePack('pub.comp'),
+        'pub.over@1.0.0': overlayPack('pub.over', 'pub.comp', {
+          usesRealTime: true,
+          timezone: 'Asia/Tokyo',
+        }),
+      }),
+    );
+    expect(
+      lib.rows.find((r) => r.id === 'pub.over@1.0.0')!.incompatible,
+    ).toBeUndefined();
+  });
+
   it("rejects a complete pack squatting a built-in's id", async () => {
     const lib = await buildLibrary(
       source({ [`${BUILT_IN}@1.0.0`]: completePack(BUILT_IN) }),

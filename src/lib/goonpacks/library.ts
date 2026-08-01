@@ -24,7 +24,7 @@ import {
   type LoadedPack,
   type PackSummary,
 } from './entries';
-import { PackError, type PackManifest } from './manifest';
+import { PackError, type CompanionConfig, type PackManifest } from './manifest';
 import {
   MANIFEST,
   parsePack,
@@ -76,6 +76,25 @@ export function baseError(
   }
   if (base === 'overlay') {
     return 'The base must be a complete companion, not another overlay.';
+  }
+  return null;
+}
+
+// An overlay may take its zone from the base, so whether the resolved
+// companion has one can only be settled after both are known. parsePack has
+// already refused a complete pack that needs a zone and has none, so this only
+// ever fires on an overlay.
+function resolvedZoneError(
+  manifest: PackManifest,
+  baseCompanionConfig: (id: string) => CompanionConfig | undefined,
+): string | null {
+  if (manifest.base === undefined) return null;
+  const own = manifest.companion;
+  const base = baseCompanionConfig(manifest.base);
+  const usesRealTime = own.usesRealTime ?? base?.usesRealTime ?? true;
+  const timezone = own.timezone ?? base?.timezone;
+  if (usesRealTime && timezone === undefined) {
+    return 'This overlay uses real time but needs a timezone — its base companion has none.';
   }
   return null;
 }
@@ -186,6 +205,20 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
     if (set === undefined || set.size > 1) return undefined;
     return set.has('complete') ? 'companion' : 'overlay';
   };
+  // A built-in base is a Companion, a pack base a manifest; both answer the
+  // two fields resolvedZoneError reads.
+  const baseCompanionConfig = (id: string): CompanionConfig | undefined => {
+    const builtIn = COMPANIONS[id];
+    if (builtIn !== undefined) {
+      return {
+        timezone: builtIn.timezone,
+        usesRealTime: builtIn.usesRealTime,
+      };
+    }
+    return valid.find(
+      (p) => p.manifest.id === id && p.manifest.base === undefined,
+    )?.manifest.companion;
+  };
 
   const survivors: typeof valid = [];
   for (const p of valid) {
@@ -198,7 +231,9 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
       reason =
         "The pack's id belongs to a built-in companion — pick a different id.";
     } else {
-      reason = baseError(p.manifest, isInstalled);
+      reason =
+        baseError(p.manifest, isInstalled) ??
+        resolvedZoneError(p.manifest, baseCompanionConfig);
     }
     if (reason === null) survivors.push(p);
     else bad.push({ id: p.key, manifest: p.manifest, incompatible: [reason] });
