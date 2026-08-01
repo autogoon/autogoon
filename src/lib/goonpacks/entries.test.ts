@@ -193,8 +193,15 @@ describe('overlayNeedsZone', () => {
   it('is false when the overlay turns real time off over a base with no zone', () => {
     expect(overlayNeedsZone(opt({ usesRealTime: false }), opt({}))).toBe(false);
   });
-  // Neither stating it is the common case: an overlay that changes a voice, on
-  // a base whose manifest left usesRealTime out.
+  // The overlay states nothing, so the answer is the base's to give: a persona
+  // that sets its own time of day is a complete pack with no zone at all
+  // (parsePack), and every ordinary overlay has to stay pickable over it.
+  it('is false when the overlay states nothing over a base that is off real time', () => {
+    expect(overlayNeedsZone(opt({}), opt({ usesRealTime: false }))).toBe(false);
+  });
+  // Not reachable from a valid pair — a complete pack that leaves usesRealTime
+  // out must carry a zone (parsePack) — so this pins the defaulting rule alone:
+  // unstated on both sides means on.
   it('is true when neither states usesRealTime and neither has a zone, since it defaults on', () => {
     expect(overlayNeedsZone(opt({}), opt({}))).toBe(true);
   });

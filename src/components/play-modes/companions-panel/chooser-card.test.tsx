@@ -79,7 +79,7 @@ describe('ChooserCard', () => {
     expect(overlayOption().disabled).toBe(true);
   });
 
-  it('offers the same overlay when the selected base supplies a zone', () => {
+  it('offers an overlay that turns real time on when the selected base supplies a zone', () => {
     card([NO_ZONE, WITH_ZONE], { base: WITH_ZONE.key, overlay: null });
     expect(overlayOption().disabled).toBe(false);
   });

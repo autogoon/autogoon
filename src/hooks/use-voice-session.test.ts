@@ -12,12 +12,24 @@
 // the mic and the STT socket are faked just enough for start() to build a
 // session, so a test can reach the scheduler a turn arms.
 
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import { act, renderHook } from '@testing-library/react';
-import { parse, type ThreadTurn } from '@/lib/companions/conversation';
+import {
+  browserTimeZone,
+  describeClock,
+  parse,
+  type ThreadTurn,
+} from '@/lib/companions/conversation';
 import type { Companion } from '@/lib/companions/companions';
 import type { CompanionTool } from '@/lib/companions/tools';
-import type { ToolCall } from '@/lib/llm/client';
+import type { LlmMessage, ToolCall } from '@/lib/llm/client';
 
 // One scripted LLM reply: the text it streams, and the calls it asks for.
 type Reply = { content: string; toolCalls?: ToolCall[] };
@@ -30,14 +42,18 @@ let replies: Reply[] = [];
 let played: { text: string; thread: ThreadTurn[] }[] = [];
 // The seam a test uses to act mid-utterance (a barge-in).
 let onPlay: ((text: string) => void) | undefined;
+// What each request put on the wire, so a test can read what the model was
+// actually shown rather than what the hook meant to show it.
+let sent: LlmMessage[][] = [];
 
 jest.mock('../lib/llm/client', () => ({
   createLlmClient: () => ({
     stream: (
-      _messages: unknown,
+      messages: LlmMessage[],
       opts: { onToolCalls?: (calls: ToolCall[]) => void },
     ) => ({
       async *[Symbol.asyncIterator](): AsyncGenerator<string> {
+        sent.push(messages);
         const reply: Reply = replies.shift() ?? { content: '' };
         // Two deltas, so the hook assembles replyText rather than being handed
         // it whole.
@@ -144,11 +160,9 @@ const call = (name: string): ToolCall => ({
 // above the imports by this transform, so a module pulling in a faked one has
 // to be loaded after the fakes are registered (use-goonpack-library.test.ts
 // loads its hook the same way).
-const session = async (tools: CompanionTool[]) => {
+const session = async (tools: CompanionTool[], companion = COMPANION) => {
   const { useVoiceSession } = await import('./use-voice-session');
-  const { result } = renderHook(() =>
-    useVoiceSession({ companion: COMPANION, tools }),
-  );
+  const { result } = renderHook(() => useVoiceSession({ companion, tools }));
   // The panel attaches this, and ensureClients builds no clients without it.
   result.current.audioRef.current = document.createElement('audio');
   return result;
@@ -162,12 +176,40 @@ const settle = () =>
     await new Promise((resolve) => setTimeout(resolve, 20));
   });
 
+// The instant a clock test pins Date.now to, so the lines a turn renders can be
+// compared against describeClock's own output for a known one.
+const TURN_AT = Date.UTC(2026, 6, 23, 13, 5);
+
+// A zone the machine running these tests is not in, whichever it is: Tokyo and
+// Los Angeles are sixteen hours apart, so a browser zone matches at most one of
+// them, and a companion put in the other renders a different clock from his.
+const ELSEWHERE =
+  describeClock(TURN_AT, 'Asia/Tokyo') ===
+  describeClock(TURN_AT, browserTimeZone())
+    ? 'America/Los_Angeles'
+    : 'Asia/Tokyo';
+
+// The clock lines of the live state a request ends with, by label.
+const clockLines = (messages: LlmMessage[]): Record<string, string> =>
+  Object.fromEntries(
+    (messages.at(-1)?.content ?? '')
+      .split('\n')
+      .map((line) => /^([A-Z ]+) \(right now\): (.+)$/.exec(line))
+      .filter((m): m is RegExpExecArray => m !== null)
+      .map((m) => [m[1]!, m[2]!]),
+  );
+
 beforeEach(() => {
   replies = [];
   played = [];
+  sent = [];
   onPlay = undefined;
   ambientDelay = 60_000;
   localStorage.clear();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('useVoiceSession', () => {
@@ -272,5 +314,37 @@ describe('useVoiceSession', () => {
 
     expect(localStorage.getItem(THREAD_KEY)).toBeNull();
     expect(result.current.status.thread).toEqual([]);
+  });
+
+  it("renders the companion's clock in their own zone and the user's in the browser's", async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(TURN_AT);
+    const result = await session([], { ...COMPANION, timezone: ELSEWHERE });
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+
+    const lines = clockLines(sent[0]!);
+    expect(lines['MY TIME']).toBe(describeClock(TURN_AT, ELSEWHERE));
+    expect(lines['THEIR TIME']).toBe(describeClock(TURN_AT, browserTimeZone()));
+  });
+
+  it('sends no user clock to a companion who is not told the time where he is', async () => {
+    jest.spyOn(Date, 'now').mockReturnValue(TURN_AT);
+    const result = await session([], {
+      ...COMPANION,
+      timezone: ELSEWHERE,
+      knowsUserTime: false,
+    });
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+
+    const lines = clockLines(sent[0]!);
+    expect(lines['MY TIME']).toBe(describeClock(TURN_AT, ELSEWHERE));
+    expect(lines['THEIR TIME']).toBeUndefined();
   });
 });

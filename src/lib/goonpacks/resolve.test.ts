@@ -8,9 +8,11 @@ import {
 import {
   DEFAULT_CHATTINESS,
   DEFAULT_CONTEXT_WINDOW,
+  DEFAULT_KNOWS_USER_TIME,
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
   DEFAULT_PLAYFULNESS,
+  DEFAULT_USES_REAL_TIME,
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
@@ -193,6 +195,13 @@ describe('applyOverlay', () => {
     );
     expect(out.knowsUserTime).toBe(false);
   });
+  // A companion written not to know where he is (Miley) keeps that under any
+  // overlay that doesn't say otherwise — the app default would hand her a line
+  // her own prompt tells her not to assume.
+  it("keeps the base's knowsUserTime when the overlay sets none", () => {
+    const out = applyOverlay({ ...base, knowsUserTime: false }, overlay());
+    expect(out.knowsUserTime).toBe(false);
+  });
   const zoneless: Companion = {
     ...base,
     timezone: undefined,
@@ -242,11 +251,6 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
     const out = applyOverlay(pictureLessBase(), overlay());
     expect(body(out.systemPrompt)).toBe(`hi\n${mediaSection(undefined)}`);
   });
-  it('defaults both clock flags to true when a pack sets neither', () => {
-    const c = pictureLessBase();
-    expect(c.usesRealTime).toBe(true);
-    expect(c.knowsUserTime).toBe(true);
-  });
 });
 
 describe('packToCompanion', () => {
@@ -270,6 +274,8 @@ describe('packToCompanion', () => {
     expect(c.passesReasoning).toBe(DEFAULT_PASSES_REASONING);
     expect(c.chattiness).toBe(DEFAULT_CHATTINESS);
     expect(c.playfulness).toBe(DEFAULT_PLAYFULNESS);
+    expect(c.usesRealTime).toBe(DEFAULT_USES_REAL_TIME);
+    expect(c.knowsUserTime).toBe(DEFAULT_KNOWS_USER_TIME);
     expect(c.gender).toBe('female');
     expect(c.accentColour).toBe('pink');
   });
