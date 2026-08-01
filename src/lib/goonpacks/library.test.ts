@@ -43,7 +43,7 @@ function source(trees: Record<string, Record<string, string>>): LibrarySource {
 const sidecar = (caption: string, description: string) =>
   `---\ncaption: "${caption}"\n---\n\n${description}\n`;
 
-const completePack = (id: string, companion: object = {}) => ({
+const completePack = (id: string) => ({
   'manifest.json': manifest({
     id,
     mediaSummary: 'A still and a video.',
@@ -54,7 +54,6 @@ const completePack = (id: string, companion: object = {}) => ({
       // Clocks are not what these tests pin, and a complete pack on real time
       // needs a zone (parsePack).
       usesRealTime: false,
-      ...companion,
     },
   }),
   'system-prompt.md': 'You are Testy.',
@@ -64,12 +63,12 @@ const completePack = (id: string, companion: object = {}) => ({
   'media/b.md': sidecar('a video', 'a video, described at length'),
 });
 
-const overlayPack = (id: string, base: string, companion: object = {}) => ({
+const overlayPack = (id: string, base: string) => ({
   'manifest.json': manifest({
     id,
     base,
     mediaSummary: 'A still and a video.',
-    companion: { voiceId: 'v2', ...companion },
+    companion: { voiceId: 'v2' },
   }),
   'media/a.jpg': '',
   'media/a.md': sidecar('a still', 'a still, described at length'),
@@ -208,37 +207,6 @@ describe('buildLibrary', () => {
       ['pub.comp@1.0.0', undefined],
       ['pub.goth@1.0.0', undefined],
     ]);
-  });
-
-  it('lists an overlay that turns on real time over a base with no zone as incompatible', async () => {
-    const lib = await buildLibrary(
-      source({
-        'pub.comp@1.0.0': completePack('pub.comp'),
-        'pub.over@1.0.0': overlayPack('pub.over', 'pub.comp', {
-          usesRealTime: true,
-        }),
-      }),
-    );
-    expect(
-      lib.rows.find((r) => r.id === 'pub.over@1.0.0')!.incompatible,
-    ).toEqual([
-      'This overlay uses real time but needs a timezone — its base companion has none.',
-    ]);
-  });
-
-  it('accepts an overlay that turns on real time and supplies its own zone', async () => {
-    const lib = await buildLibrary(
-      source({
-        'pub.comp@1.0.0': completePack('pub.comp'),
-        'pub.over@1.0.0': overlayPack('pub.over', 'pub.comp', {
-          usesRealTime: true,
-          timezone: 'Asia/Tokyo',
-        }),
-      }),
-    );
-    expect(
-      lib.rows.find((r) => r.id === 'pub.over@1.0.0')!.incompatible,
-    ).toBeUndefined();
   });
 
   it("rejects a complete pack squatting a built-in's id", async () => {

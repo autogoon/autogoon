@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  COMPANION_CLOCK_SECTION,
   USER_CLOCK_SECTION,
   CONVERSATION_SECTION,
   mediaSection,
@@ -13,7 +14,7 @@ import {
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
-import type { CompanionConfig } from './manifest';
+import { PackError, type CompanionConfig } from './manifest';
 import {
   applyOverlay,
   packToCompanion,
@@ -35,6 +36,8 @@ const base: Companion = {
   passesReasoning: true,
   chattiness: 2,
   playfulness: 4,
+  // On real time, so a zone: the pair applyOverlay refuses is the one without.
+  timezone: 'Europe/London',
   usesRealTime: true,
   knowsUserTime: true,
 };
@@ -70,8 +73,12 @@ const still = (src: string): CompanionMedia => ({
 
 // fillSharedSections appends the clock rules to every prompt it assembles;
 // that append is prompt.test.ts's to pin, and only noise in these media cases.
+// Which of them land depends on the companion, so each goes if it is there.
 const body = (prompt: string): string =>
-  prompt.replace(`\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_SECTION}`, '');
+  [COMPANION_CLOCK_SECTION, USER_CLOCK_SECTION, CONVERSATION_SECTION].reduce(
+    (out, section) => out.replace(`\n\n${section}`, ''),
+    prompt,
+  );
 
 describe('applyOverlay', () => {
   it("keeps the base's id, not the overlay pack's own id", () => {
@@ -186,6 +193,24 @@ describe('applyOverlay', () => {
     );
     expect(out.knowsUserTime).toBe(false);
   });
+  const zoneless: Companion = {
+    ...base,
+    timezone: undefined,
+    usesRealTime: false,
+  };
+  it('refuses an overlay that turns real time on over a base with no zone', () => {
+    expect(() =>
+      applyOverlay(zoneless, overlay({ companion: { usesRealTime: true } })),
+    ).toThrow(PackError);
+  });
+  it('accepts an overlay that turns real time on and brings a zone with it', () => {
+    expect(
+      applyOverlay(
+        zoneless,
+        overlay({ companion: { usesRealTime: true, timezone: 'Asia/Tokyo' } }),
+      ).timezone,
+    ).toBe('Asia/Tokyo');
+  });
 });
 
 describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
@@ -198,7 +223,9 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
         id: 'some.base',
         version: '1',
         aboutThePack: 'a base pack',
-        companion: { name: 'Base', voiceId: 'v' },
+        // A zone, because a complete pack on real time must carry one
+        // (parsePack) and applyOverlay refuses a pairing that has none.
+        companion: { name: 'Base', voiceId: 'v', timezone: 'Europe/London' },
       },
       systemPrompt: 'hi\n{{MEDIA_SECTION}}',
       media: [],

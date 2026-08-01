@@ -12,8 +12,10 @@ import { Card } from '@/components/card';
 import {
   describeMedia,
   effectiveMedia,
+  overlayNeedsZone,
   type LibraryEntry,
   type MediaCount,
+  type PackOption,
   type VariantSlot,
 } from '@/lib/goonpacks/entries';
 
@@ -97,9 +99,15 @@ export function ChooserCard({
   // overlay — when a remembered pack is gone (removed or now incompatible).
   const baseOpt =
     entry.bases.find((b) => b.key === (sel?.base ?? null)) ?? entry.bases[0]!;
+  // An overlay the selected base leaves without a zone is refused the same way
+  // a missing one is: it cannot be picked (the option is disabled), so it
+  // cannot be shown as picked either — including one remembered from when a
+  // different base was selected.
+  const refused = (o: PackOption): boolean => overlayNeedsZone(o, baseOpt);
   const overlayOpt =
-    entry.overlays.find((o) => o.key !== null && o.key === sel?.overlay) ??
-    null;
+    entry.overlays.find(
+      (o) => o.key !== null && o.key === sel?.overlay && !refused(o),
+    ) ?? null;
   const accent = overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
   const description =
     overlayOpt?.description ?? baseOpt.description ?? c.description;
@@ -125,13 +133,21 @@ export function ChooserCard({
                   aria-label={`${c.name} version`}
                   value={baseOpt.key ?? 'default'}
                   onClick={(e) => e.stopPropagation()}
-                  onChange={(e) =>
-                    onSelectPacks(c.id, {
-                      base:
-                        e.target.value === 'default' ? null : e.target.value,
-                      overlay: overlayOpt?.key ?? null,
-                    })
-                  }
+                  onChange={(e) => {
+                    const key =
+                      e.target.value === 'default' ? null : e.target.value;
+                    // The selected overlay rides across a base switch, unless
+                    // the base being switched to is one that refuses it — so a
+                    // refused pairing is never what gets stored.
+                    const next = entry.bases.find((b) => b.key === key);
+                    const carried =
+                      overlayOpt !== null &&
+                      next !== undefined &&
+                      !overlayNeedsZone(overlayOpt, next)
+                        ? overlayOpt.key
+                        : null;
+                    onSelectPacks(c.id, { base: key, overlay: carried });
+                  }}
                   className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
                 >
                   {entry.bases.map((b) => (
@@ -167,7 +183,11 @@ export function ChooserCard({
                 >
                   <option value="default">default</option>
                   {entry.overlays.map((o) => (
-                    <option key={o.key} value={o.key ?? 'default'}>
+                    <option
+                      key={o.key}
+                      value={o.key ?? 'default'}
+                      disabled={refused(o)}
+                    >
                       {o.label}
                       {o.version !== undefined ? ` ${o.version}` : ''}
                     </option>

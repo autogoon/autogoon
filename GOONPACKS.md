@@ -194,9 +194,9 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
   memory (see [The two kinds of pack](#the-two-kinds-of-pack)).
 - **`timezone`** is how an overlay moves a companion somewhere else. An overlay
-  that switches `usesRealTime` back on over a base that has no zone lists as
-  incompatible until it supplies one, because the pair leaves nothing to put on
-  the clock.
+  that switches `usesRealTime` back on needs a zone from somewhere, and the base
+  version chosen in the card is where it looks: paired with one that has no
+  zone, the overlay can't be selected until it carries a zone of its own.
 
 An overlay that changes only the companion's colour is just:
 

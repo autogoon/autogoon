@@ -57,10 +57,14 @@ export type Companion = {
   // rather than defaulted, like `media` and `mediaSummary`: no zone is a fact
   // about the companion, not a value waiting to be filled in.
   //
-  // The type allows `usesRealTime: true` with no zone, which validation
-  // refuses (parsePack, library.ts) — a discriminated union would make it
-  // unrepresentable, but applyOverlay builds a Companion by spreading the base
-  // and a union does not survive that.
+  // `usesRealTime: true` with no zone is invalid — a companion claiming a clock
+  // that nothing can render. parsePack refuses it in a complete pack's
+  // manifest, the chooser card disables the overlay/base pairings that would
+  // produce it, and applyOverlay throws on one that reaches it anyway. The type
+  // still admits it: expressing it would need a union discriminated on
+  // usesRealTime, and applyOverlay computes the two fields separately, so what
+  // it assembles types as `{ usesRealTime: boolean; timezone: string |
+  // undefined }` and matches neither arm.
   timezone?: string;
   usesRealTime: boolean; // false: the persona prompt supplies its own time of day
   knowsUserTime: boolean; // false: the user's clock (THEIR TIME) is not sent

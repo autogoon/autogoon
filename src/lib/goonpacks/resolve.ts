@@ -15,7 +15,7 @@ import {
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
-import type { PackManifest } from './manifest';
+import { PackError, type PackManifest } from './manifest';
 import { fillSharedSections } from './prompt';
 
 export type PackContent = {
@@ -132,6 +132,18 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     mediaSummary,
     systemPrompt: overlay.systemPrompt ?? base.systemPrompt,
   };
+  // A companion on real time with no zone claims a clock nothing can render:
+  // companionClockZone reads it as no clock, and they would play as though
+  // usesRealTime were false, which is not what the pack said. parsePack refuses
+  // the state in a complete pack's manifest; here it is refused for a pairing,
+  // where the overlay's zone and the base's are both known. The chooser card
+  // disables the pairing, so this catches a remembered selection whose base has
+  // changed under it — thrown at the pick, and shown on the setup view.
+  if (resolved.usesRealTime && resolved.timezone === undefined) {
+    throw new PackError(
+      'This overlay uses real time, but neither it nor the companion it changes has a timezone — choose a different base version, or give the overlay a timezone.',
+    );
+  }
   return {
     ...resolved,
     systemPrompt: fill(resolved.systemPrompt, resolved),

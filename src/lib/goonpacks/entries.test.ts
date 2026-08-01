@@ -8,9 +8,11 @@ import {
   keyId,
   keyVersion,
   newestFirst,
+  overlayNeedsZone,
   packKey,
   publisher,
   type LoadedPack,
+  type PackOption,
 } from './entries';
 import type { PackManifest } from './manifest';
 
@@ -156,6 +158,48 @@ describe('effectiveMedia', () => {
   });
 });
 
+describe('overlayNeedsZone', () => {
+  const opt = (extra: object): PackOption => ({
+    key: 'pub.o@1',
+    label: 'pub',
+    media: { images: 0, videos: 0 },
+    changed: [],
+    ...extra,
+  });
+  it('is false when the overlay inherits a zone from the base', () => {
+    expect(
+      overlayNeedsZone(
+        opt({ usesRealTime: true }),
+        opt({ usesRealTime: true, timezone: 'Europe/London' }),
+      ),
+    ).toBe(false);
+  });
+  it('is true when the overlay turns real time on over a base with no zone', () => {
+    expect(
+      overlayNeedsZone(
+        opt({ usesRealTime: true }),
+        opt({ usesRealTime: false }),
+      ),
+    ).toBe(true);
+  });
+  it('is false when the overlay carries a zone of its own', () => {
+    expect(
+      overlayNeedsZone(
+        opt({ usesRealTime: true, timezone: 'Asia/Tokyo' }),
+        opt({ usesRealTime: false }),
+      ),
+    ).toBe(false);
+  });
+  it('is false when the overlay turns real time off over a base with no zone', () => {
+    expect(overlayNeedsZone(opt({ usesRealTime: false }), opt({}))).toBe(false);
+  });
+  // Neither stating it is the common case: an overlay that changes a voice, on
+  // a base whose manifest left usesRealTime out.
+  it('is true when neither states usesRealTime and neither has a zone, since it defaults on', () => {
+    expect(overlayNeedsZone(opt({}), opt({}))).toBe(true);
+  });
+});
+
 describe('describeMedia', () => {
   it('counts pictures and videos, singular or plural', () => {
     expect(describeMedia({ images: 1, videos: 0 })).toBe('1 picture');
@@ -240,6 +284,41 @@ describe('buildEntries', () => {
         changed: [],
       },
     ]);
+  });
+
+  it("a base option carries its pack's clock fields", () => {
+    const entry = buildEntries([
+      complete('pub.comp', '1.0.0', {
+        companion: { timezone: 'Europe/Riga', usesRealTime: true },
+      }),
+    ]).find((e) => e.companion.id === 'pub.comp')!;
+    expect(entry.bases[0]).toMatchObject({
+      timezone: 'Europe/Riga',
+      usesRealTime: true,
+    });
+  });
+
+  it('an overlay option carries the clock fields it states itself', () => {
+    const base = BUILT_IN_IDS[0]!;
+    const entry = buildEntries([
+      overlay('pub.tokyo', '1.0.0', base, {
+        companion: { timezone: 'Asia/Tokyo', usesRealTime: true },
+      }),
+    ]).find((e) => e.companion.id === base)!;
+    expect(entry.overlays[0]).toMatchObject({
+      timezone: 'Asia/Tokyo',
+      usesRealTime: true,
+    });
+  });
+
+  // The built-in's base option is a literal rather than a parsed manifest, so
+  // this is where its clock would be forgotten.
+  it('an overlay stating no clock of its own needs no zone over a built-in', () => {
+    const base = BUILT_IN_IDS[0]!;
+    const entry = buildEntries([
+      overlay('pub.voice', '1.0.0', base, { companion: { voiceId: 'v2' } }),
+    ]).find((e) => e.companion.id === base)!;
+    expect(overlayNeedsZone(entry.overlays[0]!, entry.bases[0]!)).toBe(false);
   });
 
   it("lists an overlay's versions newest first, each with its changed slots in feature-line order", () => {
