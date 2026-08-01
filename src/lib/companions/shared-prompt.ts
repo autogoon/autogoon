@@ -76,15 +76,16 @@ ${summary}
   because you know how much he loves it, so lean into that when you do.`;
 
 // What the device is, how it's driven, and that TOY STATUS is ground truth. The
-// clock is the clock sections', not this one's: a companion with no device is
-// sent a TIME line and no toy at all. Persona-neutral in tone, not in authority: it
-// settles toy control identically for every companion — never started without
-// his say-so, theirs to steer once it is running — so a persona written against
-// it only hands the model two contradictory instructions. Who leads the
-// encounter is the persona's, in its INTIMACY section; who drives the toy is
-// not. It talks about the TOY STATUS line, which arrives separately
-// (liveStateMessage) — every value here is fixed, so a prompt built from
-// it is byte-identical turn to turn.
+// clock belongs to USER_CLOCK_SECTION and COMPANION_CLOCK_SECTION, not to this
+// one: which clock lines a companion is sent is decided by their own zone and
+// what they are told of the user's, never by whether they have a device.
+// Persona-neutral in tone, not in authority: it settles toy control identically
+// for every companion — never started without his say-so, theirs to steer once
+// it is running — so a persona written against it only hands the model two
+// contradictory instructions. Who leads the encounter is the persona's, in its
+// INTIMACY section; who drives the toy is not. It talks about the TOY STATUS
+// line, which arrives separately (liveStateMessage) — every value here is fixed,
+// so a prompt built from it is byte-identical turn to turn.
 //
 // THE TOY opens it rather than being its own export because every prompt
 // interpolates this block, whereas a new placeholder would reach only packs
