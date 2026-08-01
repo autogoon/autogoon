@@ -206,19 +206,24 @@ const threadKeyFor = (companion: Companion): string =>
 // before it are then byte-identical from turn to turn, which is what prompt
 // caching needs: providers match a prefix of tokens, so a single volatile value
 // early on makes every token after it uncacheable.
-const liveState = (companion: Companion, deviceState: string): LlmMessage => ({
-  role: 'system',
-  content: liveStateMessage({
-    userNow: companion.knowsUserTime
-      ? describeClock(Date.now(), browserTimeZone())
-      : undefined,
-    companionNow:
-      companion.usesRealTime && companion.timezone !== undefined
-        ? describeClock(Date.now(), companion.timezone)
+const liveState = (companion: Companion, deviceState: string): LlmMessage => {
+  // One reading for both lines: rendered from separate ones they can straddle a
+  // minute, and tell a companion in the user's own zone they are apart.
+  const now = Date.now();
+  return {
+    role: 'system',
+    content: liveStateMessage({
+      userNow: companion.knowsUserTime
+        ? describeClock(now, browserTimeZone())
         : undefined,
-    toyStatus: deviceState === '' ? 'unknown' : deviceState,
-  }),
-});
+      companionNow:
+        companion.usesRealTime && companion.timezone !== undefined
+          ? describeClock(now, companion.timezone)
+          : undefined,
+      toyStatus: deviceState === '' ? 'unknown' : deviceState,
+    }),
+  };
+};
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
