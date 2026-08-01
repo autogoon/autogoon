@@ -63,16 +63,17 @@ describe('fillSharedSections', () => {
     expect(filled).not.toContain('send_media');
   });
 
-  // The reason it is appended rather than offered as a {{token}}: a pack that
-  // never places one, or one with no device that drops CONTROL_SECTION, is
-  // still sent a TIME line and still has to know how to read it.
-  it('appends the time rules to a prompt that places no tokens at all', () => {
+  // The reason these are appended rather than offered as {{tokens}}: what a
+  // companion is sent is decided by their own clock settings, so a pack that
+  // places no token — or one with no device that drops CONTROL_SECTION — still
+  // gets the rules for the lines they do get.
+  it('appends the conversation rules to a prompt that places no tokens at all', () => {
     expect(
       fillSharedSections('just the persona', { knowsUserTime: true }),
     ).toBe(`just the persona${TAIL}`);
   });
 
-  it('appends the time rules even when the toy section is left out', () => {
+  it("appends the user's clock rules even when the toy section is left out", () => {
     const out = fillSharedSections('{{OUTPUT_FORMAT_SECTION}}', {
       knowsUserTime: true,
     });
