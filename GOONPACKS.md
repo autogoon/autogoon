@@ -177,8 +177,8 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 - **`knowsUserTime`** — `false` to withhold the time where _you_ are. Optional,
   `true` if omitted. Use it for a companion written as not knowing where you
   are: one who's told to ask rather than assume, or who gives nothing away about
-  place and time herself. With it left on, they're told your local clock and to
-  trust it over any hour their setup assumes.
+  place and time themselves. With it left on, they're told your local clock and
+  to trust it over any hour their setup assumes.
 
 ### Overlays
 
@@ -247,9 +247,9 @@ Direct that twice, because your companion cannot drive his hand:
 - what they do when he has no device — what they tell him to do to himself, how
   fast, when to stop.
 
-Both branches carry the same character. A companion who takes charge still takes
-charge with nothing connected; it comes out as instructions he chooses to follow
-rather than as something they do to him.
+A companion who takes charge still takes charge with nothing connected; it comes
+out as instructions he chooses to follow rather than as something they do to
+him.
 
 The app owns the mechanical rules as ready-made sections you pull in with
 `{{PLACEHOLDER}}` tokens: reply formatting, how the toy is driven, and how media

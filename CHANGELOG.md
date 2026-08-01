@@ -2,12 +2,11 @@
 
 ## 2026-08-01
 
-- feature: **A companion has a clock of their own** — A companion can now be
-  somewhere. Their pack says where, and they're told the real date and time
-  there — following daylight saving — beside the time where you are, so a
-  companion five hours behind you knows they're five hours behind you and can
-  say so. A persona that fixes its own time of day can turn the real clock off
-  instead, and a companion written as not knowing where you are can be told
+- feature: **A companion has a clock of their own** — Their pack says where they
+  are, and they're told the real date and time there — following daylight
+  saving — beside the time where you are, so a companion five hours behind you
+  can say so. A persona that fixes its own time of day can turn the real clock
+  off instead, and a companion written as not knowing where you are can be told
   nothing about your time at all.
 
 - enhancement: **A companion wants the toy in play** — Once a call turns sexual
@@ -23,10 +22,10 @@
 
 - internal: **Persona prompts no longer name the hardware** — A companion's own
   text says what they do to the user rather than naming the device or its
-  settings, and directs them for the case where there is nothing to drive; the
-  shared control section stays the single place the device is described. The
-  quiet-beat and `wait_for_user` rules moved out of that section into one every
-  companion is given. `CONTROL_SUMMARY_SECTION` is gone, and
+  settings, and says it for a user with nothing to drive as well as one with a
+  toy; the shared control section stays the single place the device is
+  described. The quiet-beat and `wait_for_user` rules moved out of that section
+  into one every companion is given. `CONTROL_SUMMARY_SECTION` is gone, and
   [GOONPACKS.md](./GOONPACKS.md) says what a persona should write instead.
 
 ## 2026-07-31

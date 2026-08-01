@@ -221,8 +221,8 @@ machine is. There is no way to say otherwise, and there are reasons to want to:
 - a scene set somewhere the user isn't;
 - being away from home, and wanting the companion to carry on as though you
   weren't;
-- not wanting a real location shared with the companion.
-- not wanting ANY time zone to be shared with the companion.
+- not wanting a real location shared with the companion;
+- not wanting any time zone at all shared with the companion.
 
 A setting holding an IANA zone, used when it is set and the browser's when it
 isn't, is the whole of it. `browserTimeZone` is already the one place deriving

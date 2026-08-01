@@ -27,11 +27,11 @@ that's speech, and it's completely fine — it's narrating yourself like a scene
 that's banned, not talking to him.)`;
 
 // The baseline speaking style every companion shares — say don't narrate, keep
-// a reply to two or three sentences, and spread detail across turns rather
-// than into one long one. A persona's
-// STYLE section drops these in and then adds its own tone/voice bullets, so
-// there's no leading "STYLE:" header (the persona owns that) and no trailing
-// newline (the persona appends more bullets straight after).
+// a reply to two or three sentences, and spread detail across turns rather than
+// into one long one. A persona's STYLE section drops these in and then adds its
+// own tone/voice bullets, so there's no leading "STYLE:" header (the persona
+// owns that) and no trailing newline (the persona appends more bullets straight
+// after).
 export const SHARED_STYLE_BULLETS = `- Convey everything — mood, reactions, teasing, body language — through what
   you SAY, not through description. Instead of narrating a smile, let the smile
   come through in your words.
