@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-01
+
+- feature: **A companion has a clock of their own** — A companion can now be
+  somewhere. Their pack says where, and they're told the real date and time
+  there — following daylight saving — beside the time where you are, so a
+  companion five hours behind you knows they're five hours behind you and can
+  say so. A persona that fixes its own time of day can turn the real clock off
+  instead, and a companion written as not knowing where you are can be told
+  nothing about your time at all.
+
 ## 2026-07-31
 
 - enhancement: **The browser tab says Autogoon** — The tab title and share card

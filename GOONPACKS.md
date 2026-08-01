@@ -113,7 +113,7 @@ separated by commas:
 ### The companion section — their fields
 
 Everything about the companion goes inside `companion: { … }`. For a **complete
-pack**, `name`, `description` and `voiceId` are required (plus the
+pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 `system-prompt.md` file next to the manifest); the rest are optional. An
 **overlay** includes only the fields it changes.
 
@@ -155,6 +155,31 @@ pack**, `name`, `description` and `voiceId` are required (plus the
   stops, so the gap between turns is always longer than that; the next line
   still has to be written and spoken first.
 
+- **`timezone`** — where your companion is _now_, as an IANA zone name like
+  `America/New_York` or `Europe/Riga`. Required on a complete pack, unless you
+  set `usesRealTime: false`. It's their location today, not where they're from:
+  an overlay that takes them somewhere else sets its own.
+
+  They're told the real date and time in that zone, refreshed every turn, and it
+  follows daylight saving. What they're told never names the place, only the
+  clock, so a companion whose prompt keeps their whereabouts vague stays vague.
+  They're also told this is theirs and not yours, and that you may be hours
+  ahead or behind.
+
+- **`usesRealTime`** — `false` if the persona sets its own time of day, and a
+  real clock would contradict it. Optional, `true` if omitted. A prompt opening
+  "it's evening and you've just finished filming" has fixed the hour, and a
+  companion told it's 8am will either ignore you or ignore the prompt; this is
+  how you say which one wins. The example pack's
+  [system-prompt.md](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/system-prompt.md)
+  is written that way — a late-night stream that's just wrapped.
+
+- **`knowsUserTime`** — `false` to withhold the time where _you_ are. Optional,
+  `true` if omitted. Use it for a companion written as not knowing where you
+  are: one who's told to ask rather than assume, or who gives nothing away about
+  place and time herself. With it left on, they're told your local clock and to
+  trust it over any hour their setup assumes.
+
 ### Overlays
 
 - **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
@@ -168,6 +193,10 @@ pack**, `name`, `description` and `voiceId` are required (plus the
   `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
   memory (see [The two kinds of pack](#the-two-kinds-of-pack)).
+- **`timezone`** is how an overlay moves a companion somewhere else. An overlay
+  that switches `usesRealTime` back on over a base that has no zone lists as
+  incompatible until it supplies one, because the pair leaves nothing to put on
+  the clock.
 
 An overlay that changes only the companion's colour is just:
 

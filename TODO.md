@@ -213,21 +213,9 @@ convenience.
 The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the server keys**.
 Its only job was protecting them.
 
-### Companion time zones
-
-A pack author can put a persona anywhere, but only the user's clock is real: the
-prompt's TIME line is the browser's.
-
-Give a located persona their own: an IANA `timezone` field and a second TIME
-line ("TIME (yours, in Riga): …"), so it can be the middle of their night while
-it is the middle of the user's day. The app does all the arithmetic, with no LLM
-offset math: models are passable at offsets and quietly wrong about DST.
-
-One rule ships with it: their clock shows up in what they say.
-
 ### The user's own time zone
 
-The user's TIME line comes from the browser's zone, so it says wherever the
+The THEIR TIME line comes from the browser's zone, so it says wherever the
 machine is. There is no way to say otherwise, and there are reasons to want to:
 
 - a scene set somewhere the user isn't;
@@ -237,9 +225,9 @@ machine is. There is no way to say otherwise, and there are reasons to want to:
 - not wanting ANY time zone to be shared with the companion.
 
 A setting holding an IANA zone, used when it is set and the browser's when it
-isn't, is the whole of it. [Companion time zones](#companion-time-zones) leaves
-one place deriving the user's clock, with everything below it taking a zone
-explicitly, so this is an extension of that and is best done after it.
+isn't, is the whole of it. `browserTimeZone` is already the one place deriving
+the user's clock, and everything below it takes a zone explicitly, so the
+setting has one call site to replace.
 
 ## Goonpacks
 
