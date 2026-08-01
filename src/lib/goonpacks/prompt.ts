@@ -26,7 +26,7 @@ export function fillSharedSections(
   opts: {
     mediaSummary?: string;
     companionTimeZone?: string;
-    knowsUserTime?: boolean;
+    knowsUserTime: boolean;
   },
 ): string {
   const filled = prompt.replace(
@@ -48,7 +48,7 @@ export function fillSharedSections(
   // they land once.
   const clocks = [
     opts.companionTimeZone === undefined ? undefined : COMPANION_CLOCK_SECTION,
-    opts.knowsUserTime === false ? undefined : USER_CLOCK_SECTION,
+    opts.knowsUserTime ? USER_CLOCK_SECTION : undefined,
     CONVERSATION_SECTION,
   ].filter((s): s is string => s !== undefined);
   return [filled, ...clocks].join('\n\n');

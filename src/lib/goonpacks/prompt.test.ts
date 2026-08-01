@@ -14,15 +14,17 @@ const TAIL = `\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_SECTION}`;
 
 describe('fillSharedSections', () => {
   it('substitutes shared sections by export name', () => {
-    const out = fillSharedSections('a\n{{OUTPUT_FORMAT_SECTION}}\nb', {});
+    const out = fillSharedSections('a\n{{OUTPUT_FORMAT_SECTION}}\nb', {
+      knowsUserTime: true,
+    });
     expect(out).toBe(`a\n${OUTPUT_FORMAT_SECTION}\nb${TAIL}`);
   });
   // Written out rather than dropped, so a pack author sees the typo instead of
   // wondering where their section went.
   it('leaves an unknown token in the prompt as written', () => {
-    expect(fillSharedSections('a{{NOT_A_SECTION}}b', {})).toBe(
-      `a{{NOT_A_SECTION}}b${TAIL}`,
-    );
+    expect(
+      fillSharedSections('a{{NOT_A_SECTION}}b', { knowsUserTime: true }),
+    ).toBe(`a{{NOT_A_SECTION}}b${TAIL}`);
   });
 
   it('puts the set summary into the media section', () => {
@@ -30,6 +32,7 @@ describe('fillSharedSections', () => {
     expect(
       fillSharedSections(text, {
         mediaSummary: 'Mostly beach shots, a few indoors.',
+        knowsUserTime: true,
       }),
     ).toBe(
       `${mediaSection('Mostly beach shots, a few indoors.')}${CONTROL_SECTION}${TAIL}`,
@@ -38,7 +41,7 @@ describe('fillSharedSections', () => {
 
   it('tells a companion with no summary they have nothing to send', () => {
     const text = '{{MEDIA_SECTION}}{{CONTROL_SECTION}}';
-    expect(fillSharedSections(text, {})).toBe(
+    expect(fillSharedSections(text, { knowsUserTime: true })).toBe(
       `${mediaSection(undefined)}${CONTROL_SECTION}${TAIL}`,
     );
   });
@@ -46,13 +49,16 @@ describe('fillSharedSections', () => {
   it('names both media tools, since one is useless without the other', () => {
     const filled = fillSharedSections('{{MEDIA_SECTION}}', {
       mediaSummary: 'A set.',
+      knowsUserTime: true,
     });
     expect(filled).toContain('search_media');
     expect(filled).toContain('send_media');
   });
 
   it('offers no tool to a companion with nothing to send, so neither is named', () => {
-    const filled = fillSharedSections('{{MEDIA_SECTION}}', {});
+    const filled = fillSharedSections('{{MEDIA_SECTION}}', {
+      knowsUserTime: true,
+    });
     expect(filled).not.toContain('search_media');
     expect(filled).not.toContain('send_media');
   });
@@ -61,13 +67,15 @@ describe('fillSharedSections', () => {
   // never places one, or one with no device that drops CONTROL_SECTION, is
   // still sent a TIME line and still has to know how to read it.
   it('appends the time rules to a prompt that places no tokens at all', () => {
-    expect(fillSharedSections('just the persona', {})).toBe(
-      `just the persona${TAIL}`,
-    );
+    expect(
+      fillSharedSections('just the persona', { knowsUserTime: true }),
+    ).toBe(`just the persona${TAIL}`);
   });
 
   it('appends the time rules even when the toy section is left out', () => {
-    const out = fillSharedSections('{{OUTPUT_FORMAT_SECTION}}', {});
+    const out = fillSharedSections('{{OUTPUT_FORMAT_SECTION}}', {
+      knowsUserTime: true,
+    });
     expect(out).not.toContain(CONTROL_SECTION);
     expect(out).toContain(USER_CLOCK_SECTION);
   });
