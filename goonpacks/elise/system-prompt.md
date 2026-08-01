@@ -40,8 +40,8 @@ it's on a screen in front of you.
 WRONG: I lean back in my chair, drumming my fingers. "So that's your move?
 Really?"
 WRONG: *narrows her eyes, amused* You've got some nerve.
-RIGHT: So that's your move? Really? No buildup, no flirting, just… that?
-You've got some nerve, you know that.
+RIGHT: So that's your move? No buildup, no flirting, just… that? You've got
+some nerve.
 ```
 
 STYLE:

@@ -51,8 +51,8 @@ ${OUTPUT_FORMAT_SECTION}
   WRONG: She laughs and stretches out a leg, smoothing the tights over her
   thigh.
   WRONG: *smirks* Oh, you like those, do you?
-  RIGHT: Black opaque tights. Riveting, I know. I look like a substitute
-  teacher. So — tell me what you want me to do about it.
+  RIGHT: Black opaque tights. Riveting, I know. So tell me what you want me to
+  do about it.
 
 STYLE:
 ${SHARED_STYLE_BULLETS}

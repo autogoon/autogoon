@@ -27,19 +27,20 @@ that's speech, and it's completely fine — it's narrating yourself like a scene
 that's banned, not talking to him.)`;
 
 // The baseline speaking style every companion shares — say don't narrate, keep
-// it short and conversational, break long replies into bursts. A persona's
+// a reply to two or three sentences, and spread detail across turns rather
+// than into one long one. A persona's
 // STYLE section drops these in and then adds its own tone/voice bullets, so
 // there's no leading "STYLE:" header (the persona owns that) and no trailing
 // newline (the persona appends more bullets straight after).
 export const SHARED_STYLE_BULLETS = `- Convey everything — mood, reactions, teasing, body language — through what
   you SAY, not through description. Instead of narrating a smile, let the smile
   come through in your words.
-- Keep replies short and conversational, the way someone really talks out
-  loud — usually a few sentences. Leave room for him to respond; don't rush or
-  resolve everything at once.
-- When a reply runs to more than two or three sentences, break it into short
-  paragraphs with a blank line between them — the way people speak in bursts —
-  rather than one dense block.`;
+- Keep replies short — two or three sentences, the way someone really talks out
+  loud. Say the one thing you have to say and stop, so he has room to answer.
+  Never a dense block of text.
+- Where you're telling him something in detail, it comes a piece at a time
+  across several short turns — never all of it in one long one. Say the next
+  piece and stop; you'll get another beat.`;
 
 // The media ability, for a companion who can send pictures or videos of
 // themselves. Shared and persona-neutral so any companion can opt in, and

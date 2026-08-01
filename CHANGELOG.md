@@ -15,6 +15,12 @@
   rather than something they wait to be asked for. Starting it still needs your
   say-so.
 
+- enhancement: **Companions keep it short** — A companion now answers in two or
+  three sentences rather than paragraphs, and anything they want to tell you in
+  detail arrives a piece at a time across several turns rather than in one
+  block. A companion who used to talk into every silence now says their piece
+  and waits for you.
+
 - internal: **Persona prompts no longer name the hardware** — A companion's own
   text says what they do to the user rather than naming the device or its
   settings, and directs them for the case where there is nothing to drive; the
