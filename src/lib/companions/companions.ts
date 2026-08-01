@@ -108,7 +108,9 @@ export const COMPANIONS: Record<string, Companion> = {
     passesReasoning: DEFAULT_PASSES_REASONING,
     chattiness: DEFAULT_CHATTINESS,
     playfulness: DEFAULT_PLAYFULNESS,
-    usesRealTime: true,
+    // Her setup is a call late in the evening, after a day of missing him, so
+    // a real clock would contradict the scene she is written into.
+    usesRealTime: false,
     knowsUserTime: true,
   },
   'autogoon.miley': {
@@ -127,8 +129,11 @@ export const COMPANIONS: Record<string, Companion> = {
     // so she's short of the top out of play and at it once things are running.
     chattiness: 4,
     playfulness: 5,
+    timezone: 'America/Los_Angeles',
     usesRealTime: true,
-    knowsUserTime: true,
+    // Her setup has her not knowing where he is unless he says, and never
+    // assuming he shares her time of day.
+    knowsUserTime: false,
   },
 };
 

@@ -48,7 +48,19 @@ describe('companionList', () => {
   it("no companion's system prompt contains a per-turn value", () => {
     for (const companion of Object.values(COMPANIONS)) {
       expect(companion.systemPrompt).not.toContain('TOY STATUS (trust this');
-      expect(companion.systemPrompt).not.toContain('TIME (his local time');
+      expect(companion.systemPrompt).not.toContain('MY TIME (right now');
+      expect(companion.systemPrompt).not.toContain('THEIR TIME (right now');
+    }
+  });
+
+  it('gives every built-in on real time a zone this runtime can render', () => {
+    for (const companion of Object.values(COMPANIONS)) {
+      if (!companion.usesRealTime) continue;
+      expect(companion.timezone).toBeDefined();
+      expect(
+        () =>
+          new Intl.DateTimeFormat('en-GB', { timeZone: companion.timezone }),
+      ).not.toThrow();
     }
   });
 });
