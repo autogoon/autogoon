@@ -206,10 +206,16 @@ const threadKeyFor = (companion: Companion): string =>
 // before it are then byte-identical from turn to turn, which is what prompt
 // caching needs: providers match a prefix of tokens, so a single volatile value
 // early on makes every token after it uncacheable.
-const liveState = (deviceState: string): LlmMessage => ({
+const liveState = (companion: Companion, deviceState: string): LlmMessage => ({
   role: 'system',
   content: liveStateMessage({
-    userNow: describeClock(Date.now(), browserTimeZone()),
+    userNow: companion.knowsUserTime
+      ? describeClock(Date.now(), browserTimeZone())
+      : undefined,
+    companionNow:
+      companion.usesRealTime && companion.timezone !== undefined
+        ? describeClock(Date.now(), companion.timezone)
+        : undefined,
     toyStatus: deviceState === '' ? 'unknown' : deviceState,
   }),
 });
@@ -377,7 +383,7 @@ export function useVoiceSession(opts: {
         companion.systemPrompt,
         companion.passesReasoning,
       ),
-      liveState(deviceState),
+      liveState(companion, deviceState),
     ];
   }, []);
 
@@ -595,7 +601,7 @@ export function useVoiceSession(opts: {
           );
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
-          baseMessages.push(liveState(getDeviceStateRef.current()));
+          baseMessages.push(liveState(companion, getDeviceStateRef.current()));
           // An ambient turn has no message to answer: the timer fired, not the
           // user, so the cue stands in for one (see AMBIENT_CUE). It goes after
           // the state, to read as the last thing asked of them, and only on
@@ -717,7 +723,7 @@ export function useVoiceSession(opts: {
               companion.systemPrompt,
               companion.passesReasoning,
             );
-            messages.push(liveState(getDeviceStateRef.current()));
+            messages.push(liveState(companion, getDeviceStateRef.current()));
 
             if (round === MAX_TOOL_ROUNDS) {
               owedReaction = true;

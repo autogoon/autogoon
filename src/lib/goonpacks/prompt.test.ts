@@ -71,4 +71,34 @@ describe('fillSharedSections', () => {
     expect(out).not.toContain(CONTROL_SECTION);
     expect(out).toContain(USER_CLOCK_SECTION);
   });
+
+  it("appends the companion's clock rules when the companion has a zone", () => {
+    expect(
+      fillSharedSections('PERSONA', {
+        companionTimeZone: 'Asia/Tokyo',
+        knowsUserTime: true,
+      }),
+    ).toContain('MY TIME');
+  });
+
+  it("leaves the companion's clock rules out when the companion has no zone", () => {
+    expect(
+      fillSharedSections('PERSONA', { knowsUserTime: true }),
+    ).not.toContain('MY TIME');
+  });
+
+  it("leaves the user's clock rules out when the user's time is withheld", () => {
+    expect(
+      fillSharedSections('PERSONA', {
+        companionTimeZone: 'Asia/Tokyo',
+        knowsUserTime: false,
+      }),
+    ).not.toContain('THEIR TIME');
+  });
+
+  it('appends the conversation-gap rules whatever the clocks are', () => {
+    expect(fillSharedSections('PERSONA', { knowsUserTime: false })).toContain(
+      '3 hours pass',
+    );
+  });
 });

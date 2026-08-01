@@ -7,6 +7,7 @@ import {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
   USER_CLOCK_SECTION,
+  COMPANION_CLOCK_SECTION,
   CONVERSATION_GAPS_SECTION,
   mediaSection,
 } from '@/lib/companions/shared-prompt';
@@ -24,7 +25,11 @@ const SECTIONS: Record<string, string> = {
 
 export function fillSharedSections(
   prompt: string,
-  opts: { mediaSummary?: string },
+  opts: {
+    mediaSummary?: string;
+    companionTimeZone?: string;
+    knowsUserTime?: boolean;
+  },
 ): string {
   const filled = prompt.replace(
     /\{\{([A-Z0-9_]+)\}\}/g,
@@ -38,10 +43,15 @@ export function fillSharedSections(
       return SECTIONS[name] ?? token;
     },
   );
-  // Appended rather than offered as a token: every companion is sent a TIME
-  // line, so every companion has to be told how to read it. A token can be left
-  // out — by a pack author who never heard of it, or by one with no device that
-  // places no {{CONTROL_SECTION}}. Called once per companion (resolve.ts), so
-  // it lands once.
-  return `${filled}\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_GAPS_SECTION}`;
+  // Appended rather than offered as {{tokens}}: a pack author who never heard
+  // of these would leave their companion unable to read a line they are still
+  // sent. Each block goes only when its line does, so no companion is told how
+  // to read a line they never get. Called once per companion (resolve.ts), so
+  // they land once.
+  const clocks = [
+    opts.companionTimeZone === undefined ? undefined : COMPANION_CLOCK_SECTION,
+    opts.knowsUserTime === false ? undefined : USER_CLOCK_SECTION,
+    CONVERSATION_GAPS_SECTION,
+  ].filter((s): s is string => s !== undefined);
+  return [filled, ...clocks].join('\n\n');
 }

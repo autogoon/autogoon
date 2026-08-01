@@ -27,13 +27,19 @@ export type PackContent = {
 // there is one. A pack with media always has one (parsePack refuses otherwise),
 // so this is the same rule as "has media" with one input instead of two that
 // could disagree.
-function fill(prompt: string, mediaSummary: string | undefined) {
-  return fillSharedSections(prompt, { mediaSummary });
+function fill(prompt: string, companion: Companion) {
+  return fillSharedSections(prompt, {
+    mediaSummary: companion.mediaSummary,
+    // A zone that is not used explains nothing, so a companion off real time
+    // gets no clock rules of their own however their pack set the zone.
+    companionTimeZone: companion.usesRealTime ? companion.timezone : undefined,
+    knowsUserTime: companion.knowsUserTime,
+  });
 }
 
 // A built-in (or complete pack) played as-is — "default" in the variant list.
 export function resolveDefault(base: Companion): Companion {
-  return { ...base, systemPrompt: fill(base.systemPrompt, base.mediaSummary) };
+  return { ...base, systemPrompt: fill(base.systemPrompt, base) };
 }
 
 // Pack → Companion with the prompt left UNFILLED — for a pack used as an
@@ -74,7 +80,7 @@ export function packToCompanionRaw(pack: PackContent): Companion {
 // imported complete pack. Fills once, here.
 export function packToCompanion(pack: PackContent): Companion {
   const raw = packToCompanionRaw(pack);
-  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.mediaSummary) };
+  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw) };
 }
 
 // A thread's persisted media ref → the live entry, or null when the referenced
@@ -108,8 +114,9 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
       : overlayBringsMedia
         ? m.mediaSummary
         : base.mediaSummary;
-  const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
-  return {
+  // The resolved companion first, so the fill reads the clock the overlay
+  // settled rather than the base's.
+  const resolved: Companion = {
     ...base, // id stays the base's — thread ownership; so do name and gender
     description: c.description ?? base.description,
     accentColour: c.accentColour ?? base.accentColour,
@@ -124,6 +131,10 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     knowsUserTime: c.knowsUserTime ?? base.knowsUserTime,
     media,
     mediaSummary,
-    systemPrompt: fill(rawPrompt, mediaSummary),
+    systemPrompt: overlay.systemPrompt ?? base.systemPrompt,
+  };
+  return {
+    ...resolved,
+    systemPrompt: fill(resolved.systemPrompt, resolved),
   };
 }
