@@ -63,7 +63,7 @@ export type Companion = {
   // and a union does not survive that.
   timezone?: string;
   usesRealTime: boolean; // false: the persona prompt supplies its own time of day
-  knowsUserTime: boolean; // false: no THEIR TIME line is sent
+  knowsUserTime: boolean; // false: the user's clock (THEIR TIME) is not sent
   // The media they can send during a session — filled by an installed goonpack
   // (src/lib/goonpacks/), and valid media only, so every entry is one they can
   // actually be offered. Empty (or omitted) for a companion with no pack
