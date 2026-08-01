@@ -3,14 +3,14 @@ import {
   CONTROL_SECTION,
   OUTPUT_FORMAT_SECTION,
   USER_CLOCK_SECTION,
-  CONVERSATION_GAPS_SECTION,
+  CONVERSATION_SECTION,
   mediaSection,
 } from '@/lib/companions/shared-prompt';
 import { fillSharedSections } from './prompt';
 
 // Every assembled prompt ends with the clock rules that apply to it, so each
 // expectation carries them too.
-const TAIL = `\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_GAPS_SECTION}`;
+const TAIL = `\n\n${USER_CLOCK_SECTION}\n\n${CONVERSATION_SECTION}`;
 
 describe('fillSharedSections', () => {
   it('substitutes shared sections by export name', () => {

@@ -10,6 +10,19 @@
   instead, and a companion written as not knowing where you are can be told
   nothing about your time at all.
 
+- enhancement: **A companion wants the toy in play** — Once a call turns sexual
+  a companion now treats driving the toy as part of what they're there for,
+  rather than something they wait to be asked for. Starting it still needs your
+  say-so.
+
+- internal: **Persona prompts no longer name the hardware** — A companion's own
+  text says what they do to the user rather than naming the device or its
+  settings, and directs them for the case where there is nothing to drive; the
+  shared control section stays the single place the device is described. The
+  quiet-beat and `wait_for_user` rules moved out of that section into one every
+  companion is given. `CONTROL_SUMMARY_SECTION` is gone, and
+  [GOONPACKS.md](./GOONPACKS.md) says what a persona should write instead.
+
 ## 2026-07-31
 
 - enhancement: **The browser tab says Autogoon** — The tab title and share card

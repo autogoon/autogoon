@@ -231,6 +231,26 @@ it in a persona does not override it. Both texts reach the model in the same
 prompt, so all you have done is made it choose, and the rule it might drop is
 the one about consent.
 
+**Don't name the device or assume there is one.** The app describes what he's
+using, what it does to him and what its settings are called. A persona that says
+"the toy", "the machine", or names a setting is written against one piece of
+hardware, and reads wrong the day it's different hardware — or the day he has
+none and is using his own hand.
+
+**Say how your companion goes about it, in both cases.** This part _is_ yours,
+and it is where a persona differs most from the next one: one is forward about
+it and will ask for it before he offers, another hangs back and wants telling.
+Direct that twice, because your companion cannot drive his hand:
+
+- what they do when he has a toy they can drive — turning him up, holding him
+  where they want him, following his lead;
+- what they do when he has no device — what they tell him to do to himself, how
+  fast, when to stop.
+
+Both branches carry the same character. A companion who takes charge still takes
+charge with nothing connected; it comes out as instructions he chooses to follow
+rather than as something they do to him.
+
 The app owns the mechanical rules as ready-made sections you pull in with
 `{{PLACEHOLDER}}` tokens: reply formatting, how the toy is driven, and how media
 is sent. Put a token on its own line where that section should land:
@@ -239,10 +259,9 @@ is sent. Put a token on its own line where that section should land:
   stage directions). Include it in every persona.
 - **`{{SHARED_STYLE_BULLETS}}`** — baseline speaking style bullets; put them
   under your own STYLE heading and add the companion's own after.
-- **`{{CONTROL_SUMMARY_SECTION}}`** — a short "you control the toy" summary for
-  mid-persona placement.
-- **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once, near
-  the end.
+- **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once,
+  before the part of your persona describing how they behave during play: it is
+  what tells them what he's using, so your own bullets can act on it.
 - **`{{MEDIA_SECTION}}`** — how they search for and send pictures and videos.
   Safe to include either way. With media it carries your pack's own
   `mediaSummary`, which tells them what their set holds and so what there is to

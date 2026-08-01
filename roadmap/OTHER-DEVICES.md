@@ -59,6 +59,16 @@ Open questions:
   Prototype this before designing it. Write one companion three ways (Vacuglide,
   another stroker, hand only) and see how much survives in common.
 
+- **A pack that is device-bound on purpose.** Asking whether a persona can be
+  device-neutral assumes every persona wants to be, and some don't: where the
+  device is part of who the companion is — why they chose him, what the scene is
+  arranged around — rewriting it for a hand produces a different character, not
+  the same one with a section swapped. So the manifest field is wanted from both
+  sides: a neutral pack declaring its reach, a bound pack declaring what it
+  requires, and the app hiding or refusing one it can't satisfy.
+  [GOONPACKS.md](../GOONPACKS.md) tells pack authors not to name the device or
+  assume there is one, and would need to say when a pack may.
+
 - **The play modes without a device.** Goon, Groove and Autopilot exist to
   generate a program for hardware. Autopilot is a faithful recreation of
   Autoblow's Autopilot, so it can't travel to another device either. With no

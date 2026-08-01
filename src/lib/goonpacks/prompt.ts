@@ -3,12 +3,11 @@
 // "System prompt placeholders").
 import {
   CONTROL_SECTION,
-  CONTROL_SUMMARY_SECTION,
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
   USER_CLOCK_SECTION,
   COMPANION_CLOCK_SECTION,
-  CONVERSATION_GAPS_SECTION,
+  CONVERSATION_SECTION,
   mediaSection,
 } from '@/lib/companions/shared-prompt';
 
@@ -19,7 +18,6 @@ import {
 const SECTIONS: Record<string, string> = {
   OUTPUT_FORMAT_SECTION,
   SHARED_STYLE_BULLETS,
-  CONTROL_SUMMARY_SECTION,
   CONTROL_SECTION,
 };
 
@@ -51,7 +49,7 @@ export function fillSharedSections(
   const clocks = [
     opts.companionTimeZone === undefined ? undefined : COMPANION_CLOCK_SECTION,
     opts.knowsUserTime === false ? undefined : USER_CLOCK_SECTION,
-    CONVERSATION_GAPS_SECTION,
+    CONVERSATION_SECTION,
   ].filter((s): s is string => s !== undefined);
   return [filled, ...clocks].join('\n\n');
 }
