@@ -1,11 +1,9 @@
-// The Settings control for whether the app takes the microphone at load. Owns
-// its own state rather than taking it from above: nothing else on screen
-// changes when it does, because the spotter reads the stored value once at load
-// (see listen-on-load.ts).
+// The Settings control for whether the app takes the microphone at load. It
+// holds its own state. Nothing else on screen depends on the value, because the
+// spotter reads it once during startup (see listen-on-load.ts).
 //
-// Read after mount, not during render — localStorage doesn't exist on the
-// server, and a first render that disagreed with the second would hydrate
-// wrong.
+// The read happens after mount, not during render. localStorage doesn't exist
+// on the server, and a first render disagreeing with the second hydrates wrong.
 
 import { useEffect, useState } from 'react';
 import { Segmented } from '@/components/segmented';
@@ -32,8 +30,8 @@ export function ListenOnLoadField() {
         setOn(listen);
         setListensOnLoad(listen);
       }}
-      // Until the stored value has been read there is nothing true to show, so
-      // the control can't be pressed into disagreeing with it.
+      // Before the read lands there is nothing true to show. Pressing it then
+      // would write a value the reviewer never saw.
       disabled={on === null}
     />
   );

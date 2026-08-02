@@ -5,7 +5,7 @@
 - enhancement: **The app no longer takes the microphone by itself** — Opening
   Autogoon used to start listening for spoken commands straight away, so a tab
   left open held the mic all day. It now waits until you press Listen, and a new
-  Microphone setting turns the old behaviour back on for anyone who wants it.
+  Microphone setting turns the old behaviour back on.
 
 - enhancement: **Segmented controls show a hover** — The Intensity and
   variability options gave no feedback under the pointer. An unselected segment

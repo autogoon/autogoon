@@ -246,7 +246,9 @@ on load and cached by the browser.
 
 There is **one** recognizer, owned by `KeywordSpotterProvider`
 (`src/components/keyword-spotter.tsx`) at the top of the tree, so it keeps
-listening across screen changes. Its grammar has three slots:
+listening across screen changes. It starts when the Listen control is pressed,
+or on load where Settings asks it to (`src/lib/listen-on-load.ts`); until then
+nothing is captured and no word is heard. Its grammar has three slots:
 
 - the **global** words, set by the page via `setGlobalWords`;
 - the **play mode** words, set by the active panel via `setPlayModeKeywords`,

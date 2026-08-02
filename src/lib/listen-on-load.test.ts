@@ -4,7 +4,11 @@
 // The stored preference, and what it reads as when storage says something
 // unexpected — the answer decides whether a tab holds the microphone.
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { listensOnLoad, setListensOnLoad } from './listen-on-load';
+import {
+  LISTEN_ON_LOAD_STORAGE_KEY,
+  listensOnLoad,
+  setListensOnLoad,
+} from './listen-on-load';
 
 describe('listensOnLoad', () => {
   beforeEach(() => {
@@ -23,7 +27,7 @@ describe('listensOnLoad', () => {
   });
 
   it('reads a value it does not recognise as off', () => {
-    localStorage.setItem('autogoon-listen-on-load', 'yes');
+    localStorage.setItem(LISTEN_ON_LOAD_STORAGE_KEY, 'yes');
     expect(listensOnLoad()).toBe(false);
   });
 });

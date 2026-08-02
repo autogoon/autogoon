@@ -301,11 +301,10 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     }
   }, [listening, start, stop]);
 
-  // Start as soon as the model is ready, but only where Settings has asked for
-  // it (see listensOnLoad) — otherwise the mic is never touched until Listen is
-  // pressed. Read here rather than watched: it decides what happens at load, so
-  // changing it applies to the next one. Guarded so it fires only once — a
-  // manual stop stays stopped.
+  // Start as soon as the model is ready, where Settings has asked for it (see
+  // listensOnLoad). Otherwise the mic is never touched until Listen is pressed.
+  // The value is read here, not watched. Changing it applies to the next load.
+  // Guarded to fire only once, so a manual stop stays stopped.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (!modelReady || autoStartedRef.current) return;

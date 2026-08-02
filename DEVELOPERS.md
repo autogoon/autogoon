@@ -138,10 +138,12 @@ return a WebAudio-built `MediaStream`. The test plays a committed wav of a
 synthesized play mode name into it once, then asserts the app heard it and
 navigated to that play mode's screen.
 
-Two hard-won details are required for the test to pass at all: the stub's
-always-on silence source, and the pre-pipeline activation click. Both are
-commented in place in `tests/e2e/voice-tab-switch.spec.ts`; read them before
-writing more voice tests.
+Three details are required for the test to pass at all: the stub's always-on
+silence source, the pre-pipeline activation click, and seeding the
+listen-on-load preference before the page loads — the app waits for Listen
+otherwise, and the setting is read during startup, so it can't be turned on
+through Settings once the app is up. All three are commented in place in
+`tests/e2e/voice-tab-switch.spec.ts`; read them before writing more voice tests.
 
 Fixtures are committed under `tests/fixtures/`; regenerate them with
 `tests/fixtures/generate.sh` (macOS only — it uses `say`).

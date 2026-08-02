@@ -18,7 +18,9 @@
 );
 /* Segmented controls build every state from their `variant` colour name: the
    selected segment's fill, its own hover, and the preview an unselected one
-   shows. */
+   shows. The colours here and SegmentedVariant in segmented.tsx are two halves
+   of one list — a colour a caller can name but Tailwind never built renders
+   unstyled, and nothing reports it. */
 @source inline(
   "bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-600"
 );

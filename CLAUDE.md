@@ -86,8 +86,9 @@ session links. When a doc or plan needs a concrete path, genericize it
   stub playing a committed wav fixture) — everything downstream (worklet, vosk,
   command routing) is real. Read the Testing section in
   [DEVELOPERS.md](./DEVELOPERS.md#testing) before writing more voice tests: the
-  stub's always-on silence source and the pre-pipeline activation click are both
-  required, and the test fails in ways that don't name them if either goes.
+  stub's always-on silence source, the pre-pipeline activation click and the
+  seeded listen-on-load preference are all required, and the test fails in ways
+  that don't name them if any goes.
 
 Tests are a floor, not the whole gate: the app drives physical hardware, so
 behaviour changes still want `npm run typecheck` + `npm run build` plus driving
@@ -418,12 +419,15 @@ things worth knowing up front:
   out of the grammar. `useVoiceCommands` (`src/hooks/use-voice-commands.ts`)
   registers the active panel's enabled words with the recognizer and routes
   detections back.
-- **Voice-first**: the app is operated hands-free, so nearly every interactive
-  control should also be a voice command — when adding a control, give it a word
-  (and the on-screen voice-command chip that comes with it) by default. The
-  exceptions are free-text input (the safe word field) and continuous input
-  better served by discrete step words (a slider gets `more`/`less`-style steps,
-  not a spoken value).
+- **Voice-first in play**: play is operated hands-free, so nearly every control
+  on a play mode's screens — and the navigation that reaches them — should also
+  be a voice command; when adding one, give it a word (and the on-screen
+  voice-command chip that comes with it) by default. **Settings are not play.**
+  A preference is set once, with a free hand, and every word in the grammar is
+  another the recognizer can mishear mid-session. The other exceptions are
+  free-text input (the safe word field) and continuous input better served by
+  discrete step words (a slider gets `more`/`less`-style steps, not a spoken
+  value).
 - **Engines are intentionally self-contained**: they do not import from each
   other. Goon deliberately duplicates Groove's generation helpers rather than
   sharing a module — a chosen boundary, so don't refactor engines into a shared
@@ -446,9 +450,11 @@ things worth knowing up front:
   prompts are filled once, at load (`fillSharedSections`). Nothing fails when
   this breaks; the Companions debug tab's "Prompt cached" row is the only
   symptom.
-- **The safe word is always heard**: the app ignores `stop` in some states, and
-  never ignores the safe word. Anything touching the grammar, the recognizer's
-  lifetime, or the screens a word has to survive keeps that true.
+- **The safe word is heard whenever any word is**: the app ignores `stop` in
+  some states, and never ignores the safe word. Anything touching the grammar,
+  the recognizer's lifetime, or the screens a word has to survive keeps that
+  true. The one case outside it is the microphone being off — no word reaches
+  the app at all then.
 - **Nothing derived is persisted**: one notion of a valid pack, rebuilt from the
   OPFS trees at every load, so no second store can drift out of step. A cache,
   index or summary written to disk needs an answer for the day it disagrees with

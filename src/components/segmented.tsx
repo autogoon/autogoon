@@ -3,6 +3,29 @@
 
 import { Button } from '@/components/button';
 
+// The palette a variant may name. This list decides what a caller may ask for.
+// The `@source inline` lines in globals.css decide which classes Tailwind
+// builds. They are two halves of one list and change together — a colour in one
+// and not the other renders unstyled, and nothing reports it.
+export type SegmentedVariant =
+  | 'red'
+  | 'orange'
+  | 'amber'
+  | 'yellow'
+  | 'lime'
+  | 'green'
+  | 'emerald'
+  | 'teal'
+  | 'cyan'
+  | 'sky'
+  | 'blue'
+  | 'indigo'
+  | 'violet'
+  | 'purple'
+  | 'fuchsia'
+  | 'pink'
+  | 'rose';
+
 export function Segmented<T extends string>({
   options,
   value,
@@ -13,20 +36,19 @@ export function Segmented<T extends string>({
   options: ReadonlyArray<{ value: T; label: string; voiceCommand?: string }>;
   value: T;
   onChange: (value: T) => void;
-  // The selected segment's colour, as a palette name (`blue`, `purple`). Both
-  // the fill and its half-strength hover are built from it here rather than
-  // passed in, so the two can't drift; neither appears literally in any source
-  // file, so both shapes are safelisted in globals.css. Omitted is the neutral
-  // treatment, for a control that isn't a play mode's.
-  variant?: string;
+  // The selected segment's colour. Every state is built from it here, not
+  // passed in, which keeps them in step. None of the resulting classes appears
+  // literally in any source file; all are safelisted in globals.css. Omitted is
+  // the neutral treatment, for a control that isn't a play mode's.
+  variant?: SegmentedVariant;
   // Gates every segment together. This and the matching Command's `enabled`
   // must be the same flag, or a word leaves the grammar while its segment still
   // runs. Required, not defaulted: an omitted gate is the defect this exists to
   // prevent.
   disabled: boolean;
 }) {
-  // Hover lands on both: the selected segment lightens a little, an unselected
-  // one previews the colour it would take. Neither fires while disabled.
+  // Both states carry a hover. The selected segment lightens; an unselected one
+  // previews the colour it would take. Neither fires while disabled.
   const selected =
     variant === undefined
       ? 'bg-secondary text-secondary-foreground enabled:hover:bg-secondary/80'
