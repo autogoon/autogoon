@@ -60,7 +60,12 @@ const validPack = (key: string): Record<string, string> => ({
     version: key.slice(key.indexOf('@') + 1),
     aboutThePack: 'a storage test pack',
     mediaSummary: 'One still.',
-    companion: { name: 'Storey', voiceId: 'v-e2e' },
+    companion: {
+      name: 'Storey',
+      description: 'e2e storage fixture',
+      voiceId: 'v-e2e',
+      timezone: 'Europe/London',
+    },
   }),
   'system-prompt.md': 'You are Storey.',
   'media/one.png': '',

@@ -21,6 +21,7 @@ const completePack = zipSync({
         description: 'e2e import fixture',
         voiceId: 'v-e2e',
         accentColour: 'teal',
+        timezone: 'Europe/London',
       },
     }),
   ),
