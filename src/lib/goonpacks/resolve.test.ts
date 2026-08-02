@@ -268,7 +268,14 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
 });
 
 describe('packToCompanion', () => {
-  const completePack = (companion: CompanionConfig) => ({
+  const completePack = (
+    companion: CompanionConfig,
+    top: {
+      model?: string;
+      contextWindow?: number;
+      passesReasoning?: boolean;
+    } = {},
+  ) => ({
     manifest: {
       format: 1,
       id: 'some.one',
@@ -276,6 +283,7 @@ describe('packToCompanion', () => {
       aboutThePack: 'a complete pack',
       intro: 'a scene the pack opens on',
       mediaSummary: 'Pack set.',
+      ...top,
       companion,
     },
     systemPrompt: 'p\n{{MEDIA_SECTION}}',
@@ -303,6 +311,23 @@ describe('packToCompanion', () => {
       completePack({ name: 'One', description: 'quiet', voiceId: 'v1' }),
     );
     expect(c.description).toBe('quiet');
+  });
+  it("runs on the pack's own model, window and reasoning setting", () => {
+    const c = packToCompanion(
+      completePack(
+        { name: 'One', voiceId: 'v1' },
+        {
+          model: 'openrouter/pack-13b',
+          contextWindow: 300_000,
+          passesReasoning: false,
+        },
+      ),
+    );
+    expect([c.model, c.contextWindow, c.passesReasoning]).toEqual([
+      'openrouter/pack-13b',
+      300_000,
+      false,
+    ]);
   });
   it("carries the pack's intro to the transcript", () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));

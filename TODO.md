@@ -138,6 +138,32 @@ from disk rather than chosen.
 A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
 moves into the app properly. Small enough to be worth doing anyway.
 
+### The model settings, together or app-wide
+
+`model`, `contextWindow` and `passesReasoning` describe one model. `resolve.ts`
+resolves each on its own `??`, so they can arrive from different places. A
+complete pack that sets `model` alone gets `DEFAULT_CONTEXT_WINDOW` and
+`DEFAULT_PASSES_REASONING`, which are the default model's properties. An overlay
+that switches `model` inherits the base model's two.
+
+Nothing breaks today. `contextWindow` is recorded and nothing reads it
+([Context compaction](./roadmap/CONTEXT-COMPACTION.md)), and an inherited
+`passesReasoning: true` replays nothing when those turns never stored reasoning.
+The window is the one that will matter, once something reads it.
+
+**Set all three or none**, and write down why. The rule has to cover an overlay
+as well as a complete pack — the advice in
+[GOONPACKS.md](./GOONPACKS.md#setting-the-llm-model) reads as though it covers
+only a complete one. Rejecting a manifest that sets either of the other two
+without `model` is the cheap version. Resetting the pair to the app defaults
+whenever `model` changes is the version that catches inheritance as well.
+
+**Then: whether these belong to a companion at all.** The longer the app is
+used, the more they read as one app-wide choice rather than a field every pack
+author needs a view on. Not thought through yet. It cuts against
+[Streaming per companion](#streaming-per-companion), which argues for another
+per-companion field, so settle this first.
+
 ### Streaming per companion
 
 `stream: true` is hardcoded for every request, and on a spoken turn it gains
@@ -146,7 +172,9 @@ nothing: the reply is buffered in full and handed to TTS complete (the
 fill the transcript word by word, worth having on a typed turn.
 
 So make it a per-companion field like `model` and `passesReasoning`, and a
-manifest field packs can set.
+manifest field packs can set. That is the shape
+[The model settings, together or app-wide](#the-model-settings-together-or-app-wide)
+puts in question, so settle that one first.
 
 **Where this came from:** a streamed MiniMax reply whose reasoning leaked into
 what the companion said, because OpenRouter didn't cleanly separate the two.

@@ -156,8 +156,11 @@ and whether it calls tools reliably, are properties of the model rather than of
 your prompt, so try one before settling on it. A model that stops calling tools
 gives you a companion who talks about the toy without ever driving it.
 
-`contextWindow` is only worth setting alongside `model`, and `passesReasoning`
-only when you know the model needs it.
+Set `contextWindow` and `passesReasoning` whenever you set `model`, and leave
+all three out otherwise. They describe the model named beside them. A pack that
+sets `model` alone takes the app's defaults for the other two; an overlay that
+sets `model` alone takes its base's. Either way it is describing a model that
+doesn't exist.
 
 #### Describing the companion
 
