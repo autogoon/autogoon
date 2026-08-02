@@ -29,6 +29,7 @@ const base: Companion = {
   id: 'autogoon.aimee',
   name: 'Aimee',
   description: 'sweet',
+  intro: 'the call you have when you cannot be together',
   gender: 'female',
   accentColour: 'emerald',
   voiceId: 'v-base',
@@ -46,6 +47,10 @@ const base: Companion = {
 const overlay = (
   extra: {
     companion?: CompanionConfig;
+    intro?: string;
+    model?: string;
+    contextWindow?: number;
+    passesReasoning?: boolean;
     noMedia?: boolean;
     mediaSummary?: string;
   } = {},
@@ -57,6 +62,10 @@ const overlay = (
     version: '1.0.0',
     base: 'autogoon.aimee',
     aboutThePack: 'test overlay',
+    intro: extra.intro,
+    model: extra.model,
+    contextWindow: extra.contextWindow,
+    passesReasoning: extra.passesReasoning,
     mediaSummary: extra.mediaSummary,
     noMedia: extra.noMedia,
     companion: extra.companion ?? {},
@@ -89,22 +98,24 @@ describe('applyOverlay', () => {
   it('keeps a base field the overlay does not mention', () => {
     expect(applyOverlay(base, overlay()).voiceId).toBe('v-base');
   });
-  it("replaces every field the overlay's companion section sets", () => {
+  it('replaces every field the overlay sets', () => {
     const out = applyOverlay(
       base,
       overlay({
+        intro: 'a different evening',
+        model: 'm-new',
+        contextWindow: 200_000,
+        passesReasoning: false,
         companion: {
           description: 'her goth era',
           accentColour: 'violet',
           voiceId: 'v-new',
-          model: 'm-new',
-          contextWindow: 200_000,
-          passesReasoning: false,
           chattiness: 5,
           playfulness: 1,
         },
       }),
     );
+    expect(out.intro).toBe('a different evening');
     expect(out.description).toBe('her goth era');
     expect(out.accentColour).toBe('violet');
     expect(out.voiceId).toBe('v-new');
@@ -113,6 +124,9 @@ describe('applyOverlay', () => {
     expect(out.passesReasoning).toBe(false);
     expect(out.chattiness).toBe(5);
     expect(out.playfulness).toBe(1);
+  });
+  it("keeps the base's intro when the overlay has not moved the scene", () => {
+    expect(applyOverlay(base, overlay()).intro).toBe(base.intro);
   });
   it("uses the overlay's system prompt in place of the base's", () => {
     const out = applyOverlay(base, { ...overlay(), systemPrompt: 'yo' });
@@ -254,13 +268,22 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
 });
 
 describe('packToCompanion', () => {
-  const completePack = (companion: CompanionConfig) => ({
+  const completePack = (
+    companion: CompanionConfig,
+    top: {
+      model?: string;
+      contextWindow?: number;
+      passesReasoning?: boolean;
+    } = {},
+  ) => ({
     manifest: {
       format: 1,
       id: 'some.one',
       version: '1',
       aboutThePack: 'a complete pack',
+      intro: 'a scene the pack opens on',
       mediaSummary: 'Pack set.',
+      ...top,
       companion,
     },
     systemPrompt: 'p\n{{MEDIA_SECTION}}',
@@ -288,6 +311,27 @@ describe('packToCompanion', () => {
       completePack({ name: 'One', description: 'quiet', voiceId: 'v1' }),
     );
     expect(c.description).toBe('quiet');
+  });
+  it("runs on the pack's own model, window and reasoning setting", () => {
+    const c = packToCompanion(
+      completePack(
+        { name: 'One', voiceId: 'v1' },
+        {
+          model: 'openrouter/pack-13b',
+          contextWindow: 300_000,
+          passesReasoning: false,
+        },
+      ),
+    );
+    expect([c.model, c.contextWindow, c.passesReasoning]).toEqual([
+      'openrouter/pack-13b',
+      300_000,
+      false,
+    ]);
+  });
+  it("carries the pack's intro to the transcript", () => {
+    const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
+    expect(c.intro).toBe('a scene the pack opens on');
   });
   it('names the companion after the pack id when the manifest gives no name', () => {
     const c = packToCompanion(completePack({ voiceId: 'v1' }));

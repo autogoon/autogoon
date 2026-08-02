@@ -1,5 +1,3 @@
-'use client';
-
 // How much of the API rate-limit budget is left in the trailing 60s window. We
 // track it ourselves (the server's x-ratelimit-* counters aren't readable
 // cross-origin), so it's an estimate of our own traffic.

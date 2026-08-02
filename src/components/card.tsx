@@ -1,5 +1,3 @@
-'use client';
-
 // The one card component the panels are built from — a titled section, and
 // every variant the app's cards need, so the internals (title row, muted
 // body, icon/chevron placement) are styled in exactly one place:

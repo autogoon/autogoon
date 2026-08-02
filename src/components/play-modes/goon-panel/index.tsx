@@ -1,5 +1,3 @@
-'use client';
-
 // Goon play mode panel. Owns the Goon engine, arms/plays the shared Player with
 // it, and declares its commands once (button == voice). Presentation + wiring;
 // event generation lives in @/lib/play-modes/goon-engine.

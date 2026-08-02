@@ -1,5 +1,3 @@
-'use client';
-
 // One companion's card on the setup chooser — clickable, edge to edge, in the
 // selected variant's colour. The pack pickers (base version and overlay) ride
 // in the card's action slot; the card previews exactly what the selection

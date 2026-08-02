@@ -1,5 +1,3 @@
-'use client';
-
 // Something the companion sent, inline in the transcript — left-aligned like
 // their bubbles. A still is a thumbnail; a video plays inline, muted and
 // looping, as its own preview. Either one opens full-size in the lightbox on

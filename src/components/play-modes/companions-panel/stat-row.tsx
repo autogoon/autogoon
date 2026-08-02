@@ -1,5 +1,3 @@
-'use client';
-
 // A label/value stat line — the Debug tab's latency readouts.
 
 import type { ReactNode } from 'react';

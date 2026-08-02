@@ -1,5 +1,3 @@
-'use client';
-
 // The session's fast-moving loudness bar — repaints every frame; kept small.
 
 export function RmsMeter({

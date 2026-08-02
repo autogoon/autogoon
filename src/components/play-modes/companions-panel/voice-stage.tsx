@@ -1,5 +1,3 @@
-'use client';
-
 // The voice session's live stage (voiceStage), rendered two ways: a chunky
 // badge pinned to the top-left of the lightbox, and a chat-style bubble in the
 // conversation transcript — the "other person is typing" slot, the companion's

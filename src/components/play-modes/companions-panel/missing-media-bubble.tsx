@@ -1,5 +1,3 @@
-'use client';
-
 // A still or video from a pack that isn't loaded right now — never substitute.
 
 export function MissingMediaBubble() {

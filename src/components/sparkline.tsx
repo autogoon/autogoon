@@ -1,5 +1,3 @@
-'use client';
-
 // A glanceable sparkline of the upcoming speed over a fixed time window: a step
 // line, save for the closely-spaced points of a sampled ramp (see SMOOTH_GAP_MS).
 // Deliberately minimal — no axes, legend, or hover: it redraws ~10x/sec as the

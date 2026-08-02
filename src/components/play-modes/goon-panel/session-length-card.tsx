@@ -1,5 +1,3 @@
-'use client';
-
 // Setup card: how long the Goon build runs. One setup concern per card, shown
 // only until Play. The card is display + slider; its voice words (`shorter` /
 // `longer`) are declared by the panel, which owns the length state.

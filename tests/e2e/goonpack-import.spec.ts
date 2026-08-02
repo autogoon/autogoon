@@ -15,6 +15,7 @@ const completePack = zipSync({
       id: 'e2e.testy',
       version: '1.0.0',
       aboutThePack: 'an e2e test pack',
+      intro: 'an e2e test scene',
       mediaSummary: 'One test picture.',
       companion: {
         name: 'Testy',

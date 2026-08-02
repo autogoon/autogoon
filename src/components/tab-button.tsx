@@ -1,5 +1,3 @@
-'use client';
-
 // One tab in an underline tab strip — the top-level nav and Companions'
 // sub-tabs share this exact look: no fill or box, a 2px underline that
 // carries the selected state, muted-to-foreground text on hover. Extracted so

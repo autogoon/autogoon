@@ -15,6 +15,7 @@ const companion: Companion = {
   id: 'pub.comp',
   name: 'Testy',
   description: 'a test companion',
+  intro: 'a test scene',
   gender: 'female',
   accentColour: 'pink',
   voiceId: 'v',

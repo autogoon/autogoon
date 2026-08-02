@@ -1,5 +1,3 @@
-'use client';
-
 // Autopilot play mode panel. Owns the Autopilot engine, arms/plays the shared
 // Player, declares its commands once (button == voice). Event generation lives
 // in @/lib/play-modes/autopilot-engine.

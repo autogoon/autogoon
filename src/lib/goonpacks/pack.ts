@@ -269,6 +269,14 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
           'A complete pack needs a description field in the companion section of manifest.json.',
         );
       }
+      // The transcript opens on it, so a companion nothing has been written for
+      // starts on a blank screen. An overlay is not checked: it inherits the
+      // base's scene unless it has moved it.
+      if (manifest.intro === undefined) {
+        problems.push(
+          'A complete pack needs an intro field in manifest.json — the situation the thread opens on, written to the person playing.',
+        );
+      }
       // usesRealTime defaults to true, so a pack states which it is rather
       // than implying it by leaving a field out. An overlay is not checked
       // here: it may take the zone from its base, which only resolution knows

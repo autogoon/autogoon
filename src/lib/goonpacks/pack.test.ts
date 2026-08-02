@@ -12,6 +12,7 @@ const manifest = (extra: object = {}) =>
   });
 const complete = (extra: object = {}) =>
   manifest({
+    intro: 'a test scene',
     companion: {
       name: 'Testy',
       description: 'a test companion',
@@ -309,6 +310,7 @@ describe('parsePack', () => {
     const problems = await parsePack(
       tree({
         'manifest.json': manifest({
+          intro: 'a test scene',
           companion: {
             description: 'a test companion',
             voiceId: 'v',
@@ -327,6 +329,7 @@ describe('parsePack', () => {
     const problems = await parsePack(
       tree({
         'manifest.json': manifest({
+          intro: 'a test scene',
           companion: { name: 'Testy', voiceId: 'v', usesRealTime: false },
         }),
         'system-prompt.md': 'x',
@@ -337,11 +340,31 @@ describe('parsePack', () => {
     ]);
   });
 
+  it('rejects a complete pack with no intro', async () => {
+    const problems = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          companion: {
+            name: 'Testy',
+            description: 'a test companion',
+            voiceId: 'v',
+            usesRealTime: false,
+          },
+        }),
+        'system-prompt.md': 'x',
+      }),
+    ).catch((e: PackError) => e.problems);
+    expect(problems).toEqual([
+      'A complete pack needs an intro field in manifest.json — the situation the thread opens on, written to the person playing.',
+    ]);
+  });
+
   it('rejects a complete pack on real time with no timezone', async () => {
     await expect(
       parsePack(
         tree({
           'manifest.json': manifest({
+            intro: 'a test scene',
             companion: {
               name: 'Testy',
               description: 'a test companion',
@@ -358,6 +381,7 @@ describe('parsePack', () => {
     const pack = await parsePack(
       tree({
         'manifest.json': manifest({
+          intro: 'a test scene',
           companion: {
             name: 'Testy',
             description: 'a test companion',
@@ -415,6 +439,7 @@ describe('parsePack', () => {
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
       'A complete pack needs a description field in the companion section of manifest.json.',
+      'A complete pack needs an intro field in manifest.json — the situation the thread opens on, written to the person playing.',
       'A complete pack needs a timezone field in the companion section of manifest.json, or usesRealTime: false if the persona sets its own time of day.',
     ]);
   });

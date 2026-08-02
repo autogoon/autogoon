@@ -1,5 +1,3 @@
-'use client';
-
 // The Stroke manual-override card: two hold buttons that pulse the stroke+/-
 // valves (voice "up"/"down" does the same, see useStrokeControls, and
 // highlights the matching button). Shared by every play mode panel —

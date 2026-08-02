@@ -56,6 +56,10 @@ const TOP_FIELDS = new Set([
   'version',
   'base',
   'aboutThePack',
+  'intro',
+  'model',
+  'contextWindow',
+  'passesReasoning',
   'mediaSummary',
   'noMedia',
   'companion',
@@ -70,9 +74,6 @@ export type CompanionConfig = {
   gender?: 'female' | 'male' | 'nonbinary'; // complete packs only, like name
   accentColour?: string;
   voiceId?: string; // ElevenLabs voice id (account-scoped, see spec)
-  model?: string; // OpenRouter slug; app default when omitted
-  contextWindow?: number;
-  passesReasoning?: boolean;
   chattiness?: number; // 1–5: how readily a silence is filled out of play
   playfulness?: number; // 1–5: how readily they talk over a running program
   // IANA zone. Where the companion is NOW, not where they are from — an
@@ -94,9 +95,6 @@ const COMPANION_FIELDS = [
   'gender',
   'accentColour',
   'voiceId',
-  'model',
-  'contextWindow',
-  'passesReasoning',
   'chattiness',
   'playfulness',
   'timezone',
@@ -112,6 +110,20 @@ export type PackManifest = {
   // What the pack adds or changes — about the PACK, not the companion
   // (that's `companion.description`).
   aboutThePack: string;
+  // The situation the pack sets up, addressed to the person playing as "you"
+  // and shown at the top of the transcript. Never sent to the model — the
+  // persona's own setup is what tells them where they are. Required on a
+  // complete pack; an overlay carries one only where it has moved the scene.
+  intro?: string;
+  // The OpenRouter model this pack's conversations run on, the window it
+  // serves, and whether its reasoning is replayed. The app's defaults when
+  // omitted (src/lib/companions/companions.ts). A property of the pack rather
+  // than of the companion: which model suits a persona is the author's choice
+  // about how to run them, and an overlay rewriting the persona often changes
+  // it without changing who they are.
+  model?: string;
+  contextWindow?: number;
+  passesReasoning?: boolean;
   // What the pack's media set contains, as one opaque block of text shown to
   // the companion instead of a list of items. Generated from the pack's own
   // sidecars (npm run goonpack:summarise); what it should say belongs to
@@ -192,6 +204,7 @@ export function parseManifest(raw: unknown): PackManifest {
   } else if (typeof m.aboutThePack !== 'string') {
     problems.push('The aboutThePack field must be text.');
   }
+  const intro = optionalString(m.intro, 'intro');
   const mediaSummary = optionalString(m.mediaSummary, 'mediaSummary');
   if (m.base !== undefined) {
     if (typeof m.base !== 'string' || !PACK_ID_RE.test(m.base)) {
@@ -267,12 +280,12 @@ export function parseManifest(raw: unknown): PackManifest {
       `Unknown accentColour: ${accentColour} — pick one of ${[...ACCENT_COLOURS].join(', ')}.`,
     );
   }
-  if (c.contextWindow !== undefined && typeof c.contextWindow !== 'number') {
+  if (m.contextWindow !== undefined && typeof m.contextWindow !== 'number') {
     problems.push('The contextWindow field must be a number (no quotes).');
   }
   if (
-    c.passesReasoning !== undefined &&
-    typeof c.passesReasoning !== 'boolean'
+    m.passesReasoning !== undefined &&
+    typeof m.passesReasoning !== 'boolean'
   ) {
     problems.push(
       'The passesReasoning field must be true or false (no quotes).',
@@ -297,7 +310,7 @@ export function parseManifest(raw: unknown): PackManifest {
   const name = optionalString(c.name, 'name');
   const description = optionalString(c.description, 'description');
   const voiceId = optionalString(c.voiceId, 'voiceId');
-  const model = optionalString(c.model, 'model');
+  const model = optionalString(m.model, 'model');
   const timezone = optionalString(c.timezone, 'timezone');
   // Constructing the formatter the renderer will use: a zone that validates
   // here is a zone that renders on this runtime. A regex accepts zones the
@@ -319,6 +332,10 @@ export function parseManifest(raw: unknown): PackManifest {
     version: m.version as string,
     base: m.base as string | undefined,
     aboutThePack: m.aboutThePack as string,
+    intro,
+    model,
+    contextWindow: m.contextWindow as number | undefined,
+    passesReasoning: m.passesReasoning as boolean | undefined,
     mediaSummary,
     noMedia: m.noMedia as boolean | undefined,
     companion: {
@@ -327,9 +344,6 @@ export function parseManifest(raw: unknown): PackManifest {
       gender: c.gender as CompanionConfig['gender'],
       accentColour,
       voiceId,
-      model,
-      contextWindow: c.contextWindow as number | undefined,
-      passesReasoning: c.passesReasoning as boolean | undefined,
       chattiness: c.chattiness as number | undefined,
       playfulness: c.playfulness as number | undefined,
       timezone,

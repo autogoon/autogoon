@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-08-02
+
+- feature: **A conversation opens on a scene** — Every companion now sets up the
+  situation you're in: who they are, and how the two of you came to be on the
+  phone. It sits at the top of the conversation, written to you rather than
+  spoken, and a goonpack that rewrites a persona can set its own.
+  ([#28](https://github.com/autogoon/autogoon/pull/28))
+
+- internal: **`model`, `contextWindow` and `passesReasoning` moved to the
+  manifest's top level** — Which model to run is a decision about the pack, not
+  about the companion, and an overlay changes it without changing who they are.
+  A pack setting them in the `companion` section is refused, naming the field.
+  ([#28](https://github.com/autogoon/autogoon/pull/28))
+
+- internal: **The redundant `'use client'` directives are gone**
+  ([#28](https://github.com/autogoon/autogoon/pull/28))
+
 ## 2026-08-01
 
 - feature: **A companion has a clock of their own** — Their pack says where they

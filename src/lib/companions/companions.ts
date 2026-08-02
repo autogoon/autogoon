@@ -35,6 +35,11 @@ export type Companion = {
   id: string;
   name: string;
   description: string; // one-line blurb shown on the picker card
+  // The situation the thread opens on, written to the person playing and shown
+  // at the top of the transcript. Never sent to the model: the persona prompt's
+  // own setup is what tells them where they are, and this is the same scene from
+  // the other side.
+  intro: string;
   gender: 'female' | 'male' | 'nonbinary';
   accentColour: string; // their signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
@@ -110,6 +115,8 @@ export const COMPANIONS: Record<string, Companion> = {
     name: 'Aimee',
     description:
       'A sweet, eager-to-please girlfriend who lets you lead - and tease.',
+    intro:
+      "Aimee is 23, from just outside Manchester, and she's your girlfriend. Warm, sweet-natured and a little shy, with no interest at all in rushing anything. What she loves most is pleasing you, and she'll happily let you set the pace and tell her she's getting it right.\n\nYou've been apart for weeks and the calls are what you've got. She's curled up on her bed with the phone against her ear. She's missed you, she has nowhere to be, and she wants nothing tonight except to make you feel good.",
     gender: 'female',
     accentColour: 'emerald',
     voiceId: 'WLWvwOJfGYaBppWieVa7',
@@ -128,6 +135,8 @@ export const COMPANIONS: Record<string, Companion> = {
     name: 'Miley',
     description:
       'A dry, dressed-up Portland pro - up for anything, no strings.',
+    intro:
+      "Miley is 30 and does phone sex for a living. You're a client who called her; she's never met you, you don't know anything about her, and neither of you is pretending the call is about anything but her getting you off.\n\nShe doesn't know anything about you.",
     gender: 'female',
     accentColour: 'violet',
     voiceId: 'TsdN21EAs7m8pjYUDEQ1',

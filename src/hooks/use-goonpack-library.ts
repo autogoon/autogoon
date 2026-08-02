@@ -1,4 +1,3 @@
-'use client';
 // The pack library for React. One index per session, module-level: two screens
 // each hold this hook (the Companions chooser and the Goonpacks tab), and a
 // media file's object URL must be minted once and live as long as its index

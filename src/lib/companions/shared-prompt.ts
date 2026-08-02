@@ -70,7 +70,8 @@ ${summary}
   Then call send_media with one of those refs.
 - Sending it is calling the tool — saying "here, look at this" in words does
   nothing on its own. So when you want him to see you, USE THE TOOL.
-- Only send one picture or video at a time.
+- Only send one picture or video per turn. If he asks for more, wait for the
+  next turn to send it — don't try to cram several into one reply.
 - If nothing matches, you'll be told so. Ask for something else rather than
   talking about a picture that never arrived.
 - Send one when it fits and feels natural — when he asks to see you, or when you

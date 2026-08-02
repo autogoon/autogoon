@@ -1,5 +1,3 @@
-'use client';
-
 // The Settings screen — app-level preferences and diagnostics, reached from
 // home. Appearance and the build info live here; per-play-mode options belong
 // in that play mode's setup view instead.

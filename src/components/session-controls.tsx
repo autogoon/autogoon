@@ -1,5 +1,3 @@
-'use client';
-
 // The session controls shown at the top of each play mode panel — Start / Stop /
 // Reset. Driven by the Player's state: while playing it's a single Stop; while
 // armed or paused it's Start + Reset side by side. Start needs the device

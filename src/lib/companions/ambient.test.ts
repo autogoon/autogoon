@@ -6,6 +6,7 @@ const companion = (chattiness: number, playfulness: number): Companion => ({
   id: 'autogoon.test',
   name: 'Test',
   description: '',
+  intro: '',
   gender: 'female',
   accentColour: 'pink',
   voiceId: 'v',

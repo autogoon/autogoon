@@ -1,5 +1,3 @@
-'use client';
-
 // The safe word editor — input + Test button — shared by the Settings screen
 // and any play mode setup view that surfaces it (Goon). The saved word is
 // app-level state owned by the page (both surfaces stay mounted, so edits on

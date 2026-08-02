@@ -1,5 +1,3 @@
-'use client';
-
 // The Finish pre-ending — reach and hold the climax point. Amber, to set it apart
 // from the CummingButton's red send-off. Pass a `className` for width/layout
 // (defaults to full width).

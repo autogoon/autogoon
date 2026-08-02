@@ -1,5 +1,3 @@
-'use client';
-
 // A plain <button> with an optional voice command, plus a "flash" highlight
 // that lights the control up from two triggers, one look: pressing it (the
 // browser's native :active state) and its voiceCommand word being recognised

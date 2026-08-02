@@ -1,5 +1,3 @@
-'use client';
-
 // The home screen — the top of the navigation hierarchy: the device
 // token/connection group first (it's the gate to everything else), then the
 // play mode chooser (each entry doubles as that play mode's voice word,

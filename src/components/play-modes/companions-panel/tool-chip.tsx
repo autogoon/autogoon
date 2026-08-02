@@ -1,5 +1,3 @@
-'use client';
-
 // A centered "action" chip marking a tool call the companion made, so it's
 // visible in the transcript whether they actually called it.
 

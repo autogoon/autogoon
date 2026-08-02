@@ -1,5 +1,3 @@
-'use client';
-
 // The bridge between a panel's commands and the shared keyword spotter. A
 // command is declared ONCE (word + enabled + run); the panel renders a button
 // from it AND this hook registers the word for voice — so button and voice hit

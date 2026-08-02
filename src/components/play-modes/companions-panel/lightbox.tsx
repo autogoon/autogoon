@@ -1,5 +1,3 @@
-'use client';
-
 // Near-fullscreen overlay for sent media. The backdrop or the ✕ closes it, as
 // does Escape. It's rendered with the current lightbox media, so sending a new
 // still or video while it's open simply swaps to the newest. Closing plays an

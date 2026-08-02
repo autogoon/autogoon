@@ -1,5 +1,3 @@
-'use client';
-
 // The shared keyword spotter, as a provider around the single vosk recognizer.
 // There is exactly ONE recognizer (one mic stream, one model, one grammar), so
 // it lives here and panels talk to it rather than each owning their own.

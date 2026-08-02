@@ -1,5 +1,3 @@
-'use client';
-
 // Goonpacks admin: import packs, see what's installed — and what each pack
 // includes or overrides — and remove them. Picking who to play (and which
 // variant) stays on the Companions chooser; this screen only manages the
@@ -40,7 +38,7 @@ function contents(row: PackRow): string {
   if (m?.noMedia === true) parts.push('no media');
   if (s?.hasPrompt === true) parts.push('prompt');
   if (m?.companion.voiceId !== undefined) parts.push('voice');
-  if (m?.companion.model !== undefined) parts.push('model');
+  if (m?.model !== undefined) parts.push('model');
   if (m?.base !== undefined && m.companion.accentColour !== undefined) {
     parts.push('colour');
   }
