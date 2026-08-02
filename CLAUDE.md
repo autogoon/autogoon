@@ -86,8 +86,9 @@ session links. When a doc or plan needs a concrete path, genericize it
   stub playing a committed wav fixture) — everything downstream (worklet, vosk,
   command routing) is real. Read the Testing section in
   [DEVELOPERS.md](./DEVELOPERS.md#testing) before writing more voice tests: the
-  stub's always-on silence source and the pre-pipeline activation click are both
-  required, and the test fails in ways that don't name them if either goes.
+  stub's always-on silence source, the pre-pipeline activation click and the
+  seeded listen-on-load preference are all required, and the test fails in ways
+  that don't name them if any goes.
 
 Tests are a floor, not the whole gate: the app drives physical hardware, so
 behaviour changes still want `npm run typecheck` + `npm run build` plus driving
@@ -104,8 +105,7 @@ the app in the browser and watching behaviour.
 - **A test that cannot fail is removed**, not patched to keep its name. Delete
   it outright where it is a tautology, a duplicate, or a restatement of its own
   fixture. Where the contract matters, delete it and write a real one named for
-  what that one pins — the result is a new test that can fail, not an old one
-  with a patched fixture. Never leave a contract that matters with no coverage.
+  what that one pins. Never leave a contract that matters with no coverage.
 - **A fake stands at a boundary** so a test can assert what the code sent across
   it, or so a module needing storage or a clock can run at all. A fake may
   supply the input; the assertion must be on something the code under test
@@ -344,9 +344,8 @@ still break every rule here. `/style-check` is the one that reads for these.
 - **Before merging**, run all five again, in the same order — the branch has
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
-  reads them. Run them even on a branch that hasn't moved, and for the same
-  reason: a re-run skipped on judgement is a re-run that never happens. Treat
-  `gh pr merge` as blocked until all five have run against the final diff.
+  reads them. Run them even on a branch that hasn't moved, for the same reason.
+  Treat `gh pr merge` as blocked until all five have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and
@@ -418,12 +417,15 @@ things worth knowing up front:
   out of the grammar. `useVoiceCommands` (`src/hooks/use-voice-commands.ts`)
   registers the active panel's enabled words with the recognizer and routes
   detections back.
-- **Voice-first**: the app is operated hands-free, so nearly every interactive
-  control should also be a voice command — when adding a control, give it a word
-  (and the on-screen voice-command chip that comes with it) by default. The
-  exceptions are free-text input (the safe word field) and continuous input
-  better served by discrete step words (a slider gets `more`/`less`-style steps,
-  not a spoken value).
+- **Voice-first in play**: play is operated hands-free, so nearly every control
+  on a play mode's screens — and the navigation that reaches them — should also
+  be a voice command; when adding one, give it a word (and the on-screen
+  voice-command chip that comes with it) by default. **Settings are not play.**
+  A preference is set once, with a free hand, and every word in the grammar is
+  another the recognizer can mishear mid-session. The other exceptions are
+  free-text input (the safe word field) and continuous input better served by
+  discrete step words (a slider gets `more`/`less`-style steps, not a spoken
+  value).
 - **Engines are intentionally self-contained**: they do not import from each
   other. Goon deliberately duplicates Groove's generation helpers rather than
   sharing a module — a chosen boundary, so don't refactor engines into a shared
@@ -446,9 +448,11 @@ things worth knowing up front:
   prompts are filled once, at load (`fillSharedSections`). Nothing fails when
   this breaks; the Companions debug tab's "Prompt cached" row is the only
   symptom.
-- **The safe word is always heard**: the app ignores `stop` in some states, and
-  never ignores the safe word. Anything touching the grammar, the recognizer's
-  lifetime, or the screens a word has to survive keeps that true.
+- **The safe word is heard whenever any word is**: the app ignores `stop` in
+  some states, and never ignores the safe word. Anything touching the grammar,
+  the recognizer's lifetime, or the screens a word has to survive keeps that
+  true. The one case outside it is the microphone being off — no word reaches
+  the app at all then.
 - **Nothing derived is persisted**: one notion of a valid pack, rebuilt from the
   OPFS trees at every load, so no second store can drift out of step. A cache,
   index or summary written to disk needs an answer for the day it disagrees with

@@ -41,7 +41,7 @@ describe('Segmented', () => {
         ]}
         value="off"
         onChange={() => {}}
-        activeClass="active"
+        variant="blue"
         disabled
       />,
     );

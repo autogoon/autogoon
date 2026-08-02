@@ -201,7 +201,7 @@ export function AutopilotPanel({
           ]}
           value={intensity}
           onChange={changeIntensity}
-          activeClass="bg-blue-600 text-white"
+          variant="blue"
           disabled={!isCurrent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
@@ -219,7 +219,7 @@ export function AutopilotPanel({
           ]}
           value={edge}
           onChange={changeEdge}
-          activeClass="bg-orange-500 text-white"
+          variant="orange"
           disabled={!isCurrent}
         />
       </Card>
@@ -233,7 +233,7 @@ export function AutopilotPanel({
           ]}
           value={suction}
           onChange={changeSuction}
-          activeClass="bg-cyan-600 text-white"
+          variant="cyan"
           disabled={!isCurrent}
         />
       </Card>

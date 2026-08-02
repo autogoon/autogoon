@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LISTEN_ON_LOAD_STORAGE_KEY } from '../../src/lib/listen-on-load';
 
 // The cross-browser proof that the whole voice pipeline works: a synthesized
 // utterance goes through the app's real AudioWorklet and vosk recognizer in
@@ -36,6 +37,13 @@ test("saying a play mode's name opens its screen", async ({ page }) => {
   await page.route('**/__fixtures/autopilot.wav', (route) =>
     route.fulfill({ path: FIXTURE, contentType: 'audio/wav' }),
   );
+
+  // The app waits for Listen unless this is set, and it is read during startup,
+  // so it has to be in place before the page loads rather than switched on
+  // through Settings afterwards.
+  await page.addInitScript((key: string) => {
+    localStorage.setItem(key, 'true');
+  }, LISTEN_ON_LOAD_STORAGE_KEY);
 
   await page.addInitScript(() => {
     // Patch the prototype, not the instance: assigning to

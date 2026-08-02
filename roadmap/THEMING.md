@@ -49,8 +49,7 @@ and they were all chosen against it.
 
 It costs the three-way toggle (a control with no voice word, so nothing in the
 grammar changes) and the `system` default, which means a light-OS visitor gets a
-dark app. For an app operated in the dark, hands-free, that may be the honest
-answer rather than a limitation.
+dark app. For an app operated in the dark, hands-free, that may cost little.
 
 ## Tokenising the palette
 

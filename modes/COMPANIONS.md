@@ -139,7 +139,6 @@ reaction to what they did. A cap bounds a turn that never gets there
 A companion doesn't wait to be spoken to. At the end of each of their turns they
 line up another, so a lull gets filled. They might pick the thread back up,
 tease you about the quiet, or say something about what the toy is doing to you.
-This is what makes it possible to lie back mid-session and let them drive.
 
 Start speaking and the pending turn is dropped. A real reply is coming, so there
 is no silence left to fill.

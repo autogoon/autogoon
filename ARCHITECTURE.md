@@ -95,7 +95,7 @@ Each device-driving play mode is an **engine** and a **panel**:
   only _generates_ events and _scales_ them. Engines are self-contained and
   never import from one another. Where two play modes share a pattern (Goon
   reuses Groove's dip), the helpers are **duplicated**, not shared. The
-  duplication is deliberate, and keeps each play mode standalone.
+  duplication is deliberate.
 - the **panel** — the React surface in `src/components/play-modes/` (a single
   `*-panel.tsx`, or a `*-panel/` directory with the panel in `index.tsx` once it
   splits out per-concern pieces, as Goon and Companions do). It **owns** its
@@ -127,8 +127,8 @@ What is easy to get wrong about the pair, and not visible from one file:
 - **An ending belongs to the panel.** `StrokeCard` is only the shared stroke ±
   buttons; a play mode with an ending renders `FinishButton` and/or
   `CummingButton` itself. **Finish** is a _pre_-ending: reach and hold the
-  climax point. **Cumming** is the send-off. They are distinct actions, and a
-  play mode may have both, one or neither.
+  climax point. **Cumming** is the send-off. A play mode may have both, one or
+  neither.
 - **A setup view is the panel's own choice.** Goon and Companions have one and
   defer arming to it. Groove and Autopilot arm as soon as their screen is
   active.
@@ -246,7 +246,9 @@ on load and cached by the browser.
 
 There is **one** recognizer, owned by `KeywordSpotterProvider`
 (`src/components/keyword-spotter.tsx`) at the top of the tree, so it keeps
-listening across screen changes. Its grammar has three slots:
+listening across screen changes. It starts when the Listen control is pressed,
+or on load where Settings asks it to (`src/lib/listen-on-load.ts`); until then
+nothing is captured. Its grammar has three slots:
 
 - the **global** words, set by the page via `setGlobalWords`;
 - the **play mode** words, set by the active panel via `setPlayModeKeywords`,
@@ -312,7 +314,7 @@ and **we never close the STT socket on idle**:
 
 Server error messages and any close we didn't initiate are surfaced to the
 panel's event log rather than swallowed. That quiet 1000 is how the idle rule
-was found, and it is the only account of it we get.
+was found.
 
 **Ambient chat is a self-sustaining loop, not a clock.** Each companion turn
 arms the next as it ends, so nothing polls for a silence to fill. The scheduler

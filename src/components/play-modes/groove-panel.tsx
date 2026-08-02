@@ -245,7 +245,7 @@ export function GroovePanel({
           ]}
           value={dipVariability}
           onChange={changeDipVariability}
-          activeClass="bg-purple-600 text-white"
+          variant="purple"
           disabled={!isCurrent}
         />
         <p className="text-muted-foreground mt-2 text-sm">
@@ -263,7 +263,7 @@ export function GroovePanel({
           ]}
           value={variability}
           onChange={changeVariability}
-          activeClass="bg-purple-600 text-white"
+          variant="purple"
           disabled={!isCurrent}
         />
       </Card>
