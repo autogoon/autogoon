@@ -6,10 +6,12 @@
   Autogoon used to start listening for spoken commands straight away, so a tab
   left open held the mic all day. It now waits until you press Listen, and a new
   Microphone setting turns the old behaviour back on.
+  ([#29](https://github.com/autogoon/autogoon/pull/29))
 
 - enhancement: **Segmented controls show a hover** — The Intensity and
   variability options gave no feedback under the pointer. An unselected segment
   now takes its control's colour at half strength; the selected one lightens.
+  ([#29](https://github.com/autogoon/autogoon/pull/29))
 
 ## 2026-08-02
 
