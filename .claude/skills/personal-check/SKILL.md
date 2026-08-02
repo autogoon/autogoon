@@ -145,7 +145,7 @@ counts.
 Every other check can be re-run and its findings fixed with an ordinary commit.
 This one's miss becomes a history rewrite and a force-push the moment the branch
 goes up, and GitHub keeps the objects even then — so the minute before the push
-is the last cheap minute there is, and spending it on a question costs nothing.
+is the last cheap minute there is.
 
 State what the check actually did, in the words of **Scope** — a cumulative
 `git diff main...HEAD` is not "every revision", and reporting it as one gets the

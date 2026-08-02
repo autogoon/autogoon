@@ -105,8 +105,7 @@ the app in the browser and watching behaviour.
 - **A test that cannot fail is removed**, not patched to keep its name. Delete
   it outright where it is a tautology, a duplicate, or a restatement of its own
   fixture. Where the contract matters, delete it and write a real one named for
-  what that one pins — the result is a new test that can fail, not an old one
-  with a patched fixture. Never leave a contract that matters with no coverage.
+  what that one pins. Never leave a contract that matters with no coverage.
 - **A fake stands at a boundary** so a test can assert what the code sent across
   it, or so a module needing storage or a clock can run at all. A fake may
   supply the input; the assertion must be on something the code under test
@@ -345,9 +344,8 @@ still break every rule here. `/style-check` is the one that reads for these.
 - **Before merging**, run all five again, in the same order — the branch has
   usually gained commits since the PR opened, and the PR's own title, body and
   comments didn't exist for the first run, so this is the only pass that ever
-  reads them. Run them even on a branch that hasn't moved, and for the same
-  reason: a re-run skipped on judgement is a re-run that never happens. Treat
-  `gh pr merge` as blocked until all five have run against the final diff.
+  reads them. Run them even on a branch that hasn't moved, for the same reason.
+  Treat `gh pr merge` as blocked until all five have run against the final diff.
 - **A check's report asks one thing at a time.** Never close a report with a
   blanket "shall I do these?". Take the recommendations in order and, for each,
   ask a question naming that one change and what it would assert — then stop and

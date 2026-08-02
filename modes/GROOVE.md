@@ -37,8 +37,7 @@ from wherever the device already is, rather than snapping back to the top first.
 
 Say `cumming` for the send-off: the device eases down in a slow glide from a
 moderate pace to a standstill over about ten seconds — the strokes shortening as
-it goes — then rests. That's one way of finishing rather than the default, and
-won't be to everyone's taste.
+it goes — then rests. That's one way of finishing rather than the default.
 
 ## Voice control
 
