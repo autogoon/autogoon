@@ -1,5 +1,7 @@
 # Goonpacks
 
+## What a goonpack is
+
 A **goonpack** is one companion in a zip file:
 
 - who they are, and how they talk;
@@ -23,26 +25,27 @@ zipped:
 - a `system-prompt.md`, their persona, written in plain English;
 - a `media/` folder, if they send pictures or videos.
 
-## Choosing complete or overlay
+### Complete packs and overlays
 
 **A complete pack** is a new companion, with everything they need to exist: a
 name, a voice and a persona. Import it and they get their own card on the
 Companions screen.
 
-**An overlay** is _your version_ of a companion you already have — a built-in or
-an imported complete pack. It names its base companion and includes only what
-changes; everything else stays the base's. An overlay can replace their pictures
-and videos (or strip them, with `noMedia`), their persona prompt, and any of
-their [companion fields](#describing-the-companion).
+**An overlay** lets you tweak a companion someone already has — a built-in or an
+imported complete pack — without changing who they are. It names its base
+companion and includes only what changes; everything else stays the base's. An
+overlay can replace their pictures and videos (or strip them, with `noMedia`),
+their persona prompt, the scene it opens on, the model it runs, and any of their
+[companion fields](#describing-the-companion).
 
 What an overlay can never do is change their **name** or **gender**. An overlay
 is still the same companion, keeping the same conversation memory whichever pack
-you play them with. If your version renames them, that is a different companion;
+it's played with. If your overlay renames them, that is a different companion;
 make a complete pack.
 
 Overlays always sit on a companion, never on another overlay.
 
-## Laying out the files
+### The files in a pack
 
 Lay out a directory like this, then zip its **contents** (the manifest sits at
 the zip root, not inside a folder):
@@ -57,7 +60,7 @@ from. The pack ships with no media, since the repo never distributes imagery
 (see the [content policy](./DEVELOPERS.md#content-policy)). Pictures and videos
 are always yours to add.
 
-## Filling in manifest.json
+### manifest.json — every field
 
 The manifest is a small JSON file in two halves: the top level describes the
 **pack** (what it is, its version), and the `companion` section describes
@@ -75,11 +78,12 @@ separated by commas:
         "description": "A soft-spoken painter who stays up too late.",
         "gender": "female",
         "accentColour": "violet",
-        "voiceId": "abc123..."
+        "voiceId": "abc123...",
+        "timezone": "America/New_York"
       }
     }
 
-### The fields every pack needs
+#### The fields every pack needs
 
 Three of a pack's texts are easy to confuse, and each is read at a different
 moment:
@@ -93,137 +97,151 @@ moment:
 
 The top level's own fields:
 
-- **`format`** — always `1`. This is the version of the _pack format_, not the
-  version of your pack. A pack declaring anything else is refused on import.
-- **`id`** — the pack's identity, as `publisher.packname`: your publisher name,
-  a dot, the pack name — lowercase letters, numbers and hyphens only
-  (`g00ner.luna`, `my-packs.luna-beach`). The id is permanent. New versions of a
-  pack keep the same id, and for a complete pack the id is what the companion's
-  conversation memory is tied to. If an update changes who they _are_, that is a
-  new companion; give it a new id.
-- **`version`** — your own version label, any text, shown as it's written
-  (`"1.0.0"`, `"2024-06"`, `"v2 final"`). Versions of a pack install side by
-  side and sort alphanumerically, newest first. A versioning scheme that sorts
-  (like `1.0.0`, `1.0.1`, `1.1.0`) is worth using.
-- **`aboutThePack`** — one line about what the _pack_ adds or changes ("Beach
-  photo set for Aimee", "Luna, complete with voice"). This is about the pack,
-  not the companion; it's what the Goonpacks list and the import confirmation
-  show. Their own blurb goes in `description`. Leave what the pack holds out of
-  it, whether counts or that it has none. The app works that out from the pack
-  itself and shows it, so anything hand-written there is a second answer waiting
-  to go stale.
-- **`intro`** — the scene the conversation opens on, shown above the first
-  message. Required on a complete pack; an overlay carries one only where it has
-  moved the scene. See [Writing the intro](#writing-the-intro).
+- **`format`** — always `1`.
+- **`id`** — the pack's identity, as `publisher.packname`.
+- **`version`** — your own version label, any text.
+- **`aboutThePack`** — one line on what the pack adds or changes.
+- **`intro`** — the scene the conversation opens on, above the first message.
 
-### Describing a media set
+`format` is the version of the _pack format_, not of your pack. A pack declaring
+anything else is refused on import.
 
-- **`mediaSummary`** — what the media set holds, in one block of text: the sorts
-  of picture in it, roughly in what proportion, and the words the captions use
-  for them. Your companion is given this rather than a list of every item, so
-  they can tell what's worth offering, and ask for a picture in words the
-  captions actually use. A pack that carries media needs one. Write it with
-  `npm run goonpack:summarise`, which builds it from the pack's own sidecars,
-  and run that again whenever the set changes so it doesn't drift.
+`id` is lowercase letters, numbers and hyphens either side of a single dot —
+`g00ner.luna`, `my-packs.luna-beach` — and it is permanent. New versions of a
+pack keep it, and for a complete pack it is what the companion's conversation
+memory is tied to: if an update changes who they _are_, give it a new id.
 
-### Setting the LLM model
+`version` is shown exactly as written (`"1.0.0"`, `"2024-06"`, `"v2 final"`).
+Versions install side by side and sort alphanumerically, newest first, so a
+scheme that sorts is worth using.
+
+`aboutThePack` is what the Goonpacks list and the import confirmation show:
+"Beach photo set for Aimee", "Luna, complete with voice". Leave out what the
+pack holds, counts included — the app reads that from the pack itself and shows
+it, so a hand-written answer only goes stale.
+
+`intro` is required on a complete pack; an overlay carries one only where it has
+moved the scene. [Writing the intro](#writing-the-intro) says what belongs in
+it.
+
+#### Describing a media set
+
+**`mediaSummary`** — what the media set holds, in one block of text. A pack that
+carries media needs one.
+
+Your companion is given this rather than a list of every item, so it should say
+what sorts of picture are in the set, roughly in what proportion, and the words
+the captions use for them. That is how they tell what's worth offering, and how
+they ask for a picture in words the captions actually use.
+
+Write it with `npm run goonpack:summarise`, which builds it from the pack's own
+sidecars, and run that again whenever the set changes so it doesn't drift.
+
+#### Setting the LLM model
 
 All three sit at the top level, beside `id` and `version`: which model to run is
 a decision about the pack, and an overlay that rewrites a persona often changes
 it without changing who the companion is. All three are optional, and an overlay
 that sets none keeps its base's.
 
-- **`model`** — the OpenRouter model the conversation runs on, as a model slug.
-  The app's default model when omitted. Pick one that suits the persona, and
-  that allows the kind of roleplay you're writing. Whether it will refuse, and
-  whether it calls tools reliably, are both properties of the model rather than
-  of your prompt, so try one before settling on it. A model that stops calling
-  tools gives you a companion who talks about the toy without ever driving it.
-- **`contextWindow`** — the chosen model's context window, in tokens (a number,
-  no quotes). Only worth setting alongside `model`.
-- **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
-  thinking should be replayed to it with the conversation. Leave it out unless
-  you know the model needs it.
+- **`model`** — the OpenRouter model slug the conversation runs on.
+- **`contextWindow`** — that model's context window, in tokens (a number, no
+  quotes).
+- **`passesReasoning`** — `true` for a reasoning model whose thinking should be
+  replayed to it with the conversation.
 
-### Describing the companion
+Omit `model` and the pack runs on the app's default. Pick one that suits the
+persona and allows the kind of roleplay you're writing: whether it will refuse,
+and whether it calls tools reliably, are properties of the model rather than of
+your prompt, so try one before settling on it. A model that stops calling tools
+gives you a companion who talks about the toy without ever driving it.
+
+`contextWindow` is only worth setting alongside `model`, and `passesReasoning`
+only when you know the model needs it.
+
+#### Describing the companion
 
 Everything about the companion goes inside `companion: { … }`. For a **complete
-pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
-`system-prompt.md` file next to the manifest); the rest are optional. An
-**overlay** includes only the fields it changes.
+pack**, `name`, `description`, `voiceId` and `timezone` are required (plus
+`intro` at the top level and the `system-prompt.md` file next to the manifest);
+the rest are optional. An **overlay** includes only the fields it changes.
 
-- **`name`** — their name, as their card and picker show it. Required on a
-  complete pack; forbidden on an overlay.
-- **`voiceId`** — the ElevenLabs voice they speak with. This is the voice's id
-  string from ElevenLabs, and it must exist in the ElevenLabs account the app
-  runs with — voices don't travel between accounts. Required on a complete pack.
-- **`gender`** — `female`, `male` or `nonbinary`. Optional; forbidden on an
-  overlay.
-- **`description`** — a sentence about _them_, shown on their card on the
-  Companions screen. Required on a complete pack.
-- **`accentColour`** — the colour of their card and chooser entry. One of: red,
-  orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo,
-  violet, purple, fuchsia, pink, rose. Optional (pink if omitted).
-- **`chattiness`** and **`playfulness`** — how readily your companion speaks up
-  when you haven't, from 1 to 5. Both optional, 3 if omitted. `chattiness`
-  applies while the toy is idle, `playfulness` while it's running. Someone of
-  few words can still keep up a filthy running commentary once things are
-  underway, and one setting couldn't say so.
+- **`name`** — their name, as their card and picker show it.
+- **`description`** — a sentence about _them_, for their card.
+- **`gender`** — `female`, `male` or `nonbinary`.
+- **`voiceId`** — the ElevenLabs voice they speak with.
+- **`accentColour`** — the colour of their card and chooser entry: red, orange,
+  amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo, violet,
+  purple, fuchsia, pink or rose. Pink if omitted.
+- **`chattiness`** and **`playfulness`** — how readily they speak up when you
+  haven't, from 1 to 5. Both 3 if omitted.
+- **`timezone`** — where they are _now_, as an IANA zone name like
+  `America/New_York` or `Europe/Riga`.
+- **`usesRealTime`** — `false` if the persona sets its own time of day. `true`
+  if omitted.
+- **`knowsUserTime`** — `false` to withhold the time where _you_ are. `true` if
+  omitted.
 
-  What each buys is the pause after they finish speaking: a higher number is a
-  shorter one, and in play every pause is about half as long. Each is varied a
-  little so the gap isn't the same twice, leaning shorter rather than longer.
-  The figure for every value is tabulated in
-  [ambient.ts](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/ambient.ts),
-  beside the curves it comes from. They're measured from the moment the talking
-  stops, so the gap between turns is always longer than that; the next line
-  still has to be written and spoken first.
+`name` and `gender` are forbidden on an overlay: it is the same companion.
 
-- **`timezone`** — where your companion is _now_, as an IANA zone name like
-  `America/New_York` or `Europe/Riga`. Required on a complete pack, unless you
-  set `usesRealTime: false`. It's their location today, not where they're from:
-  an overlay that takes them somewhere else sets its own.
+`voiceId` is the voice's id string from ElevenLabs, and it must exist in the
+ElevenLabs account the app runs with — voices don't travel between accounts.
 
-  They're told the real date and time in that zone, refreshed every turn, and it
-  follows daylight saving. What they're told never names the place, only the
-  clock, so a companion whose prompt keeps their whereabouts vague stays vague.
-  They're also told this is theirs and not yours, and that you may be hours
-  ahead or behind.
+`chattiness` applies while the toy is idle, `playfulness` while it's running.
+Someone of few words can still keep up a filthy running commentary once things
+are underway, and one setting couldn't say so. What each buys is the pause after
+they finish speaking: a higher number is a shorter one, and in play every pause
+is about half as long. Each is varied a little so the gap isn't the same twice,
+leaning shorter rather than longer. The figure for every value is tabulated in
+[ambient.ts](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/ambient.ts),
+beside the curves it comes from. They're measured from the moment the talking
+stops, so the gap between turns is always longer than that; the next line still
+has to be written and spoken first.
 
-- **`usesRealTime`** — `false` if the persona sets its own time of day, and a
-  real clock would contradict it. Optional, `true` if omitted. A prompt opening
-  "it's evening and you've just finished filming" has fixed the hour, and a
-  companion told it's 8am will either ignore you or ignore the prompt; this is
-  how you say which one wins. The example pack's
-  [system-prompt.md](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/system-prompt.md)
-  is written that way — a late-night stream that's just wrapped.
+`timezone` is their location today, not where they're from — an overlay that
+takes them somewhere else sets its own. They're told the real date and time in
+that zone, refreshed every turn, and it follows daylight saving. What they're
+told never names the place, only the clock, so a companion whose prompt keeps
+their whereabouts vague stays vague. They're also told this is theirs and not
+yours, and that you may be hours ahead or behind.
 
-- **`knowsUserTime`** — `false` to withhold the time where _you_ are. Optional,
-  `true` if omitted. Use it for a companion written as not knowing where you
-  are: one who's told to ask rather than assume, or who gives nothing away about
-  place and time themselves. With it left on, they're told your local clock and
-  to trust it over any hour their setup assumes.
+`usesRealTime` settles which wins when a persona has already fixed the hour. A
+prompt opening "it's evening and you've just finished filming" and a companion
+told it's 8am will either ignore you or ignore the prompt; turning the real
+clock off is how you say which. The example pack's
+[system-prompt.md](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/system-prompt.md)
+is written that way — a late-night stream that's just wrapped.
 
-### Making an overlay
+`knowsUserTime` off suits a companion written as not knowing where you are: one
+told to ask rather than assume, or who gives nothing away about place and time
+themselves. Left on, they're told your local clock and to trust it over any hour
+their setup assumes.
 
-- **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
-  companion this overlay changes: a built-in's id or a complete pack's id, never
-  another overlay's.
-- Then include **only what changes**: `media/`, `system-prompt.md`, `intro`, the
-  model fields, and any `companion` fields. Each one replaces the base's while
-  the overlay is selected, and anything left out stays the base's. An overlay
-  that rewrites the persona usually wants its own `intro` too — the two describe
-  the same scene, and one changing without the other leaves them contradicting
-  each other on screen.
-- **`noMedia`** (top-level) — `true` means the overlay deliberately strips the
-  base's pictures and videos, so the combination has none. (Simply omitting
-  `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
-- **`name`** and **`gender`** are rejected on overlays — same companion, same
-  memory (see [Choosing complete or overlay](#choosing-complete-or-overlay)).
-- **`timezone`** is how an overlay moves a companion somewhere else. An overlay
-  that switches `usesRealTime` back on needs a zone from somewhere, and the base
-  version chosen in the card is where it looks: paired with one that has no
-  zone, the overlay can't be selected until it carries a zone of its own.
+#### Making an overlay
+
+- **`base`** (top level) — the `id` of the companion this overlay changes. It is
+  what makes a pack an overlay.
+- **`noMedia`** (top level) — `true` strips the base's pictures and videos.
+- Everything else: **only what changes** — `media/`, `system-prompt.md`,
+  `intro`, the model fields, and any `companion` fields.
+
+`base` is a built-in's id or a complete pack's id, never another overlay's.
+
+Each field the overlay sets replaces the base's while the overlay is selected,
+and anything left out stays the base's. An overlay that rewrites the persona
+usually wants its own `intro` too — the two describe the same scene, and one
+changing without the other leaves them contradicting each other on screen.
+
+`noMedia` is for when "none" is the point. Simply omitting `media/` keeps the
+base's set.
+
+`name` and `gender` are rejected outright — same companion, same memory (see
+[Complete packs and overlays](#complete-packs-and-overlays)).
+
+`timezone` is how an overlay moves a companion somewhere else. An overlay that
+switches `usesRealTime` back on needs a zone from somewhere, and the base
+version chosen in the card is where it looks: paired with one that has no zone,
+the overlay can't be selected until it carries a zone of its own.
 
 An overlay that changes only the companion's colour is just:
 
@@ -236,7 +254,53 @@ An overlay that changes only the companion's colour is just:
       "companion": { "accentColour": "cyan" }
     }
 
-## Writing the intro
+### Pictures, videos and their sidecars
+
+The companion's pictures and videos, directly in `media/` (no subfolders).
+
+- **Pictures:** `.jpg`, `.jpeg`, `.png` or `.webp`.
+- **Videos:** `.mp4` or `.webm`.
+
+`.mov` is rejected: it plays in Safari and unreliably everywhere else, so a
+`.mov` pack would work on your machine and not on someone else's. Re-encode it
+as MP4.
+
+Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
+`beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
+and a longer description of the shot as the body under it. You rarely write one
+by hand — see [Writing the sidecars](#writing-the-sidecars).
+
+```markdown
+---
+caption: 'A woman on a beach at sunset, facing away from the camera.'
+---
+
+She stands at the waterline in a white summer dress, the hem wet. Behind her the
+sun is low and the light is warm.
+```
+
+A search matches the request's words against the caption and the description
+together. Each hit comes back with its caption, and the companion chooses from
+those. A caption should say what's actually in the shot, and a word that appears
+only in the description will still find the item.
+
+**A file with no valid sidecar isn't part of the set.** The companion can't
+search for it or send it, and it isn't in the count you see on their card.
+
+A sidecar not written yet doesn't stop the pack building. The build says how
+many are still waiting. One that is there but won't read — no caption, an empty
+body, a misspelt field — refuses the whole pack, naming the file: that's a
+description that went wrong rather than one not written yet.
+
+A sidecar with no picture or video beside it is refused too. It means a rename
+took one and left the other.
+
+Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
+conversation refers to them by name, so one name means one thing.
+
+## Creating a goonpack
+
+### Writing the intro
 
 The intro does two things:
 
@@ -260,7 +324,7 @@ and never spoken, so nothing in it instructs your companion.
 Newlines survive as written: a blank line makes a paragraph, and two is usually
 enough.
 
-## Writing the persona
+### Writing the persona
 
 The system prompt is who the companion is, written in plain English:
 
@@ -324,68 +388,18 @@ prompt as you typed it, which is how you'll spot it. The section texts live in
 the app (`src/lib/companions/shared-prompt.ts`), so they stay current as the app
 changes without packs having to.
 
-One set of rules needs no token and can't be left out: your companion is always
-told the real date and time where _you_ are, so the rules for reading that are
-added to every persona automatically.
+Some rules need no token because they are appended for you. How a turn arrives,
+and when to let a silence stand, goes on every persona. The rules for reading a
+clock go with the clock they explain: your companion's own where they have one,
+and yours unless `knowsUserTime` is off.
 
-## Adding pictures and videos
+### Writing the sidecars
 
-The companion's pictures and videos, directly in `media/` (no subfolders).
-
-- **Pictures:** `.jpg`, `.jpeg`, `.png` or `.webp`.
-- **Videos:** `.mp4` or `.webm`. `.mov` is rejected — it plays in Safari and
-  unreliably everywhere else, so a `.mov` pack would work on your machine and
-  not on someone else's. Re-encode it as MP4.
-
-Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
-`beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
-and a longer description of the shot as the body under it.
-
-```markdown
----
-caption: 'A woman on a beach at sunset, facing away from the camera.'
----
-
-She stands at the waterline in a white summer dress, the hem wet. Behind her the
-sun is low and the light is warm.
-```
-
-A search matches the request's words against the caption and the description
-together. Each hit comes back with its caption, and the companion chooses from
-those. A caption should say what's actually in the shot, and a word that appears
-only in the description will still find the item.
-
-`npm run goonpack:describe` writes both, so there's rarely a reason to type one
-by hand — see [Building the zip](#building-the-zip).
-
-**A file with no valid sidecar isn't part of the set.** The companion can't
-search for it or send it, and it isn't in the count you see on their card.
-
-A sidecar not written yet doesn't stop the pack building. The build says how
-many are still waiting. One that is there but won't read — no caption, an empty
-body, a misspelt field — refuses the whole pack, naming the file: that's a
-description that went wrong rather than one not written yet.
-
-A sidecar with no picture or video beside it is refused too. It means a rename
-took one and left the other.
-
-Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
-conversation refers to them by name, so one name means one thing.
-
-## Building the zip
-
-A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
-and `media/`. Anything else in the zip — a leftover `notes.md`, a subfolder
-inside `media/` — is refused on import, named so you can see which file it was.
-
-Any zip tool works. Zip the directory's contents so `manifest.json` is at the
-root. If you're running the app from source, `npm run goonpack:build` zips every
-pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
-first with the app's own import checks. A pack that builds is a pack that
-imports. Name one to build just that pack:
-`npm run goonpack:build goonpacks/elise`.
-
-Three helper scripts do the writing for you using your configured LLM:
+Three scripts write them for you, using your configured LLM. That means they
+cost money — one call per picture, so a set of a thousand is a thousand calls —
+and they need `OPENROUTER_API_KEY` in `.env` (see
+[`.env.example`](./.env.example)). Point `describe-missing` at a handful first
+and read what comes back before turning it loose on a whole set.
 
 - `npm run goonpack:describe-missing` — every picture with no sidecar yet;
 - `npm run goonpack:describe <path-to-image>` — one picture;
@@ -401,7 +415,20 @@ just that pack, which is the order to do them in for a new one:
     npm run goonpack:summarise goonpacks/luna
     npm run goonpack:build goonpacks/luna
 
-## Importing a pack and updating it
+### Building the zip
+
+A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
+and `media/`. Anything else in the zip — a leftover `notes.md`, a subfolder
+inside `media/` — is refused on import, named so you can see which file it was.
+
+Any zip tool works. Zip the directory's contents so `manifest.json` is at the
+root. If you're running the app from source, `npm run goonpack:build` zips every
+pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
+first with the app's own import checks. A pack that builds is a pack that
+imports. Name one to build just that pack:
+`npm run goonpack:build goonpacks/elise`.
+
+### Importing a pack and updating it
 
 Goonpacks tab → **Import pack**. The pack's card is shown from its manifest
 before anything is written, so you see what you're about to install. The unpack
