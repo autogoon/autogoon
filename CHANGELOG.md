@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-08-01
+
+- feature: **A companion has a clock of their own** — Their pack says where they
+  are, and they're told the real date and time there — following daylight
+  saving — beside the time where you are, so a companion five hours behind you
+  can say so. A persona that fixes its own time of day can turn the real clock
+  off instead, and a companion written as not knowing where you are can be told
+  nothing about your time at all.
+
+- enhancement: **A companion wants the toy in play** — Once a call turns sexual
+  a companion now treats driving the toy as part of what they're there for,
+  rather than something they wait to be asked for. Starting it still needs your
+  say-so.
+
+- enhancement: **Companions keep it short** — A companion now answers in two or
+  three sentences rather than paragraphs, and anything they want to tell you in
+  detail arrives a piece at a time across several turns rather than in one
+  block. A companion who used to talk into every silence now says their piece
+  and waits for you.
+
+- internal: **Persona prompts no longer name the hardware** — A companion's own
+  text says what they do to the user rather than naming the device or its
+  settings, and says it for a user with nothing to drive as well as one with a
+  toy; the shared control section stays the single place the device is
+  described. The quiet-beat and `wait_for_user` rules moved out of that section
+  into one every companion is given. `CONTROL_SUMMARY_SECTION` is gone, and
+  [GOONPACKS.md](./GOONPACKS.md) says what a persona should write instead.
+
 ## 2026-07-31
 
 - enhancement: **The browser tab says Autogoon** — The tab title and share card

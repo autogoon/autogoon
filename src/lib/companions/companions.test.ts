@@ -1,5 +1,10 @@
 import { describe, it, expect } from '@jest/globals';
-import { COMPANIONS, companionList } from './companions';
+import {
+  COMPANIONS,
+  companionClockZone,
+  companionList,
+  type Companion,
+} from './companions';
 
 describe('COMPANIONS registry', () => {
   // Every other test here loops over COMPANIONS and so passes on an empty
@@ -48,7 +53,54 @@ describe('companionList', () => {
   it("no companion's system prompt contains a per-turn value", () => {
     for (const companion of Object.values(COMPANIONS)) {
       expect(companion.systemPrompt).not.toContain('TOY STATUS (trust this');
-      expect(companion.systemPrompt).not.toContain('TIME (his local time');
+      expect(companion.systemPrompt).not.toContain('MY TIME (right now');
+      expect(companion.systemPrompt).not.toContain('THEIR TIME (right now');
     }
+  });
+
+  it('gives every built-in on real time a zone this runtime can render', () => {
+    for (const companion of Object.values(COMPANIONS)) {
+      if (!companion.usesRealTime) continue;
+      expect(companion.timezone).toBeDefined();
+      expect(
+        () =>
+          new Intl.DateTimeFormat('en-GB', { timeZone: companion.timezone }),
+      ).not.toThrow();
+    }
+  });
+});
+
+describe('companionClockZone', () => {
+  const withClock = (extra: Partial<Companion>): Companion => ({
+    ...COMPANIONS['autogoon.aimee']!,
+    ...extra,
+  });
+
+  it('is the zone of a companion who uses real time', () => {
+    expect(
+      companionClockZone(
+        withClock({ usesRealTime: true, timezone: 'Asia/Tokyo' }),
+      ),
+    ).toBe('Asia/Tokyo');
+  });
+
+  // A pack may set both — an overlay turning real time off over a base that has
+  // a zone leaves exactly this. The zone is then a place they are, not a clock:
+  // the persona prompt says what time it is, and a MY TIME line would argue
+  // with it.
+  it('is undefined for a companion off real time, whatever zone they carry', () => {
+    expect(
+      companionClockZone(
+        withClock({ usesRealTime: false, timezone: 'Asia/Tokyo' }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it('is undefined for a companion on real time with no zone', () => {
+    expect(
+      companionClockZone(
+        withClock({ usesRealTime: true, timezone: undefined }),
+      ),
+    ).toBeUndefined();
   });
 });

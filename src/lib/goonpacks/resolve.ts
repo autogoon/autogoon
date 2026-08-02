@@ -9,10 +9,13 @@ import {
   DEFAULT_MODEL,
   DEFAULT_PASSES_REASONING,
   DEFAULT_PLAYFULNESS,
+  DEFAULT_USES_REAL_TIME,
+  DEFAULT_KNOWS_USER_TIME,
+  companionClockZone,
   type Companion,
   type CompanionMedia,
 } from '@/lib/companions/companions';
-import type { PackManifest } from './manifest';
+import { PackError, type PackManifest } from './manifest';
 import { fillSharedSections } from './prompt';
 
 export type PackContent = {
@@ -25,13 +28,17 @@ export type PackContent = {
 // there is one. A pack with media always has one (parsePack refuses otherwise),
 // so this is the same rule as "has media" with one input instead of two that
 // could disagree.
-function fill(prompt: string, mediaSummary: string | undefined) {
-  return fillSharedSections(prompt, { mediaSummary });
+function fill(prompt: string, companion: Companion) {
+  return fillSharedSections(prompt, {
+    mediaSummary: companion.mediaSummary,
+    companionTimeZone: companionClockZone(companion),
+    knowsUserTime: companion.knowsUserTime,
+  });
 }
 
 // A built-in (or complete pack) played as-is — "default" in the variant list.
 export function resolveDefault(base: Companion): Companion {
-  return { ...base, systemPrompt: fill(base.systemPrompt, base.mediaSummary) };
+  return { ...base, systemPrompt: fill(base.systemPrompt, base) };
 }
 
 // Pack → Companion with the prompt left UNFILLED — for a pack used as an
@@ -59,6 +66,9 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,
     chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
     playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
+    timezone: c.timezone,
+    usesRealTime: c.usesRealTime ?? DEFAULT_USES_REAL_TIME,
+    knowsUserTime: c.knowsUserTime ?? DEFAULT_KNOWS_USER_TIME,
     media,
     // The summary describes this pack's own set, so it goes wherever that does.
     mediaSummary: media === undefined ? undefined : m.mediaSummary,
@@ -69,7 +79,7 @@ export function packToCompanionRaw(pack: PackContent): Companion {
 // imported complete pack. Fills once, here.
 export function packToCompanion(pack: PackContent): Companion {
   const raw = packToCompanionRaw(pack);
-  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw.mediaSummary) };
+  return { ...raw, systemPrompt: fill(raw.systemPrompt, raw) };
 }
 
 // A thread's persisted media ref → the live entry, or null when the referenced
@@ -103,8 +113,9 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
       : overlayBringsMedia
         ? m.mediaSummary
         : base.mediaSummary;
-  const rawPrompt = overlay.systemPrompt ?? base.systemPrompt;
-  return {
+  // The resolved companion first, so the fill reads the clock the overlay
+  // settled rather than the base's.
+  const resolved: Companion = {
     ...base, // id stays the base's — thread ownership; so do name and gender
     description: c.description ?? base.description,
     accentColour: c.accentColour ?? base.accentColour,
@@ -114,8 +125,27 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
     passesReasoning: c.passesReasoning ?? base.passesReasoning,
     chattiness: c.chattiness ?? base.chattiness,
     playfulness: c.playfulness ?? base.playfulness,
+    timezone: c.timezone ?? base.timezone,
+    usesRealTime: c.usesRealTime ?? base.usesRealTime,
+    knowsUserTime: c.knowsUserTime ?? base.knowsUserTime,
     media,
     mediaSummary,
-    systemPrompt: fill(rawPrompt, mediaSummary),
+    systemPrompt: overlay.systemPrompt ?? base.systemPrompt,
+  };
+  // A companion on real time with no zone claims a clock nothing can render:
+  // companionClockZone reads it as no clock, and they would play as though
+  // usesRealTime were false, which is not what the pack said. parsePack refuses
+  // the state in a complete pack's manifest; here it is refused for a pairing,
+  // where the overlay's zone and the base's are both known. The chooser card
+  // disables the pairing, so this catches a remembered selection whose base has
+  // changed under it — thrown at the pick, and shown on the setup view.
+  if (resolved.usesRealTime && resolved.timezone === undefined) {
+    throw new PackError(
+      'This overlay uses real time, but neither it nor the companion it changes has a timezone — choose a different base version, or give the overlay a timezone.',
+    );
+  }
+  return {
+    ...resolved,
+    systemPrompt: fill(resolved.systemPrompt, resolved),
   };
 }

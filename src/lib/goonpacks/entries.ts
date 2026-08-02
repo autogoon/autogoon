@@ -6,7 +6,11 @@
 // Versions coexist: every id+version is its own stored pack, so an entry
 // carries two option lists — base versions and overlay versions — matching
 // the card's two selects. Newest first in both, by alphanumeric version sort.
-import { companionList, type Companion } from '@/lib/companions/companions';
+import {
+  companionList,
+  DEFAULT_USES_REAL_TIME,
+  type Companion,
+} from '@/lib/companions/companions';
 import type { PackManifest } from './manifest';
 import type { MediaKind } from './media';
 import { packToCompanion } from './resolve';
@@ -80,6 +84,12 @@ export type PackOption = {
   media: MediaCount; // media this option itself brings
   noMedia?: boolean; // overlay deliberately plays medialess
   changed: VariantSlot[]; // overlay only: slots it changes/adds — bolded
+  // The clock fields as the manifest states them — undefined meaning "inherit
+  // from the base, or take the app default", not a resolved value. Kept raw
+  // because whether a pairing has a clock is a question about the pair, and
+  // resolving either side alone answers the wrong one (overlayNeedsZone).
+  timezone?: string;
+  usesRealTime?: boolean;
 };
 export type LibraryEntry = {
   companion: Companion;
@@ -113,6 +123,20 @@ export function effectiveMedia(
   return totalMedia(overlay.media) > 0 ? overlay.media : base;
 }
 
+// Whether pairing this overlay with this base would leave a companion who uses
+// real time and has no zone to render it in — a companion who would claim a
+// clock and be given none (companionClockZone). The chooser refuses such a
+// pairing, so the answer belongs to the pair: the same overlay is fine over a
+// base that has a zone. The chain is applyOverlay's, on unresolved fields.
+export function overlayNeedsZone(
+  overlay: PackOption,
+  base: PackOption,
+): boolean {
+  const usesRealTime =
+    overlay.usesRealTime ?? base.usesRealTime ?? DEFAULT_USES_REAL_TIME;
+  return usesRealTime && (overlay.timezone ?? base.timezone) === undefined;
+}
+
 const baseOption = (p: LoadedPack): PackOption => ({
   key: packKey(p.manifest),
   label: publisher(p.manifest.id),
@@ -121,6 +145,8 @@ const baseOption = (p: LoadedPack): PackOption => ({
   accent: p.manifest.companion.accentColour,
   media: p.summary.media,
   changed: [],
+  timezone: p.manifest.companion.timezone,
+  usesRealTime: p.manifest.companion.usesRealTime,
 });
 
 const overlayOption = (p: LoadedPack): PackOption => ({
@@ -132,6 +158,8 @@ const overlayOption = (p: LoadedPack): PackOption => ({
   media: p.summary.media,
   noMedia: p.manifest.noMedia,
   changed: changedSlots(p),
+  timezone: p.manifest.companion.timezone,
+  usesRealTime: p.manifest.companion.usesRealTime,
 });
 
 // Newest first, grouped: same-id versions stay together (ids alphabetical),
@@ -154,6 +182,8 @@ export function buildEntries(packs: LoadedPack[]): LibraryEntry[] {
         label: 'default',
         media: countMedia(c.media ?? []),
         changed: [],
+        timezone: c.timezone,
+        usesRealTime: c.usesRealTime,
       },
     ],
     overlays: overlaysFor(c.id),

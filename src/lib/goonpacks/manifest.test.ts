@@ -134,6 +134,33 @@ describe('parseManifest', () => {
       parseManifest({ ...good, companion: { gender: 'robot' } }),
     ).toThrow(PackError);
   });
+  it('accepts an IANA time zone on the companion section', () => {
+    expect(
+      parseManifest({
+        ...good,
+        companion: { timezone: 'America/New_York' },
+      }).companion.timezone,
+    ).toBe('America/New_York');
+  });
+  it('reports a timezone that is not a zone this runtime can render', () => {
+    expect(() =>
+      parseManifest({ ...good, companion: { timezone: 'Mars/Olympus_Mons' } }),
+    ).toThrow(/timezone field must be an IANA time zone name/);
+  });
+  it('reports a usesRealTime that is not a boolean', () => {
+    expect(() =>
+      parseManifest({ ...good, companion: { usesRealTime: 'yes' } }),
+    ).toThrow(/usesRealTime field must be true or false/);
+  });
+  it('accepts a timezone on an overlay, which may move a companion', () => {
+    expect(
+      parseManifest({
+        ...good,
+        base: 'autogoon.aimee',
+        companion: { timezone: 'Europe/Paris' },
+      }).companion.timezone,
+    ).toBe('Europe/Paris');
+  });
   it('rejects unknown fields at either level — typos never pass silently', () => {
     expect(() => parseManifest({ ...good, name: 'Amy' })).toThrow(
       'Unknown field at the top level of manifest.json: name.',

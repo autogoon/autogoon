@@ -75,6 +75,16 @@ export type CompanionConfig = {
   passesReasoning?: boolean;
   chattiness?: number; // 1–5: how readily a silence is filled out of play
   playfulness?: number; // 1–5: how readily they talk over a running program
+  // IANA zone. Where the companion is NOW, not where they are from — an
+  // overlay that takes them somewhere else sets its own.
+  timezone?: string;
+  // Whether a real clock is computed for this companion at all. False says the
+  // persona prompt supplies its own time of day, and a real one would
+  // contradict it. A flag rather than an absent timezone, because an overlay
+  // can set a field but never clear one.
+  usesRealTime?: boolean;
+  // Whether the companion is told the time where the user is.
+  knowsUserTime?: boolean;
 };
 
 // The keys of CompanionConfig — the only fields the companion section allows.
@@ -89,6 +99,9 @@ const COMPANION_FIELDS = [
   'passesReasoning',
   'chattiness',
   'playfulness',
+  'timezone',
+  'usesRealTime',
+  'knowsUserTime',
 ] as const;
 
 export type PackManifest = {
@@ -276,10 +289,28 @@ export function parseManifest(raw: unknown): PackManifest {
       problems.push(`The ${trait} field must be a whole number from 1 to 5.`);
     }
   }
+  for (const flag of ['usesRealTime', 'knowsUserTime'] as const) {
+    if (c[flag] !== undefined && typeof c[flag] !== 'boolean') {
+      problems.push(`The ${flag} field must be true or false (no quotes).`);
+    }
+  }
   const name = optionalString(c.name, 'name');
   const description = optionalString(c.description, 'description');
   const voiceId = optionalString(c.voiceId, 'voiceId');
   const model = optionalString(c.model, 'model');
+  const timezone = optionalString(c.timezone, 'timezone');
+  // Constructing the formatter the renderer will use: a zone that validates
+  // here is a zone that renders on this runtime. A regex accepts zones the
+  // renderer rejects, and Intl.supportedValuesOf omits aliases it accepts.
+  if (timezone !== undefined) {
+    try {
+      new Intl.DateTimeFormat('en-GB', { timeZone: timezone });
+    } catch {
+      problems.push(
+        'The timezone field must be an IANA time zone name, like "America/New_York".',
+      );
+    }
+  }
   if (problems.length > 0) throw new PackError(problems);
   // The casts are sound: reaching here means every pushed check passed.
   return {
@@ -301,6 +332,9 @@ export function parseManifest(raw: unknown): PackManifest {
       passesReasoning: c.passesReasoning as boolean | undefined,
       chattiness: c.chattiness as number | undefined,
       playfulness: c.playfulness as number | undefined,
+      timezone,
+      usesRealTime: c.usesRealTime as boolean | undefined,
+      knowsUserTime: c.knowsUserTime as boolean | undefined,
     },
   };
 }

@@ -114,18 +114,37 @@ export function describeGap(ms: number): string {
   return days === 1 ? '1 day passes.' : `${days} days pass.`;
 }
 
-// A local timestamp for the prompt: "Thursday 23 July 2026, 2:05 pm". The name
-// parts come from Intl (en-GB — the prompt speaks English regardless of the
-// user's locale); the assembly stays manual so the overall shape can't drift
-// with the ICU version's combined-format separators.
-export function describeClock(at: number): string {
-  const d = new Date(at);
-  const weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
-  const month = d.toLocaleDateString('en-GB', { month: 'long' });
-  const hour12 = ((d.getHours() + 11) % 12) + 1;
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const ampm = d.getHours() < 12 ? 'am' : 'pm';
-  return `${weekday} ${d.getDate()} ${month} ${d.getFullYear()}, ${hour12}:${minutes} ${ampm}`;
+// A timestamp for the prompt, in the zone asked for: "Thursday 23 July 2026,
+// 2:05 pm". The zone is required rather than defaulted — a caller passing
+// nothing could not tell from here whose clock came back. The name parts come
+// from Intl (en-GB — the prompt speaks English regardless of the user's
+// locale); the assembly stays manual so the overall shape can't drift with the
+// ICU version's combined-format separators. `hourCycle: 'h23'` rather than
+// `hour12: false`, which yields 24 for midnight under some ICU versions and
+// would render it as 12 pm.
+export function describeClock(at: number, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(at));
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const hour24 = Number(part('hour'));
+  const hour12 = ((hour24 + 11) % 12) + 1;
+  const ampm = hour24 < 12 ? 'am' : 'pm';
+  return `${part('weekday')} ${Number(part('day'))} ${part('month')} ${part('year')}, ${hour12}:${part('minute')} ${ampm}`;
+}
+
+// The zone the browser is in. Its own function so a call site says whose clock
+// it is asking for.
+export function browserTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 // An assistant turn with no spoken text — the model called a tool (send_media,

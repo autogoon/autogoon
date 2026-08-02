@@ -84,11 +84,11 @@ import { VoiceStageBubble } from './voice-stage';
 import { ToolChip } from './tool-chip';
 
 // Fixed default knobs — the program is random within this baseline. Companions
-// start gentle: a low-intensity, lightly-varying program. The companion turns it
-// up from there via their intensity/variety tools. Speed is applied live;
-// variety reshapes the dip pattern.
-const DEFAULT_INTENSITY = 20;
-const DEFAULT_VARIETY: VariabilityLevel = 'low';
+// open low, with dips to a fraction of that speed; they move both knobs from
+// there via their intensity/variety tools. Speed is applied live; variety
+// reshapes the dip pattern.
+const DEFAULT_INTENSITY = 10;
+const DEFAULT_VARIETY: VariabilityLevel = 'medium';
 
 export function CompanionsPanel({
   vacuglide,

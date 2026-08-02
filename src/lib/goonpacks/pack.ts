@@ -269,6 +269,18 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
           'A complete pack needs a description field in the companion section of manifest.json.',
         );
       }
+      // usesRealTime defaults to true, so a pack states which it is rather
+      // than implying it by leaving a field out. An overlay is not checked
+      // here: it may take the zone from its base, which only resolution knows
+      // (library.ts).
+      if (
+        manifest.companion.usesRealTime !== false &&
+        manifest.companion.timezone === undefined
+      ) {
+        problems.push(
+          'A complete pack needs a timezone field in the companion section of manifest.json, or usesRealTime: false if the persona sets its own time of day.',
+        );
+      }
     }
     // Any media file at all contradicts noMedia, described or not — the
     // contradiction is the folder being there, not what is in it. So this reads

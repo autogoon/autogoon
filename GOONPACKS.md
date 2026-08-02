@@ -113,7 +113,7 @@ separated by commas:
 ### The companion section — their fields
 
 Everything about the companion goes inside `companion: { … }`. For a **complete
-pack**, `name`, `description` and `voiceId` are required (plus the
+pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 `system-prompt.md` file next to the manifest); the rest are optional. An
 **overlay** includes only the fields it changes.
 
@@ -155,6 +155,31 @@ pack**, `name`, `description` and `voiceId` are required (plus the
   stops, so the gap between turns is always longer than that; the next line
   still has to be written and spoken first.
 
+- **`timezone`** — where your companion is _now_, as an IANA zone name like
+  `America/New_York` or `Europe/Riga`. Required on a complete pack, unless you
+  set `usesRealTime: false`. It's their location today, not where they're from:
+  an overlay that takes them somewhere else sets its own.
+
+  They're told the real date and time in that zone, refreshed every turn, and it
+  follows daylight saving. What they're told never names the place, only the
+  clock, so a companion whose prompt keeps their whereabouts vague stays vague.
+  They're also told this is theirs and not yours, and that you may be hours
+  ahead or behind.
+
+- **`usesRealTime`** — `false` if the persona sets its own time of day, and a
+  real clock would contradict it. Optional, `true` if omitted. A prompt opening
+  "it's evening and you've just finished filming" has fixed the hour, and a
+  companion told it's 8am will either ignore you or ignore the prompt; this is
+  how you say which one wins. The example pack's
+  [system-prompt.md](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/system-prompt.md)
+  is written that way — a late-night stream that's just wrapped.
+
+- **`knowsUserTime`** — `false` to withhold the time where _you_ are. Optional,
+  `true` if omitted. Use it for a companion written as not knowing where you
+  are: one who's told to ask rather than assume, or who gives nothing away about
+  place and time themselves. With it left on, they're told your local clock and
+  to trust it over any hour their setup assumes.
+
 ### Overlays
 
 - **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
@@ -168,6 +193,10 @@ pack**, `name`, `description` and `voiceId` are required (plus the
   `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
   memory (see [The two kinds of pack](#the-two-kinds-of-pack)).
+- **`timezone`** is how an overlay moves a companion somewhere else. An overlay
+  that switches `usesRealTime` back on needs a zone from somewhere, and the base
+  version chosen in the card is where it looks: paired with one that has no
+  zone, the overlay can't be selected until it carries a zone of its own.
 
 An overlay that changes only the companion's colour is just:
 
@@ -202,6 +231,26 @@ it in a persona does not override it. Both texts reach the model in the same
 prompt, so all you have done is made it choose, and the rule it might drop is
 the one about consent.
 
+**Don't name the device or assume there is one.** The app describes what he's
+using, what it does to him and what its settings are called. A persona that says
+"the toy", "the machine", or names a setting is written against one piece of
+hardware, and reads wrong the day it's different hardware — or the day he has
+none and is using his own hand.
+
+**Say how your companion goes about it, in both cases.** This part _is_ yours,
+and it is where a persona differs most from the next one: one is forward about
+it and will ask for it before he offers, another hangs back and wants telling.
+Direct that twice, because your companion cannot drive his hand:
+
+- what they do when he has a toy they can drive — turning him up, holding him
+  where they want him, following his lead;
+- what they do when he has no device — what they tell him to do to himself, how
+  fast, when to stop.
+
+A companion who takes charge still takes charge with nothing connected; it comes
+out as instructions he chooses to follow rather than as something they do to
+him.
+
 The app owns the mechanical rules as ready-made sections you pull in with
 `{{PLACEHOLDER}}` tokens: reply formatting, how the toy is driven, and how media
 is sent. Put a token on its own line where that section should land:
@@ -210,10 +259,9 @@ is sent. Put a token on its own line where that section should land:
   stage directions). Include it in every persona.
 - **`{{SHARED_STYLE_BULLETS}}`** — baseline speaking style bullets; put them
   under your own STYLE heading and add the companion's own after.
-- **`{{CONTROL_SUMMARY_SECTION}}`** — a short "you control the toy" summary for
-  mid-persona placement.
-- **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once, near
-  the end.
+- **`{{CONTROL_SECTION}}`** — the full toy-control rules. Include it once,
+  before the part of your persona describing how they behave during play: it is
+  what tells them what he's using, so your own bullets can act on it.
 - **`{{MEDIA_SECTION}}`** — how they search for and send pictures and videos.
   Safe to include either way. With media it carries your pack's own
   `mediaSummary`, which tells them what their set holds and so what there is to

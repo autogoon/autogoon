@@ -13,6 +13,8 @@
     "contextWindow": 1000000,
     "passesReasoning": false,
     "chattiness": 4,
-    "playfulness": 3
+    "playfulness": 3,
+    "usesRealTime": false,
+    "knowsUserTime": false
   }
 }

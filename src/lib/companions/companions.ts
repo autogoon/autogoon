@@ -53,6 +53,21 @@ export type Companion = {
   // ambientDelayMs).
   chattiness: number; // out of play: how much they keep a conversation going
   playfulness: number; // during play: how much they talk over the device
+  // IANA zone, absent when this companion has no clock of their own. Absent
+  // rather than defaulted, like `media` and `mediaSummary`: no zone is a fact
+  // about the companion, not a value waiting to be filled in.
+  //
+  // `usesRealTime: true` with no zone is invalid — a companion claiming a clock
+  // that nothing can render. parsePack refuses it in a complete pack's
+  // manifest, the chooser card disables the overlay/base pairings that would
+  // produce it, and applyOverlay throws on one that reaches it anyway. The type
+  // still admits it: expressing it would need a union discriminated on
+  // usesRealTime, and applyOverlay computes the two fields separately, so what
+  // it assembles types as `{ usesRealTime: boolean; timezone: string |
+  // undefined }` and matches neither arm.
+  timezone?: string;
+  usesRealTime: boolean; // false: the persona prompt supplies its own time of day
+  knowsUserTime: boolean; // false: the user's clock (THEIR TIME) is not sent
   // The media they can send during a session — filled by an installed goonpack
   // (src/lib/goonpacks/), and valid media only, so every entry is one they can
   // actually be offered. Empty (or omitted) for a companion with no pack
@@ -65,6 +80,13 @@ export type Companion = {
   // Written by npm run goonpack:summarise; nothing here reads into it.
   mediaSummary?: string;
 };
+
+// The zone a companion's own clock is rendered in, or undefined when they have
+// none — a zone they are off real time for is not a clock. Both sides of the
+// pair that has to agree read it: the rules appended at load (resolve.ts) and
+// the MY TIME line sent each turn (use-voice-session.ts).
+export const companionClockZone = (companion: Companion): string | undefined =>
+  companion.usesRealTime ? companion.timezone : undefined;
 
 // App defaults a pack manifest may omit (spec: model/contextWindow/
 // passesReasoning "default to the app's current defaults").
@@ -79,6 +101,8 @@ export const DEFAULT_PASSES_REASONING = true;
 // you. A pack says otherwise by setting them.
 export const DEFAULT_CHATTINESS = 3;
 export const DEFAULT_PLAYFULNESS = 3;
+export const DEFAULT_USES_REAL_TIME = true;
+export const DEFAULT_KNOWS_USER_TIME = true;
 
 export const COMPANIONS: Record<string, Companion> = {
   'autogoon.aimee': {
@@ -95,6 +119,9 @@ export const COMPANIONS: Record<string, Companion> = {
     passesReasoning: DEFAULT_PASSES_REASONING,
     chattiness: DEFAULT_CHATTINESS,
     playfulness: DEFAULT_PLAYFULNESS,
+    timezone: 'Europe/London',
+    usesRealTime: true,
+    knowsUserTime: true,
   },
   'autogoon.miley': {
     id: 'autogoon.miley',
@@ -112,6 +139,11 @@ export const COMPANIONS: Record<string, Companion> = {
     // so she's short of the top out of play and at it once things are running.
     chattiness: 4,
     playfulness: 5,
+    timezone: 'America/Los_Angeles',
+    usesRealTime: true,
+    // Her setup has her not knowing where he is unless he says, and never
+    // assuming he shares her time of day.
+    knowsUserTime: false,
   },
 };
 

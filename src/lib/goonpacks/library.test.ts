@@ -47,7 +47,14 @@ const completePack = (id: string) => ({
   'manifest.json': manifest({
     id,
     mediaSummary: 'A still and a video.',
-    companion: { name: 'Testy', description: 'a test companion', voiceId: 'v' },
+    companion: {
+      name: 'Testy',
+      description: 'a test companion',
+      voiceId: 'v',
+      // Clocks are not what these tests pin, and a complete pack on real time
+      // needs a zone (parsePack).
+      usesRealTime: false,
+    },
   }),
   'system-prompt.md': 'You are Testy.',
   'media/a.jpg': '',

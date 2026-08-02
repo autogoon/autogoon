@@ -213,17 +213,21 @@ convenience.
 The demo access gate (`COMPANIONS_ACCESS_IDS`) **retires with the server keys**.
 Its only job was protecting them.
 
-### Companion time zones
+### The user's own time zone
 
-A pack author can put a persona anywhere, but only the user's clock is real: the
-prompt's TIME line is the browser's.
+The THEIR TIME line comes from the browser's zone, so it says wherever the
+machine is. There is no way to say otherwise, and there are reasons to want to:
 
-Give a located persona their own: an IANA `timezone` field and a second TIME
-line ("TIME (yours, in Riga): …"), so it can be the middle of their night while
-it is the middle of the user's day. The app does all the arithmetic, with no LLM
-offset math: models are passable at offsets and quietly wrong about DST.
+- a scene set somewhere the user isn't;
+- being away from home, and wanting the companion to carry on as though you
+  weren't;
+- not wanting a real location shared with the companion;
+- not wanting any time zone at all shared with the companion.
 
-One rule ships with it: their clock shows up in what they say.
+A setting holding an IANA zone, used when it is set and the browser's when it
+isn't, is the whole of it. `browserTimeZone` is already the one place deriving
+the user's clock, and everything below it takes a zone explicitly, so the
+setting has one call site to replace.
 
 ## Goonpacks
 
@@ -236,3 +240,26 @@ One rule ships with it: their clock shows up in what they say.
   play. The follow-up carries a voice _prompt_ instead: the app submits it to
   ElevenLabs voice design, gets three candidate voices back, and the user picks
   or iterates. v1 ships `voiceId` and accepts the limitation.
+
+- **When a variant is an overlay, a version, or a new companion.** An overlay
+  may replace everything a session shows except `name` and `gender`, the persona
+  prompt included, so one can read as a different character entirely. The only
+  stated line is memory: an overlay is the same companion and keeps the same
+  conversation. A holiday pack — the same persona somewhere else, with their own
+  prompt saying so and their own pictures — is an overlay by the letter of that
+  rule and a new companion by how differently it reads, and an author has
+  nothing to decide it by.
+
+  A third path exists, but only for the base pack's own author: `version` is
+  free text, so they can ship the variant as a version ("bikini 1.0.0"). It
+  carries a consequence the other two don't — versions sort newest first and the
+  newest is the default, so a variant shipped that way becomes who the companion
+  is until someone picks otherwise. A version shares the pack's `id`, and the id
+  carries the publisher name, so anyone else is choosing between an overlay and
+  a new companion.
+
+  None of it is enforced. An `id` is a string an author types, so a pack can
+  claim any publisher name and nothing records who wrote one. Guidance is the
+  whole of what's available, which makes the deliverable
+  [GOONPACKS.md](./GOONPACKS.md) rather than code: what each path is for, and
+  the test for a variant that could be more than one of them.

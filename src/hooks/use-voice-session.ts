@@ -14,7 +14,10 @@
 // TTS boundaries.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Companion } from '@/lib/companions/companions';
+import {
+  companionClockZone,
+  type Companion,
+} from '@/lib/companions/companions';
 import { toRequestTools, type CompanionTool } from '@/lib/companions/tools';
 import { stripTextualToolCalls } from '@/lib/llm/textual-tool-calls';
 import { AMBIENT_CUE } from '@/lib/companions/ambient';
@@ -42,6 +45,7 @@ import {
   appendAssistant,
   appendTool,
   appendUser,
+  browserTimeZone,
   describeClock,
   parse,
   serialize,
@@ -205,13 +209,22 @@ const threadKeyFor = (companion: Companion): string =>
 // before it are then byte-identical from turn to turn, which is what prompt
 // caching needs: providers match a prefix of tokens, so a single volatile value
 // early on makes every token after it uncacheable.
-const liveState = (deviceState: string): LlmMessage => ({
-  role: 'system',
-  content: liveStateMessage(
-    describeClock(Date.now()),
-    deviceState === '' ? 'unknown' : deviceState,
-  ),
-});
+const liveState = (companion: Companion, deviceState: string): LlmMessage => {
+  // One reading for both lines: rendered from separate ones they can straddle a
+  // minute, and tell a companion in the user's own zone they are apart.
+  const now = Date.now();
+  const zone = companionClockZone(companion);
+  return {
+    role: 'system',
+    content: liveStateMessage({
+      userNow: companion.knowsUserTime
+        ? describeClock(now, browserTimeZone())
+        : undefined,
+      companionNow: zone === undefined ? undefined : describeClock(now, zone),
+      toyStatus: deviceState === '' ? 'unknown' : deviceState,
+    }),
+  };
+};
 
 export function useVoiceSession(opts: {
   // The chosen companion — its voice, model and prompt drive the whole turn.
@@ -376,7 +389,7 @@ export function useVoiceSession(opts: {
         companion.systemPrompt,
         companion.passesReasoning,
       ),
-      liveState(deviceState),
+      liveState(companion, deviceState),
     ];
   }, []);
 
@@ -594,7 +607,7 @@ export function useVoiceSession(opts: {
           );
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
-          baseMessages.push(liveState(getDeviceStateRef.current()));
+          baseMessages.push(liveState(companion, getDeviceStateRef.current()));
           // An ambient turn has no message to answer: the timer fired, not the
           // user, so the cue stands in for one (see AMBIENT_CUE). It goes after
           // the state, to read as the last thing asked of them, and only on
@@ -716,7 +729,7 @@ export function useVoiceSession(opts: {
               companion.systemPrompt,
               companion.passesReasoning,
             );
-            messages.push(liveState(getDeviceStateRef.current()));
+            messages.push(liveState(companion, getDeviceStateRef.current()));
 
             if (round === MAX_TOOL_ROUNDS) {
               owedReaction = true;

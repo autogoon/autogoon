@@ -186,7 +186,6 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
     if (set === undefined || set.size > 1) return undefined;
     return set.has('complete') ? 'companion' : 'overlay';
   };
-
   const survivors: typeof valid = [];
   for (const p of valid) {
     const id = p.manifest.id;
