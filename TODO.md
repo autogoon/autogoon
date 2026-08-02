@@ -229,6 +229,20 @@ isn't, is the whole of it. `browserTimeZone` is already the one place deriving
 the user's clock, and everything below it takes a zone explicitly, so the
 setting has one call site to replace.
 
+### One picture per turn
+
+The shared prompt's media section says "Only send one picture or video per
+turn". Nothing enforces it: `use-voice-session.ts` runs up to `MAX_TOOL_ROUNDS`
+rounds per turn and dispatches every call in each round's `toolCalls`, so a turn
+can carry any number of `send_media` calls.
+
+Cap it at one. A second call in the same turn returns a refusal string rather
+than sending, so the companion reads why nothing arrived instead of finding the
+tool silently ignored.
+
+To settle: what the refusal says. It is all the model learns from, and one that
+reads as "no pictures" would stop them offering any.
+
 ## Goonpacks
 
 - **Accept `.gif` as media.** A collected set will have the odd animated gif in

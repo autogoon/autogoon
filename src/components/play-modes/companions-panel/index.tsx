@@ -894,8 +894,6 @@ export function CompanionsPanel({
 
           {tab === 'session' && (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              {/* No title: the intro and the transcript say what this is. The
-                  padding stands in for the heading the bar used to sit above. */}
               <Card fill className="pt-4">
                 {/* Scrolling transcript — fills the space; newest at the bottom
                     (auto-scrolled via messagesRef). */}
