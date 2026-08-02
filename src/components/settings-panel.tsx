@@ -7,6 +7,7 @@ import type { CompanionsAccess } from '@/hooks/use-companions-access';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
 import { CompanionAccessCard } from '@/components/companion-access-card';
+import { ListenOnLoadField } from '@/components/listen-on-load-field';
 import { SafeWordField } from '@/components/safe-word-field';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -48,6 +49,12 @@ export function SettingsPanel({
         <Card title="Appearance">Light, dark, or follow the system.</Card>
         <ThemeToggle />
       </div>
+
+      <Card title="Microphone">
+        Whether opening the app starts listening for spoken commands, or waits
+        until you press Listen.
+        <ListenOnLoadField />
+      </Card>
 
       <Card title="Safe word">
         <SafeWordField

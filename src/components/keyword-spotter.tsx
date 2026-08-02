@@ -26,6 +26,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { KaldiRecognizer, Model } from 'vosk-browser';
+import { listensOnLoad } from '@/lib/listen-on-load';
 
 const MODEL_URL = '/vosk-model-small-en-us-0.15.tar.gz';
 
@@ -300,12 +301,16 @@ export function KeywordSpotterProvider({ children }: { children: ReactNode }) {
     }
   }, [listening, start, stop]);
 
-  // Start listening as soon as the model is ready, so the app is live on load
-  // without a click. Guarded so it fires only once — a manual stop stays stopped.
+  // Start as soon as the model is ready, but only where Settings has asked for
+  // it (see listensOnLoad) — otherwise the mic is never touched until Listen is
+  // pressed. Read here rather than watched: it decides what happens at load, so
+  // changing it applies to the next one. Guarded so it fires only once — a
+  // manual stop stays stopped.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (!modelReady || autoStartedRef.current) return;
     autoStartedRef.current = true;
+    if (!listensOnLoad()) return;
     start().catch((err: Error) => {
       console.error('Microphone error:', err);
     });

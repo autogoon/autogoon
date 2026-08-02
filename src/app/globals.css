@@ -16,6 +16,15 @@
 @source inline(
   "bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-500"
 );
+/* Segmented controls build every state from their `variant` colour name: the
+   selected segment's fill, its own hover, and the preview an unselected one
+   shows. */
+@source inline(
+  "bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-600"
+);
+@source inline(
+  "enabled:hover:bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-600/{50,80}"
+);
 
 @custom-variant dark (&:is(.dark *));
 

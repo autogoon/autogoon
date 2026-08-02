@@ -6,12 +6,6 @@ files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## General
 
-### Don't connect to the microphone on load
-
-Particularly annoying during development, where the app sits open and listening
-for keywords without being used. Connecting on load gains little when playing
-either. Turning listening on is one click, once.
-
 ### Stop the program when the device disconnects
 
 A device that drops mid-run leaves the Player's tick loop running. The speed
