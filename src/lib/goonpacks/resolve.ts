@@ -54,10 +54,9 @@ export function packToCompanionRaw(pack: PackContent): Companion {
   return {
     id: m.id,
     name: c.name ?? m.id,
-    // parsePack requires this on a complete pack, and a complete pack is all
+    // parsePack requires both on a complete pack, and a complete pack is all
     // packToCompanionRaw is ever given.
     description: c.description!,
-    // Required on a complete pack too (parsePack), for the same reason.
     intro: m.intro!,
     gender: c.gender ?? 'female',
     accentColour: c.accentColour ?? 'pink',

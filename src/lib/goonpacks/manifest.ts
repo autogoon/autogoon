@@ -110,9 +110,9 @@ export type PackManifest = {
   // What the pack adds or changes — about the PACK, not the companion
   // (that's `companion.description`).
   aboutThePack: string;
-  // The situation the pack sets up, written to the user in their own second
-  // person and shown at the top of the transcript. Never sent to the model —
-  // the persona's own setup is what tells them where they are. Required on a
+  // The situation the pack sets up, addressed to the person playing as "you"
+  // and shown at the top of the transcript. Never sent to the model — the
+  // persona's own setup is what tells them where they are. Required on a
   // complete pack; an overlay carries one only where it has moved the scene.
   intro?: string;
   // The OpenRouter model this pack's conversations run on, the window it

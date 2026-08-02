@@ -12,11 +12,7 @@
   about the companion, and an overlay changes it without changing who they are.
   A pack setting them in the `companion` section is refused, naming the field.
 
-- internal: **The redundant `'use client'` directives are gone** — Only
-  `src/app/page.tsx` carries one now; everything under `src/components` and
-  `src/hooks` is reachable from it alone, so each further directive only made
-  Next's TypeScript plugin treat the file as a client entry and demand
-  serializable props.
+- internal: **The redundant `'use client'` directives are gone**
 
 ## 2026-08-01
 
