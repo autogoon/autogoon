@@ -28,3 +28,8 @@ playwright-report/
 /goonpacks/*
 !/goonpacks/elise/
 /goonpacks/elise/media/
+
+# The inference corpus — personal media, the ground truth labelled against it
+# and every experiment's output. Never committed; the layout is in
+# docs/2026-08-02-inference-ui-spec.md.
+/inference-corpus/

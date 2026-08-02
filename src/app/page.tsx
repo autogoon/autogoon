@@ -28,6 +28,7 @@ import { GroovePanel } from '@/components/play-modes/groove-panel';
 import { GoonPanel } from '@/components/play-modes/goon-panel';
 import { HeaderBar } from '@/components/header-bar';
 import { GoonpacksPanel } from '@/components/goonpacks-panel';
+import { InferencePanel } from '@/inference/panel';
 import { HomePanel } from '@/components/home-panel';
 import { ChangelogPanel } from '@/components/changelog-panel';
 import { SettingsPanel } from '@/components/settings-panel';
@@ -103,18 +104,25 @@ type PlayModeId = (typeof PLAY_MODES)[number]['id'];
 type Screen =
   | 'home'
   | 'goonpacks'
+  | 'inference'
   | 'settings'
   | 'changes'
   | PlayModeId
   | `${PlayModeId}/play`;
 
 // The sibling tabs at the top level — see the tab strip below. Their ids
-// double as their voice words, live on whichever tab you're on — except
-// Goonpacks, whose spoken word is `packs` ("goonpacks" isn't in vosk's
-// lexicon, so the compound would never be spotted).
-type TabId = 'home' | 'goonpacks' | 'settings' | 'changes';
+// double as their voice words, live on whichever tab you're on — with two
+// exceptions. Goonpacks speaks as `packs` ("goonpacks" isn't in vosk's
+// lexicon, so the compound would never be spotted), and Inference has no word
+// at all: it is a dev-only labelling desk driven by the keyboard, so it never
+// joins the grammar the tab strip below builds.
+type TabId = 'home' | 'goonpacks' | 'inference' | 'settings' | 'changes';
 const isTabId = (id: string): id is TabId =>
-  id === 'home' || id === 'goonpacks' || id === 'settings' || id === 'changes';
+  id === 'home' ||
+  id === 'goonpacks' ||
+  id === 'inference' ||
+  id === 'settings' ||
+  id === 'changes';
 
 const isPlayModeId = (id: string): id is PlayModeId =>
   PLAY_MODES.some((a) => a.id === id);
@@ -126,7 +134,10 @@ const hashScreen = (): Screen => {
   if (base !== undefined && isPlayModeId(base)) {
     return sub === 'play' ? `${base}/play` : base;
   }
-  return base === 'goonpacks' || base === 'settings' || base === 'changes'
+  return base === 'goonpacks' ||
+    base === 'settings' ||
+    base === 'changes' ||
+    (base === 'inference' && IS_DEV)
     ? base
     : 'home';
 };
@@ -217,7 +228,8 @@ function App() {
       if (screen === 'home') words.push(...availablePlayModes.map((a) => a.id));
       // The visible tabs, minus the one you're on (a disabled control is out
       // of the grammar; so is the tab that would go nowhere). Goonpacks
-      // speaks as `packs`, and only while its tab shows.
+      // speaks as `packs`, and only while its tab shows. Inference is absent
+      // by design — see TabId.
       words.push(
         ...(['home', 'changes', 'settings'] as const).filter(
           (t) => t !== screen,
@@ -367,11 +379,13 @@ function App() {
                 // (ml-auto); the tabs after it just follow.
                 { id: 'home', label: 'Home', align: 'left' },
                 { id: 'goonpacks', label: 'Goonpacks', align: 'left' },
+                { id: 'inference', label: 'Inference', align: 'left' },
                 { id: 'changes', label: 'Changes', align: 'right' },
                 { id: 'settings', label: 'Settings', align: 'left' },
               ] as const
             )
               .filter((t) => t.id !== 'goonpacks' || goonpacksShown)
+              .filter((t) => t.id !== 'inference' || IS_DEV)
               .map((t) => (
                 <TabButton
                   key={t.id}
@@ -424,6 +438,13 @@ function App() {
           <div className={screen === 'goonpacks' ? undefined : 'hidden'}>
             <GoonpacksPanel />
           </div>
+          {IS_DEV && (
+            // Mounted only on the dev server: its routes answer nowhere else,
+            // so anywhere else it would be a screen of failed requests.
+            <div className={screen === 'inference' ? undefined : 'hidden'}>
+              <InferencePanel active={screen === 'inference'} />
+            </div>
+          )}
           <div className={screen === 'home' ? undefined : 'hidden'}>
             <HomePanel
               vacuglide={vacuglide}
