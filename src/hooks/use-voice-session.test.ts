@@ -126,6 +126,7 @@ const COMPANION: Companion = {
   id: 'test' as Companion['id'],
   name: 'Test',
   description: 'fixture',
+  intro: 'fixture scene',
   gender: 'nonbinary',
   accentColour: 'pink',
   voiceId: 'voice',

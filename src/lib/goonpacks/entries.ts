@@ -108,7 +108,7 @@ function changedSlots(p: LoadedPack): VariantSlot[] {
   if (p.summary.hasPrompt) out.push('prompt');
   if (p.manifest.companion.voiceId !== undefined) out.push('voice');
   if (p.manifest.companion.accentColour !== undefined) out.push('colour');
-  if (p.manifest.companion.model !== undefined) out.push('model');
+  if (p.manifest.model !== undefined) out.push('model');
   return out;
 }
 

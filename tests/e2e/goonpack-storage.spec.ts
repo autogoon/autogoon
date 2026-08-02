@@ -59,6 +59,7 @@ const validPack = (key: string): Record<string, string> => ({
     id: key.slice(0, key.indexOf('@')),
     version: key.slice(key.indexOf('@') + 1),
     aboutThePack: 'a storage test pack',
+    intro: 'a storage test scene',
     mediaSummary: 'One still.',
     companion: {
       name: 'Storey',

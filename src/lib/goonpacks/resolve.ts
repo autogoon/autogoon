@@ -57,13 +57,15 @@ export function packToCompanionRaw(pack: PackContent): Companion {
     // parsePack requires this on a complete pack, and a complete pack is all
     // packToCompanionRaw is ever given.
     description: c.description!,
+    // Required on a complete pack too (parsePack), for the same reason.
+    intro: m.intro!,
     gender: c.gender ?? 'female',
     accentColour: c.accentColour ?? 'pink',
     voiceId: c.voiceId ?? '',
     systemPrompt: pack.systemPrompt ?? '',
-    model: c.model ?? DEFAULT_MODEL,
-    contextWindow: c.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
-    passesReasoning: c.passesReasoning ?? DEFAULT_PASSES_REASONING,
+    model: m.model ?? DEFAULT_MODEL,
+    contextWindow: m.contextWindow ?? DEFAULT_CONTEXT_WINDOW,
+    passesReasoning: m.passesReasoning ?? DEFAULT_PASSES_REASONING,
     chattiness: c.chattiness ?? DEFAULT_CHATTINESS,
     playfulness: c.playfulness ?? DEFAULT_PLAYFULNESS,
     timezone: c.timezone,
@@ -118,11 +120,12 @@ export function applyOverlay(base: Companion, overlay: PackContent): Companion {
   const resolved: Companion = {
     ...base, // id stays the base's — thread ownership; so do name and gender
     description: c.description ?? base.description,
+    intro: m.intro ?? base.intro,
     accentColour: c.accentColour ?? base.accentColour,
     voiceId: c.voiceId ?? base.voiceId,
-    model: c.model ?? base.model,
-    contextWindow: c.contextWindow ?? base.contextWindow,
-    passesReasoning: c.passesReasoning ?? base.passesReasoning,
+    model: m.model ?? base.model,
+    contextWindow: m.contextWindow ?? base.contextWindow,
+    passesReasoning: m.passesReasoning ?? base.passesReasoning,
     chattiness: c.chattiness ?? base.chattiness,
     playfulness: c.playfulness ?? base.playfulness,
     timezone: c.timezone ?? base.timezone,

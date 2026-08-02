@@ -46,6 +46,7 @@ const sidecar = (caption: string, description: string) =>
 const completePack = (id: string) => ({
   'manifest.json': manifest({
     id,
+    intro: 'a test scene',
     mediaSummary: 'A still and a video.',
     companion: {
       name: 'Testy',

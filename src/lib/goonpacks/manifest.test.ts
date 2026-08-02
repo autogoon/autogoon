@@ -107,6 +107,40 @@ describe('parseManifest', () => {
       /aboutThePack/,
     );
   });
+  it('carries an intro through as written, newlines and all', () => {
+    expect(
+      parseManifest({ ...good, intro: 'She picked up.\n\nSay something.' })
+        .intro,
+    ).toBe('She picked up.\n\nSay something.');
+  });
+  it('rejects an empty intro rather than letting it defeat the base fallback', () => {
+    expect(() => parseManifest({ ...good, intro: '  ' })).toThrow(
+      'The intro field is empty — give it a value or remove it.',
+    );
+  });
+  it('reads model, contextWindow and passesReasoning from the top level', () => {
+    const m = parseManifest({
+      ...good,
+      model: 'openrouter/thing-13b',
+      contextWindow: 200_000,
+      passesReasoning: true,
+    });
+    expect([m.model, m.contextWindow, m.passesReasoning]).toEqual([
+      'openrouter/thing-13b',
+      200_000,
+      true,
+    ]);
+  });
+  it('rejects model in the companion section, where it used to sit', () => {
+    expect(() =>
+      parseManifest({ ...good, companion: { model: 'openrouter/thing-13b' } }),
+    ).toThrow('Unknown field in the companion section: model.');
+  });
+  it('reports a contextWindow written as a string in quotes', () => {
+    expect(() => parseManifest({ ...good, contextWindow: '200000' })).toThrow(
+      'The contextWindow field must be a number (no quotes).',
+    );
+  });
   it('carries a media summary through as written', () => {
     expect(
       parseManifest({ ...good, mediaSummary: 'Mostly beach shots.' })

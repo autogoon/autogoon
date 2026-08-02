@@ -337,11 +337,11 @@ describe('buildEntries', () => {
         '1.1.0',
         base,
         {
+          top: { model: 'openrouter/goth-13b' },
           companion: {
             description: 'gothed up',
             voiceId: 'v2',
             accentColour: 'violet',
-            model: 'openrouter/goth-13b',
           },
         },
         { media: { images: 4, videos: 0 }, hasPrompt: true },

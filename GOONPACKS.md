@@ -69,6 +69,7 @@ separated by commas:
       "id": "yourname.luna",
       "version": "1.0.0",
       "aboutThePack": "Luna, a sleepy-voiced artist, complete with voice.",
+      "intro": "Luna paints all night and answers her phone at 3am.\n\nYou have called her and she has picked up.",
       "companion": {
         "name": "Luna",
         "description": "A soft-spoken painter who stays up too late.",
@@ -79,6 +80,18 @@ separated by commas:
     }
 
 ### Every pack needs
+
+Three of a pack's texts are easy to confuse, and each is read at a different
+moment:
+
+- **`aboutThePack`** — what the pack holds or changes, read on the Goonpacks tab
+  when deciding whether to install it;
+- **`description`** (in the companion section) — what your companion is like,
+  read on their card when deciding whether to call them;
+- **`intro`** — the scene, read at the top of the conversation once that choice
+  is made.
+
+The top level's own fields:
 
 - **`format`** — always `1`. This is the version of the _pack format_, not the
   version of your pack. A pack declaring anything else is refused on import.
@@ -99,6 +112,9 @@ separated by commas:
   it, whether counts or that it has none. The app works that out from the pack
   itself and shows it, so anything hand-written there is a second answer waiting
   to go stale.
+- **`intro`** — the scene the conversation opens on, shown above the first
+  message. Required on a complete pack; an overlay carries one only where it has
+  moved the scene. See [Writing the intro](#writing-the-intro).
 
 ### A pack with media also needs
 
@@ -109,6 +125,25 @@ separated by commas:
   captions actually use. A pack that carries media needs one. Write it with
   `npm run goonpack:summarise`, which builds it from the pack's own sidecars,
   and run that again whenever the set changes so it doesn't drift.
+
+### The LLM model the pack runs on
+
+All three sit at the top level, beside `id` and `version`: which model to run is
+a decision about the pack, and an overlay that rewrites a persona often changes
+it without changing who the companion is. All three are optional, and an overlay
+that sets none keeps its base's.
+
+- **`model`** — the OpenRouter model the conversation runs on, as a model slug.
+  The app's default model when omitted. Pick one that suits the persona, and
+  that allows the kind of roleplay you're writing. Whether it will refuse, and
+  whether it calls tools reliably, are both properties of the model rather than
+  of your prompt, so try one before settling on it. A model that stops calling
+  tools gives you a companion who talks about the toy without ever driving it.
+- **`contextWindow`** — the chosen model's context window, in tokens (a number,
+  no quotes). Only worth setting alongside `model`.
+- **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
+  thinking should be replayed to it with the conversation. Leave it out unless
+  you know the model needs it.
 
 ### The companion section — their fields
 
@@ -129,17 +164,6 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 - **`accentColour`** — the colour of their card and chooser entry. One of: red,
   orange, amber, yellow, lime, green, emerald, teal, cyan, sky, blue, indigo,
   violet, purple, fuchsia, pink, rose. Optional (pink if omitted).
-- **`model`** — the OpenRouter model they run on, as a model slug. Optional; the
-  app's default model when omitted. Pick a model that suits their persona, and
-  that allows the kind of roleplay you're writing. Whether it will refuse, and
-  whether it calls tools reliably, are both properties of the model rather than
-  of your prompt, so try one before settling on it. A model that stops calling
-  tools gives you a companion who talks about the toy without ever driving it.
-- **`contextWindow`** — the chosen model's context window, in tokens (a number,
-  no quotes). Optional; only worth setting alongside `model`.
-- **`passesReasoning`** — `true` if the chosen model is a reasoning model whose
-  thinking should be replayed to it with the conversation. Optional; leave it
-  out unless you know the model needs it.
 - **`chattiness`** and **`playfulness`** — how readily your companion speaks up
   when you haven't, from 1 to 5. Both optional, 3 if omitted. `chattiness`
   applies while the toy is idle, `playfulness` while it's running. Someone of
@@ -185,9 +209,12 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
 - **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
   companion this overlay changes: a built-in's id or a complete pack's id, never
   another overlay's.
-- Then include **only what changes**: `media/`, `system-prompt.md`, and any
-  `companion` fields. Each one replaces the base's while the overlay is
-  selected, and anything left out stays the base's.
+- Then include **only what changes**: `media/`, `system-prompt.md`, `intro`, the
+  model fields, and any `companion` fields. Each one replaces the base's while
+  the overlay is selected, and anything left out stays the base's. An overlay
+  that rewrites the persona usually wants its own `intro` too — the two describe
+  the same scene, and one changing without the other leaves them contradicting
+  each other on screen.
 - **`noMedia`** (top-level) — `true` means the overlay deliberately strips the
   base's pictures and videos, so the combination has none. (Simply omitting
   `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
@@ -208,6 +235,29 @@ An overlay that changes only the companion's colour is just:
       "base": "yourname.luna",
       "companion": { "accentColour": "cyan" }
     }
+
+## Writing the intro
+
+The intro carries neither `aboutThePack` nor `description`. It says who your
+companion is, who the player is to them, and why the two of them are talking,
+and then it stops.
+
+Everything in it has to be something the player already knows, and what they
+know comes from the relationship. A companion who is their partner is someone
+they know well: warm, shy, quick to please all belong. A companion they have
+just paid to call is a stranger — a name, an age and what the call is for is all
+they have, and manner is the companion's own to show once they speak.
+
+Leave out anything only your companion can see: what they're wearing, what their
+room looks like, the weather where they are. Leave out that neither of them can
+see the other, too — it's a phone call.
+
+The persona prompt's setup describes the same scene from your companion's side,
+so the two have to agree. Only the persona reaches the model; the intro is read
+and never spoken, so nothing in it instructs your companion.
+
+Newlines survive as written: a blank line makes a paragraph, and two is usually
+enough.
 
 ## system-prompt.md — their persona
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-02
+
+- feature: **A conversation opens on a scene** — Every companion now sets up the
+  situation you're in: who they are, and how the two of you came to be on the
+  phone. It sits at the top of the conversation, written to you rather than
+  spoken, and a goonpack that rewrites a persona can set its own.
+
+- internal: **`model`, `contextWindow` and `passesReasoning` moved to the
+  manifest's top level** — Which model to run is a decision about the pack, not
+  about the companion, and an overlay changes it without changing who they are.
+  A pack setting them in the `companion` section is refused, naming the field.
+
+- internal: **The redundant `'use client'` directives are gone** — Only
+  `src/app/page.tsx` carries one now; everything under `src/components` and
+  `src/hooks` is reachable from it alone, so each further directive only made
+  Next's TypeScript plugin treat the file as a client entry and demand
+  serializable props.
+
 ## 2026-08-01
 
 - feature: **A companion has a clock of their own** — Their pack says where they

@@ -1,5 +1,3 @@
-'use client';
-
 // Companions panel. Two jobs in one panel: (1) the voice session — the mic/STT/
 // LLM/TTS loop via useVoiceSession, hosting the <audio> the TTS plays through;
 // (2) a device-arming panel — it owns a CompanionEngine and arms/plays the one
@@ -73,6 +71,7 @@ import {
   type PackSel,
 } from './chooser-card';
 import { DateHeader } from './date-header';
+import { ThreadIntro } from './thread-intro';
 import { DebugTab } from './debug-tab';
 import { JsonOverlay } from './json-overlay';
 import { Lightbox } from './lightbox';
@@ -895,13 +894,16 @@ export function CompanionsPanel({
 
           {tab === 'session' && (
             <div className="flex min-h-0 flex-1 flex-col gap-3">
-              <Card title="Conversation" fill>
+              {/* No title: the intro and the transcript say what this is. The
+                  padding stands in for the heading the bar used to sit above. */}
+              <Card fill className="pt-4">
                 {/* Scrolling transcript — fills the space; newest at the bottom
                     (auto-scrolled via messagesRef). */}
                 <div
                   ref={messagesRef}
                   className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1"
                 >
+                  <ThreadIntro text={companion.intro} />
                   {status.thread.map((turn, i) => {
                     let row: ReactNode;
                     if (turn.role === 'tool') {
