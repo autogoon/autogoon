@@ -23,7 +23,7 @@ zipped:
 - a `system-prompt.md`, their persona, written in plain English;
 - a `media/` folder, if they send pictures or videos.
 
-## The two kinds of pack
+## Choosing complete or overlay
 
 **A complete pack** is a new companion, with everything they need to exist: a
 name, a voice and a persona. Import it and they get their own card on the
@@ -33,7 +33,7 @@ Companions screen.
 an imported complete pack. It names its base companion and includes only what
 changes; everything else stays the base's. An overlay can replace their pictures
 and videos (or strip them, with `noMedia`), their persona prompt, and any of
-their [companion fields](#the-companion-section--their-fields).
+their [companion fields](#describing-the-companion).
 
 What an overlay can never do is change their **name** or **gender**. An overlay
 is still the same companion, keeping the same conversation memory whichever pack
@@ -42,7 +42,7 @@ make a complete pack.
 
 Overlays always sit on a companion, never on another overlay.
 
-## Assembling a pack
+## Laying out the files
 
 Lay out a directory like this, then zip its **contents** (the manifest sits at
 the zip root, not inside a folder):
@@ -57,7 +57,7 @@ from. The pack ships with no media, since the repo never distributes imagery
 (see the [content policy](./DEVELOPERS.md#content-policy)). Pictures and videos
 are always yours to add.
 
-## manifest.json — every field
+## Filling in manifest.json
 
 The manifest is a small JSON file in two halves: the top level describes the
 **pack** (what it is, its version), and the `companion` section describes
@@ -79,7 +79,7 @@ separated by commas:
       }
     }
 
-### Every pack needs
+### The fields every pack needs
 
 Three of a pack's texts are easy to confuse, and each is read at a different
 moment:
@@ -116,7 +116,7 @@ The top level's own fields:
   message. Required on a complete pack; an overlay carries one only where it has
   moved the scene. See [Writing the intro](#writing-the-intro).
 
-### A pack with media also needs
+### Describing a media set
 
 - **`mediaSummary`** — what the media set holds, in one block of text: the sorts
   of picture in it, roughly in what proportion, and the words the captions use
@@ -126,7 +126,7 @@ The top level's own fields:
   `npm run goonpack:summarise`, which builds it from the pack's own sidecars,
   and run that again whenever the set changes so it doesn't drift.
 
-### The LLM model the pack runs on
+### Setting the LLM model
 
 All three sit at the top level, beside `id` and `version`: which model to run is
 a decision about the pack, and an overlay that rewrites a persona often changes
@@ -145,7 +145,7 @@ that sets none keeps its base's.
   thinking should be replayed to it with the conversation. Leave it out unless
   you know the model needs it.
 
-### The companion section — their fields
+### Describing the companion
 
 Everything about the companion goes inside `companion: { … }`. For a **complete
 pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
@@ -204,7 +204,7 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
   place and time themselves. With it left on, they're told your local clock and
   to trust it over any hour their setup assumes.
 
-### Overlays
+### Making an overlay
 
 - **`base`** (top-level; this is what makes a pack an overlay) — the `id` of the
   companion this overlay changes: a built-in's id or a complete pack's id, never
@@ -219,7 +219,7 @@ pack**, `name`, `description`, `voiceId` and `timezone` are required (plus the
   base's pictures and videos, so the combination has none. (Simply omitting
   `media/` keeps the base's set — `noMedia` is for when "none" is the point.)
 - **`name`** and **`gender`** are rejected on overlays — same companion, same
-  memory (see [The two kinds of pack](#the-two-kinds-of-pack)).
+  memory (see [Choosing complete or overlay](#choosing-complete-or-overlay)).
 - **`timezone`** is how an overlay moves a companion somewhere else. An overlay
   that switches `usesRealTime` back on needs a zone from somewhere, and the base
   version chosen in the card is where it looks: paired with one that has no
@@ -238,15 +238,16 @@ An overlay that changes only the companion's colour is just:
 
 ## Writing the intro
 
-The intro carries neither `aboutThePack` nor `description`. It says who your
-companion is, who the player is to them, and why the two of them are talking,
-and then it stops.
+The intro does two things:
 
-Everything in it has to be something the player already knows, and what they
-know comes from the relationship. A companion who is their partner is someone
-they know well: warm, shy, quick to please all belong. A companion they have
-just paid to call is a stranger — a name, an age and what the call is for is all
-they have, and manner is the companion's own to show once they speak.
+- introduces your companion, as far as the player already knows them;
+- sets the scene.
+
+What the player knows comes from the relationship. A companion who is their
+partner is someone they know well: warm, shy, quick to please all belong. A
+companion they have just paid to call is a stranger — a name, an age and what
+the call is for is all they have, and manner is the companion's own to show once
+they speak.
 
 Leave out anything only your companion can see: what they're wearing, what their
 room looks like, the weather where they are. Leave out that neither of them can
@@ -259,7 +260,7 @@ and never spoken, so nothing in it instructs your companion.
 Newlines survive as written: a blank line makes a paragraph, and two is usually
 enough.
 
-## system-prompt.md — their persona
+## Writing the persona
 
 The system prompt is who the companion is, written in plain English:
 
@@ -327,7 +328,7 @@ One set of rules needs no token and can't be left out: your companion is always
 told the real date and time where _you_ are, so the rules for reading that are
 added to every persona automatically.
 
-## media/
+## Adding pictures and videos
 
 The companion's pictures and videos, directly in `media/` (no subfolders).
 
@@ -400,7 +401,7 @@ just that pack, which is the order to do them in for a new one:
     npm run goonpack:summarise goonpacks/luna
     npm run goonpack:build goonpacks/luna
 
-## Importing and versions
+## Importing a pack and updating it
 
 Goonpacks tab → **Import pack**. The pack's card is shown from its manifest
 before anything is written, so you see what you're about to install. The unpack
