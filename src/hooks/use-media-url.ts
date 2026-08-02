@@ -1,4 +1,3 @@
-'use client';
 // A media entry's object URL, minted on first use. The entry memoises the URL
 // on itself, so a re-render — or a second bubble showing the same item — is
 // ready on its first paint; only the very first use of a file is `loading`.

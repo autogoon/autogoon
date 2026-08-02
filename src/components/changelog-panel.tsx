@@ -1,5 +1,3 @@
-'use client';
-
 // The Changelog screen: renders CHANGELOG.md, which next.config.ts freezes
 // into the bundle at build time. One card per day, each change on its own
 // line with a coloured tag pill; `code` spans wear the voice-badge look and

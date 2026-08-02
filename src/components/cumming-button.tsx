@@ -1,5 +1,3 @@
-'use client';
-
 // The Cumming send-off — the actual release. Red, to set it apart from the
 // FinishButton's amber pre-ending. Pass a `className` for
 // width/layout (defaults to full width).

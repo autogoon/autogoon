@@ -1,5 +1,3 @@
-'use client';
-
 // Shared "Stroke" controls: voice "up"/"down" opens the stroke+/stroke- valve
 // for a fixed length then closes it. The two directions hold for very different
 // lengths — see STROKE_PULSE_MINUS_MS and STROKE_PULSE_PLUS_MS. Lives here

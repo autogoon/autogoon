@@ -1,5 +1,3 @@
-'use client';
-
 // The LLM request viewer's trigger, on the Debug tab. The click handler lives
 // in the panel (it needs the session and the overlay state); this owns the look.
 

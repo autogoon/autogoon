@@ -1,5 +1,3 @@
-'use client';
-
 // A centered date row marking where the transcript crosses into a new local
 // day (and above the first stamped message).
 

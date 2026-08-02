@@ -1,5 +1,3 @@
-'use client';
-
 // Setup card: what `cumming` does. Tick any number of outcomes; the engine
 // picks one at random at the cumming point. At least one must be ticked before
 // Play (the panel gates on it). All

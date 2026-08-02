@@ -1,5 +1,3 @@
-'use client';
-
 // The play screen's hamburger menu: jump between the panel's tabs, toggle the
 // program preview, open the LLM request viewer. Rendered inside a `relative`
 // wrapper in the slim top bar; the full-screen transparent backdrop closes it,

@@ -1,5 +1,3 @@
-'use client';
-
 // The Companion access gate's UI: enter a shared access ID to unlock Companions.
 // Always shown (once the initial check resolves) so access can be entered or
 // changed at any time. The real enforcement is server-side on the paid routes

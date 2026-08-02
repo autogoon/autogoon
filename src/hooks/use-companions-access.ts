@@ -1,5 +1,3 @@
-'use client';
-
 // React state for the Companion access gate. Validates the saved access ID
 // against /api/companions/access and exposes whether Companions is unlocked.
 // The paid routes enforce the same check server-side, so this is UX only: it

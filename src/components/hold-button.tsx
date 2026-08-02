@@ -1,5 +1,3 @@
-'use client';
-
 // A press-and-hold button: opens a valve on press, closes on release. Used for
 // the manual stroke overrides. The valve stays open a minimum of 300ms even on
 // a quick tap, mirroring the useMinPressDuration hook in Autoblow's own client

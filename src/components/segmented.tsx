@@ -1,5 +1,3 @@
-'use client';
-
 // A single segmented control: a row of mutually-exclusive options. Generic over
 // the option value; the selected one gets `activeClass`.
 

@@ -1,5 +1,3 @@
-'use client';
-
 // Groove play mode panel. Owns the Groove engine, arms/plays the shared Player,
 // declares its commands once (button == voice). Event generation lives in
 // @/lib/play-modes/groove-engine.

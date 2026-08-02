@@ -1,5 +1,3 @@
-'use client';
-
 // One transcript row: user turns right-aligned in the accent colour, the
 // companion's left-aligned and muted. `pending` dims the in-progress reply until
 // it folds into the thread. `at` (absent on pending bubbles and pre-timestamp

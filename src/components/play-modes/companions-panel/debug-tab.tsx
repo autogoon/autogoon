@@ -1,5 +1,3 @@
-'use client';
-
 // The play view's Debug tab: STT state, latency metrics, the LLM request
 // viewer's trigger, and the event/command logs. Only rendered while the tab
 // is open, so the churning `status` prop costs nothing the rest of the time.

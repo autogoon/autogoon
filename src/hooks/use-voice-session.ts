@@ -1,5 +1,3 @@
-'use client';
-
 // Companions voice-session orchestrator: ties the mic, STT socket, LLM client
 // and TTS player into the barge-in loop, with one AbortController per companion
 // reply-turn. A turn runs on any text — a committed voice transcript (hands-free,
