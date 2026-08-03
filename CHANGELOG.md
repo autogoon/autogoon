@@ -19,11 +19,13 @@
   leafs through a goonpack's media and records what is actually in each picture,
   so a change to how images get described can be scored rather than guessed at.
   A corpus is a pack's `media/`, picked from a dropdown, so a labelled set is
-  playable in the app with no extra step. Answers say whether a person or an
-  experiment gave them, and an experiment can only fill what nobody has
-  answered. Each experiment is a frozen directory of its own code and a README
-  describing its approach; the first reproduces what the pack-authoring pipeline
-  does today. [INFERENCE.md](./INFERENCE.md) describes the harness.
+  playable in the app with no extra step. What you answer is kept apart from
+  what an experiment answers — the experiment's are proposals shown beside
+  yours, never written into your record — and each run also writes the caption
+  and description it produced, in the format a pack plays. Each experiment is a
+  directory of its own code and a README describing its approach; the first
+  reproduces what the pack-authoring pipeline does today.
+  [INFERENCE.md](./INFERENCE.md) describes the harness.
 
 - feature: **A conversation opens on a scene** — Every companion now sets up the
   situation you're in: who they are, and how the two of you came to be on the
