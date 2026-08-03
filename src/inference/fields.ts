@@ -23,6 +23,12 @@ export type Field = {
   options: FieldOption[];
 };
 
+// The answer for a picture the field cannot be read off. A value like any
+// other, on whichever fields offer it — an experiment answering `Yes` where a
+// person answered this is one that got it wrong, which is the whole point of
+// being able to record it.
+export const UNKNOWN = 'unknown';
+
 export const FIELDS: Field[] = [
   {
     id: 'naked',
@@ -30,6 +36,7 @@ export const FIELDS: Field[] = [
     options: [
       { value: true, label: 'Yes', key: 'y' },
       { value: false, label: 'No', key: 'n' },
+      { value: UNKNOWN, label: 'Unknown', key: 'k' },
     ],
   },
 ];

@@ -5,7 +5,7 @@
 // that costs).
 
 import { survey } from '@/inference/corpus';
-import { CURRENT } from '@/inference/experiments';
+import { CURRENT, EXPERIMENTS } from '@/inference/experiments';
 import { failed, IS_DEV, notFound } from '@/inference/dev-only';
 
 export const runtime = 'nodejs';
@@ -13,7 +13,13 @@ export const runtime = 'nodejs';
 export async function GET(): Promise<Response> {
   if (!IS_DEV) return notFound();
   try {
-    return Response.json({ items: await survey(), experiment: CURRENT.id });
+    return Response.json({
+      items: await survey(),
+      // The registry's ids fill the screen's experiment picker, and CURRENT is
+      // what it starts on.
+      experiments: EXPERIMENTS.map((e) => e.id),
+      experiment: CURRENT.id,
+    });
   } catch (e) {
     return failed(e);
   }

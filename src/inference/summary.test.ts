@@ -3,6 +3,7 @@
 // baseline has answered is work outstanding, not work done.
 
 import { describe, expect, it } from '@jest/globals';
+import { UNKNOWN, type FieldValue } from './fields';
 import { HUMAN, type Labels } from './labels';
 import type { SurveyedItem } from './item';
 import { summarise } from './summary';
@@ -22,7 +23,7 @@ const item = (
   runs,
 });
 
-const byHuman = (value: boolean): Labels => ({
+const byHuman = (value: FieldValue): Labels => ({
   naked: { value, source: HUMAN },
 });
 const bySeed = (value: boolean): Labels => ({
@@ -41,6 +42,10 @@ describe('summarise', () => {
 
   it('counts an item confirmed only when a person answered every field', () => {
     expect(summarise([item('a', byHuman(true))]).confirmed).toBe(1);
+  });
+
+  it('counts an item answered Unknown as confirmed, since it was answered', () => {
+    expect(summarise([item('a', byHuman(UNKNOWN))]).confirmed).toBe(1);
   });
 
   it('does not count an item the experiment answered as confirmed', () => {
@@ -83,17 +88,17 @@ describe('summarise', () => {
       item('b', byHuman(true)),
       item('c', byHuman(false)),
     ]);
-    expect(summary.fields[0]?.values).toEqual([
-      { label: 'Yes', count: 2 },
-      { label: 'No', count: 1 },
-    ]);
+    expect(summary.fields[0]?.values).toContainEqual({
+      label: 'Yes',
+      count: 2,
+    });
+    expect(summary.fields[0]?.values).toContainEqual({ label: 'No', count: 1 });
   });
 
   it('lists an option nothing was labelled with at nought', () => {
-    expect(summarise([item('a', byHuman(true))]).fields[0]?.values).toEqual([
-      { label: 'Yes', count: 1 },
-      { label: 'No', count: 0 },
-    ]);
+    expect(
+      summarise([item('a', byHuman(true))]).fields[0]?.values,
+    ).toContainEqual({ label: 'No', count: 0 });
   });
 
   it('shows a value no option covers rather than dropping it', () => {

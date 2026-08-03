@@ -53,18 +53,23 @@ The fields, their options and the key that picks each one are in
 The **Inference** tab, beside Goonpacks. It has no voice word: this is a
 keyboard-driven desk tool rather than something operated during play.
 
-- **The corpus's counts** — how many items, how many every field has a person's
-  answer for, how many still hold an experiment's, and how far each experiment
-  has run.
-- **One item at a time** — the picture, the controls for each field, and the raw
-  reply of any run against it.
+The screen reports on the corpus for one experiment, picked from its dropdown:
+how many items there are, how many a person has answered every field for, how
+many still hold an experiment's answer, and how far the selected experiment has
+run. The spread of the ground truth's own answers across each field's options is
+counted beside them; it belongs to the corpus rather than to any experiment.
 
-| Key                  |                                              |
-| -------------------- | -------------------------------------------- |
-| the option's own key | answers that field                           |
-| `←` `→`              | previous and next                            |
-| `u`                  | the next item nobody has answered            |
-| `g`                  | run the current experiment against this item |
+**Review** opens one item over the whole screen — the picture, the controls for
+each field, and the selected experiment's reply to it. Reopening it returns to
+the item it was left on.
+
+| Key                  |                                               |
+| -------------------- | --------------------------------------------- |
+| the option's own key | answers that field                            |
+| `←` `→`              | previous and next                             |
+| `u`                  | the next item nobody has answered             |
+| `g`                  | run the selected experiment against this item |
+| `Esc`                | closes the review                             |
 
 **Generate is one call for one item** — it is the spot-check. Running an
 experiment across the whole corpus is a script, not a button.
@@ -92,8 +97,8 @@ The values an environment override could change — model, resolution, temperatu
 would differ from them is refused, naming what moved.
 
 Adding one is a new directory, its `README.md`, and an entry in
-[the registry](./src/inference/experiments/index.ts), which also names the
-experiment the screen's Generate button runs.
+[the registry](./src/inference/experiments/index.ts), which also names the one
+the screen starts on.
 
 ### The experiments
 

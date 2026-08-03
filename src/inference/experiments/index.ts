@@ -7,8 +7,8 @@ import { experiment as baseline } from './2026-08-02-baseline';
 
 export const EXPERIMENTS: Experiment[] = [baseline];
 
-// The one the screen's Generate button runs. Adding an experiment doesn't
-// change what the button does until this moves.
+// The one the screen's experiment picker starts on. Adding an experiment puts
+// it in the list; it is not what the screen opens with until this moves.
 export const CURRENT = baseline;
 
 export const experimentById = (id: string): Experiment | undefined =>

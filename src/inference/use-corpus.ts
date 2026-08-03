@@ -1,11 +1,16 @@
-// The review screen's state: the corpus, where you are in it, and the four
-// things you can do to the item in front of you.
+// The Inference screen's state: the corpus, which experiment is under
+// examination, where you are in it, and the four things you can do to the item
+// in front of you.
 //
 // The listing is fetched once and kept — it already carries every item's ground
 // truth, so answering a field updates one entry in place rather than re-reading
 // the corpus. What is fetched per item is the raw reply of a run against it,
 // which is the largest thing the corpus holds and is only worth having for the
 // item on screen.
+//
+// The selected experiment is the subject of everything the screen shows and
+// everything Generate does. It is state here rather than a constant because the
+// routes have always taken one and only ever heard CURRENT.
 
 import { useCallback, useEffect, useState } from 'react';
 import { FIELDS, type FieldValue } from './fields';
@@ -16,10 +21,13 @@ export type ItemRun = { fields: Record<string, FieldValue>; raw: string };
 
 export type CorpusView = {
   items: SurveyedItem[];
+  // Every experiment the registry knows, and the one selected. `experiment` is
+  // empty until the listing has arrived.
+  experiments: string[];
   experiment: string;
   index: number;
   current: SurveyedItem | null;
-  // The current experiment's output for the item on screen, null where it
+  // The selected experiment's output for the item on screen, null where it
   // hasn't run against it.
   run: ItemRun | null;
   loading: boolean;
@@ -29,6 +37,7 @@ export type CorpusView = {
   nextUnanswered: () => void;
   answer: (field: string, value: FieldValue) => void;
   generate: () => void;
+  select: (experiment: string) => void;
   reload: () => void;
 };
 
@@ -42,6 +51,7 @@ const message = (e: unknown): string =>
 
 export function useCorpus(active: boolean): CorpusView {
   const [items, setItems] = useState<SurveyedItem[]>([]);
+  const [experiments, setExperiments] = useState<string[]>([]);
   const [experiment, setExperiment] = useState('');
   const [index, setIndex] = useState(0);
   const [run, setRun] = useState<ItemRun | null>(null);
@@ -58,12 +68,19 @@ export function useCorpus(active: boolean): CorpusView {
         if (!res.ok) throw new Error(await res.text());
         return res.json() as Promise<{
           items: SurveyedItem[];
+          experiments: string[];
           experiment: string;
         }>;
       })
       .then((data) => {
         setItems(data.items);
-        setExperiment(data.experiment);
+        setExperiments(data.experiments);
+        // A reload keeps the selection rather than snapping back to CURRENT —
+        // unless the registry no longer lists it, which is the one case where
+        // holding on would leave the screen showing an experiment that is gone.
+        setExperiment((chosen) =>
+          data.experiments.includes(chosen) ? chosen : data.experiment,
+        );
         setIndex((i) => Math.min(i, Math.max(0, data.items.length - 1)));
       })
       .catch((e: unknown) => setError(message(e)))
@@ -82,13 +99,16 @@ export function useCorpus(active: boolean): CorpusView {
   const current = items[index] ?? null;
   const stem = current?.stem;
 
-  // The raw reply for whatever is on screen. Cleared first, so an item with no
-  // run never shows the previous item's text while this resolves.
+  // The raw reply for whatever is on screen, from whichever experiment is
+  // selected. Cleared first, so an item with no run never shows the previous
+  // item's text — or the previous experiment's — while this resolves.
   useEffect(() => {
     setRun(null);
-    if (stem === undefined) return;
+    if (stem === undefined || experiment === '') return;
     let live = true;
-    fetch(`/api/inference/run?stem=${encodeURIComponent(stem)}`)
+    fetch(
+      `/api/inference/run?stem=${encodeURIComponent(stem)}&experiment=${encodeURIComponent(experiment)}`,
+    )
       .then(
         (res) =>
           res.json() as Promise<{ run: ItemRun | null; raw: string | null }>,
@@ -109,7 +129,7 @@ export function useCorpus(active: boolean): CorpusView {
     return () => {
       live = false;
     };
-  }, [stem]);
+  }, [stem, experiment]);
 
   // The next picture, fetched before it is asked for — at a thousand items the
   // wait between two of them is the whole experience.
@@ -169,13 +189,13 @@ export function useCorpus(active: boolean): CorpusView {
   );
 
   const generate = useCallback(() => {
-    if (stem === undefined) return;
+    if (stem === undefined || experiment === '') return;
     setGenerating(true);
     setError(null);
     fetch('/api/inference/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stem }),
+      body: JSON.stringify({ stem, experiment }),
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
@@ -191,10 +211,11 @@ export function useCorpus(active: boolean): CorpusView {
       })
       .catch((e: unknown) => setError(message(e)))
       .finally(() => setGenerating(false));
-  }, [stem, replace]);
+  }, [stem, experiment, replace]);
 
   return {
     items,
+    experiments,
     experiment,
     index,
     current,
@@ -206,6 +227,7 @@ export function useCorpus(active: boolean): CorpusView {
     nextUnanswered,
     answer,
     generate,
+    select: setExperiment,
     reload,
   };
 }
