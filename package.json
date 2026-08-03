@@ -11,6 +11,7 @@
     "goonpack:build": "tsx scripts/goonpack-build.ts",
     "experiment:run": "tsx --env-file-if-exists=.env scripts/experiment-run.ts",
     "experiment:run:outdated": "tsx --env-file-if-exists=.env scripts/experiment-run.ts --outdated",
+    "llm:benchmark": "tsx --env-file-if-exists=.env scripts/llm-benchmark.ts",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "build": "next build",
     "start": "next start",

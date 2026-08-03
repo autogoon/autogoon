@@ -34,6 +34,12 @@
   [GOONPACKS.md](./GOONPACKS.md) tells a pack author to name neither.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
+- internal: **`npm run llm:benchmark` times a model against a real conversation**
+  — Choosing which model a companion runs on meant driving the app by hand and
+  guessing. A conversation copied out of the Debug tab's request viewer — which
+  now has a Copy button — is timed against a list of candidates, with every reply
+  kept to read. ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - internal: **A dev server plays pack sources off disk** — Iterating on a pack
   meant building a zip, opening the Goonpacks tab, picking it and confirming the
   replace, every time. Every directory under `goonpacks/` is now offered on the

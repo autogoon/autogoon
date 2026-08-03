@@ -30,3 +30,8 @@ playwright-report/
 /goonpacks/*
 !/goonpacks/elise/
 /goonpacks/elise/media/
+
+# What npm run llm:benchmark writes: prompts sent to candidate models and what
+# they answered. Local only — the directory itself is committed, empty.
+/llm-benchmark/*
+!/llm-benchmark/.gitkeep
