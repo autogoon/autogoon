@@ -27,7 +27,7 @@ import { Button } from '@/components/button';
 import { Compare } from './compare';
 import { Floating } from './floating';
 import { Failure } from './failure';
-import { FIELDS, type FieldValue } from './fields';
+import { FIELDS, type Field, type FieldValue } from './fields';
 import { mediaUrl, type SurveyedItem } from './item';
 import { routeHash } from './route';
 import type { CorpusView } from './use-corpus';
@@ -46,11 +46,20 @@ const PANEL_WIDTH = 'w-160';
 // What the selected experiment answered: under a choice it proposed, and under
 // the word in the legend that says so. White, because a button's label is at
 // full contrast and a mark under it that isn't reads as an artefact.
-const PROPOSED = 'decoration-0.5 underline decoration-white underline-offset-4';
+const PROPOSED =
+  'decoration-0.5 underline decoration-white decoration-dashed underline-offset-4';
 
-// The same mark in a text row. The wording there is already muted, so the
-// underline is dimmed with it rather than sitting brighter than the text.
-const PROPOSED_TEXT = `${PROPOSED} decoration-foreground/40`;
+// The same mark under an experiment's wording in a text row, where it sits
+// under a paragraph rather than a button label and a white rule would shout.
+// Written out rather than composed from PROPOSED: two text-decoration-color
+// utilities on one element are resolved by stylesheet order, not by intent.
+const PROPOSED_TEXT =
+  'decoration-0.5 underline decoration-foreground/75 underline-offset-4';
+
+// Whether a field's answer can run past one line — a description clamped to two
+// of them, or a caption shown whole.
+const tall = (field: Field): boolean =>
+  field.kind === 'text' && (field.multiline === true || field.whole === true);
 
 export function Review({
   corpus,
@@ -282,11 +291,22 @@ export function Review({
                       at === focus ? 'border-cyan-500' : 'border-transparent'
                     }`}
                   >
-                    {/* A fixed width, so every field's buttons start on the
-                        same line however long its label runs. */}
+                    {/* A fixed width, so every field's answers start on the
+                        same line however long its label runs. The gap is the
+                        label's own padding rather than the row's: the row's
+                        would space the buttons from each other too.
+                        An answer running to several lines is read from its
+                        first, so the label sits against that one rather than
+                        halfway down the paragraph. It takes the answer's own
+                        padding and its transparent border to get there: without
+                        the border the label's text sits a pixel high. */}
                     <span
-                      className={`w-32 shrink-0 text-right text-sm ${
+                      className={`w-32 shrink-0 pr-2 text-right text-sm ${
                         at === focus ? 'font-bold text-cyan-500' : 'font-medium'
+                      } ${
+                        tall(field)
+                          ? 'self-start border-y border-transparent py-1'
+                          : ''
                       }`}
                     >
                       {field.label}
@@ -496,12 +516,13 @@ function TextAnswer({
           }}
           onMouseEnter={() => setPeeking(true)}
           onMouseLeave={() => setPeeking(false)}
-          // The same box a choice field's buttons sit in, so a row is the same
-          // height whichever kind of field it asks. A description is clamped to
-          // two lines rather than one — one line of a paragraph says almost
-          // nothing — and a field marked `whole` gives up the matching height to
-          // be read in full.
-          className={`min-w-0 flex-1 cursor-text rounded-lg border border-transparent px-3 py-1 text-sm ${
+          // A choice row's first button starts at the row's left edge, so an
+          // answer's first character does too — no left padding, unlike the
+          // button it sits level with. The height matches: a description is
+          // clamped to two lines rather than one, since one line of a paragraph
+          // says almost nothing, and a field marked `whole` gives that up to be
+          // read in full.
+          className={`min-w-0 flex-1 cursor-text rounded-lg border border-transparent py-1 pr-3 text-sm ${
             whole
               ? 'whitespace-pre-wrap'
               : multiline
@@ -512,9 +533,7 @@ function TextAnswer({
           {given !== undefined ? (
             String(given)
           ) : proposed !== undefined ? (
-            <span className={`text-muted-foreground ${PROPOSED_TEXT}`}>
-              {String(proposed)}
-            </span>
+            <span className={PROPOSED_TEXT}>{String(proposed)}</span>
           ) : (
             <span className="text-muted-foreground">—</span>
           )}

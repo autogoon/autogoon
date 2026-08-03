@@ -10,8 +10,6 @@ in as much detail as you need, think carefully about the pose, the clothing, and
 showing.  Pay particular attention to the direction of body pose, head orientation, gaze, 
 and the position of the limbs.  Consider the setting and the light, and how they affect what is visible.
 
-Nipple visibility is important, and you should consider whether the nipples are bare and visible, visible through sheer fabric, or just the shape is visible through opaque fabric.  If you can't tell, say so.
-
 Breast size grading, but only if you can see the breast size clearly : 
 
 - Small (Flat, nearly flat A or B-cup)
