@@ -167,6 +167,12 @@ Both name the pack and the experiment, neither has an "every pack" form, and
 both say how many items they are about to run before starting. A pack can hold
 thousands.
 
+They go in **random order**, and stop on the first failure. Filename order is
+not a random sample of a pack, so a sweep that stopped part-way through it would
+have covered whatever sorts first — and those are the items the compare screen
+would then be calibrating against. Running again picks up where the last one
+stopped, since an item the experiment has already answered is skipped.
+
 ## Playing what an experiment described
 
 `npm run goonpack:build` takes the same two arguments in the same order, and

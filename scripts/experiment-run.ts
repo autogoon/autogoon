@@ -31,6 +31,19 @@ import { dim, green, inlineImage, yellow } from './describe-image';
 
 const OUTDATED = '--outdated';
 
+// Filename order is not a random sample of a pack, so running in it would leave
+// a sweep stopped part-way — and this one stops on the first failure — covering
+// whatever sorts first. Those are the items the compare screen then calibrates
+// against, so a spread across the pack is worth more than a reproducible order:
+// a re-run picks up where the last stopped either way, since an item the
+// experiment has answered is skipped. describe-missing.ts shuffles for the same
+// reason.
+const shuffled = <T>(items: T[]): T[] =>
+  items
+    .map((item) => ({ item, at: Math.random() }))
+    .sort((a, b) => a.at - b.at)
+    .map((e) => e.item);
+
 // Which items this run covers. Without --outdated that is everything the
 // experiment has never answered; with it, everything it answered before its
 // last edit — including records from before versions were stamped, since what
@@ -53,7 +66,7 @@ async function wanted(
     const run = await readRun(pack, item.stem, experiment);
     if (run === null || !isCurrent(run, version)) out.push(item);
   }
-  return out;
+  return shuffled(out);
 }
 
 // The pack a path names, checked against the pack sources rather than followed.
