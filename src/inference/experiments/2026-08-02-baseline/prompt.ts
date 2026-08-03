@@ -102,15 +102,20 @@ the caption is used for keyword search.  If there is sexual activity, describe i
 word genitals or genitalia.
 
 Every phrase names something that is in the picture. Before you write a phrase, check it
-for the words "no", "not", "without", or an ending like "-less" — if it needs one of
-those, drop the whole phrase. It is a search index: "no bra visible" puts the word bra
-into it, and the picture is then found by someone looking for a bra. What is absent is
-already recorded in the marked answers above, so nothing is lost by leaving it out.
+for the words "no", "not", "without", "hidden", "obscured", "covered", or an ending like
+"-less" — anywhere in the phrase, not only at the start — and if it needs one of those,
+drop the whole phrase. "nipples not visible" and "no bra visible" both go.
+
+It is a search index: either of those puts nipples or bra into it, and the picture is
+then found by someone looking for one. A phrase saying a thing is absent is worse than
+no phrase at all, because it is indexed as though the thing were there. What is absent
+is already recorded in the marked answers above, so nothing is lost by leaving it out.
 
 Right: "small breasts, black bra, brunette hair, looking away, indoor setting, wearing short dress, exposed thighs, partially visible cleavage, wearing bra and panties."
 Wrong: "A woman with a black dress and long hair is standing in a room, looking away from the camera. She has small breasts and is wearing a bra and panties."
 Wrong: "No bra, no genitals, no sexual activity"
 Wrong: "no visible breasts, no visible face, no sexual activity, no bra visible"
+Wrong: "brunette hair, nipples not visible, genitals obscured by fabric, indoor setting"
 Wrong: "Genitalia visible"
 
 Reply in exactly this format, with nothing after the caption line:

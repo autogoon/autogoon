@@ -205,6 +205,24 @@ describe('parse', () => {
     expect(parse(reply).sidecar.caption).toBe('On a bed.');
   });
 
+  it('drops a caption clause naming what is absent, which a search would index', () => {
+    const reply = REPLY.replace(
+      'CAPTION: Kneeling on a bed in warm light, naked, dark hair loose over one shoulder.',
+      'CAPTION: orange thong, no visible breasts, nipples not visible, indoor setting, genitals obscured by fabric, wearing nothing else',
+    );
+    expect(parse(reply).fields.caption).toBe('orange thong, indoor setting');
+  });
+
+  it('keeps a clause whose word merely contains one of the words it drops for', () => {
+    const reply = REPLY.replace(
+      'CAPTION: Kneeling',
+      'CAPTION: knot of hair, notable tan line, Kneeling',
+    );
+    const caption = String(parse(reply).fields.caption);
+    expect(caption).toContain('knot of hair');
+    expect(caption).toContain('notable tan line');
+  });
+
   it('strips the quotes a model sometimes wraps the caption in', () => {
     const reply = REPLY.replace(
       'CAPTION: Kneeling',

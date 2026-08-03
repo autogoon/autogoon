@@ -324,6 +324,32 @@ function endOfProse(raw: string): number {
 const prose = (raw: string): string =>
   raw.slice(0, endOfProse(raw)).replace(HEADING, '').trim();
 
+// A clause naming what isn't there. The caption is a search index, so "nipples
+// not visible" is worse than saying nothing: it indexes *nipples* and the
+// picture is then found by someone looking for them. PROMPT_TWO asks for none
+// of these, and this is what holds when the model writes one anyway — a rule
+// refined here re-applies to every stored reply through Reparse, with nothing
+// to pay.
+//
+// Clause by clause, because the prompt asks for a comma-separated list: a
+// caption that names five things and denies a sixth keeps the five. An
+// experiment writing prose captions would cut differently, which is why this
+// lives here rather than anywhere the app could reach.
+// Whole words, so `knot` and `notable` survive. `nothing` goes with the rest
+// even where it carries something — "wearing nothing else" says the thong is
+// all there is — because the rule cannot tell that from "no bra visible", and
+// `naked` is a marked answer either way.
+const ABSENT =
+  /\b(?:no|not|nothing|without|hidden|obscured|covered|absent|none)\b|\w+less\b/i;
+
+const kept = (caption: string): string =>
+  caption
+    .split(',')
+    .filter((clause) => !ABSENT.test(clause))
+    .map((clause) => clause.trim())
+    .filter((clause) => clause !== '')
+    .join(', ');
+
 // The sidecar is the fields rather than a third thing read off the reply — the
 // caption and the description are its named parts, and the rest ride in its
 // frontmatter as the values they were parsed into. So what a pack plays and
@@ -339,9 +365,11 @@ export function parse(raw: string): Inferred {
   if (description !== '') answered.description = description;
   // Models wrap a caption in quotes often enough to be worth taking off, and
   // never mean them as part of it.
-  const caption = String(answered.caption ?? '')
-    .replace(/^["']|["']$/g, '')
-    .trim();
+  const caption = kept(
+    String(answered.caption ?? '')
+      .replace(/^["']|["']$/g, '')
+      .trim(),
+  );
   if (caption === '') {
     throw new Error(`No caption could be read from the reply:\n${raw}`);
   }
