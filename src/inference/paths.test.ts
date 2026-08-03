@@ -3,7 +3,13 @@
 // but isn't — are pinned here rather than discovered against a real directory.
 
 import { describe, expect, it } from '@jest/globals';
-import { fieldsName, labelsName, rawName, readName } from './paths';
+import {
+  fieldsName,
+  labelsName,
+  rawName,
+  readName,
+  sidecarName,
+} from './paths';
 
 describe('readName', () => {
   it('reads a picture as media, carrying its kind', () => {
@@ -71,11 +77,22 @@ describe('readName', () => {
     expect(readName('beach.whenever.fields.json')).toBeNull();
   });
 
+  it('reads the sidecar an experiment wrote, which carries its id', () => {
+    expect(readName('beach.2026-08-02-baseline.sidecar.md')).toEqual({
+      what: 'sidecar',
+      stem: 'beach',
+      experiment: '2026-08-02-baseline',
+    });
+  });
+
+  it("leaves the pack's own sidecar alone, since it names no experiment", () => {
+    expect(readName('beach.md')).toBeNull();
+  });
+
   it('ignores a file the corpus has no use for', () => {
     expect(readName('.DS_Store')).toBeNull();
     expect(readName('notes.txt')).toBeNull();
     expect(readName('README')).toBeNull();
-    expect(readName('beach.md')).toBeNull();
   });
 });
 
@@ -102,6 +119,16 @@ describe('rawName', () => {
   it('round-trips through readName', () => {
     expect(readName(rawName('beach', '2026-08-02-baseline'))).toEqual({
       what: 'raw',
+      stem: 'beach',
+      experiment: '2026-08-02-baseline',
+    });
+  });
+});
+
+describe('sidecarName', () => {
+  it('round-trips through readName', () => {
+    expect(readName(sidecarName('beach', '2026-08-02-baseline'))).toEqual({
+      what: 'sidecar',
       stem: 'beach',
       experiment: '2026-08-02-baseline',
     });

@@ -10,6 +10,10 @@
 //   beach.labels.json                      ground truth
 //   beach.2026-08-02-baseline.fields.json  a run's answers
 //   beach.2026-08-02-baseline.raw.txt      that run's reply, verbatim
+//   beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
+//
+// `beach.md` — the pack's own sidecar — is none of these and reads as nothing,
+// which is what leaves it to the pack.
 //
 // A stem may contain dots (`beach.holiday.jpg`), so suffixes are matched from
 // the right and never by splitting on the first dot. An experiment id may not,
@@ -30,6 +34,7 @@ export const EXPERIMENT_ID = /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/;
 export const LABELS_SUFFIX = '.labels.json';
 export const FIELDS_SUFFIX = '.fields.json';
 export const RAW_SUFFIX = '.raw.txt';
+export const SIDECAR_SUFFIX = '.sidecar.md';
 
 // What one filename in the corpus turns out to be. `null` from readName means
 // the file belongs to nothing the tool knows — a stray note, a .DS_Store, a
@@ -38,7 +43,8 @@ export type CorpusName =
   | { what: 'media'; stem: string; file: string; kind: MediaKind }
   | { what: 'labels'; stem: string }
   | { what: 'fields'; stem: string; experiment: string }
-  | { what: 'raw'; stem: string; experiment: string };
+  | { what: 'raw'; stem: string; experiment: string }
+  | { what: 'sidecar'; stem: string; experiment: string };
 
 // Split `<stem>.<experiment>` off a name whose suffix has already been removed.
 // Returns null when the trailing segment isn't a valid experiment id, so a
@@ -66,6 +72,10 @@ export function readName(file: string): CorpusName | null {
     const split = splitExperiment(file.slice(0, -RAW_SUFFIX.length));
     return split === null ? null : { what: 'raw', ...split };
   }
+  if (file.endsWith(SIDECAR_SUFFIX)) {
+    const split = splitExperiment(file.slice(0, -SIDECAR_SUFFIX.length));
+    return split === null ? null : { what: 'sidecar', ...split };
+  }
   const dot = file.lastIndexOf('.');
   if (dot <= 0) return null;
   const type = MEDIA_TYPES[file.slice(dot + 1).toLowerCase()];
@@ -83,3 +93,5 @@ export const fieldsName = (stem: string, experiment: string): string =>
   `${stem}.${experiment}${FIELDS_SUFFIX}`;
 export const rawName = (stem: string, experiment: string): string =>
   `${stem}.${experiment}${RAW_SUFFIX}`;
+export const sidecarName = (stem: string, experiment: string): string =>
+  `${stem}.${experiment}${SIDECAR_SUFFIX}`;

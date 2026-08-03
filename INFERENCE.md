@@ -26,6 +26,7 @@ writes is named from the item it belongs to:
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
+      beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
       beach.md                               the pack's own sidecar
 
@@ -139,9 +140,17 @@ Each exports two functions, described in
 [`experiment.ts`](./src/inference/experiment.ts):
 
 - **`run()`** sends the image and costs money.
-- **`parse()`** turns a stored reply into fields and costs nothing, so a parser
-  that turns out to be wrong is fixed by re-deriving from the replies already on
-  disk.
+- **`parse()`** turns a stored reply into everything derived from it and costs
+  nothing, so a parser that turns out to be wrong is fixed by re-deriving from
+  the replies already on disk.
+
+`parse()` answers with both the fields and a **sidecar** — the caption and
+description in the pack's own format
+([`sidecar.ts`](./src/lib/goonpacks/sidecar.ts)) — from one pass over the reply,
+so no item ends up with fields and nothing saying what they were read from. Each
+experiment writes its own, named `<stem>.<experiment>.sidecar.md`, so several
+descriptions of one picture sit beside each other. Which of them a pack plays is
+a separate question, and nothing decides it yet.
 
 Every result records what its own run used — model, resolution, temperature —
 because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct` is not. Items

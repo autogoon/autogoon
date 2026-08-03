@@ -3,13 +3,16 @@
 // come through here, so a spot-check and a whole-corpus run leave the corpus in
 // the same state.
 //
-// Ground truth is not among what it writes: an experiment's answers are its
-// own, and the screen lays them over what a person has said rather than the run
-// writing into `<stem>.labels.json` (labels.ts).
+// Three files: the reply verbatim, the fields it was read for, and the sidecar
+// — the pack's own format, so a described item is one a pack could play.
+//
+// Ground truth is not among them: an experiment's answers are its own, and the
+// screen lays them over what a person has said rather than the run writing into
+// `<stem>.labels.json` (labels.ts).
 //
 // Server-only: it writes files.
 
-import { corpusPath, writeRaw, writeRun } from './corpus';
+import { corpusPath, writeRaw, writeRun, writeSidecar } from './corpus';
 import type { Experiment } from './experiment';
 import type { CorpusItem } from './item';
 import type { RunFields } from './runs';
@@ -28,16 +31,18 @@ export async function runItem(
   version: string,
 ): Promise<RunResult> {
   const raw = await experiment.run(corpusPath(pack, item.file));
-  const fields = experiment.parse(raw);
+  // The reply lands first: it is the thing that cost money, and everything else
+  // is derived from it. A crash after this point loses no spend, and a parser
+  // that throws over a reply already on disk is fixed and re-derived.
+  await writeRaw(pack, item.stem, experiment.id, raw);
+  const { fields, sidecar } = experiment.parse(raw);
   const run = {
     ranAt: new Date().toISOString(),
     version,
     parameters: experiment.parameters,
     fields,
   };
-  // The reply lands first: it is the thing that cost money, and everything
-  // else is derived from it. A crash after this point loses no spend.
-  await writeRaw(pack, item.stem, experiment.id, raw);
   await writeRun(pack, item.stem, experiment.id, run);
+  await writeSidecar(pack, item.stem, experiment.id, sidecar);
   return { raw, run };
 }

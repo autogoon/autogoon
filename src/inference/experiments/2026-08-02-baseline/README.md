@@ -43,16 +43,19 @@ follow the looking.
 
 ## What is stored
 
-The whole reply, verbatim, and one field parsed from it:
+The whole reply, verbatim; one field parsed from it:
 
     naked: true | false
 
-The parser takes the last `NAKED:` line, so a model that echoes the format
-template first loses. A reply carrying no such line answers nothing rather than
-defaulting to `false` — an absent answer is recoverable, a fabricated one is
-not. The caption and the observations are not parsed into fields; they are kept
-as the raw reply, which is where a wrong flag gets diagnosed and what a better
-parser would read.
+and a sidecar — the `CAPTION:` line as the caption, the observations above it as
+the description.
+
+Both parsers take the last marked line, so a model that echoes the format
+template first loses. A reply carrying no `NAKED:` line answers no field rather
+than defaulting to `false` — an absent answer is recoverable, a fabricated one
+is not. A reply carrying no caption, or a caption with no observations behind
+it, is refused outright: an item with fields and no description of what they
+were read from is worse than one that has to be run again.
 
 ## What it is known to get wrong
 

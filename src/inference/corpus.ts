@@ -21,8 +21,16 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CorpusItem, SurveyedItem } from './item';
-import { fieldsName, labelsName, PACKS_DIR, rawName, readName } from './paths';
+import {
+  fieldsName,
+  labelsName,
+  PACKS_DIR,
+  rawName,
+  readName,
+  sidecarName,
+} from './paths';
 import { MEDIA_NAME } from '@/lib/goonpacks/pack';
+import { renderSidecar, type Sidecar } from '@/lib/goonpacks/sidecar';
 import { parseLabels, renderLabels, type Labels } from './labels';
 import { parseRunFields, renderRunFields, type RunFields } from './runs';
 
@@ -180,4 +188,20 @@ export async function writeRaw(
   raw: string,
 ): Promise<void> {
   await writeFile(corpusPath(pack, rawName(stem, experiment)), raw, 'utf8');
+}
+
+// The pack's own format, in the pack's own directory, under a name carrying the
+// experiment that wrote it — so several experiments' descriptions of one
+// picture sit beside each other and none of them is the one the pack plays.
+export async function writeSidecar(
+  pack: string,
+  stem: string,
+  experiment: string,
+  sidecar: Sidecar,
+): Promise<void> {
+  await writeFile(
+    corpusPath(pack, sidecarName(stem, experiment)),
+    renderSidecar(sidecar),
+    'utf8',
+  );
 }

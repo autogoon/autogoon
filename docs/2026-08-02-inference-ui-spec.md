@@ -26,6 +26,7 @@ current-state description; the layout is unchanged apart from where it sits.
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
+      beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
 
 Media extensions are the ones [`media.ts`](../src/lib/goonpacks/media.ts)
@@ -89,12 +90,19 @@ is exactly what the corpus has to be able to say.
 
 ### Run output
 
-Two files per item, because the two have different lifetimes.
+Three files per item: the reply, and the two things derived from it.
 
 **`<item>.<experiment>.raw.txt`** — the reply verbatim, before anything reads
 it. A plain file rather than a string inside JSON: it is prose, and reading it
 is how a wrong field gets diagnosed. A later experiment whose raw output isn't
 text writes whatever form it has.
+
+**`<item>.<experiment>.sidecar.md`** — the caption and description, in the
+pack's own sidecar format. Writing it here is what makes a labelled pack a
+playable one, and carrying the experiment id in the name is what lets several
+descriptions of one picture sit beside each other. `parse()` returns it with the
+fields from one pass, so an item never has fields and nothing saying what they
+were read from.
 
 **`<item>.<experiment>.fields.json`** — what scoring reads:
 
@@ -140,10 +148,13 @@ and prompt.
 
 An experiment exports two functions, and the split is what makes the stored raw
 reply worth keeping. **`run()`** sends the image and costs money. **`parse()`**
-turns a stored reply into fields and costs nothing, so a parser that turns out
-to be wrong is fixed by walking the corpus calling `parse()` alone. A registry
-beside them maps id to module; it grows with each experiment and is not frozen,
-because it holds nothing that changes an output.
+turns a stored reply into the fields and the sidecar, and costs nothing, so a
+parser that turns out to be wrong is fixed by walking the corpus calling
+`parse()` alone. Both derivations come from the one call rather than two, so a
+broken caption reader stops an item being recorded at all rather than leaving it
+scored and undescribed. A registry beside them maps id to module; it grows with
+each experiment and is not frozen, because it holds nothing that changes an
+output.
 
 **Each experiment carries a `README.md` describing its approach**: what it does,
 what it was derived from, and what it is known to get wrong. A directory of

@@ -11,7 +11,8 @@ import { extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '@/lib/goonpacks/media';
-import type { Experiment } from '../../experiment';
+import type { Sidecar } from '@/lib/goonpacks/sidecar';
+import type { Experiment, Inferred } from '../../experiment';
 import type { FieldValue } from '../../fields';
 import { PROMPT } from './prompt';
 
@@ -103,12 +104,48 @@ async function run(imagePath: string): Promise<string> {
   return raw.trim();
 }
 
-export function parse(raw: string): Record<string, FieldValue> {
+function fields(raw: string): Record<string, FieldValue> {
   const marked = [...raw.matchAll(/^[ \t]*NAKED:[ \t]*(true|false)\b/gim)];
   const last = marked[marked.length - 1];
   if (last === undefined) return {};
   return { naked: last[1]?.toLowerCase() === 'true' };
 }
+
+// The last CAPTION: line wins, and everything before the first NAKED: or
+// CAPTION: line is the body — the model sometimes echoes the format template
+// back before answering it, and the caption comes last either way.
+function sidecar(raw: string): Sidecar {
+  const marked = [...raw.matchAll(/^[ \t]*CAPTION:[ \t]*(.+)$/gim)];
+  const last = marked[marked.length - 1];
+  const caption = (last?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
+  if (caption === '') {
+    throw new Error(`No caption could be read from the reply:\n${raw}`);
+  }
+  const description = raw
+    .slice(0, Math.min(...cuts(raw)))
+    .replace(/^\s*OBSERVATIONS:[ \t]*/i, '')
+    .trim();
+  if (description === '') {
+    throw new Error(
+      'The reply carried a caption and no observations — the sidecar needs both.',
+    );
+  }
+  return { caption, description };
+}
+
+// Where the observations stop: the first line that answers one of the later
+// steps. `raw.length` keeps `Math.min` honest when the reply carries neither.
+const cuts = (raw: string): number[] => [
+  raw.length,
+  ...[/^[ \t]*NAKED:/im, /^[ \t]*CAPTION:/im]
+    .map((at) => at.exec(raw)?.index)
+    .filter((at) => at !== undefined),
+];
+
+export const parse = (raw: string): Inferred => ({
+  fields: fields(raw),
+  sidecar: sidecar(raw),
+});
 
 export const experiment: Experiment = {
   id: ID,
