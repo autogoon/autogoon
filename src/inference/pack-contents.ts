@@ -11,7 +11,7 @@
 // `experiment` names whose descriptions to use. With one, an item's sidecar is
 // its `<stem>.<experiment>.sidecar.md`, written into the zip under the plain
 // `<stem>.md` a pack reads. Strictly that experiment's: an item it didn't
-// describe is left out rather than falling back to a hand-written sidecar, so a
+// describe is left out rather than falling back to the stock sidecar, so a
 // pack built this way is one experiment's work throughout and a comparison
 // between two of them is a comparison.
 import { isJunkPath, MEDIA_TYPES, splitName } from '@/lib/goonpacks/media';

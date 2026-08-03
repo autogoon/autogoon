@@ -212,9 +212,56 @@ dropped. And **everything else inference wrote**: the labels, the replies, the
 prompts, the fields, and each run's own copy of the four. What ships is a pack.
 
 Named that way it is strictly that experiment's work: an item it never described
-is left out rather than falling back to a hand-written sidecar, so two packs
-built from two experiments differ only in the thing being compared. Without the
-flag the build takes `<stem>.md`, the hand-written sidecar, as it always has.
+is left out rather than falling back to the stock sidecar, so two packs built
+from two experiments differ only in the thing being compared. Without the flag
+the build takes `<stem>.md`, the stock sidecar — whatever wrote it,
+`goonpack:describe` or an author — as it always has.
+
+### Playing one without building it
+
+On a dev server you don't have to build anything. Every directory under
+`goonpacks/` is offered on the Companions screen as it sits, and its card
+carries a third select — beside the base version and the overlay — for which
+descriptions to play it with. Change it and the directory is read again.
+
+**A pack source is not an experiment's.** It is a directory of media, and beside
+each item sit as many sidecars as have been written about it: the stock
+`<stem>.md`, and one per experiment that has answered it. Choosing an experiment
+chooses which of those to read; it does not choose a different pack.
+
+**What the three selects decide, in order.** Each answers a different question,
+and each only matters once the one before it has been answered:
+
+| Select       | The question                          |
+| ------------ | ------------------------------------- |
+| Base         | which version of the companion        |
+| Overlay      | what is laid on top, media included   |
+| Descriptions | which sidecars the media is read with |
+
+The overlay is what settles _where the media comes from_ — it either brings a
+set of its own, which replaces the base's, or brings none and leaves the base's,
+or strips them entirely. Only then is there a directory for the third select to
+be about, and it applies to that one. Worked through:
+
+- **Elise, no overlay.** The media is the `elise` directory's. Descriptions
+  reads `elise`. Stock finds no `<stem>.md` there at all, so she plays with no
+  media; `2026-08-02-baseline` finds that experiment's sidecars, and she plays
+  with everything it described.
+- **Elise plus a prompt-only overlay** (`my-packs.elise-rewrite`, which rewrites
+  how she talks and brings no pictures). The media is still `elise`'s, so
+  Descriptions is still about `elise`. The overlay's own directory has nothing
+  to describe and is never asked about.
+- **Elise plus an overlay carrying its own set** (a beach shoot, say). That set
+  replaces hers, so the media now comes from the overlay's directory, and
+  Descriptions is about _that_ one. Whatever `elise` was set to stops mattering
+  while this overlay is selected.
+- **Elise plus an overlay that strips the media** (`noMedia`). Nothing is
+  played, so there is nothing to describe and no third select at all.
+- **An imported pack.** Read out of browser storage, where a pack carries one
+  set of descriptions baked in at build time. No disk icon and no third select.
+
+The choice is remembered per directory, so it survives a reload — which is the
+whole point, since a reload is how a change to a pack source reaches the app.
 
 ## Experiments
 

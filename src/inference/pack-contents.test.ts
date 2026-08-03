@@ -79,7 +79,7 @@ describe('packContents', () => {
     });
   });
 
-  it('leaves out an item that experiment never described, rather than falling back to the hand-written one', () => {
+  it('leaves out an item that experiment never described, rather than falling back to the stock one', () => {
     const source = ['manifest.json', 'media/beach.jpg', 'media/beach.md'];
     expect(entries(source, BASELINE)).toEqual(['manifest.json']);
   });

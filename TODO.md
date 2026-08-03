@@ -102,26 +102,26 @@ you say you're cumming, so the ending stops being a setting and becomes
 something they do to you. And because they can choose, they can say they will,
 and do something else.
 
-### Play a pack source with an experiment's descriptions
+### Score a search on what an experiment recorded
 
-A dev server plays the pack sources under `goonpacks/` directly, and each is
-played with its hand-written sidecars — the choice `goonpack:build` makes when
-its second argument is left off. So a source described only by an experiment
-carries no media at all, and there is no way to ask for the other one.
+Every media item carries the fields the experiment that described it recorded —
+`CompanionMedia.values`, straight out of the sidecar's frontmatter — and nothing
+reads them. `searchMedia` scores the caption and the long description and
+nothing else.
 
-The choice belongs beside the base and overlay selects on the chooser card,
-which is also where a card should say its pack is a directory being edited
-rather than an extraction in storage. The Goonpacks tab already says so.
+The first one worth scoring is `text`: words on the picture itself, which is the
+strongest "more of this" signal there is. It should count for what a caption hit
+counts for. The rest stay unscored until there is a reason.
 
-Two things follow it. A directory currently shadows an installed pack of the
-same id and version without replacing it, because until it can be played with
-the fuller set of descriptions it is the emptier copy; once it can, removing the
-installed one is what was asked for. And per-experiment search scoring has
-somewhere to come from — an item already carries its experiment's fields
-(`CompanionMedia.values`) and nothing reads them.
+**The scoring is the experiment's, not the pack's** — a pack can be built from
+any experiment, and which fields are worth what is a property of the questions
+that experiment asked. Where that lives is unsettled: the experiment registry is
+server-only (its modules import node's filesystem to run a model), so a scoring
+_function_ can't cross into the browser without splitting the parser out, while
+a scoring _config_ is data and rides the same route the pack does.
 
-[Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring moves into the
-app properly, and this is a step towards it rather than a stopgap for it.
+Blocked by the `text` field storing "there is none" as an answer, which would
+match every picture that has no writing on it. See TOFIX.md.
 
 ### The model settings, together or app-wide
 

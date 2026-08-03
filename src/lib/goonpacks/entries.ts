@@ -112,16 +112,25 @@ function changedSlots(p: LoadedPack): VariantSlot[] {
   return out;
 }
 
-// The media a base+overlay selection actually plays with: the overlay's own set
-// when it brings one (or deliberately none), else the base's.
-export function effectiveMedia(
+// Which of a selected pair supplies the media: the overlay when it brings a set
+// of its own, the base otherwise, and neither when the overlay deliberately
+// strips them. Picking the overlay is what settles this, and everything about
+// the media follows — how much of it there is, and, for a pack read off disk,
+// which directory an experiment's descriptions are read out of.
+export function mediaSource(
   overlay: PackOption | null,
-  base: MediaCount,
-): MediaCount {
+  base: PackOption,
+): PackOption | null {
   if (overlay === null) return base;
-  if (overlay.noMedia === true) return { images: 0, videos: 0 };
-  return totalMedia(overlay.media) > 0 ? overlay.media : base;
+  if (overlay.noMedia === true) return null;
+  return totalMedia(overlay.media) > 0 ? overlay : base;
 }
+
+// The media a base+overlay selection actually plays with.
+export const effectiveMedia = (
+  overlay: PackOption | null,
+  base: PackOption,
+): MediaCount => mediaSource(overlay, base)?.media ?? { images: 0, videos: 0 };
 
 // Whether pairing this overlay with this base would leave a companion who uses
 // real time and has no zone to render it in — a companion who would claim a

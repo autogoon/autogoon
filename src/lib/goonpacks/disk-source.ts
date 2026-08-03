@@ -18,8 +18,9 @@ import type { LibrarySource } from './library';
 import type { PackTree, ParsedMedia } from './pack';
 
 // A pack source to offer, and whose descriptions to play it with. `experiment`
-// absent takes the hand-written sidecars, the same choice goonpack:build makes
-// when its second argument is left off.
+// absent takes the stock sidecars — the plain `<stem>.md` beside each item,
+// whatever wrote it — the same choice goonpack:build makes when its second
+// argument is left off.
 export type DiskChoice = { dir: string; experiment?: string };
 
 // What the pack-tree route answers with: every name the pack would ship, and
@@ -55,13 +56,22 @@ function keyOf(tree: PackTexts): string | null {
   }
 }
 
-export function diskSource(choices: readonly DiskChoice[]): LibrarySource {
+export type Disk = {
+  source: LibrarySource;
+  // What the last listing read, as key → the directory it was read from. A
+  // pack's key comes out of the manifest in the tree, which is a consequence of
+  // which sidecars were asked for, so a choice *about* a directory can't be
+  // stored against a key. The chooser needs to go back the other way.
+  dirs: () => Map<string, string>;
+};
+
+export function diskSource(choices: readonly DiskChoice[]): Disk {
   // Filled by listKeys and read by openTree and mediaUrl. buildLibrary calls
   // them in that order, and a source is built fresh for each index, so this
   // never has to answer for a listing it didn't take.
   const held = new Map<string, { choice: DiskChoice; tree: PackTexts }>();
 
-  return {
+  const source: LibrarySource = {
     listKeys: async () => {
       held.clear();
       const read = await Promise.all(
@@ -104,5 +114,11 @@ export function diskSource(choices: readonly DiskChoice[]): LibrarySource {
       const file = encodeURIComponent(media.file);
       return Promise.resolve(`/api/inference/media?pack=${pack}&file=${file}`);
     },
+  };
+
+  return {
+    source,
+    dirs: () =>
+      new Map([...held].map(([key, { choice }]) => [key, choice.dir])),
   };
 }

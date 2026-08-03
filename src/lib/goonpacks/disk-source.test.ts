@@ -49,27 +49,47 @@ afterEach(() => {
 describe('diskSource', () => {
   it('names each pack by the key its own manifest claims', async () => {
     serve({ one: tree('pub.one'), two: tree('pub.two', '2.0.0') });
-    const keys = await diskSource([{ dir: 'one' }, { dir: 'two' }]).listKeys();
+    const keys = await diskSource([
+      { dir: 'one' },
+      { dir: 'two' },
+    ]).source.listKeys();
     expect(keys.sort()).toEqual(['pub.one@1.0.0', 'pub.two@2.0.0']);
+  });
+
+  // A choice is made about a directory, and the key that comes back is a
+  // consequence of it, so the screens need the way back.
+  it('says which directory each pack was read from', async () => {
+    serve({ one: tree('pub.one'), two: tree('pub.two', '2.0.0') });
+    const disk = diskSource([{ dir: 'one' }, { dir: 'two' }]);
+    await disk.source.listKeys();
+    expect([...disk.dirs()].sort()).toEqual([
+      ['pub.one@1.0.0', 'one'],
+      ['pub.two@2.0.0', 'two'],
+    ]);
+  });
+
+  it('names no directory before anything has been listed', () => {
+    serve({ one: tree('pub.one') });
+    expect([...diskSource([{ dir: 'one' }]).dirs()]).toEqual([]);
   });
 
   it('asks for the chosen experiment’s descriptions, since a source has several', async () => {
     serve({ one: tree('pub.one') });
     await diskSource([
       { dir: 'one', experiment: '2026-08-02-baseline' },
-    ]).listKeys();
+    ]).source.listKeys();
     expect(asked[0]).toContain('experiment=2026-08-02-baseline');
   });
 
-  it('names no experiment when none was chosen, taking the hand-written sidecars', async () => {
+  it('names no experiment when none was chosen, taking the stock sidecars', async () => {
     serve({ one: tree('pub.one') });
-    await diskSource([{ dir: 'one' }]).listKeys();
+    await diskSource([{ dir: 'one' }]).source.listKeys();
     expect(asked[0]).not.toContain('experiment=');
   });
 
   it('reads a pack once however many of its files are opened', async () => {
     serve({ one: tree('pub.one') });
-    const source = diskSource([{ dir: 'one' }]);
+    const { source } = diskSource([{ dir: 'one' }]);
     await source.listKeys();
     const opened = await source.openTree('pub.one@1.0.0');
     await opened!.readText('manifest.json');
@@ -79,19 +99,25 @@ describe('diskSource', () => {
 
   it('leaves out a directory whose manifest it cannot read, which is not a pack', async () => {
     serve({ one: tree('pub.one'), two: { names: [], texts: {} } });
-    const keys = await diskSource([{ dir: 'one' }, { dir: 'two' }]).listKeys();
+    const keys = await diskSource([
+      { dir: 'one' },
+      { dir: 'two' },
+    ]).source.listKeys();
     expect(keys).toEqual(['pub.one@1.0.0']);
   });
 
   it('leaves out a directory the route refused rather than failing the listing', async () => {
     serve({ one: tree('pub.one'), gone: null });
-    const keys = await diskSource([{ dir: 'one' }, { dir: 'gone' }]).listKeys();
+    const keys = await diskSource([
+      { dir: 'one' },
+      { dir: 'gone' },
+    ]).source.listKeys();
     expect(keys).toEqual(['pub.one@1.0.0']);
   });
 
   it('gives an empty text for a name the tree carries but never sent, which is media', async () => {
     serve({ one: tree('pub.one') });
-    const source = diskSource([{ dir: 'one' }]);
+    const { source } = diskSource([{ dir: 'one' }]);
     await source.listKeys();
     const opened = await source.openTree('pub.one@1.0.0');
     expect(await opened!.readText('media/a.jpg')).toBe('');
@@ -99,7 +125,7 @@ describe('diskSource', () => {
 
   it('opens nothing for a key that was not in the listing', async () => {
     serve({ one: tree('pub.one') });
-    const source = diskSource([{ dir: 'one' }]);
+    const { source } = diskSource([{ dir: 'one' }]);
     await source.listKeys();
     expect(await source.openTree('pub.other@1.0.0')).toBeNull();
   });
@@ -109,7 +135,7 @@ describe('diskSource', () => {
   // read from is called something else, with a space in it.
   it('points media at the directory it was read from rather than at its key', async () => {
     serve({ 'a source dir': tree('pub.one') });
-    const source = diskSource([{ dir: 'a source dir' }]);
+    const { source } = diskSource([{ dir: 'a source dir' }]);
     await source.listKeys();
     expect(await source.mediaUrl('pub.one@1.0.0', media('a.jpg'))).toBe(
       '/api/inference/media?pack=a%20source%20dir&file=a.jpg',
@@ -118,7 +144,7 @@ describe('diskSource', () => {
 
   it('refuses a media url for a pack that was not listed', async () => {
     serve({ one: tree('pub.one') });
-    const source = diskSource([{ dir: 'one' }]);
+    const { source } = diskSource([{ dir: 'one' }]);
     await source.listKeys();
     await expect(
       source.mediaUrl('pub.gone@1.0.0', media('a.jpg')),

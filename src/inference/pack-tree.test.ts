@@ -61,7 +61,7 @@ describe('packTree', () => {
     expect(tree.texts['media/a.md']).toContain('inferred');
   });
 
-  it('leaves out an item the named experiment has not described, hand-written sidecar or not', async () => {
+  it('leaves out an item the named experiment has not described, stock sidecar or not', async () => {
     write('media/a.md', sidecar('by hand', 'Written by hand.'));
     const tree = await packTree(dir, BASELINE);
     expect(tree.names).not.toContain('media/a.jpg');

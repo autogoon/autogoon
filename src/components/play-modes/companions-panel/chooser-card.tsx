@@ -5,11 +5,12 @@
 // (overlay wins, then base version, then the companion's own).
 
 import { Fragment } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, HardDrive } from 'lucide-react';
 import { Card } from '@/components/card';
 import {
   describeMedia,
   effectiveMedia,
+  mediaSource,
   overlayNeedsZone,
   type LibraryEntry,
   type MediaCount,
@@ -81,10 +82,22 @@ export function ChooserCard({
   sel,
   onSelectPacks,
   onPick,
+  disk,
 }: {
   entry: LibraryEntry;
   sel: PackSel | undefined;
   onSelectPacks: (companionId: string, sel: PackSel) => void;
+  // The pack sources being read off disk: which keys came from one and where
+  // from, the experiments any of them can be played with, and which each is
+  // being played with — undefined meaning the stock sidecars. All empty
+  // off a dev server, where nothing is read off disk. The card looks its own
+  // selection up, since which base and overlay are selected is its own.
+  disk: {
+    dirs: ReadonlyMap<string, string>;
+    experiments: readonly string[];
+    chosen: (dir: string) => string | undefined;
+    onChoose: (dir: string, experiment: string | undefined) => void;
+  };
   // Fired with the selected base/overlay keys when the card is clicked.
   onPick: (
     entry: LibraryEntry,
@@ -110,9 +123,19 @@ export function ChooserCard({
   const description =
     overlayOpt?.description ?? baseOpt.description ?? c.description;
   const features = variantFeatures({
-    media: effectiveMedia(overlayOpt, baseOpt.media),
+    media: effectiveMedia(overlayOpt, baseOpt),
     changed: overlayOpt?.changed ?? [],
   });
+  // The directory an experiment choice would apply to. A pairing can stack two
+  // sources on disk, but only one of them supplies the media — the overlay
+  // decides which (mediaSource) — and the descriptions are read out of that
+  // one. Undefined where the media comes out of storage, where the overlay
+  // strips it, and on any build that reads nothing off disk.
+  const mediaOpt = mediaSource(overlayOpt, baseOpt);
+  const diskDir =
+    mediaOpt === null || mediaOpt.key === null
+      ? undefined
+      : disk.dirs.get(mediaOpt.key);
   return (
     <Card
       accent={accent}
@@ -188,6 +211,46 @@ export function ChooserCard({
                     >
                       {o.label}
                       {o.version !== undefined ? ` ${o.version}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
+              </span>
+            </label>
+          )}
+          {diskDir !== undefined && (
+            // Whose descriptions the media is read with. Every item's caption
+            // and long description comes from here, so it decides what she can
+            // be asked for as well as how much she has — an experiment that
+            // never described an item leaves that item out of the set
+            // entirely. "Stock" is the plain `<stem>.md` beside each item —
+            // whatever wrote it, `goonpack:describe` or an author — and is what
+            // a pack built without naming an experiment ships.
+            <label
+              className="text-muted-foreground flex items-center gap-1.5 text-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <HardDrive
+                className="size-3.5"
+                aria-label={`${c.name} plays a pack source on this machine`}
+              />
+              <span className="relative">
+                <select
+                  aria-label={`${c.name} descriptions`}
+                  value={disk.chosen(diskDir) ?? 'default'}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) =>
+                    disk.onChoose(
+                      diskDir,
+                      e.target.value === 'default' ? undefined : e.target.value,
+                    )
+                  }
+                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
+                >
+                  <option value="default">Stock</option>
+                  {disk.experiments.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
                     </option>
                   ))}
                 </select>

@@ -86,15 +86,6 @@ describe('mergedSource', () => {
     expect(clashed()).toEqual(['pub.a@1.0.0']);
   });
 
-  it('names every key disk answered for, shadowed or not', async () => {
-    const { source, onDisk } = mergedSource(
-      named('disk', ['pub.a@1.0.0', 'pub.c@1.0.0']),
-      named('opfs', ['pub.a@1.0.0', 'pub.b@1.0.0']),
-    );
-    await source.listKeys();
-    expect(onDisk().sort()).toEqual(['pub.a@1.0.0', 'pub.c@1.0.0']);
-  });
-
   it('names no clash before anything has been listed, so nothing is removed on a listing that never ran', () => {
     const { clashed } = mergedSource(
       named('disk', ['pub.a@1.0.0']),

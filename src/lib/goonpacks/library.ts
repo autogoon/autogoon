@@ -59,15 +59,22 @@ export type Library = {
   rows: PackRow[];
   content: Map<string, PackContent>;
   manifests: Map<string, PackManifest>;
-  // The keys read from a pack source on disk rather than out of storage.
-  // buildLibrary can't tell — a source answers for a key without saying where
-  // it read it — so it comes from the merge that composed the source, and is
-  // empty for a library built over one place (merged-source.ts).
+  // Packs read from a pack source on disk rather than out of storage, as key →
+  // the directory each was read from. buildLibrary can't tell — a source
+  // answers for a key without saying where it read it — so it is stamped on by
+  // whoever composed the source, and is empty for a library built over one
+  // place (disk-source.ts).
   //
-  // The screens mark these. A directory is removed by deleting the directory,
-  // so the Remove button that empties a pack out of storage doesn't apply, and
-  // pressing it deletes nothing and watches the pack return.
-  onDisk: ReadonlySet<string>;
+  // The screens mark these, and the directory is what a choice about one is
+  // stored against: a pack's key comes out of the manifest in its tree, so it
+  // is a consequence of which sidecars were read rather than a name for the
+  // thing that was read. A directory is also removed by deleting the directory,
+  // so the Remove button that empties a pack out of storage doesn't apply.
+  onDisk: ReadonlyMap<string, string>;
+  // The experiments a pack source can be played with — the ids the inference
+  // registry holds, which reach the browser only over a route. Empty off a dev
+  // server, where nothing is read off disk at all.
+  experiments: readonly string[];
 };
 
 // Cross-pack rules a tree can't know about itself: an overlay's base must be
@@ -217,7 +224,8 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
     entries: buildEntries(survivors),
     content: new Map(survivors.map((p) => [p.key, p.content])),
     manifests: new Map(survivors.map((p) => [p.key, p.manifest])),
-    onDisk: new Set(),
+    onDisk: new Map(),
+    experiments: [],
     rows: [
       ...survivors.map((p) => ({
         id: p.key,
@@ -250,6 +258,17 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
 // by turning incompatible (its base was removed) while its media is on screen
 // in a thread, and that is media the app can still render, not media to break.
 // It has a row either way, which is what says it is installed.
+// Which installed packs a disk source has actually replaced: of the keys it
+// shadowed (merged-source.ts), the ones that went on to build and survive the
+// cross-pack pass. Removing an installed pack is irreversible and its zip may
+// be long gone, so a directory that shadowed a pack and then failed validation
+// takes nothing with it — the broken thing is the directory, and the pack in
+// storage is the working copy of it.
+export const replacedByDisk = (
+  clashed: readonly string[],
+  built: Library,
+): string[] => clashed.filter((key) => built.content.has(key));
+
 export function carryMediaOver(
   previous: Library,
   next: Library,

@@ -23,11 +23,9 @@ import type { ParsedMedia } from './pack';
 export type Merged = {
   source: LibrarySource;
   // The keys disk shadowed, filled by the last listKeys and empty before it.
+  // Which keys came off disk at all is the disk source's to say — it holds the
+  // directory each was read from (disk-source.ts).
   clashed: () => string[];
-  // Every key disk answered for. The screens mark these: a pack that is a
-  // directory being edited is not removed from the app, and its Remove button
-  // would delete nothing and watch the pack come back on the next build.
-  onDisk: () => string[];
 };
 
 export function mergedSource(
@@ -38,7 +36,6 @@ export function mergedSource(
   // whichever one can answer for it.
   const from = new Map<string, LibrarySource>();
   let clashes: string[] = [];
-  let disked: string[] = [];
 
   const source: LibrarySource = {
     listKeys: async () => {
@@ -49,7 +46,6 @@ export function mergedSource(
       from.clear();
       for (const key of inStore) from.set(key, installed);
       clashes = onDisk.filter((key) => from.has(key));
-      disked = [...onDisk];
       for (const key of onDisk) from.set(key, disk);
       return [...from.keys()];
     },
@@ -65,5 +61,5 @@ export function mergedSource(
     },
   };
 
-  return { source, clashed: () => [...clashes], onDisk: () => [...disked] };
+  return { source, clashed: () => [...clashes] };
 }

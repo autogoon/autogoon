@@ -35,7 +35,10 @@ import { SessionControls } from '@/components/session-controls';
 import { Slider } from '@/components/slider';
 import { Sparkline } from '@/components/sparkline';
 import { StrokeCard } from '@/components/stroke-card';
-import { useGoonpackLibrary } from '@/hooks/use-goonpack-library';
+import {
+  chosenExperiment,
+  useGoonpackLibrary,
+} from '@/hooks/use-goonpack-library';
 import type { PlayerView } from '@/hooks/use-player';
 import { useStrokeControls } from '@/hooks/use-stroke-controls';
 import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
@@ -733,6 +736,13 @@ export function CompanionsPanel({
                     sel={variantSel[entry.companion.id]}
                     onSelectPacks={selectPacks}
                     onPick={pickVariant}
+                    disk={{
+                      dirs: library.onDisk,
+                      experiments: library.experiments,
+                      chosen: chosenExperiment,
+                      onChoose: (dir, experiment) =>
+                        void library.chooseExperiment(dir, experiment),
+                    }}
                   />
                 ))
               )}

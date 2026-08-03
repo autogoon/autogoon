@@ -6,7 +6,7 @@
 //
 //   npm run goonpack:build goonpacks/elise 2026-08-02-baseline
 //     that pack from that experiment's descriptions rather than the
-//     hand-written ones — pack-contents.ts says what ships either way.
+//     stock ones — pack-contents.ts says what ships either way.
 //
 // (runs under tsx, so it imports the app's validator directly: every pack
 // source passes parsePack — the same checks importing runs — before it is
