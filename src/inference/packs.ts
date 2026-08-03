@@ -18,6 +18,11 @@ import { PACKS_DIR, readName } from './paths';
 const packsPath = (...parts: string[]): string =>
   join(process.cwd(), PACKS_DIR, ...parts);
 
+// Where a pack source sits. Only ever called with a name `packDirs` returned —
+// `readPack` is what turns a request into one — so this never joins a path to
+// something a request chose.
+export const packPath = (pack: string): string => packsPath(pack);
+
 // How many of a media directory's names name an item. Zero means the directory
 // holds no corpus, whatever else is in it.
 export const countItems = (names: string[]): number =>
