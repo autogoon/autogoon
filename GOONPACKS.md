@@ -274,6 +274,13 @@ The companion's pictures and videos, directly in `media/` (no subfolders).
 `.mov` pack would work on your machine and not on someone else's. Re-encode it
 as MP4.
 
+Anything else in `media/` is left where it is. A file whose extension is none of
+those above, and a sidecar whose picture has been renamed away, are counted in a
+warning when the pack builds rather than refusing it — `media/` is a working
+directory as often as it is a finished set, and another tool's files can sit
+beside the pictures without breaking anything. Read the warning, though: a typo
+in an extension looks exactly the same from here.
+
 Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
 `beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
 and a longer description of the shot as the body under it. You rarely write one
@@ -426,9 +433,12 @@ just that pack, which is the order to do them in for a new one:
 
 ### Building the zip
 
-A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
-and `media/`. Anything else in the zip — a leftover `notes.md`, a subfolder
-inside `media/` — is refused on import, named so you can see which file it was.
+A pack holds three things: `manifest.json`, `system-prompt.md` and `media/`.
+Anything else at the zip's root — a leftover `notes.md` — is refused on import,
+named so you can see which file it was, as is a subfolder inside `media/`. Files
+sitting _inside_ `media/` that aren't media are warned about rather than
+refused; see
+[Pictures, videos and their sidecars](#pictures-videos-and-their-sidecars).
 
 Any zip tool works. Zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` zips every

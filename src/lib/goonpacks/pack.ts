@@ -32,6 +32,14 @@ const PROMPT = 'system-prompt.md';
 export const MEDIA_NAME = 'media';
 export const MEDIA_DIR = `${MEDIA_NAME}/`;
 
+// The name up to the first dot — the item a file belongs to, rather than the
+// file. `splitName` splits at the last dot, which is what pairs `beach.jpg`
+// with `beach.md`; this is what gathers everything else an item accumulates
+// (`beach.labels.json`, `beach.2026-08-02-baseline.raw.txt`) under the picture
+// itself, so a tool keeping its working files beside the media adds no names
+// that look stray.
+const baseName = (file: string): string => file.split('.')[0] ?? file;
+
 // What a pack looks like to validation: the file names it holds (relative to
 // the pack root, '/'-separated) and a way to read one as text. OPFS backs it in
 // the app; node fs backs it in the authoring build script; a plain object backs
@@ -39,6 +47,18 @@ export const MEDIA_DIR = `${MEDIA_NAME}/`;
 export type PackTree = {
   names: string[];
   readText(path: string): Promise<string>;
+};
+
+// Optional progress for the two passes that run once per file. The app passes
+// neither — it validates a pack it has just extracted, with the extraction's
+// own progress already on screen. The authoring build draws a counter, because
+// a pack of a few thousand pictures spends long enough in each pass to look
+// stopped.
+export type PackProgress = {
+  // Names under media/ sorted into media, sidecar or stray.
+  checked?: (done: number, total: number) => void;
+  // Sidecars read off disk and parsed.
+  read?: (done: number, total: number) => void;
 };
 
 // One still or video the app will offer — valid media, which is the two checks
@@ -64,6 +84,14 @@ export type ParsedPack = {
   manifest: PackManifest;
   systemPrompt?: string;
   media: ParsedMedia[];
+  // What is under media/ but isn't playable media, reported rather than
+  // refused: `strays` are basenames no media file carries, `undescribed` are
+  // media files with no sidecar yet. Neither stops a pack, because media/ is a
+  // working directory as often as it is a finished set — a describing pass
+  // half done, or another tool keeping its own files beside the pictures.
+  // scripts/lib/goonpack-report.ts turns them into the build's warning lines.
+  strays: string[];
+  undescribed: string[];
 };
 
 // Best-effort look at a manifest that failed validation, so the admin row can
@@ -119,7 +147,10 @@ export function wrapperFolder(names: string[]): string | null {
 // Like parseManifest, parsePack reports every problem it can determine in one
 // throw: the manifest's problems plus the tree-level ones. Only a tree with no
 // root manifest fails alone.
-export async function parsePack(tree: PackTree): Promise<ParsedPack> {
+export async function parsePack(
+  tree: PackTree,
+  progress?: PackProgress,
+): Promise<ParsedPack> {
   const names = tree.names.filter((n) => !isJunkPath(n));
 
   if (!names.includes(MANIFEST)) {
@@ -150,10 +181,16 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   const media: ParsedMedia[] = [];
   const sidecarPaths: string[] = [];
   const sidecars = new Map<string, Sidecar>();
+  // Basenames under media/ that no playable file turned out to carry. Collected
+  // as they are met and filtered against the media set below, since a name is
+  // only stray once nothing has claimed it.
+  const strays = new Set<string>();
   // Every path is either the manifest, the prompt, something under media/, or
   // something that has no place in a pack. The last of those is a problem, not
   // something to skip: a skipped path is a stray folder riding into a built
   // pack unnoticed.
+  const underMedia = names.filter((p) => p.startsWith(MEDIA_DIR)).length;
+  let checked = 0;
   for (const path of names) {
     if (path === MANIFEST || path === PROMPT) continue;
     if (!path.startsWith(MEDIA_DIR)) {
@@ -162,6 +199,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
       );
       continue;
     }
+    progress?.checked?.(++checked, underMedia);
     const file = path.slice(MEDIA_DIR.length);
     if (file.includes('/')) {
       problems.push(`media/ can't contain subfolders — found ${path}.`);
@@ -180,9 +218,7 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     }
     const type = MEDIA_TYPES[ext];
     if (type === undefined) {
-      problems.push(
-        `Unsupported file in media/: ${file} — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .${SIDECAR_EXT} sidecar.`,
-      );
+      strays.add(baseName(file));
       continue;
     }
     media.push({
@@ -201,7 +237,9 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   // building. captionWarning (scripts/lib/goonpack-report.ts) is what reports
   // those at build time.
   const sidecarStems = new Set<string>();
+  let read = 0;
   for (const path of sidecarPaths) {
+    progress?.read?.(++read, sidecarPaths.length);
     const stem = splitName(path.slice(MEDIA_DIR.length)).stem;
     sidecarStems.add(stem);
     try {
@@ -236,15 +274,16 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
     m.description = parsed.description;
     described.push(m);
   }
-  // A sidecar with no media file is the pairing seen from the other side: a
-  // rename that moved one and not the other, and nothing else would report it.
+  // A sidecar with no media file is the same miss from the other side — a
+  // rename that moved one and not the other — so it joins the stray basenames
+  // rather than getting a rule of its own.
   for (const stem of sidecarStems) {
-    if (!stems.has(stem)) {
-      problems.push(
-        `${stem}.${SIDECAR_EXT} has no media file beside it — remove it, or add the picture or video it describes.`,
-      );
-    }
+    if (!stems.has(stem)) strays.add(baseName(stem));
   }
+  // A basename is sound the moment any playable file carries it, whatever else
+  // sits alongside: `a.jpg` beside `a.labels.json` and `a.baseline.raw.txt` is
+  // one described picture, not a picture and two complaints.
+  for (const m of media) strays.delete(baseName(m.file));
   described.sort((a, b) => a.name.localeCompare(b.name));
 
   // Completeness rules need a readable manifest to know overlay from complete —
@@ -311,5 +350,17 @@ export async function parsePack(tree: PackTree): Promise<ParsedPack> {
   if (problems.length > 0 || manifest === undefined) {
     throw new PackError(problems);
   }
-  return { manifest, systemPrompt, media: described };
+  return {
+    manifest,
+    systemPrompt,
+    media: described,
+    strays: [...strays].sort((a, b) => a.localeCompare(b)),
+    // By subtraction rather than by re-deciding anything: every entry in
+    // `media` passed the extension check, and the ones missing from `described`
+    // are exactly those with no sidecar yet.
+    undescribed: media
+      .filter((m) => !sidecars.has(m.name))
+      .map((m) => m.file)
+      .sort((a, b) => a.localeCompare(b)),
+  };
 }

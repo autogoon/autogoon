@@ -10,6 +10,9 @@ export function writeZip(
   dir: string,
   names: string[],
   out: string,
+  // How many files are written, as each one finishes. Deflating a pack of
+  // pictures is the longest thing the build does.
+  onFile?: (done: number, total: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const sink = createWriteStream(out);
@@ -42,6 +45,7 @@ export function writeZip(
       // final push is the only one its entry gets.
       source.on('end', () => {
         entry.push(new Uint8Array(0), true);
+        onFile?.(i + 1, names.length);
         next(i + 1);
       });
     };
