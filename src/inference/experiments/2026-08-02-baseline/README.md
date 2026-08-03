@@ -28,35 +28,38 @@ batching and expert routing move on the far end regardless.
 
 ## Strategy
 
-Two requests. **The first** carries the resized image and `PROMPT_ONE`, which
-asks only for reasoning about the picture — the pose, the clothing, what is
-bare, the direction the body and gaze face — at whatever length it takes.
+Two requests. **The first** carries the resized image and `PROMPT_ONE`: reasoning
+about the picture at whatever length it takes — the pose, the clothing, what is
+bare, the direction the body and gaze face — and then one answer outright,
+`BREAST SIZE`, because a magnitude is not in anybody's prose account of a
+picture.
 
 **The second** carries `PROMPT_TWO` with that reasoning substituted into it, and
 no picture. It asks for three things in this order:
 
-1. **Observations** — a fixed checklist answered line by line: what the
-   subject's weight rests on, where the knees and heels are, sitting versus
-   kneeling versus squatting, which way the torso and head face, each garment
-   and how it is arranged, which parts are bare and how plainly, whether fabric
-   over the breasts is sheer or opaque, and whether nipples are visible.
-2. **Marked answers**, one per line: the descriptive ones — hair, gaze, setting,
-   body shape, clothing, what is exposed and how plainly — then the ones
-   answered from a named set of words, covering nakedness, breast size, whether
-   a bra or panties are on, topless, and how visible the nipples and genitals
-   are.
-3. **A caption** — one sentence of roughly 35–45 words condensed from the
-   observations.
+1. **Reasoning** over the description it was given, field by field.
+2. **Marked answers**, one per line. `BREAST SIZE` it copies through as written,
+   Unknown included; the rest it works out from the clothing and pose the first
+   call described — hair, gaze, setting, body shape, what is exposed, nakedness,
+   bra, panties, topless, and how visible the nipples and genitals are.
+3. **A caption** — one sentence condensed from all of it.
 
-Three choices in that shape are deliberate. The picture reaches the model once,
-so what the second call can answer is bounded by what the first wrote down — a
+Three choices in that shape are deliberate. The picture reaches a model once, so
+what the second call can answer is bounded by what the first wrote down — a
 wrong caption is then attributable to the looking or to the reading of it, which
-one call cannot separate. Within the second call the model writes its
-observations out before it concludes anything, because a conclusion asked for on
-its own is one guessed from overall impression rather than read off what it has.
-And the marked answers come after the observations rather than before them, for
-the same reason: bare-versus-covered is the discrimination being measured, so
-the answer has to follow the looking.
+one call cannot separate. Within the second call the model writes its reasoning
+out before it concludes anything, because a conclusion asked for on its own is
+one guessed from overall impression rather than read off what it has. And the
+marked answers come after that reasoning rather than before it, for the same
+reason: bare-versus-covered is the discrimination being measured, so the answer
+has to follow the looking.
+
+**Only breast size is answered by the call with eyes.** It is a magnitude, and
+prose about a picture doesn't carry one, so the second call was inventing it —
+and an invention from a prior lands on whichever grade the rubric describes as
+ordinary. Everything else follows from the clothing and pose the first call
+writes down, which text does carry, so everything else stayed where it was and
+is the control for the change.
 
 ## What is stored
 
@@ -101,7 +104,11 @@ Carried on purpose. A baseline quietly improved measures nothing.
   to tell them apart.
 - **Body orientation follows the gaze**: a subject kneeling away from the camera
   and looking back over her shoulder is described as facing the camera.
-- **Breast size is never reported.** Nothing asks for it.
+- **Breast size reads Medium whatever the picture holds.** Measured over the few
+  items labelled and answered both ways, it gave the same grade every
+  time. Asking the call with eyes for it, against what is on screen rather than
+  a cup size, is the change under test; whether it moved is a question for a
+  sweep, not for reading the prompt.
 
 ## Running it
 
