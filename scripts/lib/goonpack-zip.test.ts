@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { unzipSync } from 'fflate';
-import type { Shipped } from './goonpack-contents';
+import type { Shipped } from '../../src/inference/pack-contents';
 import { writeZip } from './goonpack-zip';
 
 // Most cases ship a file under the name it already has; the substitution is

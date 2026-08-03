@@ -8,12 +8,12 @@ import { createReadStream, createWriteStream } from 'node:fs';
 import { join } from 'node:path';
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { MEDIA_TYPES, splitName } from '../../src/lib/goonpacks/media';
-import type { Shipped } from './goonpack-contents';
+import type { Shipped } from '../../src/inference/pack-contents';
 
 export function writeZip(
   dir: string,
   // What goes in and where each entry is read from — the two differ where a
-  // build takes an experiment's sidecar as an item's own (goonpack-contents.ts).
+  // build takes an experiment's sidecar as an item's own (pack-contents.ts).
   files: readonly Shipped[],
   out: string,
   // How many files are written, as each one finishes. Deflating a pack of

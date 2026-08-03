@@ -6,7 +6,7 @@
 //
 //   npm run goonpack:build goonpacks/elise 2026-08-02-baseline
 //     that pack from that experiment's descriptions rather than the
-//     hand-written ones — goonpack-contents.ts says what ships either way.
+//     hand-written ones — pack-contents.ts says what ships either way.
 //
 // (runs under tsx, so it imports the app's validator directly: every pack
 // source passes parsePack — the same checks importing runs — before it is
@@ -24,7 +24,7 @@ import {
   type PackTree,
 } from '../src/lib/goonpacks/pack';
 import { captionWarning, strayWarning } from './lib/goonpack-report';
-import { packContents } from './lib/goonpack-contents';
+import { packContents } from '../src/inference/pack-contents';
 import { progress } from './lib/progress';
 import { collectPackFiles } from './lib/goonpack-source';
 import { writeZip } from './lib/goonpack-zip';
@@ -97,7 +97,7 @@ for (const dir of sourcesToBuild()) {
   }
   // What will ship, rather than what the directory holds: a pack source keeps
   // an experiment's working files beside the media, and none of them belong in
-  // the zip (goonpack-contents.ts).
+  // the zip (pack-contents.ts).
   const {
     files: shipped,
     undescribed,

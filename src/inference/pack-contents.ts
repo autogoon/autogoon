@@ -14,14 +14,10 @@
 // describe is left out rather than falling back to a hand-written sidecar, so a
 // pack built this way is one experiment's work throughout and a comparison
 // between two of them is a comparison.
-import {
-  isJunkPath,
-  MEDIA_TYPES,
-  splitName,
-} from '../../src/lib/goonpacks/media';
-import { MANIFEST, MEDIA_DIR } from '../../src/lib/goonpacks/pack';
-import { SIDECAR_EXT } from '../../src/lib/goonpacks/sidecar';
-import { readName, sidecarName } from '../../src/inference/paths';
+import { isJunkPath, MEDIA_TYPES, splitName } from '@/lib/goonpacks/media';
+import { MANIFEST, MEDIA_DIR } from '@/lib/goonpacks/pack';
+import { SIDECAR_EXT } from '@/lib/goonpacks/sidecar';
+import { readName, sidecarName } from './paths';
 
 const PROMPT = 'system-prompt.md';
 

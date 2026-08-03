@@ -358,7 +358,7 @@ const kept = (caption: string): string =>
 // This is the experiment's own sidecar, so every value in it is the
 // experiment's. What a pack ships is composed at build time, taking a person's
 // label over the experiment's answer key by key
-// (scripts/lib/goonpack-contents.ts).
+// (src/inference/pack-contents.ts).
 export function parse(raw: string): Inferred {
   const answered = fields(raw);
   const description = prose(raw);

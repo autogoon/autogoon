@@ -3,7 +3,7 @@
 // what is left behind.
 
 import { describe, expect, it } from '@jest/globals';
-import { packContents } from './goonpack-contents';
+import { packContents } from './pack-contents';
 
 const BASELINE = '2026-08-02-baseline';
 
