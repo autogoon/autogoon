@@ -5,6 +5,7 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   answer,
+  clear,
   fillAbsent,
   HUMAN,
   isConfirmed,
@@ -90,6 +91,25 @@ describe('answer', () => {
     expect(answer(existing, 'naked', true).breastSize).toEqual(
       existing.breastSize,
     );
+  });
+});
+
+describe('clear', () => {
+  it('takes the field back to absent rather than answering it unknown', () => {
+    const cleared = clear({ naked: { value: true, source: HUMAN } }, 'naked');
+    expect(cleared).not.toHaveProperty('naked');
+  });
+
+  it('leaves the fields it was not given alone', () => {
+    expect(
+      clear(
+        {
+          naked: { value: true, source: HUMAN },
+          breastSize: { value: 'large', source: BASELINE },
+        },
+        'naked',
+      ),
+    ).toEqual({ breastSize: { value: 'large', source: BASELINE } });
   });
 });
 

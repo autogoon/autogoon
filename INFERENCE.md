@@ -67,6 +67,7 @@ the item it was left on.
 | ------- | --------------------------------------------------- |
 | `↑` `↓` | move between the fields                             |
 | `←` `→` | answer the focused field, along its options in turn |
+| `Del`   | takes the focused field's answer back               |
 | `a` `d` | previous and next item                              |
 | `Enter` | the next item nobody has answered                   |
 | `g`     | run the selected experiment against this item       |

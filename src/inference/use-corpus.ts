@@ -36,6 +36,7 @@ export type CorpusView = {
   step: (by: number) => void;
   nextUnanswered: () => void;
   answer: (field: string, value: FieldValue) => void;
+  clear: (field: string) => void;
   generate: () => void;
   select: (experiment: string) => void;
   reload: () => void;
@@ -188,6 +189,24 @@ export function useCorpus(active: boolean): CorpusView {
     [stem, replace],
   );
 
+  const clear = useCallback(
+    (field: string) => {
+      if (stem === undefined) return;
+      setError(null);
+      fetch(
+        `/api/inference/labels?stem=${encodeURIComponent(stem)}&field=${encodeURIComponent(field)}`,
+        { method: 'DELETE' },
+      )
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await res.text());
+          return res.json() as Promise<{ labels: Labels }>;
+        })
+        .then((data) => replace(stem, data.labels))
+        .catch((e: unknown) => setError(message(e)));
+    },
+    [stem, replace],
+  );
+
   const generate = useCallback(() => {
     if (stem === undefined || experiment === '') return;
     setGenerating(true);
@@ -226,6 +245,7 @@ export function useCorpus(active: boolean): CorpusView {
     step,
     nextUnanswered,
     answer,
+    clear,
     generate,
     select: setExperiment,
     reload,

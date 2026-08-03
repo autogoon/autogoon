@@ -39,7 +39,7 @@ export function Review({
   item: SurveyedItem;
   onClose: () => void;
 }) {
-  const { answer, generate, step, nextUnanswered } = corpus;
+  const { answer, clear, generate, step, nextUnanswered } = corpus;
   const [focus, setFocus] = useState(0);
 
   // A new item starts at the top of the field set, so the first left or right
@@ -103,6 +103,14 @@ export function Review({
         nextUnanswered();
         return;
       }
+      // Both, because the key marked "delete" on a Mac laptop reports as
+      // Backspace — which some browsers also read as "go back".
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        const field = FIELDS[focus];
+        if (field !== undefined) clear(field.id);
+        return;
+      }
       const key = event.key.toLowerCase();
       if (key === 'a') {
         step(-1);
@@ -114,7 +122,7 @@ export function Review({
       }
       if (key === 'g') generate();
     },
-    [generate, shift, step, nextUnanswered, onClose],
+    [clear, focus, generate, shift, step, nextUnanswered, onClose],
   );
 
   useEffect(() => {
@@ -164,26 +172,51 @@ export function Review({
           )}
         </div>
 
-        <div className="flex w-lg flex-col justify-between">
+        <div className="flex w-160 flex-col justify-between">
           <div className="flex flex-col gap-16">
             <div className="flex flex-col gap-2">
+              {/* The word is underlined itself. The note renders only where the
+                  experiment has run against this item, since nothing below is
+                  underlined otherwise. */}
+              {corpus.run !== null && (
+                <span className="text-muted-foreground mb-4 pl-2 text-sm">
+                  <span className="underline decoration-2 underline-offset-4">
+                    Underlined
+                  </span>{' '}
+                  values are what {corpus.experiment} answered.
+                </span>
+              )}
               {FIELDS.map((field, at) => {
                 const given = item.labels?.[field.id];
+                // What the selected experiment said, shown whatever the ground
+                // truth now holds: an answer only scores against the one it
+                // disagrees with, so both have to be on screen at once.
+                const proposed = corpus.run?.fields[field.id];
                 return (
                   <span
                     key={field.id}
-                    // The focused row is the one the arrows answer, so it has
-                    // to be readable at a glance from across the desk.
-                    className={`flex items-center gap-2 rounded-lg p-2 ${
-                      at === focus
-                        ? 'bg-foreground/5 ring-foreground/30 ring'
-                        : ''
+                    // The focused row is the one the arrows answer. Every row
+                    // has the border and only its colour changes, so gaining
+                    // focus never shifts the row sideways.
+                    className={`flex items-center gap-2 border-l-2 pl-2 ${
+                      at === focus ? 'border-cyan-500' : 'border-transparent'
                     }`}
                   >
-                    <span className="text-sm font-medium">{field.label}</span>
+                    {/* A fixed width, so every field's buttons start on the
+                        same line however long its label runs. */}
+                    <span
+                      className={`w-32 shrink-0 text-right text-sm ${
+                        at === focus ? 'font-bold text-cyan-500' : 'font-medium'
+                      }`}
+                    >
+                      {field.label}
+                    </span>
                     {field.options.map((option) => {
-                      const chosen = given?.value === option.value;
-                      const confirmed = given?.source === HUMAN;
+                      // Only a person's answer fills a button. An experiment's
+                      // is the underline, so a field it answered and nobody has
+                      // confirmed reads as still open.
+                      const confirmed =
+                        given?.source === HUMAN && given.value === option.value;
                       return (
                         <Button
                           key={String(option.value)}
@@ -193,46 +226,27 @@ export function Review({
                             setFocus(at);
                             answer(field.id, option.value);
                           }}
-                          className={
-                            chosen && confirmed
-                              ? 'bg-foreground text-background'
-                              : chosen
-                                ? 'border-dashed'
-                                : undefined
-                          }
+                          // The focused row's tint goes first, so Button's
+                          // twMerge lets the confirmed fill override it where
+                          // the two collide. The underline conflicts with
+                          // neither: it is a separate property, the
+                          // experiment's answer.
+                          className={`${
+                            at === focus ? 'border-cyan-500 text-cyan-500' : ''
+                          } ${confirmed ? 'bg-cyan-600 text-white' : ''} ${
+                            proposed === option.value
+                              ? 'underline decoration-2 underline-offset-4'
+                              : ''
+                          }`}
                         >
                           {option.label}
                         </Button>
                       );
                     })}
-                    {given !== undefined && given.source !== HUMAN && (
-                      <span className="text-muted-foreground text-xs">
-                        {given.source} answered — not reviewed
-                      </span>
-                    )}
                   </span>
                 );
               })}
             </div>
-
-            <span className="flex flex-wrap items-center gap-2">
-              <Button onClick={() => step(-1)} disabled={corpus.index === 0}>
-                Previous <span className="opacity-50">a</span>
-              </Button>
-              <Button
-                onClick={() => step(1)}
-                disabled={corpus.index >= corpus.items.length - 1}
-              >
-                Next <span className="opacity-50">d</span>
-              </Button>
-              <Button onClick={nextUnanswered}>
-                Next unanswered <span className="opacity-50">enter</span>
-              </Button>
-              <Button onClick={generate} disabled={corpus.generating}>
-                {corpus.generating ? 'Running…' : 'Generate'}{' '}
-                <span className="opacity-50">g</span>
-              </Button>
-            </span>
 
             {corpus.error !== null && (
               <Card title="That didn't work" accent="rose">
@@ -243,13 +257,38 @@ export function Review({
             )}
           </div>
 
-          {corpus.run !== null && (
-            <Card title={`${corpus.experiment} said`} bordered>
-              <pre className="text-[10px] whitespace-pre-wrap">
-                {corpus.run.raw}
-              </pre>
-            </Card>
-          )}
+          <div className="flex flex-col gap-4">
+            <span className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => step(-1)} disabled={corpus.index === 0}>
+                Previous <span className="opacity-50">a</span>
+              </Button>
+              <Button
+                onClick={() => step(1)}
+                disabled={corpus.index >= corpus.items.length - 1}
+              >
+                Next <span className="opacity-50">d</span>
+              </Button>
+              <Button onClick={nextUnanswered} className="ml-auto">
+                Next unanswered <span className="opacity-50">enter</span>
+              </Button>
+            </span>
+
+            {corpus.run !== null && (
+              <Card title={`${corpus.experiment} said`} bordered>
+                <pre className="text-[10px] whitespace-pre-wrap">
+                  {corpus.run.raw}
+                </pre>
+              </Card>
+            )}
+            <Button onClick={generate} disabled={corpus.generating}>
+              {corpus.generating
+                ? 'Running…'
+                : corpus.run !== null
+                  ? 'Regenerate'
+                  : 'Generate'}{' '}
+              <span className="opacity-50">g</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

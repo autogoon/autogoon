@@ -69,6 +69,13 @@ export function answer(labels: Labels, id: string, value: FieldValue): Labels {
   return { ...labels, [id]: { value, source: HUMAN } };
 }
 
+// A reviewer taking an answer back: the field returns to absent.
+export function clear(labels: Labels, id: string): Labels {
+  const rest = { ...labels };
+  delete rest[id];
+  return rest;
+}
+
 // A run's answers arriving. Fills only what nothing has answered, so replaying
 // an experiment over a corpus back-fills a newly added field and touches
 // nothing else.
