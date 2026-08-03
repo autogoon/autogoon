@@ -4,13 +4,15 @@
 //       every item whose answers aren't the experiment's as it stands — the
 //       ones it has never answered, and the ones it answered before its last
 //       edit
-//   npm run experiment:run:outdated goonpacks/elise 2026-08-02-baseline
+//   npm run experiment:run goonpacks/elise 2026-08-02-baseline -- --outdated
 //       only the second of those, leaving the never-answered alone
+//   npm run experiment:run goonpacks/elise 2026-08-02-baseline -- --unanswered
+//       only the first, leaving what the experiment has already answered
 //   npm run experiment:run goonpacks/elise 2026-08-02-baseline 8
-//       the same, eight items in flight rather than one
+//       any of the above, eight items in flight rather than one
 //
-// Both report the whole standing before they start, because --outdated leaves
-// a group behind and a count on its own doesn't say so.
+// All of them report the whole standing before they start, because either flag
+// leaves a group behind and a count on its own doesn't say so.
 //
 // The pack and the experiment are both required, and neither has an "every
 // pack" or "every experiment" form: an experiment spends per item, and the
@@ -36,7 +38,14 @@ import { runItem } from '../src/inference/run-item';
 import { isCurrent } from '../src/inference/runs';
 import { dim, green, inlineImage, yellow } from './describe-image';
 
-const OUTDATED = '--outdated';
+// Which of the three groups a run takes. The two flags each narrow it to one;
+// with neither, a run brings the pack up to the experiment as it stands.
+const ONLY = {
+  '--outdated': 'outdated',
+  '--unanswered': 'neverRun',
+} as const;
+
+type Only = (typeof ONLY)[keyof typeof ONLY] | 'both';
 
 // Filename order is not a random sample of a pack, so running in it would leave
 // a sweep stopped part-way — and this one stops on the first failure — covering
@@ -62,11 +71,11 @@ type Sweep = {
   neverRun: number;
 };
 
-// Without --outdated a run brings the pack up to the experiment as it stands:
+// With neither flag a run brings the pack up to the experiment as it stands:
 // everything it has never answered, and everything it answered before its last
-// edit. With the flag it takes the second group alone, which is what to reach
-// for when the gaps are deliberate — a corpus part-labelled on purpose — and
-// re-running the stale answers is all that is wanted.
+// edit. `--outdated` takes the second group alone, for a corpus part-labelled
+// on purpose where only the stale answers want redoing; `--unanswered` takes
+// the first, for filling the gaps without paying to redo what is already there.
 //
 // A record from before versions were stamped counts as outdated: what produced
 // it is unknown.
@@ -75,7 +84,7 @@ async function sweep(
   items: CorpusItem[],
   experiment: string,
   version: string,
-  onlyOutdated: boolean,
+  only: Only,
 ): Promise<Sweep> {
   const outdated: CorpusItem[] = [];
   const neverRun: CorpusItem[] = [];
@@ -87,8 +96,14 @@ async function sweep(
     const run = await readRun(pack, item.stem, experiment);
     if (run === null || !isCurrent(run, version)) outdated.push(item);
   }
+  const takes =
+    only === 'outdated'
+      ? outdated
+      : only === 'neverRun'
+        ? neverRun
+        : [...neverRun, ...outdated];
   return {
-    todo: shuffled(onlyOutdated ? outdated : [...neverRun, ...outdated]),
+    todo: shuffled(takes),
     answered: items.length - neverRun.length,
     outdated: outdated.length,
     neverRun: neverRun.length,
@@ -107,12 +122,18 @@ async function packNamed(path: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2).filter((a) => a !== OUTDATED);
-  const onlyOutdated = process.argv.slice(2).includes(OUTDATED);
+  const given = process.argv.slice(2);
+  const flags = Object.keys(ONLY).filter((flag) => given.includes(flag));
+  if (flags.length > 1) {
+    console.error(`${flags.join(' and ')} ask for different halves — pick one`);
+    process.exit(1);
+  }
+  const only: Only = ONLY[flags[0] as keyof typeof ONLY] ?? 'both';
+  const args = given.filter((a) => !(a in ONLY));
   const [named, asked, together] = args;
   if (named === undefined || asked === undefined) {
     console.error(
-      'usage: experiment:run <pack directory> <experiment> [at once]',
+      'usage: experiment:run <pack directory> <experiment> [at once] [--outdated | --unanswered]',
     );
     process.exit(1);
   }
@@ -142,21 +163,23 @@ async function main(): Promise<void> {
     images,
     experiment.id,
     version,
-    onlyOutdated,
+    only,
   );
 
   // Where the corpus stands, then what this run takes of it — the second line
-  // because --outdated leaves the never-run items behind, and a count on its
-  // own reads as though it didn't.
+  // because either flag leaves a group behind, and a count on its own reads as
+  // though it didn't.
   console.log(
     `${pack} · ${experiment.id} (${version}) — ${images.length} images · ${answered} answered · ${outdated} outdated · ${neverRun} never run`,
   );
   console.log(
     todo.length === 0
       ? 'nothing to run'
-      : onlyOutdated
+      : only === 'outdated'
         ? `running ${todo.length} outdated, leaving ${neverRun} never run`
-        : `running ${todo.length}: ${neverRun} never run and ${outdated} outdated`,
+        : only === 'neverRun'
+          ? `running ${todo.length} never run, leaving ${outdated} outdated`
+          : `running ${todo.length}: ${neverRun} never run and ${outdated} outdated`,
   );
   if (todo.length === 0) return;
 
