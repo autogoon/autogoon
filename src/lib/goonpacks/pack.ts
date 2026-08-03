@@ -23,7 +23,12 @@
 // and the media it lists is the same set either way.
 import { PackError, parseManifest, type PackManifest } from './manifest';
 import { isJunkPath, splitName, MEDIA_TYPES, type MediaKind } from './media';
-import { parseSidecar, SIDECAR_EXT, type Sidecar } from './sidecar';
+import {
+  parseSidecar,
+  SIDECAR_EXT,
+  type Sidecar,
+  type SidecarValue,
+} from './sidecar';
 
 export const MANIFEST = 'manifest.json';
 const PROMPT = 'system-prompt.md';
@@ -78,6 +83,10 @@ export type ParsedMedia = {
   mimeType: string;
   caption: string;
   description: string;
+  // The rest of the sidecar's frontmatter, carried rather than read: what a
+  // pack records about an item is inference's to decide (sidecar.ts), so
+  // nothing here knows the keys.
+  values: Record<string, SidecarValue>;
 };
 
 export type ParsedPack = {
@@ -228,6 +237,7 @@ export async function parsePack(
       mimeType: type.mimeType,
       caption: '',
       description: '',
+      values: {},
     });
   }
   // Sidecars are the only media-folder files ever read — a couple of kilobytes
@@ -272,6 +282,7 @@ export async function parsePack(
     if (parsed === undefined) continue;
     m.caption = parsed.caption;
     m.description = parsed.description;
+    m.values = parsed.values;
     described.push(m);
   }
   // A sidecar with no media file is the same miss from the other side — a

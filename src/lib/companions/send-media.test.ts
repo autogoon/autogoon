@@ -13,6 +13,7 @@ const item = (
   kind,
   caption,
   description: `${caption}, at length`,
+  values: {},
   ref: `goonpack:pub.pack@1.0.0/${caption}`,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},

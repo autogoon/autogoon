@@ -73,6 +73,7 @@ describe('parsePack', () => {
       mimeType: 'image/jpeg',
       caption: 'desc a',
       description: 'Description a.',
+      values: {},
     });
     expect(pack.media[1]).toMatchObject({
       name: 'b',

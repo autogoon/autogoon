@@ -103,6 +103,7 @@ function mediaEntry(
     kind: m.kind,
     caption: m.caption,
     description: m.description,
+    values: m.values,
     // Stable thread reference: object URLs die with the session, so the thread
     // persists this ref and rendering resolves it.
     ref: `goonpack:${key}/${m.name}`,

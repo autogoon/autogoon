@@ -1,6 +1,7 @@
 // The built-in companions. An imported goonpack adds further companions at
 // runtime (src/lib/goonpacks/).
 import type { MediaKind } from '@/lib/goonpacks/media';
+import type { SidecarValue } from '@/lib/goonpacks/sidecar';
 import { AIMEE_SYSTEM_PROMPT } from './aimee-prompt';
 import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 
@@ -20,6 +21,11 @@ export type CompanionMedia = {
   kind: MediaKind;
   caption: string;
   description: string;
+  // Everything else the sidecar's frontmatter carried, whatever it was called.
+  // The pack format does not own the question set (goonpacks/sidecar.ts), so
+  // what is in here is whatever wrote the sidecar — empty for one carrying a
+  // caption alone.
+  values: Record<string, SidecarValue>;
   ref: string;
   src?: string;
   load(): Promise<string>;

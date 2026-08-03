@@ -10,10 +10,12 @@ const item = (
   caption: string,
   description = '',
   kind: CompanionMedia['kind'] = 'image',
+  values: CompanionMedia['values'] = {},
 ): CompanionMedia => ({
   kind,
   caption,
   description,
+  values,
   ref,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},
