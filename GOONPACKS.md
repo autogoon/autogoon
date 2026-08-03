@@ -470,10 +470,11 @@ On the Companions screen, a companion's card carries the pack pickers: the
 version (newest first, and the default) and an overlay to lay on top. The card's
 description, colour and feature line follow what you've picked.
 
-Every app load re-checks every stored pack against the current rules. A pack
-that fails — its base was removed, or the pack format has moved on — stays on
-the Goonpacks tab marked incompatible with the reasons, and isn't offered on the
-chooser. Fix the cause, or re-import a corrected zip, and it comes back.
+Every session re-checks every stored pack against the current rules, the first
+time you open Companions or Goonpacks. A pack that fails — its base was removed,
+or the pack format has moved on — stays on the Goonpacks tab marked incompatible
+with the reasons, and isn't offered on the chooser. Fix the cause, or re-import
+a corrected zip, and it comes back.
 
 A sent picture or video stays in the conversation as a stable reference, not a
 copy. It resolves against whichever pack is currently loaded. Switch away from

@@ -104,7 +104,12 @@ function rebuild(replaced?: string): Promise<Library> {
   return remember(previous.catch(() => null).then(() => load(keys)));
 }
 
-export function useGoonpackLibrary() {
+// `onScreen` is what builds the index. Every panel in the app is mounted for
+// the whole session and hidden with a class, so a hook that built on mount
+// built at startup — reading every installed pack's sidecars before anything
+// had asked for a companion. Whichever of the two screens is opened first pays
+// for it; the other finds the same build already in flight.
+export function useGoonpackLibrary(onScreen: boolean) {
   const [state, setState] = useState<Library>(() => current ?? EMPTY);
   // "error" is a library that couldn't be read at all — storage refused, rather
   // than a pack being wrong. The panels say so instead of waiting forever.
@@ -112,16 +117,23 @@ export function useGoonpackLibrary() {
     current === null ? 'loading' : 'ready',
   );
 
+  // Watching is separate from building, and lasts the panel's whole life: an
+  // import on the Goonpacks tab rebuilds the index, and the chooser has to hear
+  // about it whether or not it is the screen being looked at.
   useEffect(() => {
     listeners.add(setState);
-    void library().then(
-      () => setStatus('ready'),
-      () => setStatus('error'),
-    );
     return () => {
       listeners.delete(setState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!onScreen) return;
+    void library().then(
+      () => setStatus('ready'),
+      () => setStatus('error'),
+    );
+  }, [onScreen]);
 
   // Mirror a rebuild's outcome into `status`, and still let the caller see a
   // failure: an import reports its own on the confirm sheet.

@@ -114,7 +114,7 @@ describe('useGoonpackLibrary', () => {
   // reads every tree it listed and drops the one that comes back gone.
   it('keeps an import that commits while a removal is still rebuilding', async () => {
     const { useGoonpackLibrary } = await import('./use-goonpack-library');
-    const { result } = renderHook(() => useGoonpackLibrary());
+    const { result } = renderHook(() => useGoonpackLibrary(true));
     await settle();
     await waitFor(() => expect(result.current.status).toBe('ready'));
 

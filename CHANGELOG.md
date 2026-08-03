@@ -25,6 +25,11 @@
   It now follows the conversation, and ends when you leave Companions.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
+- internal: **The pack index is built on first sight, not at startup** — Reading
+  every installed pack's sidecars happened at app load, whether or not anything
+  went near a companion. It now happens the first time Companions or Goonpacks
+  is opened. ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - internal: **A pack ships what a pack needs** — `goonpack:build` zipped every
   file in a source directory, so anything kept beside the media rode along and
   a picture nothing had described shipped as bytes no companion could pick. It

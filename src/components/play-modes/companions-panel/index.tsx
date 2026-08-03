@@ -110,8 +110,9 @@ export function CompanionsPanel({
 
   // One index per session, shared with the Goonpacks tab: an import or removal
   // there rebuilds it and this chooser is told, so there is nothing to re-sync
-  // when the screen comes back into view.
-  const library = useGoonpackLibrary();
+  // when the screen comes back into view. Built the first time either screen is
+  // opened rather than at startup, which is what `active` carries here.
+  const library = useGoonpackLibrary(active);
 
   // The picked, fully-resolved companion (variant applied, prompt sections
   // filled). Chosen in the setup view and fixed for the play session (the nav

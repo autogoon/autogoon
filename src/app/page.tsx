@@ -436,7 +436,7 @@ function App() {
         )}
         <main className="py-6">
           <div className={screen === 'goonpacks' ? undefined : 'hidden'}>
-            <GoonpacksPanel />
+            <GoonpacksPanel active={screen === 'goonpacks'} />
           </div>
           {IS_DEV && (
             // Mounted only on the dev server: its routes answer nowhere else,

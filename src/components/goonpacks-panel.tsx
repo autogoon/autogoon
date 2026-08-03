@@ -136,8 +136,11 @@ function PackCard({
   );
 }
 
-export function GoonpacksPanel() {
-  const library = useGoonpackLibrary();
+// `active` is whether this is the screen being looked at. It builds the pack
+// index on first sight rather than at startup; every other panel takes the same
+// prop for its own reasons.
+export function GoonpacksPanel({ active }: { active: boolean }) {
+  const library = useGoonpackLibrary(active);
 
   // Pack import. fileRef triggers the hidden file input; pendingImport holds
   // a parsed-but-not-yet-committed import for the confirm sheet; importError
