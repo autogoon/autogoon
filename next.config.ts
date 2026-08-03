@@ -16,6 +16,17 @@ const nextConfig: NextConfig = {
   // locally they're absent and fall back to "dev". Vercel has no build-time env
   // var, so we make one here — this file is evaluated at build time, freezing
   // the value into the bundle.
+  images: {
+    // next/image refuses a local src carrying a query string unless it is
+    // listed here. The first entry is Next's own default, restated because
+    // naming any pattern replaces it; the second admits the inference corpus,
+    // which names its file in the query (src/app/api/inference/media/route.ts).
+    localPatterns: [
+      { pathname: '**', search: '' },
+      { pathname: '/api/inference/media' },
+    ],
+  },
+
   env: {
     NEXT_PUBLIC_GIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
     NEXT_PUBLIC_GIT_REF: process.env.VERCEL_GIT_COMMIT_REF ?? 'dev',

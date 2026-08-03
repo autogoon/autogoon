@@ -59,9 +59,13 @@ many still hold an experiment's answer, and how far the selected experiment has
 run. The spread of the ground truth's own answers across each field's options is
 counted beside them; it belongs to the corpus rather than to any experiment.
 
-**Review** opens one item over the whole screen — the picture, the controls for
-each field, and the selected experiment's reply to it. Reopening it returns to
-the item it was left on.
+**Review** is a page of its own, not an overlay: the picture, the controls for
+each field, and the selected experiment's reply to it. Every screen here has an
+address, so an item can be linked, reloaded and left with the browser's back —
+the grammar is in [`route.ts`](./src/inference/route.ts). Stepping between items
+replaces the address rather than stacking it, so one press of back leaves review
+rather than undoing one move through a thousand items. A breadcrumb top left
+does the same.
 
 | Key     |                                                     |
 | ------- | --------------------------------------------------- |
@@ -70,8 +74,22 @@ the item it was left on.
 | `Del`   | takes the focused field's answer back               |
 | `a` `d` | previous and next item                              |
 | `Enter` | the next item nobody has answered                   |
+| `?`     | compare against pictures already labelled           |
 | `g`     | run the selected experiment against this item       |
-| `Esc`   | closes the review                                   |
+
+**Compare** answers "is this one Medium or Large?" the only way it can be
+answered — against the pictures that were called Medium and Large before. `?`
+puts the item beside one already labelled with the focused field's value, over a
+strip of every other picture labelled the same. The exemplars are confirmed
+answers only: an experiment's are the ones nobody has checked, so calibrating
+against those would be calibrating against the thing being measured.
+
+| Key     |                                            |
+| ------- | ------------------------------------------ |
+| `↑` `↓` | move between the field's values            |
+| `←` `→` | move along that value's pictures           |
+| `Enter` | answer with the value on screen, and leave |
+| `Esc`   | leave without answering                    |
 
 **Generate is one call for one item** — it is the spot-check. Running an
 experiment across the whole corpus is `npm run experiment:run`, and re-running

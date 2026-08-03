@@ -21,12 +21,7 @@ export async function GET(request: Request): Promise<Response> {
     const bytes = await readFile(corpusPath(item.file));
     const type = MEDIA_TYPES[splitName(item.file).ext];
     return new Response(new Uint8Array(bytes), {
-      headers: {
-        'Content-Type': type?.mimeType ?? 'application/octet-stream',
-        // The corpus changes under the app — a file replaced keeps its name —
-        // so nothing is cached across a reload.
-        'Cache-Control': 'no-store',
-      },
+      headers: { 'Content-Type': type?.mimeType ?? 'application/octet-stream' },
     });
   } catch (e) {
     return failed(e);

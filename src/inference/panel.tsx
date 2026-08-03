@@ -1,28 +1,55 @@
-// The Inference screen: what the corpus adds up to, for one experiment at a
-// time. Reviewing an item happens in the modal Review opens (review.tsx), so
-// this screen is only ever reporting.
+// The Inference tab. The URL decides which of its two screens shows (route.ts):
+// the corpus summary, or one item open for review.
 //
-// The experiment picker is the screen's subject — the counts describe it, and
-// the modal shows and generates its replies. The ground-truth tallies are not
-// its: those count what people answered, which belongs to no experiment.
+// The summary reports on the corpus for one experiment at a time. The
+// experiment picker is its subject — the counts describe it, and review shows
+// and generates its replies. The ground-truth tallies are not its: those count
+// what people answered, which belongs to no experiment.
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
+import { Failure } from './failure';
 import { Review } from './review';
+import { useRoute } from './route';
 import { summarise } from './summary';
-import { useCorpus } from './use-corpus';
+import { isAnswered, useCorpus } from './use-corpus';
 
 export function InferencePanel({ active }: { active: boolean }) {
-  const corpus = useCorpus(active);
+  const route = useRoute();
+  const corpus = useCorpus(active, route);
   const summary = useMemo(
     () => summarise(corpus.items, corpus.version),
     [corpus.items, corpus.version],
   );
-  const [reviewing, setReviewing] = useState(false);
-  const item = corpus.current;
+
+  // Review opens on the first item nobody has answered, since that is what a
+  // labelling pass is for; on the first item where the pass is done.
+  const start =
+    corpus.items.find((item) => !isAnswered(item.labels))?.stem ??
+    corpus.items[0]?.stem;
+
+  // A URL naming an item is the review page, whether or not the listing has
+  // arrived yet — falling back to the summary while it loads would flash the
+  // wrong screen on every deep link and reload.
+  if (route.stem !== null) {
+    if (corpus.current !== null) {
+      return <Review corpus={corpus} item={corpus.current} />;
+    }
+    return (
+      <Panel>
+        <Card title={corpus.loading ? 'Reading…' : 'No such item'}>
+          <span className="text-muted-foreground block text-sm">
+            {corpus.loading
+              ? route.stem
+              : `The corpus has nothing called ${route.stem}.`}
+          </span>
+        </Card>
+      </Panel>
+    );
+  }
 
   return (
     <Panel>
@@ -89,30 +116,17 @@ export function InferencePanel({ active }: { active: boolean }) {
             </label>
           )}
           <Button
-            onClick={() => setReviewing(true)}
-            disabled={corpus.items.length === 0}
+            onClick={() => {
+              if (start !== undefined) corpus.open(start);
+            }}
+            disabled={start === undefined}
           >
             Review
           </Button>
         </span>
       </Card>
 
-      {corpus.error !== null && (
-        <Card title="That didn't work" accent="rose">
-          <span className="block text-sm break-words">{corpus.error}</span>
-        </Card>
-      )}
-
-      {/* Unmounted while another tab shows, because the modal binds the keys:
-          left mounted, its option keys would answer fields from Settings. It
-          comes back on the item it was left on. */}
-      {active && reviewing && item !== null && (
-        <Review
-          corpus={corpus}
-          item={item}
-          onClose={() => setReviewing(false)}
-        />
-      )}
+      <Failure error={corpus.error} />
     </Panel>
   );
 }

@@ -1,11 +1,10 @@
-// The review modal: one corpus item filling the screen, with the controls that
+// The review page: one corpus item filling the screen, with the controls that
 // answer it — the picture beside the fields, the navigation, and the selected
 // experiment's reply.
 //
-// The keys are bound here rather than on the screen behind it, so they answer
-// only while there is an item to answer. Escape and the ✕ close it; the
-// backdrop does not, because the modal covers the screen and a click landing
-// outside the picture is a slip rather than an intention.
+// A page rather than an overlay, addressed by `#inference/<experiment>/<stem>`
+// (route.ts). An item can be linked and reloaded, the breadcrumb and the
+// browser's back both leave, and Escape belongs to whatever opens on top.
 //
 // The arrows walk the field set: up and down between fields, left and right
 // along the focused field's options. A letter per option would be faster to
@@ -17,30 +16,36 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
-import { X } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
+import { Compare } from './compare';
+import { Failure } from './failure';
 import { FIELDS } from './fields';
 import { HUMAN } from './labels';
 import { mediaUrl, type SurveyedItem } from './item';
+import { routeHash } from './route';
 import type { CorpusView } from './use-corpus';
 
 // Where a keystroke means something else entirely.
 const TYPING = /^(INPUT|TEXTAREA|SELECT)$/;
 
+// What the picture frame takes of the window, for the optimizer to size
+// against: everything but the rail beside it.
+const FRAME = 'calc(100vw - 44rem)';
+
 export function Review({
   corpus,
-  // The item on screen, passed separately from the view: the screen opens this
-  // only over an item that exists, and saying so here keeps the null out.
+  // The item on screen, passed separately from the view: the panel renders this
+  // only for an item that exists, and saying so here keeps the null out.
   item,
-  onClose,
 }: {
   corpus: CorpusView;
   item: SurveyedItem;
-  onClose: () => void;
 }) {
   const { answer, clear, generate, step, nextUnanswered } = corpus;
   const [focus, setFocus] = useState(0);
+  const [comparing, setComparing] = useState(false);
+  const field = FIELDS[focus];
 
   // A new item starts at the top of the field set, so the first left or right
   // always means the same field however the last item was left.
@@ -72,10 +77,6 @@ export function Review({
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       if (target !== null && TYPING.test(target.tagName)) return;
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         setFocus((f) => Math.max(f - 1, 0));
@@ -97,8 +98,8 @@ export function Review({
         return;
       }
       if (event.key === 'Enter') {
-        // The Review button that opened this still holds focus behind the
-        // modal, and a keydown Enter would press it again.
+        // The Review button that navigated here may still hold focus, and a
+        // keydown Enter would press it again.
         event.preventDefault();
         nextUnanswered();
         return;
@@ -109,6 +110,11 @@ export function Review({
         event.preventDefault();
         const field = FIELDS[focus];
         if (field !== undefined) clear(field.id);
+        return;
+      }
+      if (event.key === '?') {
+        event.preventDefault();
+        setComparing(true);
         return;
       }
       const key = event.key.toLowerCase();
@@ -122,45 +128,67 @@ export function Review({
       }
       if (key === 'g') generate();
     },
-    [clear, focus, generate, shift, step, nextUnanswered, onClose],
+    [clear, focus, generate, shift, step, nextUnanswered],
   );
 
+  // Dropped while the compare overlay is open, so one press of an arrow is read
+  // by one screen. The overlay binds its own.
   useEffect(() => {
+    if (comparing) return;
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onKey]);
+  }, [onKey, comparing]);
+
+  if (comparing && field !== undefined) {
+    return (
+      <Compare
+        field={field}
+        item={item}
+        items={corpus.items}
+        onAnswer={(value) => answer(field.id, value)}
+        onClose={() => setComparing(false)}
+      />
+    );
+  }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Reviewing ${item.stem}`}
-      className="bg-background fixed inset-0 z-50 flex flex-col gap-4 p-4"
-    >
-      <span className="flex items-center gap-4">
-        <span className="text-foreground text-xl font-semibold">
-          {corpus.index + 1} of {corpus.items.length} · {item.stem}
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="hover:bg-foreground/10 ml-auto rounded-full p-2"
+    <div className="bg-background fixed inset-0 z-40 flex flex-col gap-4 p-4">
+      {/* A real link, not a button: the address it goes to is the address the
+          page already has one segment of, so it opens in a new tab and copies
+          like any other. */}
+      <span className="flex items-center gap-2 text-xl">
+        <a
+          href={routeHash(corpus.experiment)}
+          className="text-muted-foreground hover:text-foreground"
         >
-          <X className="size-6" />
-        </button>
+          Inference
+        </a>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-muted-foreground">{corpus.experiment}</span>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-foreground font-semibold">{item.stem}</span>
+        {/* The word is underlined itself. It reads as a legend for the screen
+            rather than a note about this item, so it stays put whether or not
+            the experiment has answered the one on show. */}
+        <span className="text-muted-foreground flex-1 text-center text-sm">
+          <span className="underline decoration-2 underline-offset-4">
+            Underlined
+          </span>{' '}
+          values are what {corpus.experiment} answered.
+        </span>
+        <span className="text-muted-foreground text-sm">
+          {corpus.index + 1} of {corpus.items.length}
+        </span>
       </span>
 
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="bg-muted relative min-w-0 flex-1 overflow-hidden rounded">
           {item.kind === 'image' ? (
             <Image
-              // The corpus is served by our own route from local files, so the
-              // optimizer would re-encode originals to no purpose.
-              unoptimized
               src={mediaUrl(item.file)}
               alt={item.stem}
               fill
+              sizes={FRAME}
               className="object-contain"
             />
           ) : (
@@ -175,17 +203,6 @@ export function Review({
         <div className="flex w-160 flex-col justify-between">
           <div className="flex flex-col gap-16">
             <div className="flex flex-col gap-2">
-              {/* The word is underlined itself. The note renders only where the
-                  experiment has run against this item, since nothing below is
-                  underlined otherwise. */}
-              {corpus.run !== null && (
-                <span className="text-muted-foreground mb-4 pl-2 text-sm">
-                  <span className="underline decoration-2 underline-offset-4">
-                    Underlined
-                  </span>{' '}
-                  values are what {corpus.experiment} answered.
-                </span>
-              )}
               {FIELDS.map((field, at) => {
                 const given = item.labels?.[field.id];
                 // What the selected experiment said, shown whatever the ground
@@ -248,13 +265,7 @@ export function Review({
               })}
             </div>
 
-            {corpus.error !== null && (
-              <Card title="That didn't work" accent="rose">
-                <span className="block text-sm wrap-break-word">
-                  {corpus.error}
-                </span>
-              </Card>
-            )}
+            <Failure error={corpus.error} />
           </div>
 
           <div className="flex flex-col gap-4">
