@@ -150,6 +150,7 @@ export const parse = (raw: string): Inferred => ({
 export const experiment: Experiment = {
   id: ID,
   parameters: { model: MODEL, maxEdge: MAX_EDGE, temperature: TEMPERATURE },
+  prompt: PROMPT,
   run,
   parse,
 };

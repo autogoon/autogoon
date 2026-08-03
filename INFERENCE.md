@@ -25,10 +25,21 @@ writes is named from the item it belongs to:
     goonpacks/<pack>/media/
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
+      beach.2026-08-02-baseline.prompt.txt   what it asked
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
       beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
       beach.md                               the pack's own sidecar
+
+Those four are the latest run's, overwritten by the next. Each is written a
+second time under a name carrying when the run happened and which version ran
+it:
+
+    beach.2026-08-02-baseline.20260803154212.5a4919b862f2.raw.txt
+
+The time comes first, so an item's runs read down the page in the order they
+happened; the version follows, so every archived file names the code that made
+it. Nothing reads them back — they are there to be opened and compared by hand.
 
 Sorted, an item's every file lands in one block, so one picture can be compared
 across experiments in a file browser as readily as in the app.
@@ -153,10 +164,11 @@ descriptions of one picture sit beside each other. Which of them a pack plays is
 a separate question, and nothing decides it yet.
 
 Every result records what its own run used — model, resolution, temperature —
-because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct` is not. Items
-are inferred one at a time over days and an experiment may be edited between two
-of them, so the record sits with the result rather than with the experiment. It
-is a record; the version is what says whether a result is current.
+because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct` is not, and
+the prompt is written beside it for the same reason. Items are inferred one at a
+time over days and an experiment may be edited between two of them, so both sit
+with the result rather than with the experiment. They are a record; the version
+is what says whether a result is current.
 
 Adding one is a new directory, its `README.md`, and an entry in
 [the registry](./src/inference/experiments/index.ts). No entry is the current

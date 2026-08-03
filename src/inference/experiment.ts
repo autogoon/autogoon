@@ -31,6 +31,11 @@ export type Inferred = {
 export type Experiment = {
   id: string;
   parameters: RunParameters;
+  // What it asks the model, written beside every reply. The experiment's own
+  // directory is not the copy: it is edited between runs, and a result whose
+  // prompt has to be recovered by hashing the directory against git is a
+  // result nobody will check.
+  prompt: string;
   // The reply verbatim. Throws on anything that stopped a reply arriving —
   // missing key, unsupported file, an API error — so the caller reports it
   // rather than writing half a run.

@@ -11,6 +11,17 @@
 //   beach.2026-08-02-baseline.fields.json  a run's answers
 //   beach.2026-08-02-baseline.raw.txt      that run's reply, verbatim
 //   beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
+//   beach.2026-08-02-baseline.prompt.txt   what it was asked
+//
+// The last four are the latest run's, overwritten by the next. Each is also
+// written under a name carrying when the run happened and which version ran it:
+//
+//   beach.2026-08-02-baseline.20260803154212.5a4919b862f2.raw.txt
+//
+// The time comes first so an item's block sorts chronologically, and the
+// version follows so every archived file names the code that made it rather
+// than only fields.json carrying it inside. These are kept for reference; the
+// app reads the latest and leaves them alone.
 //
 // `beach.md` — the pack's own sidecar — is none of these and reads as nothing,
 // which is what leaves it to the pack.
@@ -18,7 +29,7 @@
 // A stem may contain dots (`beach.holiday.jpg`), so suffixes are matched from
 // the right and never by splitting on the first dot. An experiment id may not,
 // which is what keeps `<stem>.<id>.fields.json` unambiguous — EXPERIMENT_ID
-// enforces it.
+// enforces it, and RUN_AT and VERSION do the same for the two archive segments.
 
 import { MEDIA_TYPES, type MediaKind } from '@/lib/goonpacks/media';
 
@@ -31,10 +42,25 @@ export const PACKS_DIR = 'goonpacks';
 // before `.fields.json` is always the whole id.
 export const EXPERIMENT_ID = /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/;
 
+// `YYYYMMDDHHmmss`, and a hex hash — fingerprint.ts sets how long. Neither can
+// be mistaken for an experiment id, which needs hyphens in a date's places.
+export const RUN_AT = /^\d{14}$/;
+export const VERSION = /^[0-9a-f]{6,}$/;
+
 export const LABELS_SUFFIX = '.labels.json';
 export const FIELDS_SUFFIX = '.fields.json';
 export const RAW_SUFFIX = '.raw.txt';
 export const SIDECAR_SUFFIX = '.sidecar.md';
+export const PROMPT_SUFFIX = '.prompt.txt';
+
+// Which run an archived file belongs to: when it ran, and the version that ran
+// it. Both are filename segments, so `at` is `YYYYMMDDHHmmss` rather than the
+// ISO string the record carries.
+export type RunStamp = { at: string; version: string };
+
+// One of the four files an experiment writes. `run` is set on the archived copy
+// and absent on the latest.
+type Wrote = { stem: string; experiment: string; run?: RunStamp };
 
 // What one filename in the corpus turns out to be. `null` from readName means
 // the file belongs to nothing the tool knows — a stray note, a .DS_Store, a
@@ -42,9 +68,7 @@ export const SIDECAR_SUFFIX = '.sidecar.md';
 export type CorpusName =
   | { what: 'media'; stem: string; file: string; kind: MediaKind }
   | { what: 'labels'; stem: string }
-  | { what: 'fields'; stem: string; experiment: string }
-  | { what: 'raw'; stem: string; experiment: string }
-  | { what: 'sidecar'; stem: string; experiment: string };
+  | ({ what: 'fields' | 'raw' | 'sidecar' | 'prompt' } & Wrote);
 
 // Split `<stem>.<experiment>` off a name whose suffix has already been removed.
 // Returns null when the trailing segment isn't a valid experiment id, so a
@@ -59,22 +83,49 @@ function splitExperiment(
   return { stem: rest.slice(0, dot), experiment };
 }
 
+// Take one segment off the right if it matches, leaving the rest.
+function splitSegment(
+  rest: string,
+  matching: RegExp,
+): { rest: string; segment: string } | null {
+  const dot = rest.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const segment = rest.slice(dot + 1);
+  return matching.test(segment) ? { rest: rest.slice(0, dot), segment } : null;
+}
+
+// `<stem>.<experiment>`, or the archived `<stem>.<experiment>.<at>.<version>`.
+// The plain form is tried first: an experiment id can't match VERSION, so the
+// two can't both succeed.
+function splitWrote(rest: string): Wrote | null {
+  const plain = splitExperiment(rest);
+  if (plain !== null) return plain;
+  const version = splitSegment(rest, VERSION);
+  if (version === null) return null;
+  const at = splitSegment(version.rest, RUN_AT);
+  if (at === null) return null;
+  const split = splitExperiment(at.rest);
+  return split === null
+    ? null
+    : { ...split, run: { at: at.segment, version: version.segment } };
+}
+
+const WROTE = [
+  { suffix: FIELDS_SUFFIX, what: 'fields' },
+  { suffix: RAW_SUFFIX, what: 'raw' },
+  { suffix: SIDECAR_SUFFIX, what: 'sidecar' },
+  { suffix: PROMPT_SUFFIX, what: 'prompt' },
+] as const;
+
 export function readName(file: string): CorpusName | null {
   if (file.endsWith(LABELS_SUFFIX)) {
     const stem = file.slice(0, -LABELS_SUFFIX.length);
     return stem === '' ? null : { what: 'labels', stem };
   }
-  if (file.endsWith(FIELDS_SUFFIX)) {
-    const split = splitExperiment(file.slice(0, -FIELDS_SUFFIX.length));
-    return split === null ? null : { what: 'fields', ...split };
-  }
-  if (file.endsWith(RAW_SUFFIX)) {
-    const split = splitExperiment(file.slice(0, -RAW_SUFFIX.length));
-    return split === null ? null : { what: 'raw', ...split };
-  }
-  if (file.endsWith(SIDECAR_SUFFIX)) {
-    const split = splitExperiment(file.slice(0, -SIDECAR_SUFFIX.length));
-    return split === null ? null : { what: 'sidecar', ...split };
+  for (const { suffix, what } of WROTE) {
+    if (!file.endsWith(suffix)) continue;
+    const split = splitWrote(file.slice(0, -suffix.length));
+    return split === null ? null : { what, ...split };
   }
   const dot = file.lastIndexOf('.');
   if (dot <= 0) return null;
@@ -88,10 +139,43 @@ export function readName(file: string): CorpusName | null {
   };
 }
 
+// `YYYYMMDDHHmmss` from the ISO string a record carries, so the two describe
+// the same moment and the filename holds nothing a path can't.
+export const runAt = (ranAt: string): string =>
+  ranAt.replace(/[-:T]/g, '').slice(0, 14);
+
 export const labelsName = (stem: string): string => `${stem}${LABELS_SUFFIX}`;
-export const fieldsName = (stem: string, experiment: string): string =>
-  `${stem}.${experiment}${FIELDS_SUFFIX}`;
-export const rawName = (stem: string, experiment: string): string =>
-  `${stem}.${experiment}${RAW_SUFFIX}`;
-export const sidecarName = (stem: string, experiment: string): string =>
-  `${stem}.${experiment}${SIDECAR_SUFFIX}`;
+
+const wroteName = (
+  stem: string,
+  experiment: string,
+  suffix: string,
+  run?: RunStamp,
+): string =>
+  run === undefined
+    ? `${stem}.${experiment}${suffix}`
+    : `${stem}.${experiment}.${run.at}.${run.version}${suffix}`;
+
+export const fieldsName = (
+  stem: string,
+  experiment: string,
+  run?: RunStamp,
+): string => wroteName(stem, experiment, FIELDS_SUFFIX, run);
+
+export const rawName = (
+  stem: string,
+  experiment: string,
+  run?: RunStamp,
+): string => wroteName(stem, experiment, RAW_SUFFIX, run);
+
+export const sidecarName = (
+  stem: string,
+  experiment: string,
+  run?: RunStamp,
+): string => wroteName(stem, experiment, SIDECAR_SUFFIX, run);
+
+export const promptName = (
+  stem: string,
+  experiment: string,
+  run?: RunStamp,
+): string => wroteName(stem, experiment, PROMPT_SUFFIX, run);

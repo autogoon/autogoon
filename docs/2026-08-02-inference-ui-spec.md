@@ -25,6 +25,7 @@ current-state description; the layout is unchanged apart from where it sits.
     goonpacks/<pack>/media/
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
+      beach.2026-08-02-baseline.prompt.txt   what it asked
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
       beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
@@ -90,7 +91,10 @@ is exactly what the corpus has to be able to say.
 
 ### Run output
 
-Three files per item: the reply, and the two things derived from it.
+Four files per item: what was asked, what came back, and the two things derived
+from the reply.
+
+**`<item>.<experiment>.prompt.txt`** — what the experiment sent.
 
 **`<item>.<experiment>.raw.txt`** — the reply verbatim, before anything reads
 it. A plain file rather than a string inside JSON: it is prose, and reading it
@@ -128,11 +132,18 @@ run. The `version` beside them identifies the code that produced the answers and
 cannot be read back into a model name, which is what the parameters are for: the
 question always arrives at a result, and the result answers it alone.
 
-The prompt is in neither: the experiment's own directory is committed and
-frozen, so it already is the copy. What has to be recorded is what could vary
-between two runs of the same code — model, resolution and temperature are
-environment overrides today, so two runs at one commit can otherwise differ
-completely with nothing to show it.
+**The prompt is written beside the reply**, not left to the experiment's
+directory. That directory is edited between runs, so it is the current prompt
+rather than the one any given result was produced under, and recovering an
+earlier one means matching a hash against git by hand.
+
+**Each of the four is written twice**: once under the plain name, which is the
+latest and the only one anything reads, and once under
+`<item>.<experiment>.<YYYYMMDDHHmmss>.<version>.<kind>`. Time first so an item's
+runs sort in the order they happened, version second so every archived file
+names the code that made it rather than only `fields.json` carrying it inside.
+The archive is for reading by hand; nothing parses it, and `readName` knows the
+shape only so that the module writing these names can also recognise them.
 
 ## Experiments
 

@@ -43,7 +43,7 @@ follow the looking.
 
 ## What is stored
 
-The whole reply, verbatim; one field parsed from it:
+The prompt as sent; the whole reply, verbatim; one field parsed from it:
 
     naked: true | false
 

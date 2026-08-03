@@ -6,10 +6,15 @@ import { describe, expect, it } from '@jest/globals';
 import {
   fieldsName,
   labelsName,
+  promptName,
   rawName,
   readName,
+  runAt,
   sidecarName,
 } from './paths';
+
+const BASELINE = '2026-08-02-baseline';
+const STAMP = { at: '20260803154212', version: '5a4919b862f2' };
 
 describe('readName', () => {
   it('reads a picture as media, carrying its kind', () => {
@@ -89,6 +94,55 @@ describe('readName', () => {
     expect(readName('beach.md')).toBeNull();
   });
 
+  it('reads the prompt a run sent', () => {
+    expect(readName(`beach.${BASELINE}.prompt.txt`)).toEqual({
+      what: 'prompt',
+      stem: 'beach',
+      experiment: BASELINE,
+    });
+  });
+
+  it('reads an archived file as the run that wrote it', () => {
+    expect(
+      readName(`beach.${BASELINE}.20260803154212.5a4919b862f2.raw.txt`),
+    ).toEqual({
+      what: 'raw',
+      stem: 'beach',
+      experiment: BASELINE,
+      run: STAMP,
+    });
+  });
+
+  it('leaves the latest with no run of its own, which is what marks it latest', () => {
+    expect(readName(`beach.${BASELINE}.raw.txt`)).not.toHaveProperty('run');
+  });
+
+  it('keeps the dots in a stem an archived name carries', () => {
+    expect(
+      readName(
+        `beach.holiday.${BASELINE}.20260803154212.5a4919b862f2.fields.json`,
+      ),
+    ).toMatchObject({ stem: 'beach.holiday', run: STAMP });
+  });
+
+  it('refuses an archived name whose time is not a timestamp', () => {
+    expect(
+      readName(`beach.${BASELINE}.yesterday.5a4919b862f2.raw.txt`),
+    ).toBeNull();
+  });
+
+  it('refuses an archived name whose version is not a hash', () => {
+    expect(
+      readName(`beach.${BASELINE}.20260803154212.yesterday.raw.txt`),
+    ).toBeNull();
+  });
+
+  it('refuses an archived name with the two segments the wrong way round', () => {
+    expect(
+      readName(`beach.${BASELINE}.5a4919b862f2.20260803154212.raw.txt`),
+    ).toBeNull();
+  });
+
   it('ignores a file the corpus has no use for', () => {
     expect(readName('.DS_Store')).toBeNull();
     expect(readName('notes.txt')).toBeNull();
@@ -132,5 +186,36 @@ describe('sidecarName', () => {
       stem: 'beach',
       experiment: '2026-08-02-baseline',
     });
+  });
+
+  it('round-trips an archived name through readName', () => {
+    expect(readName(sidecarName('beach', BASELINE, STAMP))).toEqual({
+      what: 'sidecar',
+      stem: 'beach',
+      experiment: BASELINE,
+      run: STAMP,
+    });
+  });
+});
+
+describe('promptName', () => {
+  it('round-trips through readName', () => {
+    expect(readName(promptName('beach', BASELINE))).toEqual({
+      what: 'prompt',
+      stem: 'beach',
+      experiment: BASELINE,
+    });
+  });
+});
+
+describe('runAt', () => {
+  it("names the moment a record's ranAt does, without a path's forbidden characters", () => {
+    expect(runAt('2026-08-03T15:42:12.345Z')).toBe('20260803154212');
+  });
+
+  it('sorts two moments in the order they happened', () => {
+    expect(
+      runAt('2026-08-03T09:00:00.000Z') < runAt('2026-08-03T15:42:12.345Z'),
+    ).toBe(true);
   });
 });

@@ -25,9 +25,11 @@ import {
   fieldsName,
   labelsName,
   PACKS_DIR,
+  promptName,
   rawName,
   readName,
   sidecarName,
+  type RunStamp,
 } from './paths';
 import { MEDIA_NAME } from '@/lib/goonpacks/pack';
 import { renderSidecar, type Sidecar } from '@/lib/goonpacks/sidecar';
@@ -70,7 +72,10 @@ export function groupNames(names: string[]): CorpusItem[] {
       });
     } else if (read.what === 'labels') {
       labelled.add(read.stem);
-    } else if (read.what === 'fields') {
+    } else if (read.what === 'fields' && read.run === undefined) {
+      // The latest only. An archived copy is kept for reading by hand and would
+      // otherwise report an experiment as having answered an item it has since
+      // been re-run against.
       const seen = answered.get(read.stem) ?? new Set<string>();
       seen.add(read.experiment);
       answered.set(read.stem, seen);
@@ -162,15 +167,20 @@ export async function readRun(
   return text === null ? null : parseRunFields(text);
 }
 
+// The four writers an inference uses. Each takes an optional `run`: without
+// one it writes the latest, with one the archived copy under a name carrying
+// when the run happened and which version ran it (paths.ts). Only the latest is
+// ever read back.
 export async function writeRun(
   pack: string,
   stem: string,
   experiment: string,
-  run: RunFields,
+  record: RunFields,
+  run?: RunStamp,
 ): Promise<void> {
   await writeFile(
-    corpusPath(pack, fieldsName(stem, experiment)),
-    renderRunFields(run),
+    corpusPath(pack, fieldsName(stem, experiment, run)),
+    renderRunFields(record),
     'utf8',
   );
 }
@@ -186,8 +196,29 @@ export async function writeRaw(
   stem: string,
   experiment: string,
   raw: string,
+  run?: RunStamp,
 ): Promise<void> {
-  await writeFile(corpusPath(pack, rawName(stem, experiment)), raw, 'utf8');
+  await writeFile(
+    corpusPath(pack, rawName(stem, experiment, run)),
+    raw,
+    'utf8',
+  );
+}
+
+// What the experiment asked. Written beside the reply rather than left to the
+// experiment's directory, because that directory is edited between runs.
+export async function writePrompt(
+  pack: string,
+  stem: string,
+  experiment: string,
+  prompt: string,
+  run?: RunStamp,
+): Promise<void> {
+  await writeFile(
+    corpusPath(pack, promptName(stem, experiment, run)),
+    prompt.endsWith('\n') ? prompt : `${prompt}\n`,
+    'utf8',
+  );
 }
 
 // The pack's own format, in the pack's own directory, under a name carrying the
@@ -198,9 +229,10 @@ export async function writeSidecar(
   stem: string,
   experiment: string,
   sidecar: Sidecar,
+  run?: RunStamp,
 ): Promise<void> {
   await writeFile(
-    corpusPath(pack, sidecarName(stem, experiment)),
+    corpusPath(pack, sidecarName(stem, experiment, run)),
     renderSidecar(sidecar),
     'utf8',
   );

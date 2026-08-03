@@ -42,12 +42,17 @@ describe('groupNames', () => {
     ).toMatchObject({ runs: [] });
   });
 
-  it('drops a labels file whose media is gone', () => {
-    expect(groupNames(['beach.labels.json'])).toEqual([]);
+  it('does not count an archived answer, which an experiment has since replaced', () => {
+    expect(
+      groupNames([
+        'beach.jpg',
+        `beach.${BASELINE}.20260803154212.5a4919b862f2.fields.json`,
+      ])[0],
+    ).toMatchObject({ runs: [] });
   });
 
-  it("drops an experiment's parameters, which belong to no item", () => {
-    expect(groupNames([`${BASELINE}.run.json`])).toEqual([]);
+  it('drops a labels file whose media is gone', () => {
+    expect(groupNames(['beach.labels.json'])).toEqual([]);
   });
 
   it('ignores a file the corpus has no use for', () => {
