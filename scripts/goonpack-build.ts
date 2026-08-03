@@ -26,7 +26,7 @@ import {
 import { captionWarning, strayWarning } from './lib/goonpack-report';
 import { packContents } from '../src/inference/pack-contents';
 import { progress } from './lib/progress';
-import { collectPackFiles } from './lib/goonpack-source';
+import { collectPackFiles } from '../src/inference/pack-source';
 import { writeZip } from './lib/goonpack-zip';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -102,7 +102,7 @@ for (const dir of sourcesToBuild()) {
     files: shipped,
     undescribed,
     strays,
-  } = packContents(collectPackFiles(dir), experiment);
+  } = packContents(await collectPackFiles(dir), experiment);
   const from = new Map(shipped.map((f) => [f.entry, f.source]));
   // Those files as a PackTree — the same name-level validation the app runs
   // over an extracted tree, so a pack that builds is a pack that imports, and
