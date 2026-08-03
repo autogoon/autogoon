@@ -20,12 +20,16 @@ Clothing is important, and you should consider whether the subject is wearing a 
 and if so, whether they are sheer or see through.  If you can't tell, say so.
 
 The clothing description should include each garment, the fabric and texture, colour, and how it is
-arranged.  Is it sheer or opaque?  Is it tight or loose?  Is it arranged to show or hide the body? 
-Can you see up on down her dress?  Specifically mention if clothing is covering the breasts, nipples,
-or genitals.  If you can't tell, say so.
+arranged, the length of it (specifically, is her dress or skirt long or short.)  Is it sheer or opaque?
+Is it tight or loose?  Is it arranged to show or hide the body?   Can you see up on down her dress?
+Specifically mention if clothing is covering the breasts, nipples, or genitals.  If you can't tell, say so.
 
-Only say her breasts are bare unless you can see the full shape of at least one of them.  If the subject
-isn't wearing a bra or you can see cleavage, it's not necessarily the case that her breasts are bare.
+Body parts are only exposed if the skin of them is visible.  if you can see the skin through sheer or
+see through clothing, that counts as exposed. If you can only see the shape of the boy part mention that,
+but do not say they are exposed.  If you can't tell, say so.
+
+Only say her breasts are bare unless you can see the skin and full shape of at least one of them.  If the
+subject isn't wearing a bra or you can see cleavage, it's not necessarily the case that her breasts are bare.
 If you can't tell, say so.
 
 Sexual activity, is there any going on, description in detail.  If you can't tell, say so.
@@ -68,7 +72,7 @@ HAIR: Describe the colour and the style, and how it is arranged.
 GAZE: Is the subject looking at the camera, away, down, or up? What is the expression and mood?
 SETTING: Describe where the photo is taken, and the light. Is it indoors or outdoors? What time of day? What is in the background?  What secual activity, if any, is going on?
 BODY SHAPE: Describe the body shape, including height, weight, and build. Is it athletic, curvy, thin, or muscular?
-CLOTHING: Describe the clothing you can see, each garment, it's colour, and how it is arranged. Is it sheer or opaue? Is it tight or loose? Is it arranged to show or hide the body?  Can you see up on down her dress?
+CLOTHING: Describe the clothing you can see, each garment, it's colour, how long it is, and how it is arranged. Is it sheer or opaue? Is it tight or loose? Is it arranged to show or hide the body?  Can you see up on down her dress?
 EXPOSED: Which body parts are bare and how much is actually visible — For example, but not exclusively, back, stomach, thighs, buttocks, cleavage, breasts, legs, face, hands.
 NAKED: Is the subject naked? A subject can be naked if she's wearing socks, stockings and/or jewelry, but not usually if she's wearing any other clothing. Yes, No or Unknown (if you can't tell)
 WEARING BRA: Is she wearing a bra?  This includes sheer or see through bras.

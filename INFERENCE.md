@@ -163,9 +163,18 @@ re-running the items an edit put out of date is
 
     npm run experiment:run goonpacks/elise 2026-08-02-baseline
 
-Both name the pack and the experiment, neither has an "every pack" form, and
-both say how many items they are about to run before starting. A pack can hold
-thousands.
+Both name the pack and the experiment, and neither has an "every pack" form. A
+pack can hold thousands.
+
+**`experiment:run` brings a pack up to the experiment as it stands** — every
+item it has never answered, and every item it answered before its last edit.
+`experiment:run:outdated` takes only the second of those, which is what to reach
+for where the gaps are deliberate and only the stale answers want redoing.
+
+Both print the whole standing before they start — how many images, how many
+answered, how many outdated, how many never run — and then what the run takes of
+it, because the narrow mode leaves a group behind and a count on its own doesn't
+say so.
 
 They go in **random order**, and stop on the first failure. Filename order is
 not a random sample of a pack, so a sweep that stopped part-way through it would

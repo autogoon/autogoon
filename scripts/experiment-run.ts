@@ -1,9 +1,14 @@
 // Run an experiment across the whole of one pack's corpus.
 //
 //   npm run experiment:run goonpacks/elise 2026-08-02-baseline
-//       every item that experiment hasn't answered
+//       every item whose answers aren't the experiment's as it stands — the
+//       ones it has never answered, and the ones it answered before its last
+//       edit
 //   npm run experiment:run:outdated goonpacks/elise 2026-08-02-baseline
-//       every item it answered under an older version of itself
+//       only the second of those, leaving the never-answered alone
+//
+// Both report the whole standing before they start, because --outdated leaves
+// a group behind and a count on its own doesn't say so.
 //
 // Both arguments are required, and neither has an "every pack" or "every
 // experiment" form: this is one model call per item, and the packs on a
@@ -44,29 +49,48 @@ const shuffled = <T>(items: T[]): T[] =>
     .sort((a, b) => a.at - b.at)
     .map((e) => e.item);
 
-// Which items this run covers. Without --outdated that is everything the
-// experiment has never answered; with it, everything it answered before its
-// last edit — including records from before versions were stamped, since what
-// produced those is unknown.
-async function wanted(
+// Where the corpus stands against one experiment, and which of it this run
+// covers. The three counts are disjoint over the images: an item is one this
+// experiment has never answered, or one whose answers came from the code as it
+// stands, or one whose answers are older than the code.
+type Sweep = {
+  todo: CorpusItem[];
+  answered: number;
+  outdated: number;
+  neverRun: number;
+};
+
+// Without --outdated a run brings the pack up to the experiment as it stands:
+// everything it has never answered, and everything it answered before its last
+// edit. With the flag it takes the second group alone, which is what to reach
+// for when the gaps are deliberate — a corpus part-labelled on purpose — and
+// re-running the stale answers is all that is wanted.
+//
+// A record from before versions were stamped counts as outdated: what produced
+// it is unknown.
+async function sweep(
   pack: string,
   items: CorpusItem[],
   experiment: string,
   version: string,
   onlyOutdated: boolean,
-): Promise<CorpusItem[]> {
-  const out: CorpusItem[] = [];
+): Promise<Sweep> {
+  const outdated: CorpusItem[] = [];
+  const neverRun: CorpusItem[] = [];
   for (const item of items) {
-    const done = item.runs.includes(experiment);
-    if (!onlyOutdated) {
-      if (!done) out.push(item);
+    if (!item.runs.includes(experiment)) {
+      neverRun.push(item);
       continue;
     }
-    if (!done) continue;
     const run = await readRun(pack, item.stem, experiment);
-    if (run === null || !isCurrent(run, version)) out.push(item);
+    if (run === null || !isCurrent(run, version)) outdated.push(item);
   }
-  return shuffled(out);
+  return {
+    todo: shuffled(onlyOutdated ? outdated : [...neverRun, ...outdated]),
+    answered: items.length - neverRun.length,
+    outdated: outdated.length,
+    neverRun: neverRun.length,
+  };
 }
 
 // The pack a path names, checked against the pack sources rather than followed.
@@ -101,12 +125,26 @@ async function main(): Promise<void> {
   const images = (await listCorpus(pack)).filter(
     (item) => item.kind === 'image',
   );
-  const todo = await wanted(pack, images, experiment.id, version, onlyOutdated);
+  const { todo, answered, outdated, neverRun } = await sweep(
+    pack,
+    images,
+    experiment.id,
+    version,
+    onlyOutdated,
+  );
 
+  // Where the corpus stands, then what this run takes of it — the second line
+  // because --outdated leaves the never-run items behind, and a count on its
+  // own reads as though it didn't.
   console.log(
-    `${pack} · ${experiment.id} (${version}) — ${todo.length} of ${images.length} ${
-      onlyOutdated ? 'outdated' : 'unanswered'
-    }`,
+    `${pack} · ${experiment.id} (${version}) — ${images.length} images · ${answered} answered · ${outdated} outdated · ${neverRun} never run`,
+  );
+  console.log(
+    todo.length === 0
+      ? 'nothing to run'
+      : onlyOutdated
+        ? `running ${todo.length} outdated, leaving ${neverRun} never run`
+        : `running ${todo.length}: ${neverRun} never run and ${outdated} outdated`,
   );
   if (todo.length === 0) return;
 
