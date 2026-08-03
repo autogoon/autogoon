@@ -12,9 +12,9 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '@/lib/goonpacks/media';
 import type { Sidecar } from '@/lib/goonpacks/sidecar';
-import type { Experiment, Inferred } from '../../experiment';
+import type { Experiment, Inferred, Reply } from '../../experiment';
 import type { FieldValue } from '../../fields';
-import { PROMPT } from './prompt';
+import { PROMPT_ONE, PROMPT_TWO } from './prompt';
 
 export const ID = '2026-08-02-baseline';
 
@@ -55,18 +55,17 @@ function resizedJpeg(imagePath: string): Buffer {
   }
 }
 
-async function run(imagePath: string): Promise<string> {
+// Where PROMPT_TWO takes the first call's reply.
+const DESCRIPTION = '{{DESCRIPTION}}';
+
+// One completion. `image` is the data URI where the call sends a picture, and
+// absent where it sends text alone.
+async function ask(prompt: string, image?: string): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {
     throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
   }
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
-
-  const ext = extname(imagePath).slice(1).toLowerCase();
-  if (MEDIA_TYPES[ext]?.kind !== 'image') {
-    throw new Error(`Not a picture: ${extname(imagePath) || '(no extension)'}`);
-  }
-  const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString('base64')}`;
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -82,10 +81,13 @@ async function run(imagePath: string): Promise<string> {
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'text', text: PROMPT },
-            { type: 'image_url', image_url: { url: dataUri } },
-          ],
+          content:
+            image === undefined
+              ? [{ type: 'text', text: prompt }]
+              : [
+                  { type: 'text', text: prompt },
+                  { type: 'image_url', image_url: { url: image } },
+                ],
         },
       ],
     }),
@@ -102,6 +104,42 @@ async function run(imagePath: string): Promise<string> {
     throw new Error(`No reply was returned:\n${JSON.stringify(data, null, 2)}`);
   }
   return raw.trim();
+}
+
+// Two calls. The first looks at the picture and reasons about it; the second
+// sees that reasoning as text and nothing else, and answers the checklist from
+// it. The picture reaches the model once, so what the second call can say is
+// bounded by what the first wrote down — which is the point of the split.
+//
+// The prompt returned is both, as sent, so it carries the first reply where it
+// actually went: into the second prompt.
+async function run(imagePath: string): Promise<Reply> {
+  const ext = extname(imagePath).slice(1).toLowerCase();
+  if (MEDIA_TYPES[ext]?.kind !== 'image') {
+    throw new Error(`Not a picture: ${extname(imagePath) || '(no extension)'}`);
+  }
+  const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString('base64')}`;
+
+  const described = await ask(PROMPT_ONE, dataUri);
+  const second = secondPrompt(described);
+  return {
+    prompt: `${PROMPT_ONE}\n\n${SPLIT}\n\n${second}`,
+    raw: await ask(second),
+  };
+}
+
+// Between the two prompts in the written file, so a person opening it can see
+// where one call ended and the next began.
+const SPLIT = '=== 2 ===';
+
+// PROMPT_TWO with the first reply in it. An edit to PROMPT_TWO that loses the
+// placeholder throws rather than sending a prompt describing nothing, which
+// would otherwise cost a call per item and answer from thin air.
+export function secondPrompt(described: string): string {
+  if (!PROMPT_TWO.includes(DESCRIPTION)) {
+    throw new Error(`PROMPT_TWO has no ${DESCRIPTION} for the first reply.`);
+  }
+  return PROMPT_TWO.replace(DESCRIPTION, described);
 }
 
 function fields(raw: string): Record<string, FieldValue> {
@@ -150,7 +188,6 @@ export const parse = (raw: string): Inferred => ({
 export const experiment: Experiment = {
   id: ID,
   parameters: { model: MODEL, maxEdge: MAX_EDGE, temperature: TEMPERATURE },
-  prompt: PROMPT,
   run,
   parse,
 };

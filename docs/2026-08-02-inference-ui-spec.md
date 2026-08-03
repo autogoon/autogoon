@@ -158,14 +158,16 @@ changes what a model returns. Each experiment states its own model, resolution
 and prompt.
 
 An experiment exports two functions, and the split is what makes the stored raw
-reply worth keeping. **`run()`** sends the image and costs money. **`parse()`**
-turns a stored reply into the fields and the sidecar, and costs nothing, so a
-parser that turns out to be wrong is fixed by walking the corpus calling
-`parse()` alone. Both derivations come from the one call rather than two, so a
-broken caption reader stops an item being recorded at all rather than leaving it
-scored and undescribed. A registry beside them maps id to module; it grows with
-each experiment and is not frozen, because it holds nothing that changes an
-output.
+reply worth keeping. **`run()`** sends the image and costs money, over as many
+calls as the experiment wants; it answers with what it sent as well as what came
+back, because an experiment feeding one call's reply into the next call's prompt
+has no static prompt to record. **`parse()`** turns a stored reply into the
+fields and the sidecar, and costs nothing, so a parser that turns out to be
+wrong is fixed by walking the corpus calling `parse()` alone. Both derivations
+come from the one call rather than two, so a broken caption reader stops an item
+being recorded at all rather than leaving it scored and undescribed. A registry
+beside them maps id to module; it grows with each experiment and is not frozen,
+because it holds nothing that changes an output.
 
 **Each experiment carries a `README.md` describing its approach**: what it does,
 what it was derived from, and what it is known to get wrong. A directory of
@@ -174,14 +176,14 @@ was tried is exactly what its diff against the one before it cannot show.
 
 ### The first one
 
-`2026-08-02-baseline/` reproduces what runs today: the prompt, the `sips`
+`2026-08-02-baseline/` starts from what runs today: the prompt, the `sips`
 downscale and the OpenRouter call from
 [`describe-image.ts`](../scripts/describe-image.ts), copied rather than shared.
 
 **`describe-image.ts` is not changed.** It stays the pack-authoring tool it is,
-and the experiment is free to diverge from it immediately — which it does, by
-one line: the reply opens with `naked: true` or `naked: false` on its own line,
-parsed off before the observations.
+and the experiment is free to diverge from it immediately — which it does; its
+own [README](../src/inference/experiments/2026-08-02-baseline/README.md) is the
+account of how far.
 
 Nothing lifts out of `scripts/`. `GOONPACK-KIT.md` proposes eventually sharing
 the captioning logic between the scripts and the screen; that trade is worth

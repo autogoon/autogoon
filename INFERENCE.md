@@ -121,15 +121,16 @@ against those would be calibrating against the thing being measured.
 | `Enter` | answer with the value on screen, and leave |
 | `Esc`   | leave without answering                    |
 
-**Infer is one call for one item** — it is the spot-check. Running an experiment
-across a whole corpus is `npm run experiment:run`, and re-running the items an
-edit put out of date is `npm run experiment:run:outdated`:
+**Infer runs one item** — it is the spot-check, and what it costs is whatever
+the selected experiment does per picture. Running an experiment across a whole
+corpus is `npm run experiment:run`, and re-running the items an edit put out of
+date is `npm run experiment:run:outdated`:
 
     npm run experiment:run goonpacks/elise 2026-08-02-baseline
 
 Both name the pack and the experiment, neither has an "every pack" form, and
-both say how many items they are about to run before starting. This is one model
-call per item, and a pack can hold thousands.
+both say how many items they are about to run before starting. A pack can hold
+thousands.
 
 ## Experiments
 
@@ -150,7 +151,9 @@ clears it.
 Each exports two functions, described in
 [`experiment.ts`](./src/inference/experiment.ts):
 
-- **`run()`** sends the image and costs money.
+- **`run()`** sends the image and costs money. It answers with what it sent as
+  well as what came back, since an experiment that feeds one call's reply into
+  the next call's prompt has no static prompt to record.
 - **`parse()`** turns a stored reply into everything derived from it and costs
   nothing, so a parser that turns out to be wrong is fixed by re-deriving from
   the replies already on disk.
@@ -178,9 +181,10 @@ a head, and the screen opens on whichever was last selected.
 ### The experiments
 
 - **[2026-08-02-baseline](./src/inference/experiments/2026-08-02-baseline/README.md)**
-  — one vision model, one call per image: a checklist of observations, then the
-  naked flag, then a caption. Reproduces what the pack-authoring pipeline does,
-  so everything after it has something to be better than.
+  — one vision model, two calls per image: the first reasons about the picture,
+  the second reads that reasoning with no picture and answers a checklist, the
+  naked flag and a caption. Started as what the pack-authoring pipeline does, so
+  everything after it has something to be better than.
 
 ## Running it
 

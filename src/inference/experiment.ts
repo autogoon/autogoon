@@ -28,18 +28,26 @@ export type Inferred = {
   sidecar: Sidecar;
 };
 
+// One call's worth, or several: what the experiment sent and what it got back.
+//
+// `prompt` is what went out, verbatim and filled in — not the template it was
+// built from — because an experiment that puts one call's reply into the next
+// call's prompt has no static text to record. It is written beside the result,
+// since the experiment's own directory holds the current prompt rather than the
+// one any given result came from.
+//
+// `raw` is the reply `parse` reads. Where an experiment made several calls it
+// is the last one; the earlier replies are in `prompt`, which is where they
+// went.
+export type Reply = { prompt: string; raw: string };
+
 export type Experiment = {
   id: string;
   parameters: RunParameters;
-  // What it asks the model, written beside every reply. The experiment's own
-  // directory is not the copy: it is edited between runs, and a result whose
-  // prompt has to be recovered by hashing the directory against git is a
-  // result nobody will check.
-  prompt: string;
-  // The reply verbatim. Throws on anything that stopped a reply arriving —
-  // missing key, unsupported file, an API error — so the caller reports it
-  // rather than writing half a run.
-  run: (imagePath: string) => Promise<string>;
+  // Throws on anything that stopped a reply arriving — missing key, unsupported
+  // file, an API error — so the caller reports it rather than writing half a
+  // run.
+  run: (imagePath: string) => Promise<Reply>;
   // Throws where the reply carries no prose at all: a caption is the one thing
   // an experiment cannot leave out, since a pack cannot play an item without
   // it.

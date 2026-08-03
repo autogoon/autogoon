@@ -41,23 +41,23 @@ export async function runItem(
   version: string,
 ): Promise<RunResult> {
   const ranAt = new Date().toISOString();
-  const raw = await experiment.run(corpusPath(pack, item.file));
-  // The reply lands first: it is the thing that cost money, and everything else
-  // is derived from it. A crash after this point loses no spend, and a parser
-  // that throws over a reply already on disk is fixed and re-derived.
-  await writeRaw(pack, item.stem, experiment.id, raw);
-  const { fields, sidecar } = experiment.parse(raw);
-  const run = { ranAt, version, parameters: experiment.parameters, fields };
   const { stem } = item;
   const id = experiment.id;
-  await writePrompt(pack, stem, id, experiment.prompt);
+  const { prompt, raw } = await experiment.run(corpusPath(pack, item.file));
+  // What was spent lands first: the reply, and the prompt that produced it. A
+  // crash after this point loses no spend, and a parser that throws over a
+  // reply already on disk is fixed and re-derived.
+  await writeRaw(pack, stem, id, raw);
+  await writePrompt(pack, stem, id, prompt);
+  const { fields, sidecar } = experiment.parse(raw);
+  const run = { ranAt, version, parameters: experiment.parameters, fields };
   await writeRun(pack, stem, id, run);
   await writeSidecar(pack, stem, id, sidecar);
   // The same four again under the run's own name, kept for reference. Nothing
   // reads them back — they are what a person opening the directory reads to see
   // how one picture's answers changed.
   const stamp = { at: runAt(ranAt), version };
-  await writePrompt(pack, stem, id, experiment.prompt, stamp);
+  await writePrompt(pack, stem, id, prompt, stamp);
   await writeRaw(pack, stem, id, raw, stamp);
   await writeRun(pack, stem, id, run, stamp);
   await writeSidecar(pack, stem, id, sidecar, stamp);

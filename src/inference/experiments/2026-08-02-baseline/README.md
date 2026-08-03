@@ -1,6 +1,6 @@
 # 2026-08-02-baseline
 
-The first experiment: one vision model, one call per image, describing a single
+The first experiment: one vision model, two calls per image, describing a single
 subject in prose and then answering whether she is naked. It exists so that
 everything after it has something to be measured against, so it changes only
 where it is wrong about its own intent — a better idea belongs in a new
@@ -21,8 +21,12 @@ batching and expert routing move on the far end regardless.
 
 ## Strategy
 
-A single request carrying the resized image and one prompt, which asks for three
-things in this order:
+Two requests. **The first** carries the resized image and `PROMPT_ONE`, which
+asks only for reasoning about the picture — the pose, the clothing, what is
+bare, the direction the body and gaze face — at whatever length it takes.
+
+**The second** carries `PROMPT_TWO` with that reasoning substituted into it, and
+no picture. It asks for three things in this order:
 
 1. **Observations** — a fixed checklist answered line by line: what the
    subject's weight rests on, where the knees and heels are, sitting versus
@@ -34,16 +38,21 @@ things in this order:
 3. **A caption** — one sentence of roughly 35–45 words condensed from the
    observations.
 
-Two choices in that shape are deliberate. The model writes its observations out
-before it concludes anything, because a conclusion asked for on its own is one
-guessed from overall impression rather than read off the picture. And the naked
-flag comes after the observations rather than before them, for the same reason:
-bare-versus-covered is the discrimination being measured, so the answer has to
-follow the looking.
+Three choices in that shape are deliberate. The picture reaches the model once,
+so what the second call can answer is bounded by what the first wrote down — a
+wrong caption is then attributable to the looking or to the reading of it, which
+one call cannot separate. Within the second call the model writes its
+observations out before it concludes anything, because a conclusion asked for on
+its own is one guessed from overall impression rather than read off what it has.
+And the naked flag comes after the observations rather than before them, for the
+same reason: bare-versus-covered is the discrimination being measured, so the
+answer has to follow the looking.
 
 ## What is stored
 
-The prompt as sent; the whole reply, verbatim; one field parsed from it:
+Both prompts as sent, separated by `=== 2 ===` — so the file carries the first
+call's reply, which is where it went; the second reply, verbatim; one field
+parsed from it:
 
     naked: true | false
 

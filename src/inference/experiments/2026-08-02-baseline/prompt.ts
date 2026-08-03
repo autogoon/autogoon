@@ -1,9 +1,23 @@
 // The baseline's prompt — README.md describes what it asks for, and why in that
 // order.
 
-export const PROMPT = `This photo is pose/mood metadata for a companion app: she reads the
+export const PROMPT_ONE = `This photo is pose/mood metadata for a companion app: she reads the
 caption to pick a picture that fits the moment, so it has to be accurate about pose
 and state of undress, not just evocative.
+
+REASONING. Analyze the image and reason about what is shown in the image. Write your reasoning
+in as much detail as you need, think carefully about the pose, the clothing, and what is bare or
+showing.  Pay particular attention to the direction of body pose, head orientation, gaze, 
+and the position of the limbs.  Consider the setting and the light, and how they affect what is visible.
+`;
+
+export const PROMPT_TWO = `This photo is pose/mood metadata for a companion app: she reads the
+caption to pick a picture that fits the moment, so it has to be accurate about pose
+and state of undress, not just evocative.
+
+The description of the image is as follows :
+
+{{DESCRIPTION}}
 
 Work in three steps.
 
@@ -43,34 +57,27 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
   she is holding, lifting or pushing it.
 - Gaze direction, expression, overall mood.
 
-STEP 2 — NAKED. From the clothing you just described, answer true or false:
-true if she is wearing nothing at all, false if she is wearing anything, however
-little. Topless is not naked while anything else is still on. Answer with the
-word alone, no explanation.
+STEP 2 — NAKED. From the clothing you just described, answer true or false or unknown:
+true if she is wearing nothing at all, false if she is wearing anything.  Wearing
+socks or stockings or jewelry is often considering naked. Topless is not naked while
+anything else is still on.  Unknown is when you can't see the whole body and can't tell
+if she is wearing anything.
 
 STEP 3 — CAPTION. Condense the observations into ONE sentence of roughly 35–45 words,
-present tense, no leading pronoun, covering all of these in this order — none of them
-is optional:
-- the pose,
-- the setting and the light,
-- the clothing: the garments, their colours, and how they are arranged,
-- what is bare or showing, and how much: say topless if she has no top or bra, and
-  naked if she is wearing nothing at all; say her breasts are bare when they are;
-  and include the nipples and the genitals whenever the observations above put them
-  as visible at all, however partly, in the terms used there,
-- her hair: its colour and what it is doing,
-- which way she is looking.
-Carry the grades from your observations exactly: never merge two parts you graded
-differently, and never soften a grade. Say only what IS visible: never state that
-something is covered, hidden or not visible — leaving it out says that. Leave mood and
-expression out altogether. State only what you concluded above — drop anything you
-flagged as uncertain rather than hedging.
+present tense, no leading pronoun.
 
 Reply in exactly this format, with nothing after the caption line:
 
 OBSERVATIONS:
-<your lines>
+<your observations>
 
-NAKED: <true or false>
+HAIR: <colour and what it is doing>
+GAZE: <direction, expression, mood>
+SETTING: <brief description of the setting and light>
+NAKED: Yes, No or Unknown
+BREAST SIZE: Small, Medium, Large, Very large or Unknown (if you can't tell)
+TOPLESS: Yes, No, Unknown (if you can't tell)
+NIPPLE VISIBILITY: Bare and visible, Through sheer fabric, Shape visible through opaque fabric, Not visible, Unknown (if you can't tell)
+GENITAL VISIBILITY: Visible, Not visible, Unknown (if you can't tell)
 
 CAPTION: <the single caption sentence>`;

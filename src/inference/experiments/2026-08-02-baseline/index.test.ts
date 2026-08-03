@@ -1,9 +1,11 @@
-// The baseline's parser, against replies of the shape its prompt asks for.
-// `run` is not exercised here: it sends a paid request, and a canned completion
-// would prove nothing about it.
+// The baseline's parser, against replies of the shape its prompt asks for, and
+// the substitution that carries the first call's reply into the second call's
+// prompt. `run` is not exercised here: it sends two paid requests, and a canned
+// completion would prove nothing about either.
 
 import { describe, expect, it } from '@jest/globals';
-import { parse } from './index';
+import { parse, secondPrompt } from './index';
+import { PROMPT_TWO } from './prompt';
 
 const REPLY = `OBSERVATIONS:
 Support: her shins and knees.
@@ -80,5 +82,22 @@ describe('parse', () => {
 
   it('refuses a reply carrying a caption and nothing it was read from', () => {
     expect(() => parse('CAPTION: On a beach.')).toThrow();
+  });
+});
+
+describe('secondPrompt', () => {
+  it("carries the first call's reply into the prompt, since the second sees no picture", () => {
+    expect(secondPrompt('She is kneeling on a bed.')).toContain(
+      'She is kneeling on a bed.',
+    );
+  });
+
+  it('leaves no placeholder behind for the model to read as an instruction', () => {
+    expect(secondPrompt('On a beach.')).not.toContain('{{DESCRIPTION}}');
+  });
+
+  it('keeps the rest of the prompt as written', () => {
+    const [before] = PROMPT_TWO.split('{{DESCRIPTION}}');
+    expect(secondPrompt('On a beach.').startsWith(before!)).toBe(true);
   });
 });
