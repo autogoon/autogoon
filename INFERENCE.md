@@ -221,16 +221,17 @@ the build takes `<stem>.md`, the stock sidecar — whatever wrote it,
 
 On a dev server you don't have to build anything. Every directory under
 `goonpacks/` is offered on the Companions screen as it sits, and its card
-carries a third select — beside the base version and the overlay — for which
-descriptions to play it with. Change it and the directory is read again.
+carries a **Descriptions** select for which sidecars to play it with. Change it
+and the directory is read again.
 
 **A pack source is not an experiment's.** It is a directory of media, and beside
 each item sit as many sidecars as have been written about it: the stock
 `<stem>.md`, and one per experiment that has answered it. Choosing an experiment
 chooses which of those to read; it does not choose a different pack.
 
-**What the three selects decide, in order.** Each answers a different question,
-and each only matters once the one before it has been answered:
+**What each select decides.** A card carries whichever of these it has a choice
+to offer — Base only where more than one version is installed, Overlay only
+where the companion has any, Descriptions only for a pack read off disk:
 
 | Select       | The question                          |
 | ------------ | ------------------------------------- |
@@ -238,10 +239,11 @@ and each only matters once the one before it has been answered:
 | Overlay      | what is laid on top, media included   |
 | Descriptions | which sidecars the media is read with |
 
-The overlay is what settles _where the media comes from_ — it either brings a
-set of its own, which replaces the base's, or brings none and leaves the base's,
-or strips them entirely. Only then is there a directory for the third select to
-be about, and it applies to that one. Worked through:
+Descriptions is answered after Overlay, because Overlay settles _where the media
+comes from_ — it either brings a set of its own, which replaces the base's, or
+brings none and leaves the base's, or strips them entirely. Only then is there a
+directory for Descriptions to be about, and it applies to that one. Worked
+through:
 
 - **Elise, no overlay.** The media is the `elise` directory's. Descriptions
   reads `elise`. Stock finds no `<stem>.md` there at all, so she plays with no
@@ -256,9 +258,10 @@ be about, and it applies to that one. Worked through:
   Descriptions is about _that_ one. Whatever `elise` was set to stops mattering
   while this overlay is selected.
 - **Elise plus an overlay that strips the media** (`noMedia`). Nothing is
-  played, so there is nothing to describe and no third select at all.
+  played, so there is nothing to describe and no Descriptions select at all.
 - **An imported pack.** Read out of browser storage, where a pack carries one
-  set of descriptions baked in at build time. No disk icon and no third select.
+  set of descriptions baked in at build time. No disk icon, and no Descriptions
+  select.
 
 The choice is remembered per directory, so it survives a reload — which is the
 whole point, since a reload is how a change to a pack source reaches the app.
