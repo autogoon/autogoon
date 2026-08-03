@@ -59,6 +59,19 @@ describe('parseRunFields', () => {
     ).toThrow(RunError);
   });
 
+  it('reads the second model where an experiment split looking from reading', () => {
+    const split = JSON.stringify({ ...PARAMETERS, textModel: 'a-text-model' });
+    expect(
+      parseRunFields(
+        `{"ranAt":"now","parameters":${split},"fields":{"naked":true}}`,
+      ).parameters.textModel,
+    ).toBe('a-text-model');
+  });
+
+  it('reads a record from an experiment that used one model for both', () => {
+    expect(parseRunFields(RECORD).parameters).not.toHaveProperty('textModel');
+  });
+
   it('refuses parameters naming no model, since a version cannot be read back into one', () => {
     expect(() =>
       parseRunFields(

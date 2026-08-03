@@ -10,10 +10,17 @@ experiment, where it can be scored against this one.
 
 |             |                                                                       |
 | ----------- | --------------------------------------------------------------------- |
-| Model       | `qwen/qwen3-vl-235b-a22b-instruct`                                    |
+| Looking     | a vision model, sent the picture — the slug is in `index.ts`          |
+| Reading     | a text model, sent that reply — likewise                              |
 | Endpoint    | OpenRouter's chat completions API, or `LLM_URL` if set                |
 | Temperature | 0                                                                     |
 | Image       | downscaled to a long edge of 1024px, re-encoded as JPEG at quality 80 |
+
+**Two models, because the two calls need different things.** Only the first is
+sent a picture, so only it needs to see; the second is handed text, where the
+field of models is larger, cheaper and quicker, and nothing is paid for an image
+tower that goes unused. Both are recorded on every result (`runs.ts`), so which
+pair produced an answer is read off the answer.
 
 Temperature 0 makes two runs of this experiment comparable, so a re-run measures
 how much a hosted model drifts on its own. It does not make them identical:

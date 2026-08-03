@@ -114,7 +114,8 @@ were read from.
       "ranAt": "2026-08-02T14:22:31.004Z",
       "version": "5a4919b862f2",
       "parameters": {
-        "model": "qwen/qwen3-vl-235b-a22b-instruct",
+        "model": "a-vision-model",
+        "textModel": "a-text-model",
         "maxEdge": 1024,
         "temperature": 0
       },

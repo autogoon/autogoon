@@ -54,7 +54,7 @@ const PROPOSED =
 // Written out rather than composed from PROPOSED: two text-decoration-color
 // utilities on one element are resolved by stylesheet order, not by intent.
 const PROPOSED_TEXT =
-  'decoration-0.5 underline decoration-foreground/75 underline-offset-4';
+  'decoration-0.5 decoration-dashed underline decoration-foreground/75 underline-offset-4';
 
 // Whether a field's answer can run past one line — a description clamped to two
 // of them, or a caption shown whole.

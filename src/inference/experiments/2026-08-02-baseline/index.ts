@@ -19,8 +19,14 @@ export const ID = '2026-08-02-baseline';
 
 const MAX_EDGE = 1024;
 const JPEG_QUALITY = 80;
-const MODEL = 'qwen/qwen3-vl-235b-a22b-instruct';
 const TEMPERATURE = 0;
+
+// One model per call, because the two calls ask different things of different
+// things. The first is handed a picture and needs a vision model; the second is
+// handed text, where a far larger and cheaper field of models is available and
+// nothing is paid for an image tower that goes unused.
+const MODEL = 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
+const TEXT_MODEL = 'qwen/qwen3-30b-a3b-instruct-2507:nitro';
 
 function resizedJpeg(imagePath: string): Buffer {
   const tmp = join(tmpdir(), `inference-${randomUUID()}.jpg`);
@@ -57,9 +63,14 @@ function resizedJpeg(imagePath: string): Buffer {
 // Where PROMPT_TWO takes the first call's reply.
 const DESCRIPTION = '{{DESCRIPTION}}';
 
-// One completion. `image` is the data URI where the call sends a picture, and
-// absent where it sends text alone.
-async function ask(prompt: string, image?: string): Promise<string> {
+// One completion, from whichever model the caller is asking. `image` is the
+// data URI where the call sends a picture, and absent where it sends text
+// alone.
+async function ask(
+  model: string,
+  prompt: string,
+  image?: string,
+): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (apiKey === undefined || apiKey === '') {
     throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
@@ -75,7 +86,7 @@ async function ask(prompt: string, image?: string): Promise<string> {
       'X-Title': `autogoon ${ID}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       temperature: TEMPERATURE,
       messages: [
         {
@@ -105,10 +116,11 @@ async function ask(prompt: string, image?: string): Promise<string> {
   return raw.trim();
 }
 
-// Two calls. The first looks at the picture and reasons about it; the second
-// sees that reasoning as text and nothing else, and answers the checklist from
-// it. The picture reaches the model once, so what the second call can say is
-// bounded by what the first wrote down — which is the point of the split.
+// Two calls to two models. The first looks at the picture and reasons about it;
+// the second reads that reasoning as text and nothing else, and answers the
+// checklist from it. The picture reaches a model once, so what the second call
+// can say is bounded by what the first wrote down — which is the point of the
+// split.
 //
 // The prompt returned is both, as sent, so it carries the first reply where it
 // actually went: into the second prompt.
@@ -119,11 +131,11 @@ async function run(imagePath: string): Promise<Reply> {
   }
   const dataUri = `data:image/jpeg;base64,${resizedJpeg(imagePath).toString('base64')}`;
 
-  const described = await ask(PROMPT_ONE, dataUri);
+  const described = await ask(MODEL, PROMPT_ONE, dataUri);
   const second = secondPrompt(described);
   return {
     prompt: `${PROMPT_ONE}\n\n${SPLIT}\n\n${second}`,
-    raw: await ask(second),
+    raw: await ask(TEXT_MODEL, second),
   };
 }
 
@@ -304,7 +316,12 @@ export function parse(raw: string): Inferred {
 
 export const experiment: Experiment = {
   id: ID,
-  parameters: { model: MODEL, maxEdge: MAX_EDGE, temperature: TEMPERATURE },
+  parameters: {
+    model: MODEL,
+    textModel: TEXT_MODEL,
+    maxEdge: MAX_EDGE,
+    temperature: TEMPERATURE,
+  },
   run,
   parse,
 };

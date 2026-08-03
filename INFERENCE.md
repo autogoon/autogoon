@@ -224,10 +224,12 @@ experiment writes its own, named `<stem>.<experiment>.sidecar.md`, so several
 descriptions of one picture sit beside each other. Which of them a pack plays is
 a separate question, and nothing decides it yet.
 
-Every result records what its own run used — model, resolution, temperature —
-because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct` is not, and
-the prompt is written beside it for the same reason. Items are inferred one at a
-time over days and an experiment may be edited between two of them, so both sit
+Every result records what its own run used — the models, the resolution, the
+temperature — because a version is a hash and a model slug is not, and the
+prompt is written beside it for the same reason. An experiment that sends the
+picture to one model and that model's reply to another records both, so which
+pair produced an answer is read off the answer. Items are inferred one at a time
+over days and an experiment may be edited between two of them, so all of it sits
 with the result rather than with the experiment. They are a record; the version
 is what says whether a result is current.
 

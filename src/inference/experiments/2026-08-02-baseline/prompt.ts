@@ -28,6 +28,8 @@ or genitals.  If you can't tell, say so.
 Only say her breasts are bare unless you can see the full shape of at least one of them.  If the subject
 isn't wearing a bra or you can see cleavage, it's not necessarily the case that her breasts are bare.
 If you can't tell, say so.
+
+Sexual activity, is there any going on, description in detail.  If you can't tell, say so.
 `;
 
 export const PROMPT_TWO = `This photo is pose/mood metadata for a companion app: she reads the
@@ -44,7 +46,7 @@ STEP 1 - REASONING.  You are juding the following individually :
 
 HAIR: Describe the colour and the style, and how it is arranged.
 GAZE: Is the subject looking at the camera, away, down, or up? What is the expression and mood?
-SETTING: Describe where the photo is taken, and the light. Is it indoors or outdoors? What time of day? What is in the background?
+SETTING: Describe where the photo is taken, and the light. Is it indoors or outdoors? What time of day? What is in the background?  What secual activity, if any, is going on?
 BODY SHAPE: Describe the body shape, including height, weight, and build. Is it athletic, curvy, thin, or muscular?
 CLOTHING: Describe the clothing you can see, each garment, it's colour, and how it is arranged. Is it sheer or opaue? Is it tight or loose? Is it arranged to show or hide the body?  Can you see up on down her dress?
 EXPOSED: Which body parts are bare and how much is actually visible — For example, but not exclusively, back, stomach, thighs, buttocks, cleavage, breasts, legs, face, hands.
@@ -63,7 +65,8 @@ you decide. If something is genuinely ambiguous, say so instead of guessing.
 
 STEP 3 — CAPTION. Condense the observations into ONE sentence of roughly 50 words,
 present tense, no leading pronoun.  Try and include all parts of your observations.  The caption should be tersely descriptive, but not flowery or poetic, it is used with keyword search.
-Be more verbose about body pose and state of undress than about the setting, and don't include any information that isn't visible in the image.
+Be more verbose about body pose and state of undress than about the setting, and don't include any information that isn't visible in the image.  There is
+not need to mention things are are not in the image or not visible it not confirmed.
 
 Reply in exactly this format, with nothing after the caption line:
 

@@ -13,7 +13,11 @@ import type { FieldValue } from './fields';
 // What the run is worth reading back in plain words. A hash says which code
 // ran; this says what it asked for.
 export type RunParameters = {
+  // The model that was sent the picture.
   model: string;
+  // The model that was sent the first call's reply, where an experiment splits
+  // looking from reading. Absent where one model did both.
+  textModel?: string;
   maxEdge: number;
   temperature: number;
 };
@@ -50,14 +54,25 @@ function parseParameters(raw: unknown): RunParameters {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new RunError('The run has no parameters.');
   }
-  const { model, maxEdge, temperature } = raw as Record<string, unknown>;
+  const { model, textModel, maxEdge, temperature } = raw as Record<
+    string,
+    unknown
+  >;
   if (typeof model !== 'string' || model === '') {
     throw new RunError("The run's parameters name no model.");
+  }
+  if (textModel !== undefined && typeof textModel !== 'string') {
+    throw new RunError("The run's textModel is not a model name.");
   }
   if (typeof maxEdge !== 'number' || typeof temperature !== 'number') {
     throw new RunError("The run's maxEdge and temperature are not numbers.");
   }
-  return { model, maxEdge, temperature };
+  return {
+    model,
+    ...(textModel === undefined ? {} : { textModel }),
+    maxEdge,
+    temperature,
+  };
 }
 
 export function parseRunFields(text: string): RunFields {
