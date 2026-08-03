@@ -25,6 +25,15 @@
   It now follows the conversation, and ends when you leave Companions.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
+- bug: **Companions are off the MiniMax models** — MiniMax M2.5 and M3 write
+  their thinking into the reply itself, so a companion read it out in their own
+  voice and it stayed in the transcript as something they said. The same models
+  move the clock and toy status — sent at the end of every turn, so they are the
+  latest thing known — to the front of the prompt, behind the whole
+  conversation. The default is now MiMo v2.5, and
+  [GOONPACKS.md](./GOONPACKS.md) tells a pack author to name neither.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - internal: **The pack index is built on first sight, not at startup** — Reading
   every installed pack's sidecars happened at app load, whether or not anything
   went near a companion. It now happens the first time Companions or Goonpacks

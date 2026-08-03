@@ -156,6 +156,20 @@ and whether it calls tools reliably, are properties of the model rather than of
 your prompt, so try one before settling on it. A model that stops calling tools
 gives you a companion who talks about the toy without ever driving it.
 
+**Don't name a MiniMax model.** Anything under `minimax/` — M2.5, M3 — breaks
+two things every companion depends on, and it is the model that does it rather
+than any one provider serving it:
+
+- The time and the state of the toy are sent at the end of every request, along
+  with the nudge that tells your companion a silence has gone unanswered.
+  MiniMax models move all three to the very top, ahead of the conversation, so
+  what should be the last thing they were told is the first — read and then
+  buried under everything since. They answer with a stale idea of the toy, and a
+  silence reads to them as no silence at all.
+- Their thinking comes back inside the reply, wrapped in `<think>` tags, instead
+  of separately. It is spoken aloud in their voice and kept in the transcript as
+  something they said.
+
 Set `contextWindow` and `passesReasoning` whenever you set `model`, and leave
 all three out otherwise. They describe the model named beside them. A pack that
 sets `model` alone takes the app's defaults for the other two; an overlay that

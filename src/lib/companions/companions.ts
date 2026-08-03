@@ -104,7 +104,18 @@ export const companionClockZone = (companion: Companion): string | undefined =>
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default
 // price-weighted load balancing — a companion's reply is spoken, so time to
 // first token is the pause before they answer.
-export const DEFAULT_MODEL = 'minimax/minimax-m2.5:nitro';
+//
+// Not the MiniMax family — `minimax/*` breaks two things this app relies on,
+// measured on 3 August 2026 against minimax-m2.5 (Parasail) and minimax-m3
+// (AtlasCloud), so it is the model rather than one provider:
+//
+//   - every system message after the first is concatenated onto the leading
+//     one. The clock, the toy state and the ambient cue ride a trailing system
+//     message (liveStateMessage, AMBIENT_CUE) precisely so they read as the
+//     last thing said; on MiniMax they arrive ahead of the conversation.
+//   - reasoning is streamed inside `content` as a <think> block instead of in
+//     reasoning_details, so it is spoken by TTS and stored as dialogue.
+export const DEFAULT_MODEL = 'xiaomi/mimo-v2.5:nitro';
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
 // Middling on both counts: a companion who fills a silence without talking over
