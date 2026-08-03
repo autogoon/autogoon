@@ -17,7 +17,10 @@ import { useCorpus } from './use-corpus';
 
 export function InferencePanel({ active }: { active: boolean }) {
   const corpus = useCorpus(active);
-  const summary = useMemo(() => summarise(corpus.items), [corpus.items]);
+  const summary = useMemo(
+    () => summarise(corpus.items, corpus.version),
+    [corpus.items, corpus.version],
+  );
   const [reviewing, setReviewing] = useState(false);
   const item = corpus.current;
 
@@ -47,8 +50,16 @@ export function InferencePanel({ active }: { active: boolean }) {
         ))}
         {corpus.experiment !== '' && (
           <span className="text-muted-foreground block text-sm">
-            {corpus.experiment} has run against{' '}
+            {corpus.experiment} ({corpus.version}) has run against{' '}
             {summary.runs[corpus.experiment] ?? 0} of {summary.total}
+            {summary.outdated > 0 && (
+              // The experiment was edited after these ran, so their answers are
+              // not what its code would produce now.
+              <span className="text-amber-500">
+                {' '}
+                · {summary.outdated} outdated
+              </span>
+            )}
           </span>
         )}
         {summary.total === 0 && (

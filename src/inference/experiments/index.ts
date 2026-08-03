@@ -1,6 +1,6 @@
-// The experiment registry: id to module. This file grows with each experiment
-// and is not frozen, unlike the directories it lists — it holds nothing that
-// changes what a model returns.
+// The experiment registry: id to module. It holds nothing that changes what a
+// model returns, which is why it sits outside the directories it lists — an
+// entry added here moves no experiment's version (see fingerprint.ts).
 
 import type { Experiment } from '../experiment';
 import { experiment as baseline } from './2026-08-02-baseline';

@@ -8,11 +8,12 @@
 // with nothing opened and no stat per item.
 //
 // Which *fields* an item answers needs the labels file itself, so `survey`
-// reads every one that exists. That cost scales with the labelled count rather
-// than the corpus, since an unlabelled item has no file to open, and it is
-// small enough to do on every request. Nothing here is cached or indexed — the
-// files are edited outside this app, so a stored summary would be wrong the
-// moment one was.
+// reads every one that exists, and one experiment's result per item alongside
+// it. Both scale with what has been answered rather than with the corpus — an
+// unlabelled item has no file to open — and one experiment rather than every
+// one is what keeps the second read from being items × experiments. Nothing
+// here is cached or indexed: the files are edited outside this app, so a stored
+// summary would be wrong the moment one was.
 
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -27,7 +28,6 @@ import {
 } from './paths';
 import { parseLabels, renderLabels, type Labels } from './labels';
 import {
-  parseParameters,
   parseRunFields,
   renderParameters,
   renderRunFields,
@@ -86,15 +86,19 @@ export async function listCorpus(): Promise<CorpusItem[]> {
   return groupNames(names);
 }
 
-// The corpus with every existing labels file read. One pass, concurrent; a file
-// that won't parse throws, naming itself, rather than being counted as absent —
-// a label nobody can read is a label that needs fixing, not one to overlook.
-export async function survey(): Promise<SurveyedItem[]> {
+// The corpus with every existing labels file read, and one experiment's answers
+// beside them. One pass, concurrent; a file that won't parse throws, naming
+// itself, rather than being counted as absent — a label nobody can read is a
+// label that needs fixing, not one to overlook.
+export async function survey(experiment: string): Promise<SurveyedItem[]> {
   const items = await listCorpus();
   return Promise.all(
     items.map(async (item) => ({
       ...item,
       labels: item.hasLabels ? await readLabelsNamed(item.stem) : null,
+      run: item.runs.includes(experiment)
+        ? await readRun(item.stem, experiment)
+        : null,
     })),
   );
 }
@@ -161,13 +165,9 @@ export async function writeRaw(
   await writeFile(corpusPath(rawName(stem, experiment)), raw, 'utf8');
 }
 
-export async function readParameters(
-  experiment: string,
-): Promise<RunParameters | null> {
-  const text = await readIfPresent(runName(experiment));
-  return text === null ? null : parseParameters(text);
-}
-
+// Written, never read back: `<experiment>.run.json` records what the last run
+// used for whoever opens the corpus, and what says whether a result is current
+// is the version stamped on the result itself.
 export async function writeParameters(
   experiment: string,
   parameters: RunParameters,

@@ -9,6 +9,8 @@
     "goonpack:describe-missing": "tsx --env-file-if-exists=.env scripts/describe-missing.ts",
     "goonpack:summarise": "tsx --env-file-if-exists=.env scripts/summarise-pack.ts",
     "goonpack:build": "tsx scripts/goonpack-build.ts",
+    "experiment:run": "tsx --env-file-if-exists=.env scripts/experiment-run.ts",
+    "experiment:run:outdated": "tsx --env-file-if-exists=.env scripts/experiment-run.ts --outdated",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "build": "next build",
     "start": "next start",

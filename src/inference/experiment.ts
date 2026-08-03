@@ -1,16 +1,17 @@
 // What every experiment is, from the outside. One directory under
-// experiments/, frozen once it has run, exporting these two functions —
-// docs/2026-08-02-inference-ui-spec.md → Experiments.
+// experiments/, exporting these two functions —
+// docs/2026-08-02-inference-ui-spec.md → Experiments. It is edited and re-run
+// like any other code; what keeps its results readable is that each one records
+// the version of the directory that produced it (fingerprint.ts).
 //
 // The split between them is the reason the raw reply is kept on disk. `run`
 // sends the image and costs money. `parse` turns a stored reply into fields and
 // costs nothing, so a parser that turns out to be wrong is fixed by walking the
 // corpus calling `parse` alone, with no model involved.
 //
-// `parameters` are the values the code doesn't hold — what an environment
-// override could change between two runs of the same experiment. They are
-// recorded once per experiment and a run that would differ from them is
-// refused (see runs.ts).
+// `parameters` are what the run is worth reading back in plain words — the
+// model, the resolution, the temperature. They are written to
+// `<experiment>.run.json` every run, as a record of what the last one used.
 
 import type { FieldValue } from './fields';
 import type { RunParameters } from './runs';

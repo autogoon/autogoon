@@ -9,6 +9,7 @@
 
 import { FIELDS, optionLabel, type FieldValue } from './fields';
 import { HUMAN, type Labels } from './labels';
+import { isCurrent } from './runs';
 import type { SurveyedItem } from './item';
 
 export type ValueTally = { label: string; count: number };
@@ -35,6 +36,10 @@ export type CorpusSummary = {
   untouched: number;
   // Experiment id to the number of items it has answered.
   runs: Record<string, number>;
+  // Of the surveyed experiment's answers, how many the code on disk would no
+  // longer produce — it was edited after they were generated. A sweep of those
+  // items is what clears it.
+  outdated: number;
   fields: FieldTally[];
 };
 
@@ -48,14 +53,22 @@ const confirmedValue = (
     : undefined;
 };
 
-export function summarise(items: SurveyedItem[]): CorpusSummary {
+export function summarise(
+  items: SurveyedItem[],
+  // The surveyed experiment's version. Every `run` on an item came from that
+  // experiment (see corpus.ts), so this is all that is needed to tell a current
+  // answer from a left-over one.
+  version: string,
+): CorpusSummary {
   const runs: Record<string, number> = {};
   let images = 0;
   let videos = 0;
   let confirmed = 0;
   let untouched = 0;
+  let outdated = 0;
 
   for (const item of items) {
+    if (item.run !== null && !isCurrent(item.run, version)) outdated += 1;
     if (item.kind === 'image') images += 1;
     else videos += 1;
     if (item.labels === null || Object.keys(item.labels).length === 0) {
@@ -119,6 +132,7 @@ export function summarise(items: SurveyedItem[]): CorpusSummary {
     confirmed,
     untouched,
     runs,
+    outdated,
     fields,
   };
 }

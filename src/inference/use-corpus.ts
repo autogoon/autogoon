@@ -16,15 +16,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { FIELDS, type FieldValue } from './fields';
 import { HUMAN, type Labels } from './labels';
 import { mediaUrl, type SurveyedItem } from './item';
+import type { RunFields } from './runs';
 
 export type ItemRun = { fields: Record<string, FieldValue>; raw: string };
 
 export type CorpusView = {
   items: SurveyedItem[];
-  // Every experiment the registry knows, and the one selected. `experiment` is
-  // empty until the listing has arrived.
+  // Every experiment the registry knows, the one selected, and that one's
+  // version (fingerprint.ts). Both strings are empty until the listing has
+  // arrived.
   experiments: string[];
   experiment: string;
+  version: string;
   index: number;
   current: SurveyedItem | null;
   // The selected experiment's output for the item on screen, null where it
@@ -54,6 +57,7 @@ export function useCorpus(active: boolean): CorpusView {
   const [items, setItems] = useState<SurveyedItem[]>([]);
   const [experiments, setExperiments] = useState<string[]>([]);
   const [experiment, setExperiment] = useState('');
+  const [version, setVersion] = useState('');
   const [index, setIndex] = useState(0);
   const [run, setRun] = useState<ItemRun | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,32 +65,46 @@ export function useCorpus(active: boolean): CorpusView {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  const reload = useCallback(() => {
+  // The listing carries one experiment's results, so which one is asked for is
+  // part of the request. An empty id is the first load, before anything has
+  // been selected: the route answers for CURRENT and names it.
+  const load = useCallback((forExperiment: string) => {
     setLoading(true);
     setError(null);
-    fetch('/api/inference/items')
+    const query =
+      forExperiment === ''
+        ? ''
+        : `?experiment=${encodeURIComponent(forExperiment)}`;
+    fetch(`/api/inference/items${query}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
         return res.json() as Promise<{
           items: SurveyedItem[];
           experiments: string[];
           experiment: string;
+          version: string;
         }>;
       })
       .then((data) => {
         setItems(data.items);
         setExperiments(data.experiments);
-        // A reload keeps the selection rather than snapping back to CURRENT —
-        // unless the registry no longer lists it, which is the one case where
-        // holding on would leave the screen showing an experiment that is gone.
-        setExperiment((chosen) =>
-          data.experiments.includes(chosen) ? chosen : data.experiment,
-        );
+        setExperiment(data.experiment);
+        setVersion(data.version);
         setIndex((i) => Math.min(i, Math.max(0, data.items.length - 1)));
       })
       .catch((e: unknown) => setError(message(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  const reload = useCallback(() => load(experiment), [load, experiment]);
+
+  const select = useCallback(
+    (id: string) => {
+      setExperiment(id);
+      load(id);
+    },
+    [load],
+  );
 
   // Loaded when the tab is first opened, not on every visit: the panel stays
   // mounted behind the other screens, and re-reading the whole corpus because
@@ -94,8 +112,8 @@ export function useCorpus(active: boolean): CorpusView {
   useEffect(() => {
     if (!active || loaded) return;
     setLoaded(true);
-    reload();
-  }, [active, loaded, reload]);
+    load('');
+  }, [active, loaded, load]);
 
   const current = items[index] ?? null;
   const stem = current?.stem;
@@ -162,13 +180,25 @@ export function useCorpus(active: boolean): CorpusView {
     });
   }, [items]);
 
-  const replace = useCallback((stemAt: string, labels: Labels) => {
-    setItems((all) =>
-      all.map((item) =>
-        item.stem === stemAt ? { ...item, hasLabels: true, labels } : item,
-      ),
-    );
-  }, []);
+  // One entry updated in place. `run` is given only where a run just happened;
+  // answering a field leaves whatever the listing already held.
+  const replace = useCallback(
+    (stemAt: string, labels: Labels, run?: RunFields) => {
+      setItems((all) =>
+        all.map((item) =>
+          item.stem === stemAt
+            ? {
+                ...item,
+                hasLabels: true,
+                labels,
+                ...(run === undefined ? {} : { run }),
+              }
+            : item,
+        ),
+      );
+    },
+    [],
+  );
 
   const answer = useCallback(
     (field: string, value: FieldValue) => {
@@ -220,13 +250,13 @@ export function useCorpus(active: boolean): CorpusView {
         if (!res.ok) throw new Error(await res.text());
         return res.json() as Promise<{
           raw: string;
-          fields: Record<string, FieldValue>;
+          run: RunFields;
           labels: Labels;
         }>;
       })
       .then((data) => {
-        setRun({ fields: data.fields, raw: data.raw });
-        replace(stem, data.labels);
+        setRun({ fields: data.run.fields, raw: data.raw });
+        replace(stem, data.labels, data.run);
       })
       .catch((e: unknown) => setError(message(e)))
       .finally(() => setGenerating(false));
@@ -236,6 +266,7 @@ export function useCorpus(active: boolean): CorpusView {
     items,
     experiments,
     experiment,
+    version,
     index,
     current,
     run,
@@ -247,7 +278,7 @@ export function useCorpus(active: boolean): CorpusView {
     answer,
     clear,
     generate,
-    select: setExperiment,
+    select,
     reload,
   };
 }

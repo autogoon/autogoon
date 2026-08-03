@@ -74,17 +74,26 @@ the item it was left on.
 | `Esc`   | closes the review                                   |
 
 **Generate is one call for one item** — it is the spot-check. Running an
-experiment across the whole corpus is a script, not a button.
+experiment across the whole corpus is `npm run experiment:run`, and re-running
+the items an edit put out of date is `npm run experiment:run:outdated`. Both
+take an experiment id, defaulting to the one the registry names, and both say
+how many items they are about to run before starting.
 
 ## Experiments
 
 An experiment is a directory under
 [`src/inference/experiments/`](./src/inference/experiments/), named
 `<date>-<name>`, holding everything it needs: its own prompt, its own request,
-and a `README.md` describing its approach and what it is known to get wrong. It
-is **frozen once it has run** — a different model, resolution or prompt is a new
-directory rather than an edit, because its recorded output only means anything
-while the code that produced it cannot change.
+and a `README.md` describing its approach and what it is known to get wrong.
+
+Experiments are edited and re-run. A finding from one feeds back into an earlier
+one, and several may be in flight at once, so what matters is not that an
+experiment's code never changes but that the corpus says which code produced
+which answers. Every result is stamped with a **version** — a hash of the
+experiment's directory, described in
+[`fingerprint.ts`](./src/inference/fingerprint.ts) — and results whose version
+isn't the current one are counted as outdated on screen. A sweep of those items
+clears it.
 
 Each exports two functions, described in
 [`experiment.ts`](./src/inference/experiment.ts):
@@ -94,9 +103,9 @@ Each exports two functions, described in
   that turns out to be wrong is fixed by re-deriving from the replies already on
   disk.
 
-The values an environment override could change — model, resolution, temperature
-— are written to `<experiment>.run.json` the first time it runs. A run that
-would differ from them is refused, naming what moved.
+`<experiment>.run.json` records what the last run used — model, resolution,
+temperature — because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct`
+is not. It is a record; the version is what says whether a result is current.
 
 Adding one is a new directory, its `README.md`, and an entry in
 [the registry](./src/inference/experiments/index.ts), which also names the one

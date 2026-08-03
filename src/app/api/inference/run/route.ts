@@ -1,29 +1,15 @@
-// Running the current experiment against one item, and reading back what a
-// previous run said about one.
+// Running one experiment against one item, and reading back what a previous run
+// said about one.
 //
-// POST is the only paid path in the tool: one image, one call. Running the
-// experiment across the corpus is a script rather than anything reachable from
-// a click. Before spending anything it checks the experiment's parameters
-// against the ones already recorded and refuses if they moved — a different
-// model or resolution is a different experiment.
+// POST is the only paid path reachable from a click: one image, one call, as
+// the spot-check. Running an experiment across the corpus is `npm run
+// experiment:run`, which comes through the same runItem.
 
-import {
-  corpusPath,
-  listCorpus,
-  readLabels,
-  readParameters,
-  readRaw,
-  readRun,
-  writeLabels,
-  writeParameters,
-  writeRaw,
-  writeRun,
-} from '@/inference/corpus';
-import { currentCommit } from '@/inference/commit';
+import { listCorpus, readRaw, readRun } from '@/inference/corpus';
 import { failed, IS_DEV, notFound } from '@/inference/dev-only';
 import { CURRENT, experimentById } from '@/inference/experiments';
-import { fillAbsent } from '@/inference/labels';
-import { checkParameters } from '@/inference/runs';
+import { fingerprint } from '@/inference/fingerprint';
+import { runItem } from '@/inference/run-item';
 
 export const runtime = 'nodejs';
 
@@ -67,32 +53,8 @@ export async function POST(request: Request): Promise<Response> {
     }
     const item = (await listCorpus()).find((i) => i.stem === body.stem);
     if (item === undefined) return notFound();
-
-    const recorded = await readParameters(experiment.id);
-    if (recorded === null) {
-      await writeParameters(experiment.id, experiment.parameters);
-    } else {
-      checkParameters(recorded, experiment.parameters);
-    }
-
-    const raw = await experiment.run(corpusPath(item.file));
-    const fields = experiment.parse(raw);
-    // The reply lands first: it is the thing that cost money, and everything
-    // else is derived from it. A crash after this point loses no spend.
-    await writeRaw(item.stem, experiment.id, raw);
-    await writeRun(item.stem, experiment.id, {
-      ranAt: new Date().toISOString(),
-      commit: currentCommit(),
-      fields,
-    });
-    const labels = fillAbsent(
-      (await readLabels(item.stem)) ?? {},
-      fields,
-      experiment.id,
-    );
-    await writeLabels(item.stem, labels);
-
-    return Response.json({ raw, fields, labels });
+    const version = await fingerprint(experiment.id);
+    return Response.json(await runItem(experiment, item, version));
   } catch (e) {
     return failed(e);
   }

@@ -2,9 +2,9 @@
 
 The first experiment: one vision model, one call per image, describing a single
 subject in prose and then answering whether she is naked. It exists so that
-everything after it has something to be measured against, and it is frozen —
-what it produced is only meaningful while the code that produced it cannot
-change.
+everything after it has something to be measured against, so it changes only
+where it is wrong about its own intent — a better idea belongs in a new
+experiment, where it can be scored against this one.
 
 ## Model and parameters
 

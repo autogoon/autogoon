@@ -1,6 +1,7 @@
-// The corpus's counts. What each one has to get right is the difference
-// between an answer a person gave and one an experiment filled in: an item the
-// baseline has answered is work outstanding, not work done.
+// The corpus's counts. Two distinctions they have to get right: an answer a
+// person gave against one an experiment filled in — an item the baseline has
+// answered is work outstanding, not work done — and an experiment's answer
+// produced by the code as it stands against one left over from before an edit.
 
 import { describe, expect, it } from '@jest/globals';
 import { FIELDS, UNKNOWN, type FieldValue } from './fields';
@@ -9,6 +10,9 @@ import type { SurveyedItem } from './item';
 import { summarise } from './summary';
 
 const BASELINE = '2026-08-02-baseline';
+// The surveyed experiment's version, and one it has moved on from.
+const NOW = 'a41f0c2b7d9e';
+const BEFORE = '00b3ee91c4d7';
 
 const item = (
   stem: string,
@@ -21,6 +25,13 @@ const item = (
   hasLabels: labels !== null,
   labels,
   runs,
+  run: null,
+});
+
+// An item the surveyed experiment has answered, at the version given.
+const ranUnder = (stem: string, version: string | undefined): SurveyedItem => ({
+  ...item(stem, null, [BASELINE]),
+  run: { ranAt: 'now', version, fields: { naked: true } },
 });
 
 const byHuman = (value: FieldValue): Labels => ({
@@ -40,57 +51,78 @@ const bySeed = (value: boolean): Labels => ({
 
 describe('summarise', () => {
   it('counts the corpus and splits it by kind', () => {
-    const summary = summarise([
-      item('a'),
-      item('b'),
-      { ...item('c'), kind: 'video' },
-    ]);
+    const summary = summarise(
+      [item('a'), item('b'), { ...item('c'), kind: 'video' }],
+      NOW,
+    );
     expect(summary).toMatchObject({ total: 3, images: 2, videos: 1 });
   });
 
   it('counts an item confirmed when a person answered every field', () => {
-    expect(summarise([item('a', everyField())]).confirmed).toBe(1);
+    expect(summarise([item('a', everyField())], NOW).confirmed).toBe(1);
   });
 
   it('does not count an item confirmed while a field is unanswered', () => {
     const missing = everyField();
     delete missing[FIELDS[0]!.id];
-    expect(summarise([item('a', missing)]).confirmed).toBe(0);
+    expect(summarise([item('a', missing)], NOW).confirmed).toBe(0);
   });
 
   it('counts an item answered Unknown as confirmed, since it was answered', () => {
     const labels = everyField();
     labels.naked = { value: UNKNOWN, source: HUMAN };
-    expect(summarise([item('a', labels)]).confirmed).toBe(1);
+    expect(summarise([item('a', labels)], NOW).confirmed).toBe(1);
   });
 
   it('does not count an item the experiment answered as confirmed', () => {
-    expect(summarise([item('a', bySeed(true))]).confirmed).toBe(0);
+    expect(summarise([item('a', bySeed(true))], NOW).confirmed).toBe(0);
   });
 
   it('counts an item nothing has answered as untouched', () => {
-    expect(summarise([item('a'), item('b', {})]).untouched).toBe(2);
+    expect(summarise([item('a'), item('b', {})], NOW).untouched).toBe(2);
   });
 
   it('does not count a seeded item as untouched — it is work outstanding', () => {
-    expect(summarise([item('a', bySeed(true))]).untouched).toBe(0);
+    expect(summarise([item('a', bySeed(true))], NOW).untouched).toBe(0);
   });
 
   it('tallies how many items each experiment has answered', () => {
     expect(
-      summarise([
-        item('a', null, [BASELINE]),
-        item('b', null, [BASELINE, '2026-09-01-nudenet']),
-      ]).runs,
+      summarise(
+        [
+          item('a', null, [BASELINE]),
+          item('b', null, [BASELINE, '2026-09-01-nudenet']),
+        ],
+        NOW,
+      ).runs,
     ).toEqual({ [BASELINE]: 2, '2026-09-01-nudenet': 1 });
   });
 
+  it('counts a result the experiment has since been edited past as outdated', () => {
+    expect(summarise([ranUnder('a', BEFORE)], NOW).outdated).toBe(1);
+  });
+
+  it('does not count a result the experiment would still produce', () => {
+    expect(summarise([ranUnder('a', NOW)], NOW).outdated).toBe(0);
+  });
+
+  it('counts a result stamped with no version as outdated', () => {
+    expect(summarise([ranUnder('a', undefined)], NOW).outdated).toBe(1);
+  });
+
+  it('counts nothing outdated for an item the experiment never answered', () => {
+    expect(summarise([item('a')], NOW).outdated).toBe(0);
+  });
+
   it("splits a field's answers into confirmed and seeded", () => {
-    const summary = summarise([
-      item('a', byHuman(true)),
-      item('b', byHuman(false)),
-      item('c', bySeed(true)),
-    ]);
+    const summary = summarise(
+      [
+        item('a', byHuman(true)),
+        item('b', byHuman(false)),
+        item('c', bySeed(true)),
+      ],
+      NOW,
+    );
     expect(summary.fields[0]).toMatchObject({
       id: 'naked',
       confirmed: 2,
@@ -99,11 +131,14 @@ describe('summarise', () => {
   });
 
   it('spreads the confirmed answers across the options', () => {
-    const summary = summarise([
-      item('a', byHuman(true)),
-      item('b', byHuman(true)),
-      item('c', byHuman(false)),
-    ]);
+    const summary = summarise(
+      [
+        item('a', byHuman(true)),
+        item('b', byHuman(true)),
+        item('c', byHuman(false)),
+      ],
+      NOW,
+    );
     expect(summary.fields[0]?.values).toContainEqual({
       label: 'Yes',
       count: 2,
@@ -113,14 +148,15 @@ describe('summarise', () => {
 
   it('lists an option nothing was labelled with at nought', () => {
     expect(
-      summarise([item('a', byHuman(true))]).fields[0]?.values,
+      summarise([item('a', byHuman(true))], NOW).fields[0]?.values,
     ).toContainEqual({ label: 'No', count: 0 });
   });
 
   it('shows a value no option covers rather than dropping it', () => {
-    const summary = summarise([
-      item('a', { naked: { value: 'sort of', source: HUMAN } }),
-    ]);
+    const summary = summarise(
+      [item('a', { naked: { value: 'sort of', source: HUMAN } })],
+      NOW,
+    );
     expect(summary.fields[0]?.values).toContainEqual({
       label: 'sort of',
       count: 1,
@@ -128,10 +164,11 @@ describe('summarise', () => {
   });
 
   it('counts nothing over an empty corpus', () => {
-    expect(summarise([])).toMatchObject({
+    expect(summarise([], NOW)).toMatchObject({
       total: 0,
       confirmed: 0,
       untouched: 0,
+      outdated: 0,
       runs: {},
     });
   });
