@@ -25,6 +25,7 @@ WEARING PANTIES: No
 TOPLESS: Yes
 NIPPLE VISIBILITY: Bare and visible
 GENITAL VISIBILITY: Not visible
+TEXT: None
 
 CAPTION: Kneeling on a bed in warm light, naked, dark hair loose over one shoulder.`;
 
@@ -57,6 +58,13 @@ describe('parse', () => {
     const { fields, sidecar } = parse(REPLY);
     expect(fields.caption).toBe(sidecar.caption);
     expect(fields.description).toBe(sidecar.description);
+  });
+
+  it('keeps words on the picture apart from the caption that describes it', () => {
+    const reply = REPLY.replace('TEXT: None', 'TEXT: HOTEL CALIFORNIA');
+    const { fields } = parse(reply);
+    expect(fields.text).toBe('HOTEL CALIFORNIA');
+    expect(fields.caption).not.toContain('HOTEL CALIFORNIA');
   });
 
   it('keeps a text field’s line as written, since no word list covers it', () => {

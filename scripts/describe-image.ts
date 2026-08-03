@@ -337,7 +337,10 @@ export async function describeImage(
     );
   }
 
-  return { caption, description };
+  // No values: this script asks for a caption and observations and nothing
+  // else. What fills a sidecar's frontmatter is the Inference harness's to
+  // decide (src/inference/fields.ts), and it composes its own.
+  return { caption, description, values: {} };
 }
 
 // CLI: describe one image and write its sidecar. Runs only when invoked

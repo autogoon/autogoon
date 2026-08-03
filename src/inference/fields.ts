@@ -119,6 +119,10 @@ export const FIELDS: Field[] = [
       { value: UNKNOWN, label: 'Unknown' },
     ],
   },
+  // Words on the picture itself — a sign, a watermark, a screen, a shirt.
+  // Worth having because a search over the media reads it like any other text,
+  // and because a caption that swallows it reads oddly.
+  { id: 'text', label: 'Text', kind: 'text' },
   // The two a pack plays. They are labelled like anything else, so an
   // experiment's caption can be read against one somebody wrote. The caption is
   // shown whole: it is the sentence the whole pipeline exists to produce, and a

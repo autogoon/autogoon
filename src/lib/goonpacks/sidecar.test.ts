@@ -28,10 +28,23 @@ describe('parseSidecar', () => {
     expect(s.description).toBe('Before.\n\n---\n\nAfter.');
   });
 
-  it('names an unknown frontmatter key rather than dropping it silently', () => {
+  it('keeps a key it has never heard of, since the question set is not its own', () => {
+    const s = parseSidecar(
+      `---\ncaption: One.\nnaked: true\nbreastSize: medium\n---\n\nBody.\n`,
+    );
+    expect(s.values).toEqual({ naked: true, breastSize: 'medium' });
+  });
+
+  it('refuses a mistyped caption, which is the key that has to be there', () => {
+    expect(() => parseSidecar(`---\ncapton: One.\n---\n\nBody.\n`)).toThrow(
+      /caption/,
+    );
+  });
+
+  it('refuses a value that is a list rather than a word', () => {
     expect(() =>
-      parseSidecar(`---\ncaption: One.\ncapton: Two.\n---\n\nBody.\n`),
-    ).toThrow(/capton/);
+      parseSidecar(`---\ncaption: One.\nexposed:\n  - back\n---\n\nBody.\n`),
+    ).toThrow(/exposed/);
   });
 
   it('refuses a sidecar that is a bare line of text with no frontmatter', () => {
@@ -60,6 +73,7 @@ describe('renderSidecar', () => {
     const s = {
       caption: 'A caption: with a colon.',
       description: 'A body.',
+      values: {},
     };
     expect(parseSidecar(renderSidecar(s))).toEqual(s);
   });
@@ -68,6 +82,16 @@ describe('renderSidecar', () => {
     const s = {
       caption: 'One.',
       description: 'Before.\n\n---\n\nAfter.',
+      values: {},
+    };
+    expect(parseSidecar(renderSidecar(s))).toEqual(s);
+  });
+
+  it('round-trips the values a sidecar carries, whatever they are called', () => {
+    const s = {
+      caption: 'One.',
+      description: 'A body.',
+      values: { naked: true, breastSize: 'medium', imageText: 'HOTEL' },
     };
     expect(parseSidecar(renderSidecar(s))).toEqual(s);
   });

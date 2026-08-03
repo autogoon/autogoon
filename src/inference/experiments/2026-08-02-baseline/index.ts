@@ -25,7 +25,43 @@ const TEMPERATURE = 0;
 // things. The first is handed a picture and needs a vision model; the second is
 // handed text, where a far larger and cheaper field of models is available and
 // nothing is paid for an image tower that goes unused.
-const MODEL = 'minimax/minimax-m3:nitro';
+//
+// Others to try, priced per million output tokens as at 3 August 2026 — verify
+// the slug and the price at https://openrouter.ai/models, since the catalogue
+// shifts. All of these are unmoderated (OpenRouter runs no filter in front of
+// the endpoint), which is not the same as the model answering: one that refuses
+// leaves the first reply a refusal and every field Unknown. `:nitro` is not a
+// model but a routing suffix, taking whichever provider of that model is
+// fastest.
+//
+//   Dense — every parameter on every token, which is what a fine visual
+//   discrimination wants:
+//     qwen/qwen3-vl-32b-instruct                 $0.42
+//     z-ai/glm-4.6v                              $0.90
+//
+//   Sparse — more parameters, fewer of them per token, so faster and cheaper
+//   per unit of size:
+//     qwen/qwen3-vl-30b-a3b-instruct             $0.52   (3B active)
+//     meta-llama/llama-4-maverick                $0.80
+//     minimax/minimax-m3                         $1.20
+//     qwen/qwen3-vl-235b-a22b-instruct           $1.90   (22B active)
+//
+//   Thinking — reasons before answering, which is what a hard visual call
+//   wants and what PROMPT_ONE asks for in prose anyway:
+//     qwen/qwen3-vl-30b-a3b-thinking             $2.40
+//     qwen/qwen3-vl-235b-a22b-thinking           $3.95
+//
+//   Google, if Qwen won't grade consistently:
+//     google/gemini-3.1-flash-lite               $1.50
+//     google/gemini-2.5-flash                    $2.50
+//     google/gemini-3.6-flash                    $7.50
+//
+//   Text only, for the second call:
+//     mistralai/mistral-small-24b-instruct-2501  $0.08
+//     openai/gpt-oss-120b                        $0.17
+//     deepseek/deepseek-v4-flash                 $0.18
+//     qwen/qwen3-30b-a3b-instruct-2507           $0.19
+const MODEL = 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
 const TEXT_MODEL = 'qwen/qwen3-30b-a3b-instruct-2507:nitro';
 
 function resizedJpeg(imagePath: string): Buffer {
@@ -218,6 +254,7 @@ const ANSWERS: {
       unknown: 'unknown',
     },
   },
+  { id: 'text', marker: marker('TEXT') },
   { id: 'caption', marker: CAPTION },
 ];
 
@@ -287,9 +324,15 @@ function endOfProse(raw: string): number {
 const prose = (raw: string): string =>
   raw.slice(0, endOfProse(raw)).replace(HEADING, '').trim();
 
-// The sidecar is two of the fields rather than a third thing read off the
-// reply, so what a pack plays and what the caption is scored against are the
-// same text by construction.
+// The sidecar is the fields rather than a third thing read off the reply — the
+// caption and the description are its named parts, and the rest ride in its
+// frontmatter as the values they were parsed into. So what a pack plays and
+// what is scored against ground truth are the same answers by construction.
+//
+// This is the experiment's own sidecar, so every value in it is the
+// experiment's. What a pack ships is composed at build time, taking a person's
+// label over the experiment's answer key by key
+// (scripts/lib/goonpack-contents.ts).
 export function parse(raw: string): Inferred {
   const answered = fields(raw);
   const description = prose(raw);
@@ -308,7 +351,18 @@ export function parse(raw: string): Inferred {
       'The reply carried a caption and no observations — the sidecar needs both.',
     );
   }
-  return { fields: answered, sidecar: { caption, description } };
+  return {
+    fields: answered,
+    sidecar: {
+      caption,
+      description,
+      values: Object.fromEntries(
+        Object.entries(answered).filter(
+          ([id]) => id !== 'caption' && id !== 'description',
+        ),
+      ),
+    },
+  };
 }
 
 export const experiment: Experiment = {
