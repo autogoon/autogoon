@@ -44,9 +44,12 @@
   meant building a zip, opening the Goonpacks tab, picking it and confirming the
   replace, every time. Every directory under `goonpacks/` is now offered on the
   Companions screen as it sits, validated by the same rules an imported pack is,
-  so a reload is the whole loop. A directory replaces an installed pack of the
-  same id and version once it has proved it validates. Nothing changes off a dev
-  server. ([#30](https://github.com/autogoon/autogoon/pull/30))
+  so a reload is the whole loop. Its card says which experiment's descriptions
+  to play it with — or Stock, the sidecars the pack already ships — and changing
+  that re-reads the directory, so an experiment can be played rather than read.
+  A directory replaces an installed pack of the same id and version once it has
+  proved it validates. Nothing changes off a dev server.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **The pack index is built on first sight, not at startup** — Reading
   every installed pack's sidecars happened at app load, whether or not anything
@@ -58,28 +61,24 @@
   a picture nothing had described shipped as bytes no companion could pick. It
   now writes the manifest, the system prompt, and the media that has a sidecar,
   counting what it left out. Naming an experiment after the directory builds
-  from that experiment's descriptions instead of the hand-written ones:
+  from that experiment's descriptions instead of the stock ones:
   `npm run goonpack:build goonpacks/elise 2026-08-02-baseline`.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 ## 2026-08-02
-
-- internal: **An Inference screen for labelling a corpus** — A dev-only tab that
-  leafs through a goonpack's media and records what is actually in each picture,
-  so a change to how images get described can be scored rather than guessed at.
-  A corpus is a pack's `media/`, picked from a dropdown, so a labelled set is
-  playable in the app with no extra step. What you answer is kept apart from
-  what an experiment answers — the experiment's are proposals shown beside
-  yours, never written into your record — and each run also writes the caption
-  and description it produced, in the format a pack plays. Each experiment is a
-  directory of its own code and a README describing its approach; the first
-  reproduces what the pack-authoring pipeline does today.
-  [INFERENCE.md](./INFERENCE.md) describes the harness.
 
 - feature: **A conversation opens on a scene** — Every companion now sets up the
   situation you're in: who they are, and how the two of you came to be on the
   phone. It sits at the top of the conversation, written to you rather than
   spoken, and a goonpack that rewrites a persona can set its own.
   ([#28](https://github.com/autogoon/autogoon/pull/28))
+
+- internal: **An Inference screen for labelling a corpus** — A dev-only tab for
+  recording what is actually in each of a pack's pictures, so a change to how
+  images get described can be scored rather than guessed at. What you record
+  stays apart from what an experiment produces, and a labelled set is playable
+  in the app with no extra step. [INFERENCE.md](./INFERENCE.md) describes the
+  harness. ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **`model`, `contextWindow` and `passesReasoning` moved to the
   manifest's top level** — Which model to run is a decision about the pack, not
@@ -98,25 +97,27 @@
   can say so. A persona that fixes its own time of day can turn the real clock
   off instead, and a companion written as not knowing where you are can be told
   nothing about your time at all.
+  ([#27](https://github.com/autogoon/autogoon/pull/27))
 
 - enhancement: **A companion wants the toy in play** — Once a call turns sexual
   a companion now treats driving the toy as part of what they're there for,
   rather than something they wait to be asked for. Starting it still needs your
-  say-so.
+  say-so. ([#27](https://github.com/autogoon/autogoon/pull/27))
 
 - enhancement: **Companions keep it short** — A companion now answers in two or
   three sentences rather than paragraphs, and anything they want to tell you in
   detail arrives a piece at a time across several turns rather than in one
   block. A companion who used to talk into every silence now says their piece
-  and waits for you.
+  and waits for you. ([#27](https://github.com/autogoon/autogoon/pull/27))
 
 - internal: **Persona prompts no longer name the hardware** — A companion's own
   text says what they do to the user rather than naming the device or its
   settings, and says it for a user with nothing to drive as well as one with a
   toy; the shared control section stays the single place the device is
   described. The quiet-beat and `wait_for_user` rules moved out of that section
-  into one every companion is given. `CONTROL_SUMMARY_SECTION` is gone, and
-  [GOONPACKS.md](./GOONPACKS.md) says what a persona should write instead.
+  into one every companion is given, and [GOONPACKS.md](./GOONPACKS.md) says
+  what a persona should write instead.
+  ([#27](https://github.com/autogoon/autogoon/pull/27))
 
 ## 2026-07-31
 
@@ -246,23 +247,9 @@
   stays silent.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
-- internal: **Extraction walks only the entries still being written** — The zip
-  extractor kept every entry it had opened in one list and marked the finished
-  ones, so each chunk of the stream rescanned the whole pack's worth of closed
-  entries. Finished entries now leave the set, which also drops the nullable
-  writer and the two null checks that went with it.
+- internal: **A big pack imports at a steady pace** — Unpacking slowed with
+  every file it had already written, so the largest packs crawled by the end.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
-
-## 2026-07-30
-
-- internal: **One sentence shape repeated is a style fault** — A claim, a gloss
-  on a dash or colon, then a consequence on `so…`, used for every sentence down
-  a page, reads as talk however well each sentence stands alone. Written into
-  [CLAUDE.md](./CLAUDE.md), enforced by a `/style-check` pass that counts glosses
-  and consequence tails across a whole document instead of reading sentence by
-  sentence, and applied to the user-facing and developer docs, the roadmap
-  threads and TODO.md.
-  ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 ## 2026-07-29
 
@@ -334,22 +321,16 @@
   failure now appears in the Companions debug log as it happens.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
-- internal: **The install marker moved out of the pack** — The file marking an
-  extracted tree complete was written inside the pack's own directory, so
-  validation had to be told to ignore it and extraction had to refuse a zip
-  entry that would forge it. It is now a sibling of the directory, which drops
-  both special cases and makes the tree an import validates the same set of
-  names the zip carried. A re-import clears the previous marker before it starts
-  writing, since removing the tree no longer takes it.
+- internal: **An unpacked pack holds only what the zip carried** — What marks an
+  import finished used to live inside the pack itself, so every check of a pack
+  had to make an exception for it, and a crafted zip could counterfeit it.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **One writer for the sidecar format** — The describing scripts wrote
-  a sidecar's frontmatter themselves, since a `.mjs` can't import the app's
-  format module, leaving a second implementation nothing tested. They are
-  TypeScript run through `tsx` now, like the build and summarise scripts, and
-  call the same `renderSidecar` the round-trip test covers — so the writer and
-  the validator can't drift, and both scripts are typechecked and linted with
-  everything else. ([#25](https://github.com/autogoon/autogoon/pull/25))
+  sidecars their own way rather than through the app's writer, so the two could
+  drift and only one of them was tested. They now share it, and are typechecked
+  and linted with everything else.
+  ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **Ending a voice session cancels a connect in flight** — Stopping a
   Companions session while its speech-to-text socket was still being opened
@@ -390,13 +371,10 @@
   send. Building now refuses a pack that holds anything a pack can't hold,
   naming the file. ([#25](https://github.com/autogoon/autogoon/pull/25))
 
-- internal: **One pack format, and one tree** — `goonpack:build` hand-picked the
-  files it fed the validator, so the validator judged a different tree from the
-  one that shipped; it now walks the source, validates that, and zips what it
-  validated, with `parsePack` refusing any path that isn't the manifest, the
-  prompt or something under `media/`. The two accepted pack-format versions
-  become one, numbered `1`: the compatibility path for the older layout is gone
-  along with the bespoke check that stood in for the validator not seeing it.
+- internal: **A pack that builds is a pack that imports** — The build checked a
+  different set of files from the one it shipped, so a zip could build cleanly
+  and be refused on import. Both now read the same tree, and the two accepted
+  pack-format versions become one, numbered `1`.
   ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 - internal: **Split the developer docs by task** — DEVELOPERS.md separates
@@ -422,17 +400,6 @@
   `model` field gains a note that refusal behaviour and reliable tool-calling
   belong to the model, not the prompt.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
-
-- internal: **Settle how a companion will find a picture** — The replacement for
-  picking media by number from the tool schema:
-  two texts per item in a `.md` sidecar, a summary of the set in the manifest,
-  and two tools in place of one — `search_media` returning a bounded set of refs
-  and captions, `send_media` sending one by ref. The questions it deliberately
-  leaves open — what a description should contain, which model writes it, how
-  the search ranks, what the summary says — move into
-  [roadmap/INFERENCE-LIBRARY.md](./roadmap/INFERENCE-LIBRARY.md), since none of
-  them can be measured until the plumbing exists.
-  ([#25](https://github.com/autogoon/autogoon/pull/25))
 
 ## 2026-07-26
 
@@ -481,16 +448,11 @@
   mattered, and contracts that had no test now have one.
   ([#24](https://github.com/autogoon/autogoon/pull/24))
 
-- internal: **Goonpack storage is OPFS trees** — Each installed pack is one OPFS
-  directory tree keyed `id@version`, extracted in a worker from a streamed zip,
-  validated over names alone, and made real by a marker file written last. A
-  markerless tree is an interrupted import or removal, and one clean pass at
-  load deletes it — unless the Web Lock an import holds for that key is still
-  taken, which is what stops one tab's load sweeping away another's import.
-  Nothing derived is persisted anywhere: the library index is rebuilt from the
-  trees at every load, so "installed" is one live verdict against the current
-  rules.
-  ([#24](https://github.com/autogoon/autogoon/pull/24))
+- internal: **An installed pack is a tree of files, not a stored zip** — An
+  import that was interrupted leaves nothing half-installed to play, and a pack
+  open in one tab can't be swept away by another. Whether a pack counts as
+  installed is decided afresh at every load, so nothing stored can disagree with
+  the current rules. ([#24](https://github.com/autogoon/autogoon/pull/24))
 
 ## 2026-07-25
 
@@ -618,15 +580,10 @@
   talk. Interrupting a companion works on short interjections too, which
   previously couldn't cut them off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- internal: **The request is shaped so it can be cached** — The clock and the
-  toy's status now ride their own system message at the end of each LLM
-  request, instead of sitting at the foot of the persona prompt. Prompt caching
-  matches a run of tokens from the start of a request, so two values changing
-  every turn a few hundred tokens in meant nothing behind them could be reused —
-  including the entire conversation, which is the part that grows all session.
-  Everything a companion is sent up to those last two lines is now identical
-  from one turn to the next. A registry test pins it, since re-introducing a
-  per-turn value into the prompt would cost the whole prefix silently.
+- internal: **A turn costs less as the conversation grows** — The clock and the
+  toy's status sat inside the persona prompt, where changing every turn meant
+  the whole conversation behind them was paid for again each time. They now go
+  at the end of the request, and a test keeps them there.
 
 - internal: **The voice session shows its working** — The event log gains the
   VAD's onset/offset edges with each run's measured length, and an unconfirmed
@@ -639,24 +596,11 @@
   and frequently the wrong one.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
-- internal: **The STT socket says why it died** — Server error messages and any
-  websocket close we didn't initiate now reach the event log with their close
-  code, instead of being dropped by the message switch's `default`. That's how
-  ElevenLabs' undocumented idle rule was found: a clean 1000 about fourteen
-  seconds after the last audio. Our own idle-close machinery is gone with it —
-  timeout, poll interval, `noteVoice`, `maybeClose` and `shouldCloseSocket` —
-  since there's no point racing a server that already does the job. The
-  invariant this all rests on is written up in
-  [ARCHITECTURE.md](./ARCHITECTURE.md).
-  ([#22](https://github.com/autogoon/autogoon/pull/22))
-
-- internal: **Comments describe the present too** — The current-state rule that
-  keeps future work out of docs now covers code comments, in both directions: a
-  comment says what the code does now, not what it replaced or used to be. The
-  past is what `CHANGELOG.md` and git history are for. Written into
-  [CLAUDE.md](./CLAUDE.md), enforced by `/doc-check` (which now treats every
-  comment a branch touched as in scope), and applied to the three comments that
-  had drifted.
+- internal: **A dropped speech connection says why** — A server error, or the
+  connection closing on us, went unrecorded, so a session that stopped hearing
+  you gave no sign of what had happened. Both now reach the event log, and what
+  they revealed — the service closes an idle connection itself — is written up
+  in [ARCHITECTURE.md](./ARCHITECTURE.md).
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 ## 2026-07-24
@@ -764,12 +708,10 @@
   `.env.example`) since Next's wildcards can't span an IP's trailing octets.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- internal: **One Card component** — The home play-mode entries, the
-  Companions chooser cards, the Goonpacks rows and the import confirm sheet
-  all render a single `Card` (accent/dashed/button/voiceCommand/action/icon
-  variants); `Button` gains a default control style with `tailwind-merge`
-  override semantics, `badge` is renamed `voiceCommand` app-wide, and the
-  voice chip and underline tabs are components of their own.
+- internal: **One Card component** — The home play-mode entries, the Companions
+  chooser, the Goonpacks rows and the import sheet were four near-identical
+  cards keeping their own styling in step by hand. They are now one, as are the
+  buttons, the voice chips and the tabs.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 - internal: **goonpack:build validates like the importer** — Building runs the
@@ -826,17 +768,13 @@
   Code never carry a `Claude-Session` link (a privacy leak on a public repo, for
   any contributor). ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Doc audit against the code** — A four-agent sweep verified ~280
-  doc claims; fixed the drift it found (ARCHITECTURE.md predated Companions, the
-  safe word and the tab strip; stale wind-down/finish figures in the mode docs;
-  a few wrong code comments) and replaced doc passages that duplicated code with
-  pointers, per the new documentation philosophy in CLAUDE.md.
-  ([#14](https://github.com/autogoon/autogoon/pull/14))
+- internal: **The docs match the code again** — ARCHITECTURE.md predated
+  Companions, the safe word and the tab strip, the play-mode docs carried
+  figures the engines no longer used, and several passages restated code instead
+  of pointing at it. ([#14](https://github.com/autogoon/autogoon/pull/14))
 
-- internal: **Rename algorithm → play mode across the codebase** —
-  `src/lib/play-modes`, `src/components/play-modes`, the `PLAY_MODES` registry,
-  `PlayModeEngine`, `setPlayModeKeywords`; the per-mode docs move to
-  `modes/*.md` with `MODES.md` as the index.
+- internal: **Rename algorithm → play mode across the codebase** — The code and
+  the per-mode docs follow the name the app itself now uses.
   ([#14](https://github.com/autogoon/autogoon/pull/14))
 
 - internal: **Restructure the roadmap into per-feature docs** — `ROADMAP.md` is
