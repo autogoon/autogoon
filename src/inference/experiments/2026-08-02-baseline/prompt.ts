@@ -17,8 +17,17 @@ Breast size grading, but only if you can see the breast size clearly :
 - Large (E or F cup, prominent, starting to look large vs the body size)
 - Very large (G cup or larger, disproptional to the body size or incredibly prominent size)
 
-Clothing is important, and you should consider whether the subject is wearing a bra or panties, and if so, whether they are sheer or see through.  If you can't tell, say so.
-The clothing description should include each garment, the fabric and texture, colour, and how it is arranged.  Is it sheer or opaque?  Is it tight or loose?  Is it arranged to show or hide the body?  Can you see up on down her dress?
+Clothing is important, and you should consider whether the subject is wearing a bra or panties,
+and if so, whether they are sheer or see through.  If you can't tell, say so.
+
+The clothing description should include each garment, the fabric and texture, colour, and how it is
+arranged.  Is it sheer or opaque?  Is it tight or loose?  Is it arranged to show or hide the body? 
+Can you see up on down her dress?  Specifically mention if clothing is covering the breasts, nipples,
+or genitals.  If you can't tell, say so.
+
+Only say her breasts are bare unless you can see the full shape of at least one of them.  If the subject
+isn't wearing a bra or you can see cleavage, it's not necessarily the case that her breasts are bare.
+If you can't tell, say so.
 `;
 
 export const PROMPT_TWO = `This photo is pose/mood metadata for a companion app: she reads the
@@ -53,7 +62,8 @@ STEP 2 — OBSERVATIONS. Answer each of these on its own line, briefly. Look bef
 you decide. If something is genuinely ambiguous, say so instead of guessing.
 
 STEP 3 — CAPTION. Condense the observations into ONE sentence of roughly 50 words,
-present tense, no leading pronoun.  Try and include all parts of your observations, but if you have to leave something out, leave out the least important.  The caption should be evocative and descriptive, but not flowery or poetic, it is used with keyword search.
+present tense, no leading pronoun.  Try and include all parts of your observations.  The caption should be tersely descriptive, but not flowery or poetic, it is used with keyword search.
+Be more verbose about body pose and state of undress than about the setting, and don't include any information that isn't visible in the image.
 
 Reply in exactly this format, with nothing after the caption line:
 

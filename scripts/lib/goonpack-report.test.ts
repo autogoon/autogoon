@@ -1,5 +1,5 @@
 // What the build says about the two things parsePack accepts but an author
-// probably didn't mean: media with no sidecar, and names under media/ that
+// probably didn't mean: media left out for want of a sidecar, and names under media/ that
 // nothing will play. Which files fall into each is parsePack's — and
 // pack.test.ts's.
 import { describe, it, expect } from '@jest/globals';
@@ -10,19 +10,19 @@ describe('captionWarning', () => {
     expect(captionWarning([])).toBeNull();
   });
 
-  it('names the files with no sidecar, so the author knows which are left', () => {
+  it('names the files it left out, so the author knows which are missing a sidecar', () => {
     expect(captionWarning(['b.jpg'])).toContain('b.jpg');
   });
 
-  it('counts every file with no sidecar while naming only the first few', () => {
+  it('counts every file left out while naming only the first few', () => {
     expect(captionWarning(['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg', 'e.jpg'])).toBe(
-      '5 media files with no sidecar (a.jpg, b.jpg, c.jpg, …)',
+      '5 media files left out for want of a sidecar (a.jpg, b.jpg, c.jpg, …)',
     );
   });
 
-  it('drops the plural and the ellipsis for a single file with no sidecar', () => {
+  it('drops the plural and the ellipsis for a single file left out', () => {
     expect(captionWarning(['a.jpg'])).toBe(
-      '1 media file with no sidecar (a.jpg)',
+      '1 media file left out for want of a sidecar (a.jpg)',
     );
   });
 });

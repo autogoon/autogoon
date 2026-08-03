@@ -441,11 +441,18 @@ refused; see
 [Pictures, videos and their sidecars](#pictures-videos-and-their-sidecars).
 
 Any zip tool works. Zip the directory's contents so `manifest.json` is at the
-root. If you're running the app from source, `npm run goonpack:build` zips every
-pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
-first with the app's own import checks. A pack that builds is a pack that
-imports. Name one to build just that pack:
+root. If you're running the app from source, `npm run goonpack:build` writes
+every pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating
+each one first with the app's own import checks. A pack that builds is a pack
+that imports. Name one to build just that pack:
 `npm run goonpack:build goonpacks/elise`.
+
+It writes the manifest, the system prompt, and **the media that has a sidecar**
+— a picture nothing describes is one no companion can pick, so it is left out
+and counted in a warning rather than shipped. Anything else sitting in `media/`
+is left out too, which is how a labelling tool keeps its working files beside
+the pictures without any of them reaching the zip; a name there that belongs to
+neither is named in a second warning.
 
 ### Importing a pack and updating it
 

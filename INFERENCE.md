@@ -167,6 +167,23 @@ Both name the pack and the experiment, neither has an "every pack" form, and
 both say how many items they are about to run before starting. A pack can hold
 thousands.
 
+## Playing what an experiment described
+
+`npm run goonpack:build` takes the same two arguments in the same order, and
+builds a pack whose captions and descriptions are that experiment's:
+
+    npm run goonpack:build goonpacks/elise 2026-08-02-baseline
+
+Two things that build leaves out. **Media with no sidecar**, since a picture
+nothing can describe is one no companion can pick — the build says how many it
+dropped. And **everything else inference wrote**: the labels, the replies, the
+prompts, the fields, and each run's own copy of the four. What ships is a pack.
+
+Named that way it is strictly that experiment's work: an item it never described
+is left out rather than falling back to a hand-written sidecar, so two packs
+built from two experiments differ only in the thing being compared. Without the
+flag the build takes `<stem>.md`, the hand-written sidecar, as it always has.
+
 ## Experiments
 
 An experiment is a directory under

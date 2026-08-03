@@ -13,6 +13,14 @@
   now takes its control's colour at half strength; the selected one lightens.
   ([#29](https://github.com/autogoon/autogoon/pull/29))
 
+- internal: **A pack ships what a pack needs** — `goonpack:build` zipped every
+  file in a source directory, so anything kept beside the media rode along and
+  a picture nothing had described shipped as bytes no companion could pick. It
+  now writes the manifest, the system prompt, and the media that has a sidecar,
+  counting what it left out. Naming an experiment after the directory builds
+  from that experiment's descriptions instead of the hand-written ones:
+  `npm run goonpack:build goonpacks/elise 2026-08-02-baseline`.
+
 ## 2026-08-02
 
 - internal: **An Inference screen for labelling a corpus** — A dev-only tab that

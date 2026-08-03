@@ -13,7 +13,7 @@ const listed = (items: string[]): string =>
 export function captionWarning(undescribed: string[]): string | null {
   if (undescribed.length === 0) return null;
   const plural = undescribed.length === 1 ? '' : 's';
-  return `${undescribed.length} media file${plural} with no sidecar (${listed(undescribed)})`;
+  return `${undescribed.length} media file${plural} left out for want of a sidecar (${listed(undescribed)})`;
 }
 
 export function strayWarning(strays: string[]): string | null {
