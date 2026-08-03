@@ -1,10 +1,13 @@
-// A pack source written out as a zip, one file open at a time: each is deflated
+// A pack source written out as a zip, one file open at a time: each is written
 // as it is read and the reader pauses when the output stream is full, so peak
 // memory is a chunk rather than the pack. The app reads a pack back the same
-// way (src/lib/goonpacks/extract.ts).
+// way (src/lib/goonpacks/extract.ts), and reads a stored entry as readily as a
+// deflated one — fflate's Unzip handles the stored method with nothing
+// registered.
 import { createReadStream, createWriteStream } from 'node:fs';
 import { join } from 'node:path';
-import { Zip, ZipDeflate } from 'fflate';
+import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
+import { MEDIA_TYPES, splitName } from '../../src/lib/goonpacks/media';
 
 export function writeZip(
   dir: string,
@@ -26,10 +29,15 @@ export function writeZip(
     const next = (i: number): void => {
       if (i === names.length) return zip.end();
       const name = names[i]!;
-      // Deflated, like the `zip -r` an author would run. Stills and video
-      // barely shrink, but a pack's text does, and text is what a pack
-      // accumulates as more media is described.
-      const entry = new ZipDeflate(name, { level: 6 });
+      // Media is stored and everything else deflated. Pictures and video tend
+      // to shrink by under a percent, which doesn't pay for the time spent
+      // trying — it is the dominant cost of building a large pack. A pack's
+      // text does shrink, and text is what a pack accumulates as more media is
+      // described. A zip carries a method per entry, so the two mix freely.
+      const entry =
+        MEDIA_TYPES[splitName(name).ext] === undefined
+          ? new ZipDeflate(name, { level: 6 })
+          : new ZipPassThrough(name);
       zip.add(entry);
       const source = createReadStream(join(dir, name));
       source.on('error', reject);

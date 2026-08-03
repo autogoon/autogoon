@@ -40,7 +40,27 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+// The archive's size on disk, which is how the compression method shows from
+// the outside: unzipping hands back the original bytes either way.
+async function zipSize(names: string[]): Promise<number> {
+  const out = join(dir, 'size.zip');
+  await writeZip(dir, names, out);
+  return readFileSync(out).length;
+}
+
 describe('writeZip', () => {
+  it('stores media rather than spending time deflating it', async () => {
+    // Ten thousand identical bytes: anything deflating this crushes it, and
+    // anything storing it comes out bigger than the file.
+    write('media/a.jpg', text('x'.repeat(10_000)));
+    expect(await zipSize(['media/a.jpg'])).toBeGreaterThan(10_000);
+  });
+
+  it("deflates a pack's text, which is what actually shrinks", async () => {
+    write('media/a.md', text('x'.repeat(10_000)));
+    expect(await zipSize(['media/a.md'])).toBeLessThan(1_000);
+  });
+
   it('writes every named file to its path in the archive, with its bytes', async () => {
     write('manifest.json', text('{"id":"test.pack"}'));
     write('media/a.jpg', text('the picture'));
