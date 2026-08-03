@@ -42,18 +42,19 @@ pack's answers.
 
 ## Ground truth
 
-One `.labels.json` per item, holding each answered field's value and the source
-that gave it — `human`, or the id of the experiment that filled it:
+One `.labels.json` per item, holding what a person answered and nothing else:
 
     {
-      "naked": { "value": true, "source": "2026-08-02-baseline" },
-      "breastSize": { "value": "unknown", "source": "human" }
+      "breastSize": "unknown",
+      "naked": true
     }
 
-A field nobody has answered is absent. An experiment fills only absent fields;
-an answer given on screen always wins and is stamped `human`. Neither overwrites
-the other, so replaying an old experiment back-fills a field added since without
-disturbing anything already curated.
+A field nobody has answered is absent. **An inference never writes here** — an
+experiment's answers stay in its own `.fields.json` and are laid over these on
+screen, so the same fact is never recorded twice and the two records can never
+disagree. What an experiment says is a proposal; what is in this file is what
+somebody decided. Deleting an answer returns the field to absent, and the
+selected experiment's proposal for it shows again.
 
 `unknown` is a value like any other, available on any field whose options
 include it — a picture with no breasts in it has a `breastSize`, and an
@@ -85,15 +86,15 @@ Stepping between items replaces the address rather than stacking it, so one
 press of back leaves review rather than undoing one move through a thousand
 items. A breadcrumb top left does the same.
 
-| Key     |                                                     |
-| ------- | --------------------------------------------------- |
-| `↑` `↓` | move between the fields                             |
-| `←` `→` | answer the focused field, along its options in turn |
-| `Del`   | takes the focused field's answer back               |
-| `a` `d` | previous and next item                              |
-| `Enter` | the next item nobody has answered                   |
-| `?`     | compare against pictures already labelled           |
-| `g`     | run the selected experiment against this item       |
+| Key     |                                                      |
+| ------- | ---------------------------------------------------- |
+| `↑` `↓` | move between the fields                              |
+| `←` `→` | answer the focused field, along its options in turn  |
+| `Del`   | takes the focused field's answer back                |
+| `a` `d` | previous and next item                               |
+| `Enter` | the next item nobody has answered                    |
+| `?`     | compare against pictures already labelled            |
+| `i`     | infer: run the selected experiment against this item |
 
 **Compare** answers "is this one Medium or Large?" the only way it can be
 answered — against the pictures that were called Medium and Large before. `?`
@@ -109,9 +110,9 @@ against those would be calibrating against the thing being measured.
 | `Enter` | answer with the value on screen, and leave |
 | `Esc`   | leave without answering                    |
 
-**Generate is one call for one item** — it is the spot-check. Running an
-experiment across a whole corpus is `npm run experiment:run`, and re-running the
-items an edit put out of date is `npm run experiment:run:outdated`:
+**Infer is one call for one item** — it is the spot-check. Running an experiment
+across a whole corpus is `npm run experiment:run`, and re-running the items an
+edit put out of date is `npm run experiment:run:outdated`:
 
     npm run experiment:run goonpacks/elise 2026-08-02-baseline
 

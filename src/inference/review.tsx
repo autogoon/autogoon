@@ -21,7 +21,6 @@ import { Card } from '@/components/card';
 import { Compare } from './compare';
 import { Failure } from './failure';
 import { FIELDS } from './fields';
-import { HUMAN } from './labels';
 import { mediaUrl, type SurveyedItem } from './item';
 import { routeHash } from './route';
 import type { CorpusView } from './use-corpus';
@@ -42,7 +41,7 @@ export function Review({
   corpus: CorpusView;
   item: SurveyedItem;
 }) {
-  const { answer, clear, generate, step, nextUnanswered } = corpus;
+  const { answer, clear, infer, step, nextUnanswered } = corpus;
   const [focus, setFocus] = useState(0);
   const [comparing, setComparing] = useState(false);
   const field = FIELDS[focus];
@@ -59,7 +58,7 @@ export function Review({
       const field = FIELDS[focus];
       if (field === undefined) return;
       const at = field.options.findIndex(
-        (o) => o.value === item.labels?.[field.id]?.value,
+        (o) => o.value === item.labels?.[field.id],
       );
       const to =
         at === -1
@@ -126,9 +125,9 @@ export function Review({
         step(1);
         return;
       }
-      if (key === 'g') generate();
+      if (key === 'i') infer();
     },
-    [clear, focus, generate, shift, step, nextUnanswered],
+    [clear, focus, infer, shift, step, nextUnanswered],
   );
 
   // Dropped while the compare overlay is open, so one press of an arrow is read
@@ -232,11 +231,11 @@ export function Review({
                       {field.label}
                     </span>
                     {field.options.map((option) => {
-                      // Only a person's answer fills a button. An experiment's
-                      // is the underline, so a field it answered and nobody has
-                      // confirmed reads as still open.
-                      const confirmed =
-                        given?.source === HUMAN && given.value === option.value;
+                      // Only a person's answer fills a button — the labels hold
+                      // nothing else. An experiment's is the underline, so a
+                      // field it answered and nobody has confirmed reads as
+                      // still open.
+                      const confirmed = given === option.value;
                       return (
                         <Button
                           key={String(option.value)}
@@ -294,13 +293,13 @@ export function Review({
                 </pre>
               </Card>
             )}
-            <Button onClick={generate} disabled={corpus.generating}>
-              {corpus.generating
+            <Button onClick={infer} disabled={corpus.inferring}>
+              {corpus.inferring
                 ? 'Running…'
                 : corpus.run !== null
-                  ? 'Regenerate'
-                  : 'Generate'}{' '}
-              <span className="opacity-50">g</span>
+                  ? 'Infer again'
+                  : 'Infer'}{' '}
+              <span className="opacity-50">i</span>
             </Button>
           </div>
         </div>

@@ -66,22 +66,21 @@ asked for.
 ### Ground truth
 
     {
-      "naked": { "value": true, "source": "2026-08-02-baseline" },
-      "breastSize": { "value": "unknown", "source": "human" }
+      "breastSize": "unknown",
+      "naked": true
     }
 
-One record per item. Each field carries its value and where the value came from:
-the id of the experiment that filled it, or `human`.
+One record per item, holding what a person answered and nothing else.
 
-**An absent field is one nobody has answered.** A run fills only absent fields,
-and stamps its own id; answering a field on screen stamps `human`. Neither ever
-overwrites the other, so a run can be replayed over a corpus at any time to fill
-whatever a newly added field left blank, and everything already curated stands.
+**An absent field is one nobody has answered.** An inference writes no ground
+truth: its answers stay in `<stem>.<experiment>.fields.json` and the screen lays
+them over the labels, so no fact is recorded twice and no source stamp is needed
+to tell the two apart. What an experiment says is a proposal; what is here is
+what somebody decided.
 
-Three things follow from the stamp, all of which are unreconstructable if it
-isn't recorded at the time: the review screen can list the fields still holding
-an experiment's answer as a worklist rather than an invisible state, scoring can
-be told to read confirmed fields only, and an experiment is never scored against
+Three things follow from keeping them in separate files: the review screen lists
+the fields holding only a proposal as a worklist rather than an invisible state,
+scoring reads the labels alone, and an experiment can never be scored against
 its own output.
 
 `unknown` is a value like any other, not a state — an option in the enum of any
@@ -234,13 +233,12 @@ Two views:
   to the next item nobody has answered. Reviewing everything and working through
   what's unanswered are both real, so neither replaces the other.
 
-**Generate** runs the baseline for that item: it writes the run record, and
-writes into ground truth only the fields nothing has answered yet. A control
-showing an experiment's answer reads differently from one showing yours, so
-confirming a seeded value is a distinct act from leaving it — a field is never
-promoted to `human` by moving on.
+**Infer** runs the baseline for that item and writes what it produced, touching
+no ground truth. A control showing an experiment's answer reads differently from
+one showing yours, so confirming a proposal is a distinct act from leaving it —
+a field is never promoted to an answer by moving on.
 
-Generate stays per item — it is the spot-check. Running an experiment across the
+Infer stays per item — it is the spot-check. Running an experiment across the
 corpus is a script rather than a button, because it is thousands of paid calls
 and nothing that costs that should start on a click.
 

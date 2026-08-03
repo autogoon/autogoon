@@ -1,27 +1,23 @@
 // Running one experiment against one of a pack's items, and writing everything
-// that falls out of it. The screen's Generate button and the sweep script both
+// that falls out of it. The screen's Infer button and the sweep script both
 // come through here, so a spot-check and a whole-corpus run leave the corpus in
 // the same state.
 //
+// Ground truth is not among what it writes: an experiment's answers are its
+// own, and the screen lays them over what a person has said rather than the run
+// writing into `<stem>.labels.json` (labels.ts).
+//
 // Server-only: it writes files.
 
-import {
-  corpusPath,
-  readLabels,
-  writeLabels,
-  writeParameters,
-  writeRaw,
-  writeRun,
-} from './corpus';
+import { corpusPath, writeParameters, writeRaw, writeRun } from './corpus';
 import type { Experiment } from './experiment';
-import { fillAbsent, type Labels } from './labels';
 import type { CorpusItem } from './item';
 import type { RunFields } from './runs';
 
 // The record as written, not as the caller would reconstruct it: `ranAt` is
 // stamped here, and the screen showing a different one to the file would be a
 // second answer to the same question.
-export type RunResult = { raw: string; run: RunFields; labels: Labels };
+export type RunResult = { raw: string; run: RunFields };
 
 export async function runItem(
   pack: string,
@@ -41,11 +37,5 @@ export async function runItem(
   // Rewritten every run, because it records what the last one used rather than
   // what the experiment is bound to.
   await writeParameters(pack, experiment.id, experiment.parameters);
-  const labels = fillAbsent(
-    (await readLabels(pack, item.stem)) ?? {},
-    fields,
-    experiment.id,
-  );
-  await writeLabels(pack, item.stem, labels);
-  return { raw, run, labels };
+  return { raw, run };
 }

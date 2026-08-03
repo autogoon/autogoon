@@ -15,7 +15,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import type { Field, FieldValue } from './fields';
-import { HUMAN } from './labels';
 import { mediaUrl, type SurveyedItem } from './item';
 
 export function Compare({
@@ -39,22 +38,23 @@ export function Compare({
 }) {
   const given = item.labels?.[field.id];
   const [valueAt, setValueAt] = useState(() => {
-    const at = field.options.findIndex((o) => o.value === given?.value);
+    const at = field.options.findIndex((o) => o.value === given);
     return at === -1 ? 0 : at;
   });
   const [exemplarAt, setExemplarAt] = useState(0);
 
   const option = field.options[valueAt]!;
 
-  // Every confirmed use of the value on screen. Rebuilt per value rather than
-  // grouped once: the corpus is one array and this runs on a keypress.
+  // Every confirmed use of the value on screen — the labels hold a person's
+  // answers and nothing else, so membership is the whole test. Rebuilt per
+  // value rather than grouped once: the corpus is one array and this runs on a
+  // keypress.
   const exemplars = useMemo(
     () =>
-      items.filter((other) => {
-        if (other.stem === item.stem) return false;
-        const answer = other.labels?.[field.id];
-        return answer?.source === HUMAN && answer.value === option.value;
-      }),
+      items.filter(
+        (other) =>
+          other.stem !== item.stem && other.labels?.[field.id] === option.value,
+      ),
     [items, item.stem, field.id, option.value],
   );
 

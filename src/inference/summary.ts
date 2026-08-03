@@ -2,13 +2,14 @@
 // return. No second source: the same records the review screen reads are what
 // these numbers come from.
 //
-// The distinction every count here turns on is who answered. An item an
-// experiment has filled is not a labelled item — it is an item waiting to be
-// looked at — so `confirmed` counts only what a person answered, and `seeded`
-// is the worklist.
+// The distinction every count here turns on is who answered, and the two come
+// from different files: a person's answers are the item's labels, the selected
+// experiment's are its run. An item an experiment has answered is not a
+// labelled item — it is an item waiting to be looked at — so `confirmed` counts
+// the labels and `seeded` counts what the run proposed and the labels don't
+// cover, which is the worklist.
 
 import { FIELDS, optionLabel, type FieldValue } from './fields';
-import { HUMAN, type Labels } from './labels';
 import { isCurrent } from './runs';
 import type { SurveyedItem } from './item';
 
@@ -32,7 +33,7 @@ export type CorpusSummary = {
   videos: number;
   // Items where every field has a person's answer.
   confirmed: number;
-  // Items nothing has answered at all.
+  // Items nobody has answered and the selected experiment hasn't run against.
   untouched: number;
   // Experiment id to the number of items it has answered.
   runs: Record<string, number>;
@@ -41,16 +42,6 @@ export type CorpusSummary = {
   // items is what clears it.
   outdated: number;
   fields: FieldTally[];
-};
-
-const confirmedValue = (
-  labels: Labels | null,
-  id: string,
-): FieldValue | undefined => {
-  const answer = labels?.[id];
-  return answer !== undefined && answer.source === HUMAN
-    ? answer.value
-    : undefined;
 };
 
 export function summarise(
@@ -71,12 +62,10 @@ export function summarise(
     if (item.run !== null && !isCurrent(item.run, version)) outdated += 1;
     if (item.kind === 'image') images += 1;
     else videos += 1;
-    if (item.labels === null || Object.keys(item.labels).length === 0) {
-      untouched += 1;
-    }
-    if (FIELDS.every((f) => confirmedValue(item.labels, f.id) !== undefined)) {
-      confirmed += 1;
-    }
+    const unlabelled =
+      item.labels === null || Object.keys(item.labels).length === 0;
+    if (unlabelled && item.run === null) untouched += 1;
+    if (FIELDS.every((f) => item.labels?.[f.id] !== undefined)) confirmed += 1;
     for (const id of item.runs) runs[id] = (runs[id] ?? 0) + 1;
   }
 
@@ -86,11 +75,10 @@ export function summarise(
     let bySeed = 0;
     for (const item of items) {
       const answer = item.labels?.[field.id];
-      if (answer === undefined) continue;
-      if (answer.source === HUMAN) {
+      if (answer !== undefined) {
         byHuman += 1;
-        counts.set(answer.value, (counts.get(answer.value) ?? 0) + 1);
-      } else {
+        counts.set(answer, (counts.get(answer) ?? 0) + 1);
+      } else if (item.run?.fields[field.id] !== undefined) {
         bySeed += 1;
       }
     }
@@ -115,10 +103,9 @@ export function summarise(
     const tally = fields.find((f) => f.id === field.id)!;
     for (const item of items) {
       const answer = item.labels?.[field.id];
-      if (answer === undefined || answer.source !== HUMAN) continue;
-      const known = field.options.some((o) => o.value === answer.value);
-      if (known) continue;
-      const label = optionLabel(field, answer.value);
+      if (answer === undefined) continue;
+      if (field.options.some((o) => o.value === answer)) continue;
+      const label = optionLabel(field, answer);
       const existing = tally.values.find((v) => v.label === label);
       if (existing === undefined) tally.values.push({ label, count: 1 });
       else existing.count += 1;

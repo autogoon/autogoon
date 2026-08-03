@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { choose, remember, remembered, type Chosen } from './chosen';
 import { FIELDS, type FieldValue } from './fields';
-import { HUMAN, type Labels } from './labels';
+import type { Labels } from './labels';
 import type { PackSource, SurveyedItem } from './item';
 import { goTo, type InferenceRoute } from './route';
 import type { RunFields } from './runs';
@@ -43,23 +43,24 @@ export type CorpusView = {
   // hasn't run against it.
   run: ItemRun | null;
   loading: boolean;
-  generating: boolean;
+  inferring: boolean;
   error: string | null;
   step: (by: number) => void;
   nextUnanswered: () => void;
   open: (stem: string | null) => void;
   answer: (field: string, value: FieldValue) => void;
   clear: (field: string) => void;
-  generate: () => void;
+  infer: () => void;
   selectPack: (pack: string) => void;
   select: (experiment: string) => void;
   reload: () => void;
 };
 
-// Answered means answered by a person. An item an experiment has filled is
-// exactly what still wants looking at, so it is not skipped.
+// Answered means a person has answered every field. An item an experiment has
+// proposed values for is exactly what still wants looking at, and those are not
+// in the labels at all, so it is not skipped.
 export const isAnswered = (labels: Labels | null): boolean =>
-  labels !== null && FIELDS.every((f) => labels[f.id]?.source === HUMAN);
+  labels !== null && FIELDS.every((f) => labels[f.id] !== undefined);
 
 const message = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
@@ -74,7 +75,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
   const [version, setVersion] = useState('');
   const [run, setRun] = useState<ItemRun | null>(null);
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [inferring, setInferring] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // What there is to choose between, read when the tab is first opened. Every
@@ -243,25 +244,21 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     if (to !== undefined) open(items[to]!.stem);
   }, [index, items, open]);
 
-  // One entry updated in place. `run` is given only where a run just happened;
-  // answering a field leaves whatever the listing already held.
-  const replace = useCallback(
-    (stemAt: string, labels: Labels, ran?: RunFields) => {
-      setItems((all) =>
-        all.map((item) =>
-          item.stem === stemAt
-            ? {
-                ...item,
-                hasLabels: true,
-                labels,
-                ...(ran === undefined ? {} : { run: ran }),
-              }
-            : item,
-        ),
-      );
-    },
-    [],
-  );
+  // One entry updated in place, rather than re-reading a corpus of thousands
+  // because one field changed.
+  const replaceLabels = useCallback((stemAt: string, labels: Labels) => {
+    setItems((all) =>
+      all.map((item) =>
+        item.stem === stemAt ? { ...item, hasLabels: true, labels } : item,
+      ),
+    );
+  }, []);
+
+  const replaceRun = useCallback((stemAt: string, ran: RunFields) => {
+    setItems((all) =>
+      all.map((item) => (item.stem === stemAt ? { ...item, run: ran } : item)),
+    );
+  }, []);
 
   const answer = useCallback(
     (field: string, value: FieldValue) => {
@@ -276,10 +273,10 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
           if (!res.ok) throw new Error(await res.text());
           return res.json() as Promise<{ labels: Labels }>;
         })
-        .then((data) => replace(stem, data.labels))
+        .then((data) => replaceLabels(stem, data.labels))
         .catch((e: unknown) => setError(message(e)));
     },
-    [pack, stem, replace],
+    [pack, stem, replaceLabels],
   );
 
   const clear = useCallback(
@@ -294,15 +291,15 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
           if (!res.ok) throw new Error(await res.text());
           return res.json() as Promise<{ labels: Labels }>;
         })
-        .then((data) => replace(stem, data.labels))
+        .then((data) => replaceLabels(stem, data.labels))
         .catch((e: unknown) => setError(message(e)));
     },
-    [pack, stem, replace],
+    [pack, stem, replaceLabels],
   );
 
-  const generate = useCallback(() => {
+  const infer = useCallback(() => {
     if (stem === undefined || pack === '' || experiment === '') return;
-    setGenerating(true);
+    setInferring(true);
     setError(null);
     fetch(`/api/inference/run?pack=${encodeURIComponent(pack)}`, {
       method: 'POST',
@@ -311,19 +308,15 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     })
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
-        return res.json() as Promise<{
-          raw: string;
-          run: RunFields;
-          labels: Labels;
-        }>;
+        return res.json() as Promise<{ raw: string; run: RunFields }>;
       })
       .then((data) => {
         setRun({ fields: data.run.fields, raw: data.raw });
-        replace(stem, data.labels, data.run);
+        replaceRun(stem, data.run);
       })
       .catch((e: unknown) => setError(message(e)))
-      .finally(() => setGenerating(false));
-  }, [pack, stem, experiment, replace]);
+      .finally(() => setInferring(false));
+  }, [pack, stem, experiment, replaceRun]);
 
   return {
     items,
@@ -336,14 +329,14 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     current,
     run,
     loading,
-    generating,
+    inferring,
     error,
     step,
     nextUnanswered,
     open,
     answer,
     clear,
-    generate,
+    infer,
     selectPack,
     select,
     reload,

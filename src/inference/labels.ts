@@ -1,27 +1,18 @@
-// Ground truth: what is actually true of one item, and where each answer came
-// from. The format and the rules are in
-// docs/2026-08-02-inference-ui-spec.md — one record per item, each field
-// carrying its value and a source, and an absent field meaning nobody has
-// answered.
+// Ground truth: what a person says is actually true of one item. One record per
+// item, each answered field carrying its value, and an absent field meaning
+// nobody has answered it — the format is in
+// docs/2026-08-02-inference-ui-spec.md.
 //
-// The rule everything else depends on: a run fills only absent fields and
-// stamps its own id, a reviewer's answer stamps `human`, and neither ever
-// overwrites the other. That is what lets a new field be added later and
-// back-filled by replaying an old experiment without disturbing a single
-// curated answer.
+// **Only a person's answers are here.** An experiment's answers live in its own
+// `<stem>.<experiment>.fields.json` and are laid over these on screen, so the
+// same fact is never recorded twice and the two can never disagree. What an
+// experiment says is a proposal; what is in this file is what someone decided.
 
 import type { FieldValue } from './fields';
 
-// Where an answer came from: `human`, or the id of the experiment that filled
-// it. Kept as a plain string so an experiment id needs no separate encoding.
-export const HUMAN = 'human';
-
-export type Answer = { value: FieldValue; source: string };
-export type Labels = Record<string, Answer>;
+export type Labels = Record<string, FieldValue>;
 
 export class LabelError extends Error {}
-
-export const isConfirmed = (answer: Answer): boolean => answer.source === HUMAN;
 
 // Read a labels file. Throws rather than repairing: a record that won't parse
 // is a file someone edited by hand and got wrong, and silently dropping a field
@@ -37,18 +28,11 @@ export function parseLabels(text: string): Labels {
     throw new LabelError('The labels file is not a set of fields.');
   }
   const labels: Labels = {};
-  for (const [id, raw] of Object.entries(parsed as Record<string, unknown>)) {
-    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-      throw new LabelError(`${id} is not an answer with a value and a source.`);
-    }
-    const { value, source } = raw as Record<string, unknown>;
+  for (const [id, value] of Object.entries(parsed as Record<string, unknown>)) {
     if (typeof value !== 'boolean' && typeof value !== 'string') {
       throw new LabelError(`${id} has no value.`);
     }
-    if (typeof source !== 'string' || source === '') {
-      throw new LabelError(`${id} has no source.`);
-    }
-    labels[id] = { value, source };
+    labels[id] = value;
   }
   return labels;
 }
@@ -64,29 +48,15 @@ export function renderLabels(labels: Labels): string {
   return `${JSON.stringify(sorted, null, 2)}\n`;
 }
 
-// A reviewer answering. Always wins, always stamps `human`.
+// A reviewer answering.
 export function answer(labels: Labels, id: string, value: FieldValue): Labels {
-  return { ...labels, [id]: { value, source: HUMAN } };
+  return { ...labels, [id]: value };
 }
 
-// A reviewer taking an answer back: the field returns to absent.
+// A reviewer taking an answer back: the field returns to absent, and whatever
+// the selected experiment proposed for it shows again.
 export function clear(labels: Labels, id: string): Labels {
   const rest = { ...labels };
   delete rest[id];
   return rest;
-}
-
-// A run's answers arriving. Fills only what nothing has answered, so replaying
-// an experiment over a corpus back-fills a newly added field and touches
-// nothing else.
-export function fillAbsent(
-  labels: Labels,
-  fields: Record<string, FieldValue>,
-  source: string,
-): Labels {
-  const filled = { ...labels };
-  for (const [id, value] of Object.entries(fields)) {
-    if (filled[id] === undefined) filled[id] = { value, source };
-  }
-  return filled;
 }

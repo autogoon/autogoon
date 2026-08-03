@@ -4,8 +4,8 @@
 // The summary reports on one pack's corpus for one experiment at a time. The
 // pack picker chooses the corpus — a corpus is a pack's media/ — and the
 // experiment picker is the summary's subject: the counts describe it, and
-// review shows and generates its replies. The ground-truth tallies are not its:
-// those count what people answered, which belongs to no experiment.
+// review shows its replies and infers new ones. The ground-truth tallies are
+// not its: those count what people answered, which belongs to no experiment.
 
 import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';

@@ -1,11 +1,12 @@
 // The corpus's counts. Two distinctions they have to get right: an answer a
-// person gave against one an experiment filled in — an item the baseline has
-// answered is work outstanding, not work done — and an experiment's answer
-// produced by the code as it stands against one left over from before an edit.
+// person gave against one the selected experiment proposed — an item the
+// baseline has answered is work outstanding, not work done — and an
+// experiment's answer produced by the code as it stands against one left over
+// from before an edit.
 
 import { describe, expect, it } from '@jest/globals';
 import { FIELDS, UNKNOWN, type FieldValue } from './fields';
-import { HUMAN, type Labels } from './labels';
+import type { Labels } from './labels';
 import type { SurveyedItem } from './item';
 import { summarise } from './summary';
 
@@ -34,19 +35,19 @@ const ranUnder = (stem: string, version: string | undefined): SurveyedItem => ({
   run: { ranAt: 'now', version, fields: { naked: true } },
 });
 
-const byHuman = (value: FieldValue): Labels => ({
-  naked: { value, source: HUMAN },
-});
+const byHuman = (value: FieldValue): Labels => ({ naked: value });
 
 // Every field answered by a person. `confirmed` turns on the whole set, so a
 // fixture naming one field stops meaning "answered" the moment another field
 // is added.
 const everyField = (): Labels =>
-  Object.fromEntries(
-    FIELDS.map((f) => [f.id, { value: f.options[0]!.value, source: HUMAN }]),
-  );
-const bySeed = (value: boolean): Labels => ({
-  naked: { value, source: BASELINE },
+  Object.fromEntries(FIELDS.map((f) => [f.id, f.options[0]!.value]));
+
+// An item with no labels that the selected experiment has answered — the state
+// a run leaves behind, now that a run writes nothing into the ground truth.
+const proposed = (stem: string, value: boolean): SurveyedItem => ({
+  ...item(stem, null, [BASELINE]),
+  run: { ranAt: 'now', version: NOW, fields: { naked: value } },
 });
 
 describe('summarise', () => {
@@ -70,20 +71,20 @@ describe('summarise', () => {
 
   it('counts an item answered Unknown as confirmed, since it was answered', () => {
     const labels = everyField();
-    labels.naked = { value: UNKNOWN, source: HUMAN };
+    labels.naked = UNKNOWN;
     expect(summarise([item('a', labels)], NOW).confirmed).toBe(1);
   });
 
-  it('does not count an item the experiment answered as confirmed', () => {
-    expect(summarise([item('a', bySeed(true))], NOW).confirmed).toBe(0);
+  it('does not count an item only the experiment has answered as confirmed', () => {
+    expect(summarise([proposed('a', true)], NOW).confirmed).toBe(0);
   });
 
   it('counts an item nothing has answered as untouched', () => {
     expect(summarise([item('a'), item('b', {})], NOW).untouched).toBe(2);
   });
 
-  it('does not count a seeded item as untouched — it is work outstanding', () => {
-    expect(summarise([item('a', bySeed(true))], NOW).untouched).toBe(0);
+  it('does not count an item the experiment has answered as untouched — it is work outstanding', () => {
+    expect(summarise([proposed('a', true)], NOW).untouched).toBe(0);
   });
 
   it('tallies how many items each experiment has answered', () => {
@@ -119,7 +120,7 @@ describe('summarise', () => {
       [
         item('a', byHuman(true)),
         item('b', byHuman(false)),
-        item('c', bySeed(true)),
+        proposed('c', true),
       ],
       NOW,
     );
@@ -127,6 +128,18 @@ describe('summarise', () => {
       id: 'naked',
       confirmed: 2,
       seeded: 1,
+    });
+  });
+
+  it('does not count a field as seeded once a person has answered it', () => {
+    const answered: SurveyedItem = {
+      ...proposed('a', true),
+      labels: byHuman(false),
+      hasLabels: true,
+    };
+    expect(summarise([answered], NOW).fields[0]).toMatchObject({
+      confirmed: 1,
+      seeded: 0,
     });
   });
 
@@ -153,10 +166,7 @@ describe('summarise', () => {
   });
 
   it('shows a value no option covers rather than dropping it', () => {
-    const summary = summarise(
-      [item('a', { naked: { value: 'sort of', source: HUMAN } })],
-      NOW,
-    );
+    const summary = summarise([item('a', { naked: 'sort of' })], NOW);
     expect(summary.fields[0]?.values).toContainEqual({
       label: 'sort of',
       count: 1,
