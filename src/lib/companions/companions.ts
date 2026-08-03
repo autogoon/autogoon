@@ -98,8 +98,7 @@ export const companionClockZone = (companion: Companion): string | undefined =>
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default
 // price-weighted load balancing — a companion's reply is spoken, so time to
 // first token is the pause before they answer.
-export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
-// MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
+export const DEFAULT_MODEL = 'minimax/minimax-m2.5:nitro';
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 export const DEFAULT_PASSES_REASONING = true;
 // Middling on both counts: a companion who fills a silence without talking over
