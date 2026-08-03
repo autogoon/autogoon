@@ -14,6 +14,8 @@ const BASELINE = '2026-08-02-baseline';
 // The surveyed experiment's version, and one it has moved on from.
 const NOW = 'a41f0c2b7d9e';
 const BEFORE = '00b3ee91c4d7';
+// Every record carries these; nothing counted here reads them.
+const PARAMETERS = { model: 'a-model', maxEdge: 1024, temperature: 0 };
 
 const item = (
   stem: string,
@@ -32,7 +34,12 @@ const item = (
 // An item the surveyed experiment has answered, at the version given.
 const ranUnder = (stem: string, version: string | undefined): SurveyedItem => ({
   ...item(stem, null, [BASELINE]),
-  run: { ranAt: 'now', version, fields: { naked: true } },
+  run: {
+    ranAt: 'now',
+    version,
+    parameters: PARAMETERS,
+    fields: { naked: true },
+  },
 });
 
 const byHuman = (value: FieldValue): Labels => ({ naked: value });
@@ -47,7 +54,12 @@ const everyField = (): Labels =>
 // a run leaves behind, now that a run writes nothing into the ground truth.
 const proposed = (stem: string, value: boolean): SurveyedItem => ({
   ...item(stem, null, [BASELINE]),
-  run: { ranAt: 'now', version: NOW, fields: { naked: value } },
+  run: {
+    ranAt: 'now',
+    version: NOW,
+    parameters: PARAMETERS,
+    fields: { naked: value },
+  },
 });
 
 describe('summarise', () => {

@@ -23,7 +23,6 @@ between a labelled set and playing it. [INFERENCE.md](../INFERENCE.md) is the
 current-state description; the layout is unchanged apart from where it sits.
 
     goonpacks/<pack>/media/
-      2026-08-02-baseline.run.json           one experiment's parameters
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
@@ -90,23 +89,7 @@ is exactly what the corpus has to be able to say.
 
 ### Run output
 
-Three files, because the three have different lifetimes.
-
-**`<experiment>.run.json`** — the parameters, written when the experiment first
-runs against anything:
-
-    {
-      "model": "qwen/qwen3-vl-235b-a22b-instruct",
-      "maxEdge": 1024,
-      "temperature": 0
-    }
-
-They belong to the experiment rather than to each item, so they are recorded
-once. Keeping that true needs one rule: **a run whose parameters differ from the
-recorded ones is refused.** A different model or resolution is a different
-experiment, which is the frozen-experiment rule applied to the values the code
-doesn't hold. Without the refusal a hoisted record would describe neither run,
-since v1 generates one item at a time over days.
+Two files per item, because the two have different lifetimes.
 
 **`<item>.<experiment>.raw.txt`** — the reply verbatim, before anything reads
 it. A plain file rather than a string inside JSON: it is prose, and reading it
@@ -117,19 +100,29 @@ text writes whatever form it has.
 
     {
       "ranAt": "2026-08-02T14:22:31.004Z",
-      "commit": "ef88374",
+      "version": "5a4919b862f2",
+      "parameters": {
+        "model": "qwen/qwen3-vl-235b-a22b-instruct",
+        "maxEdge": 1024,
+        "temperature": 0
+      },
       "fields": { "naked": true }
     }
 
 `fields` is **derived** from the raw reply, so a parser that turns out to be
 wrong, or a field added to an existing experiment's output, is re-derived from
-disk across the whole corpus without calling a model again. `ranAt` and `commit`
-sit here rather than with the parameters because they genuinely differ per item
-and nothing is wrong when they do.
+disk across the whole corpus without calling a model again.
 
-The prompt is in none of the three: the experiment's own directory is committed
-and frozen, so it already is the copy. What has to be recorded is what could
-vary between two runs of the same code — model, resolution and temperature are
+**Each record carries its own parameters**, rather than one file per experiment
+holding them. Items are inferred one at a time over days and an experiment may
+be edited between two of them, so a single record could only describe the last
+run. The `version` beside them identifies the code that produced the answers and
+cannot be read back into a model name, which is what the parameters are for: the
+question always arrives at a result, and the result answers it alone.
+
+The prompt is in neither: the experiment's own directory is committed and
+frozen, so it already is the copy. What has to be recorded is what could vary
+between two runs of the same code — model, resolution and temperature are
 environment overrides today, so two runs at one commit can otherwise differ
 completely with nothing to show it.
 
@@ -185,8 +178,8 @@ it is lifted out whole.
       use-corpus.ts                    listing, current item, calls the routes
       paths.ts                         the filename conventions, in one place
       corpus.ts                        what exists on disk for an item
-      labels.ts                        ground truth: read, write, fill-only-absent
-      runs.ts                          run.json and the refusal rule, fields.json
+      labels.ts                        ground truth: what a person answered
+      runs.ts                          fields.json: a result and what made it
       experiments/
         index.ts                       the registry
         2026-08-02-baseline/
@@ -205,8 +198,8 @@ Everything sits under `src/`, so `tsconfig.json`, `jest.config.mjs`, the
 practical reason not to put experiments at the repo root.
 
 `paths.ts`, `labels.ts` and `runs.ts` carry the logic worth testing: the
-filename conventions, the fill-only-absent merge, and the refusal of a run whose
-parameters differ from the recorded ones. Each experiment's `parse()` is tested
+filename conventions, what a labels file may hold, and the refusal of a result
+that says nothing about what produced it. Each experiment's `parse()` is tested
 against a stored reply, which needs no network.
 
 ## The screen

@@ -21,23 +21,10 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CorpusItem, SurveyedItem } from './item';
-import {
-  fieldsName,
-  labelsName,
-  PACKS_DIR,
-  rawName,
-  readName,
-  runName,
-} from './paths';
+import { fieldsName, labelsName, PACKS_DIR, rawName, readName } from './paths';
 import { MEDIA_NAME } from '@/lib/goonpacks/pack';
 import { parseLabels, renderLabels, type Labels } from './labels';
-import {
-  parseRunFields,
-  renderParameters,
-  renderRunFields,
-  type RunFields,
-  type RunParameters,
-} from './runs';
+import { parseRunFields, renderRunFields, type RunFields } from './runs';
 
 export const corpusPath = (pack: string, ...parts: string[]): string =>
   join(process.cwd(), PACKS_DIR, pack, MEDIA_NAME, ...parts);
@@ -193,19 +180,4 @@ export async function writeRaw(
   raw: string,
 ): Promise<void> {
   await writeFile(corpusPath(pack, rawName(stem, experiment)), raw, 'utf8');
-}
-
-// Written, never read back: `<experiment>.run.json` records what the last run
-// used for whoever opens the corpus, and what says whether a result is current
-// is the version stamped on the result itself.
-export async function writeParameters(
-  pack: string,
-  experiment: string,
-  parameters: RunParameters,
-): Promise<void> {
-  await writeFile(
-    corpusPath(pack, runName(experiment)),
-    renderParameters(parameters),
-    'utf8',
-  );
 }

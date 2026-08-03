@@ -10,7 +10,6 @@
 //   beach.labels.json                      ground truth
 //   beach.2026-08-02-baseline.fields.json  a run's answers
 //   beach.2026-08-02-baseline.raw.txt      that run's reply, verbatim
-//   2026-08-02-baseline.run.json           an experiment's parameters
 //
 // A stem may contain dots (`beach.holiday.jpg`), so suffixes are matched from
 // the right and never by splitting on the first dot. An experiment id may not,
@@ -31,7 +30,6 @@ export const EXPERIMENT_ID = /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/;
 export const LABELS_SUFFIX = '.labels.json';
 export const FIELDS_SUFFIX = '.fields.json';
 export const RAW_SUFFIX = '.raw.txt';
-export const RUN_SUFFIX = '.run.json';
 
 // What one filename in the corpus turns out to be. `null` from readName means
 // the file belongs to nothing the tool knows — a stray note, a .DS_Store, a
@@ -40,8 +38,7 @@ export type CorpusName =
   | { what: 'media'; stem: string; file: string; kind: MediaKind }
   | { what: 'labels'; stem: string }
   | { what: 'fields'; stem: string; experiment: string }
-  | { what: 'raw'; stem: string; experiment: string }
-  | { what: 'run'; experiment: string };
+  | { what: 'raw'; stem: string; experiment: string };
 
 // Split `<stem>.<experiment>` off a name whose suffix has already been removed.
 // Returns null when the trailing segment isn't a valid experiment id, so a
@@ -69,10 +66,6 @@ export function readName(file: string): CorpusName | null {
     const split = splitExperiment(file.slice(0, -RAW_SUFFIX.length));
     return split === null ? null : { what: 'raw', ...split };
   }
-  if (file.endsWith(RUN_SUFFIX)) {
-    const experiment = file.slice(0, -RUN_SUFFIX.length);
-    return EXPERIMENT_ID.test(experiment) ? { what: 'run', experiment } : null;
-  }
   const dot = file.lastIndexOf('.');
   if (dot <= 0) return null;
   const type = MEDIA_TYPES[file.slice(dot + 1).toLowerCase()];
@@ -90,5 +83,3 @@ export const fieldsName = (stem: string, experiment: string): string =>
   `${stem}.${experiment}${FIELDS_SUFFIX}`;
 export const rawName = (stem: string, experiment: string): string =>
   `${stem}.${experiment}${RAW_SUFFIX}`;
-export const runName = (experiment: string): string =>
-  `${experiment}${RUN_SUFFIX}`;

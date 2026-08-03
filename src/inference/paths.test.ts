@@ -3,7 +3,7 @@
 // but isn't — are pinned here rather than discovered against a real directory.
 
 import { describe, expect, it } from '@jest/globals';
-import { fieldsName, labelsName, rawName, readName, runName } from './paths';
+import { fieldsName, labelsName, rawName, readName } from './paths';
 
 describe('readName', () => {
   it('reads a picture as media, carrying its kind', () => {
@@ -52,13 +52,6 @@ describe('readName', () => {
     });
   });
 
-  it("reads an experiment's parameters, which carry no stem", () => {
-    expect(readName('2026-08-02-baseline.run.json')).toEqual({
-      what: 'run',
-      experiment: '2026-08-02-baseline',
-    });
-  });
-
   it('keeps the dots in a stem that has them', () => {
     expect(readName('beach.holiday.jpg')).toMatchObject({
       stem: 'beach.holiday',
@@ -78,14 +71,11 @@ describe('readName', () => {
     expect(readName('beach.whenever.fields.json')).toBeNull();
   });
 
-  it('refuses a run name whose experiment is not an id', () => {
-    expect(readName('notes.run.json')).toBeNull();
-  });
-
   it('ignores a file the corpus has no use for', () => {
     expect(readName('.DS_Store')).toBeNull();
     expect(readName('notes.txt')).toBeNull();
     expect(readName('README')).toBeNull();
+    expect(readName('beach.md')).toBeNull();
   });
 });
 
@@ -113,15 +103,6 @@ describe('rawName', () => {
     expect(readName(rawName('beach', '2026-08-02-baseline'))).toEqual({
       what: 'raw',
       stem: 'beach',
-      experiment: '2026-08-02-baseline',
-    });
-  });
-});
-
-describe('runName', () => {
-  it('round-trips through readName', () => {
-    expect(readName(runName('2026-08-02-baseline'))).toEqual({
-      what: 'run',
       experiment: '2026-08-02-baseline',
     });
   });

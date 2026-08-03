@@ -23,7 +23,6 @@ Media sits flat in `media/`, in the formats
 writes is named from the item it belongs to:
 
     goonpacks/<pack>/media/
-      2026-08-02-baseline.run.json           an experiment's parameters
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
@@ -144,9 +143,11 @@ Each exports two functions, described in
   that turns out to be wrong is fixed by re-deriving from the replies already on
   disk.
 
-`<experiment>.run.json` records what the last run used — model, resolution,
-temperature — because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct`
-is not. It is a record; the version is what says whether a result is current.
+Every result records what its own run used — model, resolution, temperature —
+because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruct` is not. Items
+are inferred one at a time over days and an experiment may be edited between two
+of them, so the record sits with the result rather than with the experiment. It
+is a record; the version is what says whether a result is current.
 
 Adding one is a new directory, its `README.md`, and an entry in
 [the registry](./src/inference/experiments/index.ts). No entry is the current

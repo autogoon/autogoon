@@ -9,7 +9,7 @@
 //
 // Server-only: it writes files.
 
-import { corpusPath, writeParameters, writeRaw, writeRun } from './corpus';
+import { corpusPath, writeRaw, writeRun } from './corpus';
 import type { Experiment } from './experiment';
 import type { CorpusItem } from './item';
 import type { RunFields } from './runs';
@@ -29,13 +29,15 @@ export async function runItem(
 ): Promise<RunResult> {
   const raw = await experiment.run(corpusPath(pack, item.file));
   const fields = experiment.parse(raw);
-  const run = { ranAt: new Date().toISOString(), version, fields };
+  const run = {
+    ranAt: new Date().toISOString(),
+    version,
+    parameters: experiment.parameters,
+    fields,
+  };
   // The reply lands first: it is the thing that cost money, and everything
   // else is derived from it. A crash after this point loses no spend.
   await writeRaw(pack, item.stem, experiment.id, raw);
   await writeRun(pack, item.stem, experiment.id, run);
-  // Rewritten every run, because it records what the last one used rather than
-  // what the experiment is bound to.
-  await writeParameters(pack, experiment.id, experiment.parameters);
   return { raw, run };
 }

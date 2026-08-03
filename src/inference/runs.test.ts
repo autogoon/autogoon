@@ -1,11 +1,10 @@
-// The parameters an experiment's last run used, the record it writes per item,
-// and whether that record still describes the experiment as it stands.
+// The record an experiment writes per item, and whether it still describes the
+// experiment as it stands.
 
 import { describe, expect, it } from '@jest/globals';
 import {
   isCurrent,
   parseRunFields,
-  renderParameters,
   renderRunFields,
   RunError,
   type RunParameters,
@@ -17,50 +16,60 @@ const PARAMETERS: RunParameters = {
   temperature: 0,
 };
 
-describe('renderParameters', () => {
-  // Nothing parses this file back, so what it looks like on disk is the whole
-  // contract — it exists to be read by whoever opens the corpus.
-  it('writes the three values as a person reads them, one per line', () => {
-    expect(renderParameters(PARAMETERS)).toBe(
-      `{
-  "model": "qwen/qwen3-vl-235b-a22b-instruct",
-  "maxEdge": 1024,
-  "temperature": 0
-}
-`,
-    );
-  });
-});
+const RECORD = `{"ranAt":"now","parameters":${JSON.stringify(PARAMETERS)},"fields":{"naked":true}}`;
 
 describe('parseRunFields', () => {
   it('round-trips through renderRunFields', () => {
     const run = {
       ranAt: '2026-08-02T14:22:31.004Z',
       version: 'a41f0c2b7d9e',
+      parameters: PARAMETERS,
       fields: { naked: true, breastSize: 'medium' },
     };
     expect(parseRunFields(renderRunFields(run))).toEqual(run);
   });
 
   it('reads a record written before versions were stamped', () => {
-    expect(
-      parseRunFields('{"ranAt":"now","fields":{"naked":true}}'),
-    ).not.toHaveProperty('version');
+    expect(parseRunFields(RECORD)).not.toHaveProperty('version');
+  });
+
+  it('reads back what the run asked the model for', () => {
+    expect(parseRunFields(RECORD).parameters).toEqual(PARAMETERS);
   });
 
   it('refuses a record with no fields', () => {
-    expect(() => parseRunFields('{"ranAt":"now"}')).toThrow(RunError);
+    expect(() =>
+      parseRunFields(
+        `{"ranAt":"now","parameters":${JSON.stringify(PARAMETERS)}}`,
+      ),
+    ).toThrow(RunError);
   });
 
   it('refuses a field holding something that is not a value', () => {
     expect(() =>
-      parseRunFields('{"ranAt":"now","fields":{"naked":{"value":true}}}'),
+      parseRunFields(
+        `{"ranAt":"now","parameters":${JSON.stringify(PARAMETERS)},"fields":{"naked":{"value":true}}}`,
+      ),
+    ).toThrow(RunError);
+  });
+
+  it('refuses a record that says nothing about what produced it', () => {
+    expect(() =>
+      parseRunFields('{"ranAt":"now","fields":{"naked":true}}'),
+    ).toThrow(RunError);
+  });
+
+  it('refuses parameters naming no model, since a version cannot be read back into one', () => {
+    expect(() =>
+      parseRunFields(
+        '{"ranAt":"now","parameters":{"maxEdge":1024,"temperature":0},"fields":{"naked":true}}',
+      ),
     ).toThrow(RunError);
   });
 });
 
 describe('isCurrent', () => {
-  const run = { ranAt: 'now', fields: { naked: true } };
+  const run = { ranAt: 'now', parameters: PARAMETERS, fields: { naked: true } };
 
   it('is true where the run carries the version asked about', () => {
     expect(isCurrent({ ...run, version: 'a41f0c2b7d9e' }, 'a41f0c2b7d9e')).toBe(

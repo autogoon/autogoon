@@ -1,15 +1,17 @@
-// An experiment's output: the parameters its last run used, and one record of
-// answers per item. The formats and the reasoning are in
+// An experiment's output for one item. The format and the reasoning are in
 // docs/2026-08-02-inference-ui-spec.md → Run output.
 //
-// The parameters sit in one file per experiment rather than in every item's
-// record because they describe the experiment. They are a record and nothing
-// more — what says whether an item's answers are current is the `version` it
-// carries, since items are generated one at a time over days and an experiment
-// may be edited between two of them.
+// Every record carries its own parameters. Items are inferred one at a time
+// over days and an experiment may be edited between two of them, so a single
+// record per experiment could only describe the last run — and the version a
+// record carries identifies the code that produced it without being readable
+// back into a model name. The two together make a result answer "what made
+// this?" on its own.
 
 import type { FieldValue } from './fields';
 
+// What the run is worth reading back in plain words. A hash says which code
+// ran; this says what it asked for.
 export type RunParameters = {
   model: string;
   maxEdge: number;
@@ -17,14 +19,15 @@ export type RunParameters = {
 };
 
 // Per item: when it ran, the version of the experiment that ran it (see
-// fingerprint.ts), and the fields derived from the stored raw reply. The reply
-// itself is a file of its own — it is prose, and reading it is how a wrong
-// field gets diagnosed.
+// fingerprint.ts), what that run used, and the fields derived from the stored
+// raw reply. The reply itself is a file of its own — it is prose, and reading
+// it is how a wrong field gets diagnosed.
 export type RunFields = {
   ranAt: string;
   // Absent in a record written before versions were stamped, which reads as out
   // of date: nobody knows what produced it.
   version?: string;
+  parameters: RunParameters;
   fields: Record<string, FieldValue>;
 };
 
@@ -43,11 +46,19 @@ function fields(text: string, what: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
-// Written, never parsed: nothing reads `<experiment>.run.json` back, so the
-// field order here is the whole contract — it is what a person opening the
-// corpus reads.
-export const renderParameters = (p: RunParameters): string =>
-  `${JSON.stringify({ model: p.model, maxEdge: p.maxEdge, temperature: p.temperature }, null, 2)}\n`;
+function parseParameters(raw: unknown): RunParameters {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    throw new RunError('The run has no parameters.');
+  }
+  const { model, maxEdge, temperature } = raw as Record<string, unknown>;
+  if (typeof model !== 'string' || model === '') {
+    throw new RunError("The run's parameters name no model.");
+  }
+  if (typeof maxEdge !== 'number' || typeof temperature !== 'number') {
+    throw new RunError("The run's maxEdge and temperature are not numbers.");
+  }
+  return { model, maxEdge, temperature };
+}
 
 export function parseRunFields(text: string): RunFields {
   const r = fields(text, "A run's fields file");
@@ -71,6 +82,7 @@ export function parseRunFields(text: string): RunFields {
   return {
     ranAt: r.ranAt,
     ...(r.version === undefined ? {} : { version: r.version }),
+    parameters: parseParameters(r.parameters),
     fields: parsed,
   };
 }
