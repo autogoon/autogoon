@@ -53,11 +53,40 @@ const STOP = new Set([
   'your',
 ]);
 
+// Words a request and a caption can use for the same thing, folded to the first
+// of each group before either is scored. Folding rather than expanding the
+// query keeps one query word worth one hit: an item whose caption carries two
+// words from a group would otherwise score twice for a request naming either.
+//
+// Grouped by what answers the same request, not by strict synonymy — "labia"
+// and "vagina" name different things and find the same pictures. What must not
+// be grouped is a word narrower than the group's first: "thong" and "panties"
+// are not the same request, and folding them answers one with the other.
+// Plurals are listed rather than stemmed, so the table can't over-reach onto a
+// word nobody checked.
+//
+// This is the app's vocabulary, not an experiment's: what a picture can be
+// called doesn't change with what wrote the caption.
+const SAME: readonly (readonly string[])[] = [
+  ['breasts', 'breast', 'boobs', 'boob', 'tits', 'tit', 'titties', 'titty'],
+  ['nipples', 'nipple'],
+  ['panties', 'knickers'],
+  ['vagina', 'pussy', 'cunt', 'vulva', 'labia'],
+  ['buttocks', 'bum', 'butt', 'ass', 'arse'],
+  ['penis', 'cock', 'dick'],
+  ['naked', 'nude'],
+];
+
+const CANONICAL = new Map(
+  SAME.flatMap((group) => group.map((w) => [w, group[0]!] as const)),
+);
+
 const terms = (text: string): string[] =>
   text
     .toLowerCase()
     .split(/[^a-z0-9]+/)
-    .filter((w) => w.length > 1 && !STOP.has(w));
+    .filter((w) => w.length > 1 && !STOP.has(w))
+    .map((w) => CANONICAL.get(w) ?? w);
 
 // A caption is the item's own summary of itself, so a hit there says more than
 // one buried in a long description.

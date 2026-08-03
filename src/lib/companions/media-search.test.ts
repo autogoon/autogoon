@@ -78,6 +78,33 @@ describe('searchMedia', () => {
     ]);
   });
 
+  it('finds an item captioned in one word of a group from a request in another', () => {
+    const set = [item('a', 'Kneeling on a bed, breasts bare.'), SET[1]!];
+    expect(searchMedia(set, 'tits')[0]?.ref).toBe('a');
+  });
+
+  it('finds an item captioned in the singular from a request in the plural', () => {
+    const set = [item('a', 'On a bed, one nipple showing.'), SET[1]!];
+    expect(searchMedia(set, 'nipples')[0]?.ref).toBe('a');
+  });
+
+  // Refs put the one-word caption first on a tie, so a folding that counted
+  // each of the group's words separately would reverse this rather than leave
+  // the order it found.
+  it('scores a caption carrying two words of a group as one carrying either', () => {
+    const one = item('a', 'Bare breasts.');
+    const both = item('b', 'Bare boobs, tits out.');
+    expect(searchMedia([one, both], 'tits').map((h) => h.ref)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('keeps a request apart from a garment narrower than the one it names', () => {
+    const set = [item('a', 'Wearing a thong.'), item('b', 'Wearing panties.')];
+    expect(searchMedia(set, 'thong').map((h) => h.ref)).toEqual(['a']);
+  });
+
   it('carries the caption and kind of each hit, which is what the model reads', () => {
     const hit = searchMedia(SET, 'sunset')[0];
     expect(hit?.caption).toBe('A woman standing on a beach at sunset.');

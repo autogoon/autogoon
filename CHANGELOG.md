@@ -2,6 +2,12 @@
 
 ## 2026-08-03
 
+- enhancement: **A companion finds a picture whatever you call it** — Asking a
+  companion for a picture only turned up ones whose description happened to use
+  the same word you did, so anything written up in other words was missed. The
+  everyday words for the same thing now count as one.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - enhancement: **The app no longer takes the microphone by itself** — Opening
   Autogoon used to start listening for spoken commands straight away, so a tab
   left open held the mic all day. It now waits until you press Listen, and a new
