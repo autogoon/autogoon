@@ -78,7 +78,9 @@ reaches any impressive size.
    of matches, each a ref and its caption.
 5. **They send by ref.** `send_media` takes one of those refs, so the sends
    after a search cost no inference at all, and they have read the caption of
-   what they chose before it lands.
+   what they chose before it lands. The send hands back the description as well
+   — a caption is enough to choose between twenty-five, and not enough to talk
+   about the one now on his screen.
 6. **No match is an answer.** When nothing is close the search says so, and they
    ask for something else — far better than them announcing a picture that never
    came.

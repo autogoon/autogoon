@@ -55,7 +55,12 @@ export function pickMedia(
   return {
     show: item,
     sent: {
-      result: `Sent him the ${nameKind(item)}: ${item.caption}`,
+      // The description as well as the caption, because this is the one moment
+      // the companion needs to know the picture rather than recognise it: it is
+      // on his screen and she has to talk about what is in it. A search hit
+      // carries the caption alone — enough to choose between twenty-five — and
+      // the long text arrives only for the one she sent.
+      result: `Sent him the ${nameKind(item)}: ${item.caption}\n\n${item.description}`,
       mediaRef: item.ref,
     },
   };

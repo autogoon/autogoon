@@ -25,8 +25,15 @@ describe('pickMedia', () => {
     const pick = pickMedia(ITEMS, { ref: ITEMS[1]!.ref });
     expect(pick.show).toBe(ITEMS[1]);
     expect(pick.sent).toEqual({
-      result: 'Sent him the video: dancing',
+      result: 'Sent him the video: dancing\n\ndancing, at length',
       mediaRef: ITEMS[1]!.ref,
+    });
+  });
+
+  it("hands back the description, since she has to talk about what he's looking at", () => {
+    const pick = pickMedia(ITEMS, { ref: ITEMS[0]!.ref });
+    expect(pick.sent).toMatchObject({
+      result: expect.stringContaining(ITEMS[0]!.description),
     });
   });
 
