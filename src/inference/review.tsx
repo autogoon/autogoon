@@ -119,69 +119,75 @@ export function Review({
           )}
         </div>
 
-        <div className="flex w-96 shrink-0 flex-col gap-4">
-          {FIELDS.map((field) => {
-            const given = item.labels?.[field.id];
-            return (
-              <span key={field.id} className="flex items-center gap-2">
-                <span className="text-sm font-medium">{field.label}</span>
-                {field.options.map((option) => {
-                  const chosen = given?.value === option.value;
-                  const confirmed = given?.source === HUMAN;
-                  return (
-                    <Button
-                      key={String(option.value)}
-                      onClick={() => answer(field.id, option.value)}
-                      className={
-                        chosen && confirmed
-                          ? 'bg-foreground text-background'
-                          : chosen
-                            ? 'border-dashed'
-                            : undefined
-                      }
-                    >
-                      {option.label}{' '}
-                      <span className="opacity-50">{option.key}</span>
-                    </Button>
-                  );
-                })}
-                {given !== undefined && given.source !== HUMAN && (
-                  <span className="text-muted-foreground text-xs">
-                    {given.source} answered — not reviewed
+        <div className="flex w-lg flex-col justify-between">
+          <div className="flex flex-col gap-16">
+            <div className="flex flex-col gap-2">
+              {FIELDS.map((field) => {
+                const given = item.labels?.[field.id];
+                return (
+                  <span key={field.id} className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{field.label}</span>
+                    {field.options.map((option) => {
+                      const chosen = given?.value === option.value;
+                      const confirmed = given?.source === HUMAN;
+                      return (
+                        <Button
+                          key={String(option.value)}
+                          onClick={() => answer(field.id, option.value)}
+                          className={
+                            chosen && confirmed
+                              ? 'bg-foreground text-background'
+                              : chosen
+                                ? 'border-dashed'
+                                : undefined
+                          }
+                        >
+                          {option.label}{' '}
+                          <span className="opacity-50">{option.key}</span>
+                        </Button>
+                      );
+                    })}
+                    {given !== undefined && given.source !== HUMAN && (
+                      <span className="text-muted-foreground text-xs">
+                        {given.source} answered — not reviewed
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-            );
-          })}
+                );
+              })}
+            </div>
 
-          <span className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => step(-1)} disabled={corpus.index === 0}>
-              ← Previous
-            </Button>
-            <Button
-              onClick={() => step(1)}
-              disabled={corpus.index >= corpus.items.length - 1}
-            >
-              Next →
-            </Button>
-            <Button onClick={nextUnanswered}>
-              Next unanswered <span className="opacity-50">u</span>
-            </Button>
-            <Button onClick={generate} disabled={corpus.generating}>
-              {corpus.generating ? 'Running…' : 'Generate'}{' '}
-              <span className="opacity-50">g</span>
-            </Button>
-          </span>
+            <span className="flex flex-wrap items-center gap-2">
+              <Button onClick={() => step(-1)} disabled={corpus.index === 0}>
+                ← Previous
+              </Button>
+              <Button
+                onClick={() => step(1)}
+                disabled={corpus.index >= corpus.items.length - 1}
+              >
+                Next →
+              </Button>
+              <Button onClick={nextUnanswered}>
+                Next unanswered <span className="opacity-50">u</span>
+              </Button>
+              <Button onClick={generate} disabled={corpus.generating}>
+                {corpus.generating ? 'Running…' : 'Generate'}{' '}
+                <span className="opacity-50">g</span>
+              </Button>
+            </span>
 
-          {corpus.error !== null && (
-            <Card title="That didn't work" accent="rose">
-              <span className="block text-sm break-words">{corpus.error}</span>
-            </Card>
-          )}
+            {corpus.error !== null && (
+              <Card title="That didn't work" accent="rose">
+                <span className="block text-sm wrap-break-word">
+                  {corpus.error}
+                </span>
+              </Card>
+            )}
+          </div>
 
           {corpus.run !== null && (
             <Card title={`${corpus.experiment} said`} bordered>
-              <pre className="max-h-80 overflow-auto text-xs whitespace-pre-wrap">
+              <pre className="text-[10px] whitespace-pre-wrap">
                 {corpus.run.raw}
               </pre>
             </Card>
