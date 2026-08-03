@@ -5,7 +5,7 @@
 // the spot-check. Running an experiment across the corpus is `npm run
 // experiment:run`, which comes through the same runItem.
 
-import { listCorpus, readRaw, readRun } from '@/inference/corpus';
+import { listCorpus, readExchanges, readRun } from '@/inference/corpus';
 import { failed, IS_DEV, notFound } from '@/inference/dev-only';
 import { experimentById } from '@/inference/experiments';
 import { fingerprint } from '@/inference/fingerprint';
@@ -14,9 +14,10 @@ import { runItem } from '@/inference/run-item';
 
 export const runtime = 'nodejs';
 
-// What a previous run said about one item: its fields and the reply they came
-// from. The raw reply is fetched only when an item is on screen, never as part
-// of the listing — it is the largest thing the corpus holds.
+// What a previous run said about one item: its fields, and every call it made
+// as a question and its answer. The exchanges are fetched only when an item is
+// on screen, never as part of the listing — they are the largest thing the
+// corpus holds.
 export async function GET(request: Request): Promise<Response> {
   if (!IS_DEV) return notFound();
   const params = new URL(request.url).searchParams;
@@ -28,7 +29,7 @@ export async function GET(request: Request): Promise<Response> {
     const pack = readPack(request, await packDirs());
     return Response.json({
       run: await readRun(pack, stem, id),
-      raw: await readRaw(pack, stem, id),
+      exchanges: await readExchanges(pack, stem, id),
     });
   } catch (e) {
     return failed(e);

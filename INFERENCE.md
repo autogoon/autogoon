@@ -25,13 +25,21 @@ writes is named from the item it belongs to:
     goonpacks/<pack>/media/
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
-      beach.2026-08-02-baseline.prompt.txt   what it asked
-      beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
+      beach.2026-08-02-baseline.prompt.txt   what its first call asked
+      beach.2026-08-02-baseline.raw.txt      what that call answered, verbatim
+      beach.2026-08-02-baseline.prompt2.txt  its second call
+      beach.2026-08-02-baseline.raw2.txt
       beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
       beach.md                               the pack's own sidecar
 
-Those four are the latest run's, overwritten by the next. Each is written a
+**A prompt and its reply are stored as a pair, numbered by the call.** An
+experiment may make several — the baseline looks at the picture, then reads its
+own account of it — and a reply says little without the question above it. The
+first call carries no number, so an experiment that makes one call writes the
+names it always did.
+
+All of those are the latest run's, overwritten by the next. Each is written a
 second time under a name carrying when the run happened and which version ran
 it:
 
@@ -174,7 +182,16 @@ for where the gaps are deliberate and only the stale answers want redoing.
 Both print the whole standing before they start — how many images, how many
 answered, how many outdated, how many never run — and then what the run takes of
 it, because the narrow mode leaves a group behind and a count on its own doesn't
-say so.
+say so. Each item then prints its caption and, off iTerm, the picture under it.
+
+A third argument is how many items to have in flight:
+
+    npm run experiment:run goonpacks/elise 2026-08-02-baseline 8
+
+One by default, which is the sweep to watch. A number is what to reach for once
+a run is long enough to leave going — a pack of thousands at one call at a time
+is hours. The first failure stops new items being taken; whatever was already in
+flight is paid for, so it is allowed to land.
 
 They go in **random order**, and stop on the first failure. Filename order is
 not a random sample of a pack, so a sweep that stopped part-way through it would

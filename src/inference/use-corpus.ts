@@ -17,12 +17,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { choose, remember, remembered, type Chosen } from './chosen';
 import { FIELDS, type FieldValue } from './fields';
+import type { Exchange } from './experiment';
 import type { Labels } from './labels';
 import type { PackSource, SurveyedItem } from './item';
 import { goTo, type InferenceRoute } from './route';
 import type { RunFields } from './runs';
 
-export type ItemRun = { fields: Record<string, FieldValue>; raw: string };
+// The selected experiment's output for one item, as the screen holds it: the
+// fields, and every call it made as a question and its answer.
+export type ItemRun = {
+  fields: Record<string, FieldValue>;
+  exchanges: Exchange[];
+};
 
 export type CorpusView = {
   items: SurveyedItem[];
@@ -205,15 +211,18 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     )
       .then(
         (res) =>
-          res.json() as Promise<{ run: ItemRun | null; raw: string | null }>,
+          res.json() as Promise<{
+            run: { fields: Record<string, FieldValue> } | null;
+            exchanges: Exchange[];
+          }>,
       )
       .then((data) => {
         if (!live) return;
         const fields = data.run?.fields;
         setRun(
-          data.raw === null || fields === undefined
+          fields === undefined || data.exchanges.length === 0
             ? null
-            : { fields, raw: data.raw },
+            : { fields, exchanges: data.exchanges },
         );
       })
       .catch(() => {
@@ -315,10 +324,13 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
       })
         .then(async (res) => {
           if (!res.ok) throw new Error(await res.text());
-          return res.json() as Promise<{ raw: string; run: RunFields }>;
+          return res.json() as Promise<{
+            exchanges: Exchange[];
+            run: RunFields;
+          }>;
         })
         .then((data) => {
-          setRun({ fields: data.run.fields, raw: data.raw });
+          setRun({ fields: data.run.fields, exchanges: data.exchanges });
           replaceRun(stem, data.run);
         })
         .catch((e: unknown) => setError(message(e)))

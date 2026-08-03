@@ -55,9 +55,10 @@ describe('readName', () => {
     });
   });
 
-  it("reads a run's raw reply", () => {
+  it("reads a run's raw reply, as the first call's", () => {
     expect(readName('beach.2026-08-02-baseline.raw.txt')).toEqual({
       what: 'raw',
+      at: 1,
       stem: 'beach',
       experiment: '2026-08-02-baseline',
     });
@@ -97,9 +98,31 @@ describe('readName', () => {
   it('reads the prompt a run sent', () => {
     expect(readName(`beach.${BASELINE}.prompt.txt`)).toEqual({
       what: 'prompt',
+      at: 1,
       stem: 'beach',
       experiment: BASELINE,
     });
+  });
+
+  it('reads a later call by the number its files carry', () => {
+    expect(readName(`beach.${BASELINE}.raw2.txt`)).toMatchObject({
+      what: 'raw',
+      at: 2,
+      stem: 'beach',
+    });
+    expect(readName(`beach.${BASELINE}.prompt2.txt`)).toMatchObject({
+      what: 'prompt',
+      at: 2,
+    });
+  });
+
+  it('reads a call past the ninth, which is two digits', () => {
+    expect(readName(`beach.${BASELINE}.raw12.txt`)).toMatchObject({ at: 12 });
+  });
+
+  it('refuses a number the first call would never carry', () => {
+    expect(readName(`beach.${BASELINE}.raw1.txt`)).toBeNull();
+    expect(readName(`beach.${BASELINE}.raw0.txt`)).toBeNull();
   });
 
   it('reads an archived file as the run that wrote it', () => {
@@ -107,6 +130,7 @@ describe('readName', () => {
       readName(`beach.${BASELINE}.20260803154212.5a4919b862f2.raw.txt`),
     ).toEqual({
       what: 'raw',
+      at: 1,
       stem: 'beach',
       experiment: BASELINE,
       run: STAMP,
@@ -173,6 +197,7 @@ describe('rawName', () => {
   it('round-trips through readName', () => {
     expect(readName(rawName('beach', '2026-08-02-baseline'))).toEqual({
       what: 'raw',
+      at: 1,
       stem: 'beach',
       experiment: '2026-08-02-baseline',
     });
@@ -202,8 +227,24 @@ describe('promptName', () => {
   it('round-trips through readName', () => {
     expect(readName(promptName('beach', BASELINE))).toEqual({
       what: 'prompt',
+      at: 1,
       stem: 'beach',
       experiment: BASELINE,
+    });
+  });
+
+  it('leaves the first call unnumbered, so one call writes the plain name', () => {
+    expect(promptName('beach', BASELINE)).toBe(`beach.${BASELINE}.prompt.txt`);
+    expect(rawName('beach', BASELINE)).toBe(`beach.${BASELINE}.raw.txt`);
+  });
+
+  it('round-trips a later call, archived, through readName', () => {
+    expect(readName(promptName('beach', BASELINE, 3, STAMP))).toEqual({
+      what: 'prompt',
+      at: 3,
+      stem: 'beach',
+      experiment: BASELINE,
+      run: STAMP,
     });
   });
 });

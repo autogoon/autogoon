@@ -25,8 +25,10 @@ current-state description; the layout is unchanged apart from where it sits.
     goonpacks/<pack>/media/
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
-      beach.2026-08-02-baseline.prompt.txt   what it asked
-      beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
+      beach.2026-08-02-baseline.prompt.txt   what its first call asked
+      beach.2026-08-02-baseline.raw.txt      what that call answered, verbatim
+      beach.2026-08-02-baseline.prompt2.txt  its second call
+      beach.2026-08-02-baseline.raw2.txt
       beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
       beach.labels.json                      ground truth
 
@@ -91,15 +93,20 @@ is exactly what the corpus has to be able to say.
 
 ### Run output
 
-Four files per item: what was asked, what came back, and the two things derived
-from the reply.
+Every call the experiment made, as a question and its answer, and the two things
+derived from the last answer.
 
-**`<item>.<experiment>.prompt.txt`** — what the experiment sent.
+**`<item>.<experiment>.prompt.txt`** and **`.raw.txt`** — what the first call
+sent and what came back, verbatim, before anything reads either. Plain files
+rather than strings inside JSON: they are prose, and reading them is how a wrong
+field gets diagnosed. A later experiment whose raw output isn't text writes
+whatever form it has.
 
-**`<item>.<experiment>.raw.txt`** — the reply verbatim, before anything reads
-it. A plain file rather than a string inside JSON: it is prose, and reading it
-is how a wrong field gets diagnosed. A later experiment whose raw output isn't
-text writes whatever form it has.
+**A second call writes `.prompt2.txt` and `.raw2.txt`**, and so on. The pair is
+the unit, because a reply says little without the question above it — and where
+an experiment feeds one call's reply into the next call's prompt, the whole
+chain is on disk rather than only its last link. The first call carries no
+number, so a single-call experiment writes the two names it always did.
 
 **`<item>.<experiment>.sidecar.md`** — the caption and description, in the
 pack's own sidecar format. Writing it here is what makes a labelled pack a

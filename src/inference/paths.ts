@@ -9,11 +9,13 @@
 //   beach.jpg                              media
 //   beach.labels.json                      ground truth
 //   beach.2026-08-02-baseline.fields.json  a run's answers
-//   beach.2026-08-02-baseline.raw.txt      that run's reply, verbatim
 //   beach.2026-08-02-baseline.sidecar.md   the caption and description it wrote
-//   beach.2026-08-02-baseline.prompt.txt   what it was asked
+//   beach.2026-08-02-baseline.prompt.txt   what its first call asked
+//   beach.2026-08-02-baseline.raw.txt      what that call answered
+//   beach.2026-08-02-baseline.prompt2.txt  the second call, where there is one
+//   beach.2026-08-02-baseline.raw2.txt
 //
-// The last four are the latest run's, overwritten by the next. Each is also
+// All of those are the latest run's, overwritten by the next. Each is also
 // written under a name carrying when the run happened and which version ran it:
 //
 //   beach.2026-08-02-baseline.20260803154212.5a4919b862f2.raw.txt
@@ -49,26 +51,42 @@ export const VERSION = /^[0-9a-f]{6,}$/;
 
 export const LABELS_SUFFIX = '.labels.json';
 export const FIELDS_SUFFIX = '.fields.json';
-export const RAW_SUFFIX = '.raw.txt';
 export const SIDECAR_SUFFIX = '.sidecar.md';
+
+// A prompt and the reply it got, numbered by the call they belong to: an
+// experiment may make several, and a reply means little without the question
+// above it. The first call carries no number, so a one-call experiment writes
+// the names it always did.
+//
+//   beach.<id>.prompt.txt    beach.<id>.raw.txt     the first call
+//   beach.<id>.prompt2.txt   beach.<id>.raw2.txt    the second
 export const PROMPT_SUFFIX = '.prompt.txt';
+export const RAW_SUFFIX = '.raw.txt';
+const PROMPT_AT = /\.prompt([2-9]|[1-9]\d+)?\.txt$/;
+const RAW_AT = /\.raw([2-9]|[1-9]\d+)?\.txt$/;
+
+// The number a call's files carry: nothing for the first, the figure after it.
+const numbered = (at: number): string => (at === 1 ? '' : String(at));
 
 // Which run an archived file belongs to: when it ran, and the version that ran
 // it. Both are filename segments, so `at` is `YYYYMMDDHHmmss` rather than the
 // ISO string the record carries.
 export type RunStamp = { at: string; version: string };
 
-// One of the four files an experiment writes. `run` is set on the archived copy
-// and absent on the latest.
+// One of the files an experiment writes. `run` is set on the archived copy and
+// absent on the latest.
 type Wrote = { stem: string; experiment: string; run?: RunStamp };
 
 // What one filename in the corpus turns out to be. `null` from readName means
 // the file belongs to nothing the tool knows — a stray note, a .DS_Store, a
 // video while v1 is images only — and is left alone rather than reported.
+//
+// A prompt or a reply carries `at`, the call it belongs to, counting from one.
 export type CorpusName =
   | { what: 'media'; stem: string; file: string; kind: MediaKind }
   | { what: 'labels'; stem: string }
-  | ({ what: 'fields' | 'raw' | 'sidecar' | 'prompt' } & Wrote);
+  | ({ what: 'fields' | 'sidecar' } & Wrote)
+  | ({ what: 'raw' | 'prompt'; at: number } & Wrote);
 
 // Split `<stem>.<experiment>` off a name whose suffix has already been removed.
 // Returns null when the trailing segment isn't a valid experiment id, so a
@@ -112,9 +130,12 @@ function splitWrote(rest: string): Wrote | null {
 
 const WROTE = [
   { suffix: FIELDS_SUFFIX, what: 'fields' },
-  { suffix: RAW_SUFFIX, what: 'raw' },
   { suffix: SIDECAR_SUFFIX, what: 'sidecar' },
-  { suffix: PROMPT_SUFFIX, what: 'prompt' },
+] as const;
+
+const CALLED = [
+  { pattern: PROMPT_AT, what: 'prompt' },
+  { pattern: RAW_AT, what: 'raw' },
 ] as const;
 
 export function readName(file: string): CorpusName | null {
@@ -126,6 +147,14 @@ export function readName(file: string): CorpusName | null {
     if (!file.endsWith(suffix)) continue;
     const split = splitWrote(file.slice(0, -suffix.length));
     return split === null ? null : { what, ...split };
+  }
+  for (const { pattern, what } of CALLED) {
+    const found = pattern.exec(file);
+    if (found === null) continue;
+    const split = splitWrote(file.slice(0, found.index));
+    return split === null
+      ? null
+      : { what, at: Number(found[1] ?? 1), ...split };
   }
   const dot = file.lastIndexOf('.');
   if (dot <= 0) return null;
@@ -162,20 +191,23 @@ export const fieldsName = (
   run?: RunStamp,
 ): string => wroteName(stem, experiment, FIELDS_SUFFIX, run);
 
-export const rawName = (
-  stem: string,
-  experiment: string,
-  run?: RunStamp,
-): string => wroteName(stem, experiment, RAW_SUFFIX, run);
-
 export const sidecarName = (
   stem: string,
   experiment: string,
   run?: RunStamp,
 ): string => wroteName(stem, experiment, SIDECAR_SUFFIX, run);
 
+// `at` is which call, counting from one — the first carries no number.
+export const rawName = (
+  stem: string,
+  experiment: string,
+  at = 1,
+  run?: RunStamp,
+): string => wroteName(stem, experiment, `.raw${numbered(at)}.txt`, run);
+
 export const promptName = (
   stem: string,
   experiment: string,
+  at = 1,
   run?: RunStamp,
-): string => wroteName(stem, experiment, PROMPT_SUFFIX, run);
+): string => wroteName(stem, experiment, `.prompt${numbered(at)}.txt`, run);

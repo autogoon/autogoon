@@ -11,7 +11,7 @@ import { extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '@/lib/goonpacks/media';
-import type { Experiment, Inferred, Reply } from '../../experiment';
+import type { Exchange, Experiment, Inferred } from '../../experiment';
 import type { FieldValue } from '../../fields';
 import { PROMPT_ONE, PROMPT_TWO } from './prompt';
 
@@ -25,7 +25,7 @@ const TEMPERATURE = 0;
 // things. The first is handed a picture and needs a vision model; the second is
 // handed text, where a far larger and cheaper field of models is available and
 // nothing is paid for an image tower that goes unused.
-const MODEL = 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
+const MODEL = 'minimax/minimax-m3:nitro';
 const TEXT_MODEL = 'qwen/qwen3-30b-a3b-instruct-2507:nitro';
 
 function resizedJpeg(imagePath: string): Buffer {
@@ -122,9 +122,10 @@ async function ask(
 // can say is bounded by what the first wrote down — which is the point of the
 // split.
 //
-// The prompt returned is both, as sent, so it carries the first reply where it
-// actually went: into the second prompt.
-async function run(imagePath: string): Promise<Reply> {
+// Both are answered with, so both are stored: the first reply is the whole of
+// what the second had to work from, and reading the second against it is how a
+// wrong answer is attributed to the looking or to the reading.
+async function run(imagePath: string): Promise<Exchange[]> {
   const ext = extname(imagePath).slice(1).toLowerCase();
   if (MEDIA_TYPES[ext]?.kind !== 'image') {
     throw new Error(`Not a picture: ${extname(imagePath) || '(no extension)'}`);
@@ -133,15 +134,11 @@ async function run(imagePath: string): Promise<Reply> {
 
   const described = await ask(MODEL, PROMPT_ONE, dataUri);
   const second = secondPrompt(described);
-  return {
-    prompt: `${PROMPT_ONE}\n\n${SPLIT}\n\n${second}`,
-    raw: await ask(TEXT_MODEL, second),
-  };
+  return [
+    { prompt: PROMPT_ONE, reply: described },
+    { prompt: second, reply: await ask(TEXT_MODEL, second) },
+  ];
 }
-
-// Between the two prompts in the written file, so a person opening it can see
-// where one call ended and the next began.
-const SPLIT = '=== 2 ===';
 
 // PROMPT_TWO with the first reply in it. An edit to PROMPT_TWO that loses the
 // placeholder throws rather than sending a prompt describing nothing, which

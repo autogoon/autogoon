@@ -11,7 +11,7 @@ export const PROMPT_ONE = `This photo is pose/mood metadata for a companion app:
 caption to pick a picture that fits the moment, so it has to be accurate about pose
 and state of undress, not just evocative.
 
-REASONING. Analyze the image and reason about what is shown in the image. Write your reasoning
+STEP 1 - REASONING. Analyze the image and reason about what is shown in the image. Write your reasoning
 in as much detail as you need, think carefully about the pose, the clothing, and what is bare or
 showing.  Pay particular attention to the direction of body pose, head orientation, gaze, 
 and the position of the limbs.  Consider the setting and the light, and how they affect what is visible.
@@ -34,21 +34,28 @@ If you can't tell, say so.
 
 Sexual activity, is there any going on, description in detail.  If you can't tell, say so.
 
+Breast size.  Are they small, medium, large, very large or unknown, judged by what you can see:
+
+- Small: modest volume beyond the ribcage line.
+- Medium: the breast projects well past the ribcage line in profile, or fills the width of the
+  torso, or displaces the garment noticeably. 
+- Large: the breast dominates the torso, straining or reshaping whatever covers it.
+- Very large: completely disproportionate to the torso, or fat spilling out of the garment, or otherwise obviously very large.
+
+Do not pick Medium because you are unsure — Unknown is the
+answer for unsure.
+
+IMPORTANT: Explain your breast size reasoning in detail in the reasoning section.
+
 Then finish with this line, after everything else. Nobody after you sees the picture, so
 this one is yours to answer and it is recorded as you write it.
 
-BREAST SIZE: Small, Medium, Large, Very large or Unknown, judged by what you can see:
+Reply in exactly this format, with nothing after the breast size line:
 
-- Small: the chest is flat or nearly flat, with little or no volume beyond the ribcage line.
-- Medium: clear volume, the breast reads as wider than deep, and the chest line stays close
-  to the frame it sits on.
-- Large: the breast projects well past the ribcage line in profile, or fills the width of the
-  torso, or displaces the garment noticeably.
-- Very large: the breast dominates the torso, straining or reshaping whatever covers it.
+REASONING: <your reasoning, in as much detail as you need>
 
-Judge it against the frame it is on, and say Unknown where the pose, the angle or the
-clothing hides the shape. Do not pick Medium because you are unsure — Unknown is the
-answer for unsure.
+BREAST SIZE: <Small, Medium, Large, Very large or Unknown>
+
 `;
 
 export const PROMPT_TWO = `This photo is pose/mood metadata for a companion app: she reads the

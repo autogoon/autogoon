@@ -6,18 +6,20 @@
 //       edit
 //   npm run experiment:run:outdated goonpacks/elise 2026-08-02-baseline
 //       only the second of those, leaving the never-answered alone
+//   npm run experiment:run goonpacks/elise 2026-08-02-baseline 8
+//       the same, eight items in flight rather than one
 //
 // Both report the whole standing before they start, because --outdated leaves
 // a group behind and a count on its own doesn't say so.
 //
-// Both arguments are required, and neither has an "every pack" or "every
-// experiment" form: this is one model call per item, and the packs on a
-// developer's disk hold thousands between them.
+// The pack and the experiment are both required, and neither has an "every
+// pack" or "every experiment" form: an experiment spends per item, and the
+// packs on a developer's disk hold thousands between them.
 //
-// This is the paid path at scale — one model call per item — so it says what it
-// is about to run and against how many before it starts, and stops on the first
-// failure rather than repeating it four hundred times. Items already done are
-// skipped, so a stopped run is resumed by running it again.
+// This is the paid path at scale, so it says what it is about to run and against
+// how many before it starts, and stops taking new items at the first failure
+// rather than repeating it four hundred times. Items already done are skipped,
+// so a stopped run is resumed by running it again.
 //
 // Reads OPENROUTER_API_KEY / LLM_URL from the environment; the npm script loads
 // .env via --env-file-if-exists.
@@ -107,9 +109,19 @@ async function packNamed(path: string): Promise<string> {
 async function main(): Promise<void> {
   const args = process.argv.slice(2).filter((a) => a !== OUTDATED);
   const onlyOutdated = process.argv.slice(2).includes(OUTDATED);
-  const [named, asked] = args;
+  const [named, asked, together] = args;
   if (named === undefined || asked === undefined) {
-    console.error('usage: experiment:run <pack directory> <experiment>');
+    console.error(
+      'usage: experiment:run <pack directory> <experiment> [at once]',
+    );
+    process.exit(1);
+  }
+  // How many items are in flight. One by default, so the command you have been
+  // typing keeps printing one item at a time in the order it ran them — the
+  // number is what you reach for when a sweep is long enough to leave running.
+  const atOnce = Math.floor(Number(together ?? 1));
+  if (!Number.isFinite(atOnce) || atOnce < 1) {
+    console.error(`${String(together)} isn't a number of items to run at once`);
     process.exit(1);
   }
   const pack = await packNamed(named);
@@ -149,22 +161,46 @@ async function main(): Promise<void> {
   if (todo.length === 0) return;
 
   let done = 0;
-  for (const item of todo) {
-    console.log(yellow(`${done + 1}/${todo.length} ${item.stem}`));
-    // No catch: a failure here is a missing key, a refused request or a broken
-    // parser, and every remaining item would fail the same way. Whatever ran
-    // before it is already on disk, so running again picks up where this left.
-    const { run } = await runItem(pack, experiment, item, version);
-    console.log(dim(JSON.stringify(run.fields)));
-    // The picture under the answers, so a sweep can be read down the terminal
-    // — the same order describe-missing prints in. Empty off iTerm.
-    const picture = inlineImage(
-      (await readFile(corpusPath(pack, item.file))).toString('base64'),
-    );
-    if (picture !== '') console.log(picture);
-    done += 1;
-  }
+  let taken = 0;
+  // The first failure stops the sweep taking anything new. It is a missing key,
+  // a refused request or a broken parser, and every remaining item would fail
+  // the same way — but the calls already in flight are paid for, so they are
+  // allowed to land rather than abandoned. Whatever finished is on disk, and
+  // running again picks up where this left.
+  let failure: unknown = null;
+
+  const worker = async (): Promise<void> => {
+    while (failure === null) {
+      const item = todo[taken++];
+      if (item === undefined) return;
+      try {
+        const { run } = await runItem(pack, experiment, item, version);
+        const picture = inlineImage(
+          (await readFile(corpusPath(pack, item.file))).toString('base64'),
+        );
+        // One write per item, so two finishing together don't interleave. The
+        // caption rather than every field: it is the one answer condensed from
+        // all of them, so a sweep reads as a page of sentences about pictures
+        // rather than a page of JSON. The picture goes under it, the order
+        // describe-missing prints in.
+        console.log(
+          [
+            yellow(`${++done}/${todo.length} ${item.stem}`),
+            dim(String(run.fields.caption ?? '(no caption)')),
+            picture,
+          ]
+            .filter((line) => line !== '')
+            .join('\n'),
+        );
+      } catch (e) {
+        failure ??= e;
+      }
+    }
+  };
+
+  await Promise.all(Array.from({ length: atOnce }, worker));
   console.log(green(`${done} run against ${experiment.id}`));
+  if (failure !== null) throw failure;
 }
 
 await main();

@@ -63,10 +63,12 @@ is the control for the change.
 
 ## What is stored
 
-Both prompts as sent, separated by `=== 2 ===` — so the file carries the first
-call's reply, which is where it went; the second reply, verbatim; and every
-field [`fields.ts`](../../fields.ts) asks about, read off the reply's marked
-lines.
+Both calls, each as a prompt and the reply it got — `prompt.txt`/`raw.txt` for
+the looking, `prompt2.txt`/`raw2.txt` for the reading — and every field
+[`fields.ts`](../../fields.ts) asks about, read off the second reply's marked
+lines. The first reply is kept because it is the whole of what the second had to
+work from: reading the second against it is what says whether a wrong answer
+came from the looking or from the reading.
 
 Each line is `NAME: <answer>`. A **choice** field's line is read from the front
 against a word list, because the model reliably justifies itself afterwards —

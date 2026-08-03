@@ -33,6 +33,7 @@ import {
 } from './paths';
 import { MEDIA_NAME } from '@/lib/goonpacks/pack';
 import { renderSidecar, type Sidecar } from '@/lib/goonpacks/sidecar';
+import type { Exchange } from './experiment';
 import { parseLabels, renderLabels, type Labels } from './labels';
 import { parseRunFields, renderRunFields, type RunFields } from './runs';
 
@@ -185,38 +186,46 @@ export async function writeRun(
   );
 }
 
-export const readRaw = (
+// Every call an experiment made against one item, in order, read back off the
+// names: call one, then two, until one is missing. A reply is never stored
+// without its prompt, so the reply's absence ends the list.
+export async function readExchanges(
   pack: string,
   stem: string,
   experiment: string,
-): Promise<string | null> => readIfPresent(pack, rawName(stem, experiment));
-
-export async function writeRaw(
-  pack: string,
-  stem: string,
-  experiment: string,
-  raw: string,
-  run?: RunStamp,
-): Promise<void> {
-  await writeFile(
-    corpusPath(pack, rawName(stem, experiment, run)),
-    raw,
-    'utf8',
-  );
+): Promise<Exchange[]> {
+  const exchanges: Exchange[] = [];
+  for (let at = 1; ; at++) {
+    const reply = await readIfPresent(pack, rawName(stem, experiment, at));
+    if (reply === null) return exchanges;
+    exchanges.push({
+      prompt:
+        (await readIfPresent(pack, promptName(stem, experiment, at))) ?? '',
+      reply,
+    });
+  }
 }
 
-// What the experiment asked. Written beside the reply rather than left to the
-// experiment's directory, because that directory is edited between runs.
-export async function writePrompt(
+// One call's question and answer. Written together and numbered together — a
+// reply read without the prompt above it says nothing about why it says what it
+// says, and the prompt is written here rather than left to the experiment's
+// directory because that directory is edited between runs.
+export async function writeExchange(
   pack: string,
   stem: string,
   experiment: string,
-  prompt: string,
+  at: number,
+  exchange: Exchange,
   run?: RunStamp,
 ): Promise<void> {
   await writeFile(
-    corpusPath(pack, promptName(stem, experiment, run)),
-    prompt.endsWith('\n') ? prompt : `${prompt}\n`,
+    corpusPath(pack, rawName(stem, experiment, at, run)),
+    exchange.reply,
+    'utf8',
+  );
+  await writeFile(
+    corpusPath(pack, promptName(stem, experiment, at, run)),
+    exchange.prompt.endsWith('\n') ? exchange.prompt : `${exchange.prompt}\n`,
     'utf8',
   );
 }

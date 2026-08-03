@@ -1,6 +1,6 @@
 // The review page: one corpus item filling the screen, with the controls that
-// answer it — the picture beside the fields, the navigation, and the selected
-// experiment's reply.
+// answer it — the picture beside the fields, the navigation, and what the
+// selected experiment asked and was told.
 //
 // A page rather than an overlay, addressed by `#inference/<experiment>/<stem>`
 // (route.ts). An item can be linked and reloaded, the breadcrumb and the
@@ -25,6 +25,7 @@ import Image from 'next/image';
 import { Bot, FileText, X } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Compare } from './compare';
+import type { Exchange } from './experiment';
 import { Floating } from './floating';
 import { Failure } from './failure';
 import { FIELDS, type Field, type FieldValue } from './fields';
@@ -79,7 +80,7 @@ export function Review({
   const [editing, setEditing] = useState<string | null>(null);
   // The text field whose two answers are open side by side, by id.
   const [showing, setShowing] = useState<string | null>(null);
-  // Whether the reply verbatim is open over the page.
+  // Whether the transcript is open over the page.
   const [reading, setReading] = useState(false);
   const field = FIELDS[focus];
 
@@ -401,21 +402,21 @@ export function Review({
             </span>
 
             <span className="relative flex gap-2">
-              {/* The reply verbatim is what a wrong answer is diagnosed
-                  against, and it is pages long. Behind an icon rather than
-                  under the rail, so the fields keep the room. */}
+              {/* The transcript is what a wrong answer is diagnosed against,
+                  and it is pages long. Behind an icon rather than under the
+                  rail, so the fields keep the room. */}
               <Button
                 onClick={() => setReading((open) => !open)}
                 disabled={corpus.run === null}
-                aria-label={`What ${corpus.experiment} replied`}
+                aria-label={`What ${corpus.experiment} was asked and answered`}
                 aria-expanded={reading}
                 className="px-2"
               >
                 <FileText className="size-4" />
               </Button>
               {reading && corpus.run !== null && (
-                <Reply
-                  raw={corpus.run.raw}
+                <Transcript
+                  exchanges={corpus.run.exchanges}
                   experiment={corpus.experiment}
                   onClose={() => setReading(false)}
                 />
@@ -623,15 +624,17 @@ function TextAnswer({
   );
 }
 
-// The reply the experiment gave, verbatim, over a dimmed page. It is what a
-// wrong answer is read against, and it is pages long, so it opens rather than
+// Every call the experiment made, verbatim, over a dimmed page: each question
+// above the answer it got. A wrong answer is read against the question that
+// produced it, and where one call's reply fed the next, reading down is
+// following the whole of what happened. Pages long, so it opens rather than
 // living in the rail.
-function Reply({
-  raw,
+function Transcript({
+  exchanges,
   experiment,
   onClose,
 }: {
-  raw: string;
+  exchanges: Exchange[];
   experiment: string;
   onClose: () => void;
 }) {
@@ -645,11 +648,11 @@ function Reply({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`What ${experiment} replied`}
-        className="bg-background fixed inset-y-8 left-1/2 z-20 flex w-xl max-w-[calc(100vw-2rem)] -translate-x-1/2 flex-col gap-3 rounded-lg border p-4 shadow-lg"
+        aria-label={`What ${experiment} was asked and answered`}
+        className="bg-background fixed inset-y-8 left-1/2 z-20 flex w-320 max-w-[calc(100vw-4rem)] -translate-x-1/2 flex-col gap-3 rounded-lg border p-4 shadow-lg"
       >
         <span className="flex items-center">
-          <span className="flex-1 font-semibold">{experiment} said</span>
+          <span className="flex-1 font-semibold">{experiment}</span>
           <button
             type="button"
             aria-label="Close"
@@ -659,8 +662,25 @@ function Reply({
             <X className="size-4" />
           </button>
         </span>
-        <div className="flex-1 overflow-y-auto text-sm whitespace-pre-wrap">
-          {raw}
+        {/* One scroller for all of it, so reading from a question into its
+            answer and on into the next call is one movement. */}
+        <div className="flex-1 overflow-y-auto text-sm">
+          {exchanges.map((exchange, at) => (
+            <div key={at} className="border-b pb-4 last:border-b-0">
+              <div className="pt-4 pb-1 text-base font-semibold">
+                Call {at + 1} · asked
+              </div>
+              <div className="whitespace-pre-wrap">
+                {exchange.prompt === ''
+                  ? 'No prompt was stored for this call.'
+                  : exchange.prompt}
+              </div>
+              <div className="pt-4 pb-1 text-base font-semibold">
+                Call {at + 1} · answered
+              </div>
+              <div className="whitespace-pre-wrap">{exchange.reply}</div>
+            </div>
+          ))}
         </div>
       </div>
     </>
