@@ -317,6 +317,63 @@ describe('useVoiceSession', () => {
     expect(result.current.status.thread).toEqual([]);
   });
 
+  it('fills a silence after a typed turn taken with the mic never started', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello', 'still there?']);
+  });
+
+  it('keeps filling silences after stop(), which takes down the mic and not the conversation', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+    await act(async () => {
+      result.current.start();
+    });
+
+    act(() => {
+      result.current.stop();
+    });
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello', 'still there?']);
+  });
+
+  it('fills no silence after endSession(), so a poke cannot follow you off the screen', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    act(() => {
+      result.current.endSession();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello']);
+  });
+
   it("renders the companion's clock in their own zone and the user's in the browser's", async () => {
     jest.spyOn(Date, 'now').mockReturnValue(TURN_AT);
     const result = await session([], { ...COMPANION, timezone: ELSEWHERE });

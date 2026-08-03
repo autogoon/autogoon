@@ -439,6 +439,7 @@ export function CompanionsPanel({
   const {
     start: startListening,
     stop: stopListening,
+    endSession,
     submitText,
     cancelReply,
     clearThread,
@@ -491,10 +492,11 @@ export function CompanionsPanel({
     }
   }, [active, view, player.state, player.source, device, engine]);
 
-  // A hot mic must not linger once you leave Companions. stop() is idempotent.
+  // Neither a hot mic nor a pending poke must linger once you leave Companions:
+  // the companion would speak with the screen that shows her gone. Idempotent.
   useEffect(() => {
-    if (!active) stopListening();
-  }, [active, stopListening]);
+    if (!active) endSession();
+  }, [active, endSession]);
 
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);

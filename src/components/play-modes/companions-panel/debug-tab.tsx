@@ -2,6 +2,7 @@
 // viewer's trigger, and the event/command logs. Only rendered while the tab
 // is open, so the churning `status` prop costs nothing the rest of the time.
 
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/card';
 import { LogCard, type LogEntry } from '@/components/log-card';
 import { RateLimitMeter } from '@/components/rate-limit-meter';
@@ -23,6 +24,19 @@ export function DebugTab({
   vacuglide: VacuglideDeviceController;
   onShowLlmRequest: () => void;
 }) {
+  // The ambient countdown is drawn from a deadline, so it only moves when
+  // something redraws it. While listening the mic's rms churns `status` fast
+  // enough; a typed conversation sends no frames, so a poke pending with the
+  // mic off would sit at the figure it was armed with. Ticking at the tenth
+  // being displayed, only while one is pending and only while the tab is open.
+  const [, tick] = useState(0);
+  const counting = status.ambientDueAt !== null && !status.ambientHolding;
+  useEffect(() => {
+    if (!counting) return;
+    const id = setInterval(() => tick((n) => n + 1), 100);
+    return () => clearInterval(id);
+  }, [counting]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">
       <Card title="STT debug" bordered>
@@ -35,10 +49,11 @@ export function DebugTab({
           <span>
             sent {((status.sentFrames * FRAME_MS) / 1000).toFixed(1)}s
           </span>
-          {/* Ambient chat: the next unprompted turn, if any. Counts down off
-              status, which the mic's rms already churns, so it ticks while
-              listening and sits still when the mic is off. Without it a poke
-              that never came and one that was never armed look the same. */}
+          {/* Ambient chat: the next unprompted turn, if any. The deadline comes
+              from status, rewritten wherever the scheduler is armed, cancelled
+              or latched; the tick above is what makes it count. Without this
+              row a poke that never came and one that was never armed look the
+              same. */}
           <span>
             ambient{' '}
             {status.ambientHolding

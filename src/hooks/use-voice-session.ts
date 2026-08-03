@@ -111,6 +111,10 @@ export type VoiceStatus = {
 export type VoiceSession = {
   start: () => void;
   stop: () => void;
+  // Stop listening and end ambient chat with it — for leaving Companions, where
+  // a poke would otherwise fire with the screen that shows it gone. stop() alone
+  // only takes the mic down; the silence-filling loop outlives it.
+  endSession: () => void;
   // Run a turn on arbitrary text (a typed prompt, or a committed transcript):
   // stream the LLM reply and, when `speak`, buffer it whole and speak it. Works
   // whether or not the mic is running.
@@ -322,13 +326,32 @@ export function useVoiceSession(opts: {
   // The live conversation thread — source of truth, read/written inside the
   // once-created callbacks like the other live refs, mirrored into status.thread.
   // Ambient chat's timer and latch, in one object rather than two more refs
-  // here (see ambient-scheduler.ts). Created with the session in start().
+  // here (see ambient-scheduler.ts). Created with the hook rather than with the
+  // mic: a poke is an ordinary turn, and a typed conversation takes the same
+  // path, so filling a silence never needed the microphone.
   const ambientRef = useRef<AmbientScheduler | null>(null);
+  // The current submitText, for the poke callback — created once, so it must
+  // not close over the copy from the render that built the scheduler.
+  const submitTextRef = useRef<
+    (text: string, opts?: { speak?: boolean; ambient?: boolean }) => void
+  >(() => {});
   const threadRef = useRef<Thread>([]);
 
   const setReplyPlaying = useCallback((playing: boolean): void => {
     replyPlayingRef.current = playing;
     setStatus((s) => ({ ...s, replyPlaying: playing }));
+  }, []);
+
+  // Mirror the scheduler into status, at every site that arms, cancels or
+  // latches it. The mic's rms already churns status while listening, but a
+  // typed conversation produces no frames, so without this the debug row shows
+  // an idle scheduler while a poke is pending.
+  const syncAmbient = useCallback((): void => {
+    setStatus((s) => ({
+      ...s,
+      ambientDueAt: ambientRef.current?.dueAt() ?? null,
+      ambientHolding: ambientRef.current?.holding() ?? false,
+    }));
   }, []);
 
   // Write-through persistence: every thread mutation updates the ref, the
@@ -358,6 +381,7 @@ export function useVoiceSession(opts: {
     turnRef.current?.abort();
     turnRef.current = null;
     ambientRef.current?.cancel();
+    syncAmbient();
     threadRef.current = [];
     setStatus((s) => ({ ...s, thread: [] }));
     try {
@@ -365,7 +389,7 @@ export function useVoiceSession(opts: {
     } catch {
       // ignore: storage unavailable
     }
-  }, []);
+  }, [syncAmbient]);
 
   // Restore a persisted conversation so a reload keeps the memory — and reload
   // it when the companion changes, so each picker choice brings up its own
@@ -456,6 +480,7 @@ export function useVoiceSession(opts: {
         ambientRef.current?.release();
       }
       ambientRef.current?.cancel();
+      syncAmbient();
 
       // Supersede any in-flight turn (its LLM stream + TTS) before starting.
       turnRef.current?.abort();
@@ -668,6 +693,7 @@ export function useVoiceSession(opts: {
                       ...WAIT_FOR_USER_TOOL,
                       run: () => {
                         ambientRef.current?.hold();
+                        syncAmbient();
                         return 'waiting for him';
                       },
                     }
@@ -791,6 +817,7 @@ export function useVoiceSession(opts: {
             // cut-off reply would leave a poke behind it. The scheduler ignores
             // this if the companion has asked to be left alone.
             ambientRef.current?.arm(companion, isPlayingRef.current());
+            syncAmbient();
             // Catch-all: if TTS resolved without first audio (error/abort) the
             // "waiting for speech" flag would otherwise stick — likewise
             // "speaking" if the audio was cut rather than finishing.
@@ -803,8 +830,24 @@ export function useVoiceSession(opts: {
         }
       })();
     },
-    [ensureClients, setReplyPlaying, persistThread],
+    [ensureClients, setReplyPlaying, persistThread, syncAmbient],
   );
+  submitTextRef.current = submitText;
+
+  // The scheduler lives as long as the hook does, so a conversation held
+  // entirely by typing fills its silences like a spoken one.
+  useEffect(() => {
+    ambientRef.current = createAmbientScheduler(() => {
+      // A poke is an ordinary spoken turn with nothing behind it — same path,
+      // same barge-in, same tools. It arms its own successor when it finishes,
+      // which is what keeps the loop going without a clock polling for it.
+      submitTextRef.current('', { speak: true, ambient: true });
+    });
+    return () => {
+      ambientRef.current?.stop();
+      ambientRef.current = null;
+    };
+  }, []);
 
   const start = useCallback((): void => {
     // Already running or mid-start. micHandleRef isn't set until the async mic
@@ -819,13 +862,6 @@ export function useVoiceSession(opts: {
       return;
     }
     ensureClients();
-
-    ambientRef.current = createAmbientScheduler(() => {
-      // A poke is an ordinary spoken turn with nothing behind it — same path,
-      // same barge-in, same tools. It arms its own successor when it finishes,
-      // which is what keeps the loop going without a clock polling for it.
-      submitText('', { speak: true, ambient: true });
-    });
 
     const stt = createStt({
       onPartial: (text) => {
@@ -851,6 +887,7 @@ export function useVoiceSession(opts: {
           // to fill. Cancelled on the confirmed partial rather than the raw one:
           // a phantom shouldn't be able to call the companion off.
           ambientRef.current?.cancel();
+          syncAmbient();
           setStatus((s) => ({ ...s, partial: text }));
         } else {
           // Carries the evidence the decision was made on, not just the verdict:
@@ -999,7 +1036,14 @@ export function useVoiceSession(opts: {
         // stop()+start() hasn't already handed the session to a newer stt.
         if (sttRef.current === stt) startingRef.current = false;
       });
-  }, [ensureClients, submitText, cancelReply, voicedMs, endUtterance]);
+  }, [
+    ensureClients,
+    submitText,
+    cancelReply,
+    voicedMs,
+    endUtterance,
+    syncAmbient,
+  ]);
 
   const stop = useCallback((): void => {
     // Abort the in-flight turn (also stops the TTS via its signal).
@@ -1012,8 +1056,6 @@ export function useVoiceSession(opts: {
     sttRef.current = null;
     micHandleRef.current?.stop();
     micHandleRef.current = null;
-    ambientRef.current?.stop();
-    ambientRef.current = null;
     replyPlayingRef.current = false;
     vadSpeakingRef.current = false;
     voicedRunRef.current = { startedAt: 0, longestMs: 0 };
@@ -1024,9 +1066,22 @@ export function useVoiceSession(opts: {
     speechConfirmedRef.current = false;
     startingRef.current = false;
     // The conversation persists across Stop-listening — only Clear (or a fresh
-    // load) resets it — so re-seed the mirror from the intact threadRef.
-    setStatus({ ...IDLE_STATUS, thread: threadRef.current });
+    // load) resets it — so re-seed the mirror from the intact threadRef. Ambient
+    // chat outlives the mic too, so its row is carried over rather than reset
+    // to IDLE_STATUS's nulls while a poke is still pending.
+    setStatus({
+      ...IDLE_STATUS,
+      thread: threadRef.current,
+      ambientDueAt: ambientRef.current?.dueAt() ?? null,
+      ambientHolding: ambientRef.current?.holding() ?? false,
+    });
   }, []);
+
+  const endSession = useCallback((): void => {
+    stop();
+    ambientRef.current?.stop();
+    syncAmbient();
+  }, [stop, syncAmbient]);
 
   // Tear everything down on unmount.
   useEffect(() => stop, [stop]);
@@ -1034,6 +1089,7 @@ export function useVoiceSession(opts: {
   return {
     start,
     stop,
+    endSession,
     submitText,
     cancelReply,
     clearThread,

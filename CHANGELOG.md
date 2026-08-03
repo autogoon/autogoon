@@ -19,6 +19,12 @@
   now takes its control's colour at half strength; the selected one lightens.
   ([#29](https://github.com/autogoon/autogoon/pull/29))
 
+- bug: **A companion fills a silence with the microphone off** — Filling a
+  silence only ever worked while the mic was on, so a conversation held by
+  typing sat quiet, and turning the mic off stopped a companion picking one up.
+  It now follows the conversation, and ends when you leave Companions.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - internal: **A pack ships what a pack needs** — `goonpack:build` zipped every
   file in a source directory, so anything kept beside the media rode along and
   a picture nothing had described shipped as bytes no companion could pick. It
