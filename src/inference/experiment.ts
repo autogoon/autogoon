@@ -7,7 +7,8 @@
 // The split between them is the reason the raw reply is kept on disk. `run`
 // sends the image and costs money. `parse` turns a stored reply into everything
 // derived from it and costs nothing, so a parser that turns out to be wrong is
-// fixed by walking the corpus calling `parse` alone, with no model involved.
+// fixed by calling `parse` alone over a reply already on disk, with no model
+// involved — which is what Reparse does (reparse-item.ts).
 //
 // `parameters` are what the run is worth reading back in plain words — the
 // model, the resolution, the temperature. Every result records the ones its own

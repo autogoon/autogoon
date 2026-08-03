@@ -33,8 +33,11 @@ no picture. It asks for three things in this order:
    kneeling versus squatting, which way the torso and head face, each garment
    and how it is arranged, which parts are bare and how plainly, whether fabric
    over the breasts is sheer or opaque, and whether nipples are visible.
-2. **The naked flag** — `NAKED: true` if she is wearing nothing at all, `false`
-   if she is wearing anything, however little. Topless is not naked.
+2. **Marked answers**, one per line: the descriptive ones — hair, gaze, setting,
+   body shape, clothing, what is exposed and how plainly — then the ones
+   answered from a named set of words, covering nakedness, breast size, whether
+   a bra or panties are on, topless, and how visible the nipples and genitals
+   are.
 3. **A caption** — one sentence of roughly 35–45 words condensed from the
    observations.
 
@@ -44,27 +47,39 @@ wrong caption is then attributable to the looking or to the reading of it, which
 one call cannot separate. Within the second call the model writes its
 observations out before it concludes anything, because a conclusion asked for on
 its own is one guessed from overall impression rather than read off what it has.
-And the naked flag comes after the observations rather than before them, for the
-same reason: bare-versus-covered is the discrimination being measured, so the
-answer has to follow the looking.
+And the marked answers come after the observations rather than before them, for
+the same reason: bare-versus-covered is the discrimination being measured, so
+the answer has to follow the looking.
 
 ## What is stored
 
 Both prompts as sent, separated by `=== 2 ===` — so the file carries the first
-call's reply, which is where it went; the second reply, verbatim; one field
-parsed from it:
+call's reply, which is where it went; the second reply, verbatim; and every
+field [`fields.ts`](../../fields.ts) asks about, read off the reply's marked
+lines.
 
-    naked: true | false
+Each line is `NAME: <answer>`. A **choice** field's line is read from the front
+against a word list, because the model reliably justifies itself afterwards —
+`NAKED: No — she is wearing a bralette and thong` answers `No`. A **text**
+field's line is kept as written. What each word stores is set out in this
+experiment rather than read from `fields.ts`: the version is a hash of this
+directory alone, so a value recorded here has to live here, or a change
+elsewhere would alter what this produces without moving its version.
 
-and a sidecar — the `CAPTION:` line as the caption, the observations above it as
-the description.
+Two of the fields aren't marked lines. The **caption** is the `CAPTION:` line,
+and the **description** is everything above the first choice answer — the prose
+the model wrote about the picture, headings like `REASONING:` dropped off the
+front. Those two are also the sidecar, built from the fields rather than read
+separately, so what a pack plays and what the caption is scored against are the
+same text.
 
-Both parsers take the last marked line, so a model that echoes the format
-template first loses. A reply carrying no `NAKED:` line answers no field rather
-than defaulting to `false` — an absent answer is recoverable, a fabricated one
-is not. A reply carrying no caption, or a caption with no observations behind
-it, is refused outright: an item with fields and no description of what they
-were read from is worse than one that has to be run again.
+Every field takes the last line it can read, so a model that echoes the format
+template first loses and one that trails an unreadable line after a good answer
+does not. A field with no readable line is absent rather than guessed — an
+absent answer is recoverable, a fabricated one is not. A reply carrying no
+caption, or a caption with no prose behind it, is refused outright: an item with
+fields and no description of what they were read from is worse than one that has
+to be run again.
 
 ## What it is known to get wrong
 

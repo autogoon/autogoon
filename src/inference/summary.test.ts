@@ -8,7 +8,12 @@ import { describe, expect, it } from '@jest/globals';
 import { FIELDS, UNKNOWN, type FieldValue } from './fields';
 import type { Labels } from './labels';
 import type { SurveyedItem } from './item';
-import { summarise } from './summary';
+import { summarise, type CorpusSummary } from './summary';
+
+// By id, not by position: the field set has grown and the arrows' order is not
+// this file's business.
+const tally = (summary: CorpusSummary, id: string) =>
+  summary.fields.find((f) => f.id === id);
 
 const BASELINE = '2026-08-02-baseline';
 // The surveyed experiment's version, and one it has moved on from.
@@ -48,7 +53,12 @@ const byHuman = (value: FieldValue): Labels => ({ naked: value });
 // fixture naming one field stops meaning "answered" the moment another field
 // is added.
 const everyField = (): Labels =>
-  Object.fromEntries(FIELDS.map((f) => [f.id, f.options[0]!.value]));
+  Object.fromEntries(
+    FIELDS.map((f) => [
+      f.id,
+      f.kind === 'text' ? 'something a person wrote' : f.options[0]!.value,
+    ]),
+  );
 
 // An item with no labels that the selected experiment has answered — the state
 // a run leaves behind, now that a run writes nothing into the ground truth.
@@ -136,7 +146,7 @@ describe('summarise', () => {
       ],
       NOW,
     );
-    expect(summary.fields[0]).toMatchObject({
+    expect(tally(summary, 'naked')).toMatchObject({
       id: 'naked',
       confirmed: 2,
       seeded: 1,
@@ -149,7 +159,7 @@ describe('summarise', () => {
       labels: byHuman(false),
       hasLabels: true,
     };
-    expect(summarise([answered], NOW).fields[0]).toMatchObject({
+    expect(tally(summarise([answered], NOW), 'naked')).toMatchObject({
       confirmed: 1,
       seeded: 0,
     });
@@ -164,22 +174,34 @@ describe('summarise', () => {
       ],
       NOW,
     );
-    expect(summary.fields[0]?.values).toContainEqual({
+    expect(tally(summary, 'naked')?.values).toContainEqual({
       label: 'Yes',
       count: 2,
     });
-    expect(summary.fields[0]?.values).toContainEqual({ label: 'No', count: 1 });
+    expect(tally(summary, 'naked')?.values).toContainEqual({
+      label: 'No',
+      count: 1,
+    });
   });
 
   it('lists an option nothing was labelled with at nought', () => {
     expect(
-      summarise([item('a', byHuman(true))], NOW).fields[0]?.values,
+      tally(summarise([item('a', byHuman(true))], NOW), 'naked')?.values,
     ).toContainEqual({ label: 'No', count: 0 });
+  });
+
+  it('reports a text field as answered rather than spread across options', () => {
+    const summary = summarise([item('a', { hair: 'dark, loose' })], NOW);
+    expect(tally(summary, 'hair')).toMatchObject({
+      kind: 'text',
+      confirmed: 1,
+      values: [],
+    });
   });
 
   it('shows a value no option covers rather than dropping it', () => {
     const summary = summarise([item('a', { naked: 'sort of' })], NOW);
-    expect(summary.fields[0]?.values).toContainEqual({
+    expect(tally(summary, 'naked')?.values).toContainEqual({
       label: 'sort of',
       count: 1,
     });

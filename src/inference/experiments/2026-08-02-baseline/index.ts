@@ -11,7 +11,6 @@ import { extname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '@/lib/goonpacks/media';
-import type { Sidecar } from '@/lib/goonpacks/sidecar';
 import type { Experiment, Inferred, Reply } from '../../experiment';
 import type { FieldValue } from '../../fields';
 import { PROMPT_ONE, PROMPT_TWO } from './prompt';
@@ -142,48 +141,166 @@ export function secondPrompt(described: string): string {
   return PROMPT_TWO.replace(DESCRIPTION, described);
 }
 
-function fields(raw: string): Record<string, FieldValue> {
-  const marked = [...raw.matchAll(/^[ \t]*NAKED:[ \t]*(true|false)\b/gim)];
-  const last = marked[marked.length - 1];
-  if (last === undefined) return {};
-  return { naked: last[1]?.toLowerCase() === 'true' };
+// The words the reply may answer each field with, and what they store. Written
+// out here rather than read from fields.ts: fingerprint.ts hashes this directory
+// alone, so a value this experiment records has to live in it or an edit
+// elsewhere would change what it produces without moving its version.
+//
+// `values` maps the words a choice line may answer with to what it stores; a
+// field without one keeps the line as written, which is what a text field
+// wants. It is also what separates the short answers from the prose: see
+// endOfProse.
+//
+// Only the fields fields.ts asks about. The prompt asks for more markers than
+// these, and a value the field set has nowhere to put is one nothing can show
+// or score.
+const YES_NO = { yes: true, no: false, unknown: 'unknown' };
+
+// One marked line: `NAME: <what it says>`. Built rather than written out
+// thirteen times, so the shape the prompt asks for is stated once.
+const marker = (name: string): RegExp =>
+  new RegExp(`^[ \\t]*${name}:[ \\t]*(.+)$`, 'gim');
+
+const CAPTION = marker('CAPTION');
+
+const ANSWERS: {
+  id: string;
+  marker: RegExp;
+  values?: Record<string, FieldValue>;
+}[] = [
+  { id: 'hair', marker: marker('HAIR') },
+  { id: 'gaze', marker: marker('GAZE') },
+  { id: 'setting', marker: marker('SETTING') },
+  { id: 'bodyShape', marker: marker('BODY SHAPE') },
+  { id: 'clothing', marker: marker('CLOTHING') },
+  { id: 'exposed', marker: marker('EXPOSED') },
+  { id: 'naked', marker: marker('NAKED'), values: YES_NO },
+  {
+    id: 'breastSize',
+    marker: marker('BREAST SIZE'),
+    values: {
+      small: 'small',
+      medium: 'medium',
+      large: 'large',
+      'very large': 'veryLarge',
+      unknown: 'unknown',
+    },
+  },
+  { id: 'wearingBra', marker: marker('WEARING BRA'), values: YES_NO },
+  { id: 'wearingPanties', marker: marker('WEARING PANTIES'), values: YES_NO },
+  { id: 'topless', marker: marker('TOPLESS'), values: YES_NO },
+  {
+    id: 'nippleVisibility',
+    marker: marker('NIPPLE VISIBILITY'),
+    values: {
+      'bare and visible': 'bare',
+      'through sheer fabric': 'throughSheer',
+      'shape visible through opaque fabric': 'shapeThroughOpaque',
+      'not visible': 'notVisible',
+      unknown: 'unknown',
+    },
+  },
+  {
+    id: 'genitalVisibility',
+    marker: marker('GENITAL VISIBILITY'),
+    values: {
+      visible: 'visible',
+      'not visible': 'notVisible',
+      unknown: 'unknown',
+    },
+  },
+  { id: 'caption', marker: CAPTION },
+];
+
+// A line the format template left unanswered. The reply sometimes echoes the
+// template back before answering it, and `<colour and what it is doing>` is not
+// a description of anybody's hair.
+const TEMPLATE = /^<.*>$/;
+
+// The word a choice line answers with. It is read off the front rather than
+// from the whole line, because the model reliably justifies itself after it:
+// `NAKED: No — she is wearing a bralette and thong`. Longest word first, so
+// `very large` isn't read as nothing, and the character after it has to be a
+// non-letter, so `nothing` isn't read as `no`.
+function chosen(
+  line: string,
+  values: Record<string, FieldValue>,
+): FieldValue | undefined {
+  const said = line.toLowerCase();
+  for (const word of Object.keys(values).sort((a, b) => b.length - a.length)) {
+    if (!said.startsWith(word)) continue;
+    const after = said.charAt(word.length);
+    if (after === '' || !/[a-z]/.test(after)) return values[word];
+  }
+  return undefined;
 }
 
-// The last CAPTION: line wins, and everything before the first NAKED: or
-// CAPTION: line is the body — the model sometimes echoes the format template
-// back before answering it, and the caption comes last either way.
-function sidecar(raw: string): Sidecar {
-  const marked = [...raw.matchAll(/^[ \t]*CAPTION:[ \t]*(.+)$/gim)];
-  const last = marked[marked.length - 1];
-  const caption = (last?.[1] ?? '').trim().replace(/^["']|["']$/g, '');
+// The last line a field's answer can be read off — not simply the last one,
+// because a template line says nothing either kind of field recognises. A field
+// with no readable line is absent rather than guessed.
+function fields(raw: string): Record<string, FieldValue> {
+  const answered: Record<string, FieldValue> = {};
+  for (const { id, marker, values } of ANSWERS) {
+    const read = [...raw.matchAll(marker)]
+      .map((match) => {
+        const line = (match[1] ?? '').trim();
+        if (line === '' || TEMPLATE.test(line)) return undefined;
+        return values === undefined ? line : chosen(line, values);
+      })
+      .filter((value) => value !== undefined);
+    const last = read[read.length - 1];
+    if (last !== undefined) answered[id] = last;
+  }
+  return answered;
+}
+
+// A heading with nothing after it — `OBSERVATIONS:`, `REASONING:` — which opens
+// the prose rather than being part of it.
+const HEADING = /^[ \t]*[A-Z][A-Z ]*:[ \t]*$\n?/m;
+
+// Where the description stops: the first line answering a field from a word
+// list, or the caption. The lines above those are prose the model wrote about
+// the picture — `HAIR:` and `SETTING:` are marked too, and belong in the
+// description rather than after it — so the cut is at the short answers, not at
+// the first marked line of any kind.
+function endOfProse(raw: string): number {
+  const starts = [
+    ...ANSWERS.filter((a) => a.values !== undefined),
+    { marker: CAPTION },
+  ]
+    .map((a) => [...raw.matchAll(a.marker)][0]?.index)
+    .filter((at) => at !== undefined);
+  return starts.length === 0 ? raw.length : Math.min(...starts);
+}
+
+// The prose the model wrote before it started answering: the description a pack
+// would play, and a field like the rest.
+const prose = (raw: string): string =>
+  raw.slice(0, endOfProse(raw)).replace(HEADING, '').trim();
+
+// The sidecar is two of the fields rather than a third thing read off the
+// reply, so what a pack plays and what the caption is scored against are the
+// same text by construction.
+export function parse(raw: string): Inferred {
+  const answered = fields(raw);
+  const description = prose(raw);
+  if (description !== '') answered.description = description;
+  // Models wrap a caption in quotes often enough to be worth taking off, and
+  // never mean them as part of it.
+  const caption = String(answered.caption ?? '')
+    .replace(/^["']|["']$/g, '')
+    .trim();
   if (caption === '') {
     throw new Error(`No caption could be read from the reply:\n${raw}`);
   }
-  const description = raw
-    .slice(0, Math.min(...cuts(raw)))
-    .replace(/^\s*OBSERVATIONS:[ \t]*/i, '')
-    .trim();
+  answered.caption = caption;
   if (description === '') {
     throw new Error(
       'The reply carried a caption and no observations — the sidecar needs both.',
     );
   }
-  return { caption, description };
+  return { fields: answered, sidecar: { caption, description } };
 }
-
-// Where the observations stop: the first line that answers one of the later
-// steps. `raw.length` keeps `Math.min` honest when the reply carries neither.
-const cuts = (raw: string): number[] => [
-  raw.length,
-  ...[/^[ \t]*NAKED:/im, /^[ \t]*CAPTION:/im]
-    .map((at) => at.exec(raw)?.index)
-    .filter((at) => at !== undefined),
-];
-
-export const parse = (raw: string): Inferred => ({
-  fields: fields(raw),
-  sidecar: sidecar(raw),
-});
 
 export const experiment: Experiment = {
   id: ID,

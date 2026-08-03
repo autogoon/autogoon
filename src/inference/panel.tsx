@@ -97,7 +97,11 @@ export function InferencePanel({ active }: { active: boolean }) {
           <span key={field.id} className="block text-sm">
             <span className="font-medium">{field.label}</span>{' '}
             <span className="text-muted-foreground">
-              {field.values.map((v) => `${v.label} ${v.count}`).join(' · ')}
+              {/* A text field has no options to spread across, so how many
+                  people have answered it is the whole of what can be said. */}
+              {field.kind === 'text'
+                ? `${field.confirmed} answered`
+                : field.values.map((v) => `${v.label} ${v.count}`).join(' · ')}
               {field.seeded > 0 ? ` — ${field.seeded} unreviewed` : ''}
             </span>
           </span>

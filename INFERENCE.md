@@ -57,6 +57,7 @@ One `.labels.json` per item, holding what a person answered and nothing else:
 
     {
       "breastSize": "unknown",
+      "hair": "dark, loose over one shoulder",
       "naked": true
     }
 
@@ -71,8 +72,18 @@ selected experiment's proposal for it shows again.
 include it — a picture with no breasts in it has a `breastSize`, and an
 experiment answering `large` there is one that got it wrong.
 
-The fields and their options are in [`fields.ts`](./src/inference/fields.ts), in
-the order the arrows walk them.
+A field is either a **choice** — answered from a named set, which is what makes
+it scoreable, since an experiment's answer is right or wrong against a person's
+— or **text**, answered in words. Nothing marks a text answer: it is recorded
+because it is worth having beside the picture, not because it can be measured.
+
+The caption and the description a pack plays are fields like the rest, so an
+experiment's can be read against one somebody wrote. A description is
+paragraphs, so its editor is a box rather than a line and Enter is a newline in
+it; Escape or clicking away is how you leave.
+
+The fields, their kinds and their options are in
+[`fields.ts`](./src/inference/fields.ts), in the order the arrows walk them.
 
 ## The screen
 
@@ -101,11 +112,28 @@ items. A breadcrumb top left does the same.
 | ------- | ---------------------------------------------------- |
 | `↑` `↓` | move between the fields                              |
 | `←` `→` | answer the focused field, along its options in turn  |
+| `→`     | on a text field, open it for typing                  |
 | `Del`   | takes the focused field's answer back                |
 | `a` `d` | previous and next item                               |
 | `Enter` | the next item nobody has answered                    |
 | `?`     | compare against pictures already labelled            |
 | `i`     | infer: run the selected experiment against this item |
+| `r`     | reparse: read this item's stored reply again         |
+
+A **text field** is answered in words rather than from a set. `→` opens it,
+holding what you answered before or what the experiment proposed if you haven't
+— so keeping the model's wording is `→` then Enter. Enter or clicking away keeps
+what is typed, Escape leaves it as it was, and an empty box takes the answer
+back. Compare does nothing on one: its exemplars are the items sharing a value,
+and no two descriptions share one.
+
+Where nobody has answered a text field, the experiment's words stand in the row
+underlined, as its answer does on a choice field. Where somebody has answered
+and the experiment said something else, the row is theirs and an icon beside it
+opens the two side by side over a dimmed page — a choice field shows both at
+once, and two paragraphs cannot. Each has a button naming it, so the choice is
+between two answers rather than between acting and not. Escape, the close icon
+or a click away all leave.
 
 **Compare** answers "is this one Medium or Large?" the only way it can be
 answered — against the pictures that were called Medium and Large before. `?`
@@ -122,9 +150,16 @@ against those would be calibrating against the thing being measured.
 | `Esc`   | leave without answering                    |
 
 **Infer runs one item** — it is the spot-check, and what it costs is whatever
-the selected experiment does per picture. Running an experiment across a whole
-corpus is `npm run experiment:run`, and re-running the items an edit put out of
-date is `npm run experiment:run:outdated`:
+the selected experiment does per picture. **Reparse** reads that item's stored
+reply again and re-derives its fields and sidecar from it, with no model call:
+it is how a parser that turns out to be wrong, or a field added to an
+experiment's output, is fixed without paying twice. When the run happened, what
+ran it and what that run asked for all stand — only the answers change, because
+the reply they were read from is the one that run produced.
+
+Running an experiment across a whole corpus is `npm run experiment:run`, and
+re-running the items an edit put out of date is
+`npm run experiment:run:outdated`:
 
     npm run experiment:run goonpacks/elise 2026-08-02-baseline
 

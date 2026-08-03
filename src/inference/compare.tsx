@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import type { Field, FieldValue } from './fields';
+import type { ChoiceField, FieldValue } from './fields';
 import { mediaUrl, type SurveyedItem } from './item';
 
 export function Compare({
@@ -25,7 +25,9 @@ export function Compare({
   onAnswer,
   onClose,
 }: {
-  field: Field;
+  // A choice field only: exemplars are the items sharing one of its values, and
+  // no two free-text answers share one.
+  field: ChoiceField;
   // Every picture on screen comes from the one pack: exemplars are the corpus's
   // own confirmed answers, and a corpus is one pack's media.
   pack: string;

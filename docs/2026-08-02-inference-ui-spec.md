@@ -271,8 +271,12 @@ and nothing that costs that should start on a click.
 - **`GET media`** — the bytes of one item, since the browser cannot read the
   disk.
 - **`GET labels` / `PUT labels`** — one item's ground truth.
-- **`POST run`** — run the baseline against one item, write its three files,
-  fill any unanswered ground-truth field, and return both.
+- **`POST run`** — run the selected experiment against one item and write what
+  it produced. This is the only route that spends money.
+- **`POST reparse`** — derive one item's fields and sidecar again from the reply
+  already stored, with no model call. A route of its own rather than a mode of
+  `run`, so the free path and the paid one cannot be reached by the same request
+  with a flag wrong.
 
 Two constraints on all of them:
 

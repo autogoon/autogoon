@@ -51,6 +51,8 @@ export type CorpusView = {
   answer: (field: string, value: FieldValue) => void;
   clear: (field: string) => void;
   infer: () => void;
+  // Free: re-derives from the reply already stored, with no model call.
+  reparse: () => void;
   selectPack: (pack: string) => void;
   select: (experiment: string) => void;
   reload: () => void;
@@ -297,26 +299,36 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     [pack, stem, replaceLabels],
   );
 
-  const infer = useCallback(() => {
-    if (stem === undefined || pack === '' || experiment === '') return;
-    setInferring(true);
-    setError(null);
-    fetch(`/api/inference/run?pack=${encodeURIComponent(pack)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stem, experiment }),
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(await res.text());
-        return res.json() as Promise<{ raw: string; run: RunFields }>;
+  // Infer sends a picture to a model and costs money; reparse re-reads the
+  // reply already on disk and costs nothing. They differ in the route they call
+  // and in nothing the screen does with the answer, so one function serves both
+  // and each button names its own.
+  const derive = useCallback(
+    (route: 'run' | 'reparse') => {
+      if (stem === undefined || pack === '' || experiment === '') return;
+      setInferring(true);
+      setError(null);
+      fetch(`/api/inference/${route}?pack=${encodeURIComponent(pack)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stem, experiment }),
       })
-      .then((data) => {
-        setRun({ fields: data.run.fields, raw: data.raw });
-        replaceRun(stem, data.run);
-      })
-      .catch((e: unknown) => setError(message(e)))
-      .finally(() => setInferring(false));
-  }, [pack, stem, experiment, replaceRun]);
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await res.text());
+          return res.json() as Promise<{ raw: string; run: RunFields }>;
+        })
+        .then((data) => {
+          setRun({ fields: data.run.fields, raw: data.raw });
+          replaceRun(stem, data.run);
+        })
+        .catch((e: unknown) => setError(message(e)))
+        .finally(() => setInferring(false));
+    },
+    [pack, stem, experiment, replaceRun],
+  );
+
+  const infer = useCallback(() => derive('run'), [derive]);
+  const reparse = useCallback(() => derive('reparse'), [derive]);
 
   return {
     items,
@@ -337,6 +349,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     answer,
     clear,
     infer,
+    reparse,
     selectPack,
     select,
     reload,

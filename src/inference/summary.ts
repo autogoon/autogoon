@@ -9,7 +9,7 @@
 // the labels and `seeded` counts what the run proposed and the labels don't
 // cover, which is the worklist.
 
-import { FIELDS, optionLabel, type FieldValue } from './fields';
+import { FIELDS, optionLabel, type Field, type FieldValue } from './fields';
 import { isCurrent } from './runs';
 import type { SurveyedItem } from './item';
 
@@ -18,12 +18,14 @@ export type ValueTally = { label: string; count: number };
 export type FieldTally = {
   id: string;
   label: string;
+  kind: Field['kind'];
   // Answers a person gave, and answers still holding an experiment's.
   confirmed: number;
   seeded: number;
   // How the confirmed answers are spread across the field's options — the
   // ground truth's own distribution, which is what says whether a case is
-  // represented at all.
+  // represented at all. Empty for a text field: no two free-text answers share
+  // a value, so a spread across them would be a list of ones.
   values: ValueTally[];
 };
 
@@ -85,21 +87,26 @@ export function summarise(
     return {
       id: field.id,
       label: field.label,
+      kind: field.kind,
       confirmed: byHuman,
       seeded: bySeed,
       // Every option is listed, zero included: an option nothing has been
       // labelled with is the case the corpus is missing, and it can only say so
       // by being there at nought.
-      values: field.options.map((option) => ({
-        label: option.label,
-        count: counts.get(option.value) ?? 0,
-      })),
+      values:
+        field.kind === 'text'
+          ? []
+          : field.options.map((option) => ({
+              label: option.label,
+              count: counts.get(option.value) ?? 0,
+            })),
     } satisfies FieldTally;
   });
 
   // A value no option covers — a field whose options changed after labelling —
   // is appended rather than dropped, so it shows as the anomaly it is.
   for (const field of FIELDS) {
+    if (field.kind === 'text') continue;
     const tally = fields.find((f) => f.id === field.id)!;
     for (const item of items) {
       const answer = item.labels?.[field.id];
