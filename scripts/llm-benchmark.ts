@@ -1,7 +1,7 @@
 // Time a set of candidate models against real conversations.
 //
 //   npm run llm:benchmark              every conversation in llm-benchmark/
-//   npm run llm:benchmark elise       only those whose filename contains it
+//   npm run llm:benchmark elise        only those whose filename contains it
 //   npm run llm:benchmark <file>       re-print a saved run, sending nothing
 //
 // Conversations sit in llm-benchmark/, and what a run measured is written to
@@ -446,9 +446,8 @@ function report(
   }
 
   console.log(`── Every conversation, by model (${legend}, averaged) ──\n`);
-  // Each figure is one run index across the conversations, not the runs run
-  // together: run 1 of Elise and run 1 of Miley are both first calls, and
-  // averaging them keeps the warm-up visible where flattening would bury it.
+  // Averaged by run index across the conversations rather than over every run
+  // flattened together, which would bury the cold first call.
   const perIndex = (
     rows: Result[],
     of: (r: Run) => number | null,

@@ -15,12 +15,12 @@
 // leaves a group behind and a count on its own doesn't say so.
 //
 // The pack and the experiment are both required, and neither has an "every
-// pack" or "every experiment" form: an experiment spends per item, and the
-// packs on a developer's disk hold thousands between them.
+// pack" or "every experiment" form: an experiment spends per item, and a pack
+// can hold thousands.
 //
 // This is the paid path at scale, so it says what it is about to run and against
 // how many before it starts, and stops taking new items at the first failure
-// rather than repeating it four hundred times. Items already done are skipped,
+// rather than repeating it for every item left. Items already done are skipped,
 // so a stopped run is resumed by running it again.
 //
 // Reads OPENROUTER_API_KEY / LLM_URL from the environment; the npm script loads

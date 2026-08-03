@@ -36,19 +36,15 @@ describe('countItems', () => {
 
 describe('readPack', () => {
   it('answers the pack the request names when the listing holds it', () => {
-    expect(readPack(request('?pack=elise'), ['aimee', 'elise'])).toBe(
-      'elise',
-    );
+    expect(readPack(request('?pack=elise'), ['aimee', 'elise'])).toBe('elise');
   });
 
   it('refuses a pack the listing does not hold', () => {
-    expect(() => readPack(request('?pack=elise'), ['elise'])).toThrow('elise');
+    expect(() => readPack(request('?pack=gone'), ['elise'])).toThrow('gone');
   });
 
   it('refuses a traversal, which no listing spells', () => {
-    expect(() =>
-      readPack(request('?pack=..%2F..%2Fetc'), ['elise']),
-    ).toThrow();
+    expect(() => readPack(request('?pack=..%2F..%2Fetc'), ['elise'])).toThrow();
   });
 
   it('refuses a request naming no pack at all', () => {

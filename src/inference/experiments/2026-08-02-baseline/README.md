@@ -28,11 +28,11 @@ batching and expert routing move on the far end regardless.
 
 ## Strategy
 
-Two requests. **The first** carries the resized image and `PROMPT_ONE`: reasoning
-about the picture at whatever length it takes — the pose, the clothing, what is
-bare, the direction the body and gaze face — and then one answer outright,
-`BREAST SIZE`, because a magnitude is not in anybody's prose account of a
-picture.
+Two requests. **The first** carries the resized image and `PROMPT_ONE`:
+reasoning about the picture at whatever length it takes — the pose, the
+clothing, what is bare, the direction the body and gaze face — and then one
+answer outright, `BREAST SIZE`, because a magnitude is not in anybody's prose
+account of a picture.
 
 **The second** carries `PROMPT_TWO` with that reasoning substituted into it, and
 no picture. It asks for three things in this order:
@@ -106,11 +106,11 @@ Carried on purpose. A baseline quietly improved measures nothing.
   to tell them apart.
 - **Body orientation follows the gaze**: a subject kneeling away from the camera
   and looking back over her shoulder is described as facing the camera.
-- **Breast size reads Medium whatever the picture holds.** Measured over the few
-  items labelled and answered both ways, it gave the same grade every
-  time. Asking the call with eyes for it, against what is on screen rather than
-  a cup size, is the change under test; whether it moved is a question for a
-  sweep, not for reading the prompt.
+- **Breast size reads Medium whatever the picture holds.** Over the few items
+  labelled and answered both ways it gave the same grade every time, including
+  where the ground truth said otherwise. Asking the call with eyes for it,
+  against what is on screen rather than a cup size, is the change under test;
+  whether it moved is a question for a sweep, not for reading the prompt.
 
 ## Running it
 
