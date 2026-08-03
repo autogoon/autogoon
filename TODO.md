@@ -102,35 +102,26 @@ you say you're cumming, so the ending stops being a setting and becomes
 something they do to you. And because they can choose, they can say they will,
 and do something else.
 
-### Pick packs up off disk in dev
+### Play a pack source with an experiment's descriptions
 
-Iterating on a pack means: edit, `npm run goonpack:build`, open the Goonpacks
-tab, pick the zip, confirm the replace. Every time. The build is the only step
-doing anything the app couldn't do itself.
+A dev server plays the pack sources under `goonpacks/` directly, and each is
+played with its hand-written sidecars — the choice `goonpack:build` makes when
+its second argument is left off. So a source described only by an experiment
+carries no media at all, and there is no way to ask for the other one.
 
-On a locally-run server, have the app ask a route on load what pack directories
-are sitting in `goonpacks/`. Import each one exactly as though it had been
-chosen in the picker and replaced: the same validation, the same storage. Reload
-becomes the whole loop.
+The choice belongs beside the base and overlay selects on the chooser card,
+which is also where a card should say its pack is a directory being edited
+rather than an extraction in storage. The Goonpacks tab already says so.
 
-The source directory rather than a built zip, because validation now runs on the
-extracted tree. The tree is the thing that ships and the zip only carries it, so
-importing the directory imports what would ship.
+Two things follow it. A directory currently shadows an installed pack of the
+same id and version without replacing it, because until it can be played with
+the fuller set of descriptions it is the emptier copy; once it can, removing the
+installed one is what was asked for. And per-experiment search scoring has
+somewhere to come from — an item already carries its experiment's fields
+(`CompanionMedia.values`) and nothing reads them.
 
-Deliberately load-time only, with no watching for changes. A reload is a small
-enough ask, and polling can come later if it isn't.
-
-**Dev-server only, and it has to be enforced server-side.** The route reads the
-developer's own filesystem, which is what a deploy must not do.
-`access-check.ts` already has the `NODE_ENV === 'development'` precedent to
-follow.
-
-Also worth deciding what happens when a disk pack and an installed one collide,
-and whether a pack imported this way should be visibly marked as having come
-from disk rather than chosen.
-
-A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
-moves into the app properly. Small enough to be worth doing anyway.
+[Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring moves into the
+app properly, and this is a step towards it rather than a stopgap for it.
 
 ### The model settings, together or app-wide
 

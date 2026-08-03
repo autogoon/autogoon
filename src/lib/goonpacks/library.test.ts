@@ -136,6 +136,16 @@ describe('buildLibrary', () => {
     expect(content.media[1]!.values).toEqual({});
   });
 
+  // Where a pack was read from is the merge's to say (merged-source.ts): a
+  // source answers for a key without saying where it read it, so a library
+  // built over one place marks nothing.
+  it('marks no pack as coming off disk, which only a merge of two sources knows', async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+    );
+    expect([...lib.onDisk]).toEqual([]);
+  });
+
   it("leaves a media item's src unset until load() is called", async () => {
     const lib = await buildLibrary(
       source({ 'pub.comp@1.0.0': completePack('pub.comp') }),

@@ -59,6 +59,15 @@ export type Library = {
   rows: PackRow[];
   content: Map<string, PackContent>;
   manifests: Map<string, PackManifest>;
+  // The keys read from a pack source on disk rather than out of storage.
+  // buildLibrary can't tell — a source answers for a key without saying where
+  // it read it — so it comes from the merge that composed the source, and is
+  // empty for a library built over one place (merged-source.ts).
+  //
+  // The screens mark these. A directory is removed by deleting the directory,
+  // so the Remove button that empties a pack out of storage doesn't apply, and
+  // pressing it deletes nothing and watches the pack return.
+  onDisk: ReadonlySet<string>;
 };
 
 // Cross-pack rules a tree can't know about itself: an overlay's base must be
@@ -208,6 +217,7 @@ export async function buildLibrary(source: LibrarySource): Promise<Library> {
     entries: buildEntries(survivors),
     content: new Map(survivors.map((p) => [p.key, p.content])),
     manifests: new Map(survivors.map((p) => [p.key, p.manifest])),
+    onDisk: new Set(),
     rows: [
       ...survivors.map((p) => ({
         id: p.key,

@@ -5,6 +5,7 @@
 // removal deletes an installed pack — neither gets a spoken trigger.
 
 import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { HardDrive } from 'lucide-react';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
@@ -194,15 +195,30 @@ export function GoonpacksPanel({ active }: { active: boolean }) {
                 row={row}
                 accent={rowAccent(row, library.packs)}
                 control={
-                  <Button
-                    onClick={() => void library.removePack(row.id)}
-                    className="text-sm"
-                    // Removing a pack while another is unpacking would rebuild
-                    // the index out from under the import.
-                    disabled={progress !== null}
-                  >
-                    Remove
-                  </Button>
+                  library.onDisk.has(row.id) ? (
+                    // A pack read straight out of goonpacks/ on a dev server.
+                    // Remove empties a pack out of browser storage, and this
+                    // one isn't there — it is removed by deleting the
+                    // directory, and pressing a button would delete nothing
+                    // and watch the pack come back on the next build.
+                    <span
+                      className="text-muted-foreground flex items-center gap-1.5 text-sm"
+                      title="Read from goonpacks/ on this machine"
+                    >
+                      <HardDrive className="size-4" />
+                      on disk
+                    </span>
+                  ) : (
+                    <Button
+                      onClick={() => void library.removePack(row.id)}
+                      className="text-sm"
+                      // Removing a pack while another is unpacking would rebuild
+                      // the index out from under the import.
+                      disabled={progress !== null}
+                    >
+                      Remove
+                    </Button>
+                  )
                 }
               />
             ))

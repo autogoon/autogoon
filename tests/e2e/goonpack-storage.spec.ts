@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { skipWithoutOpfs } from './opfs';
+import { packsListed } from './packs';
 
 declare global {
   interface Window {
@@ -117,12 +118,12 @@ test('the load-time clean pass removes markerless trees only', async ({
 }) => {
   await page.goto('/');
   await skipWithoutOpfs(page);
-  // Every panel is mounted from the first paint, so the app sweeps at load —
-  // and a sweep running while the fixture is being written would delete a tree
-  // whose marker isn't there yet. Let that first pass finish before seeding;
-  // the sweep under test is the one on the reload below.
+  // Opening the tab is what builds the library, and a sweep running while the
+  // fixture is being written would delete a tree whose marker isn't there yet.
+  // Let that first pass finish before seeding; the sweep under test is the one
+  // on the reload below.
   await page.getByRole('button', { name: 'Goonpacks' }).click();
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+  await packsListed(page);
 
   await makeTree(page, 'kept.pack@1.0.0', true);
   await makeTree(page, 'crashed.pack@1.0.0', false);
@@ -153,7 +154,7 @@ test('the clean pass spares a tree another tab is importing, and removes it once
   await page.goto('/');
   await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+  await packsListed(page);
 
   // A markerless tree with its import lock held is a pack being written right
   // now. On disk it is indistinguishable from one a crash abandoned, which is
@@ -165,11 +166,10 @@ test('the clean pass spares a tree another tab is importing, and removes it once
   const other = await context.newPage();
   await other.goto('/');
   await other.getByRole('button', { name: 'Goonpacks' }).click();
-  // The list settles empty — a markerless tree is nobody's installed pack, so
-  // survival is read off disk rather than off the screen. Waiting for the empty
-  // list is what proves the sweep has been and gone: the panel says "Checking
-  // packs…" until the load, sweep included, has finished.
-  await expect(other.getByText('No packs imported.')).toBeVisible();
+  // A markerless tree is nobody's installed pack, so its survival is read out
+  // of storage rather than off the screen — and the screen is what says the
+  // sweep has been and gone.
+  await packsListed(other);
   expect(await packKeys(other)).toEqual(['busy.pack@1.0.0']);
 
   // The importing tab goes away — a crash, a closed tab, or simply the end of
@@ -179,7 +179,7 @@ test('the clean pass spares a tree another tab is importing, and removes it once
   await page.close();
   await other.reload();
   await other.getByRole('button', { name: 'Goonpacks' }).click();
-  await expect(other.getByText('No packs imported.')).toBeVisible();
+  await packsListed(other);
   expect(await packKeys(other)).toEqual([]);
 });
 
@@ -190,7 +190,7 @@ test('a tree another tab is still writing is not offered as an installed pack', 
   await page.goto('/');
   await skipWithoutOpfs(page);
   await page.getByRole('button', { name: 'Goonpacks' }).click();
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+  await packsListed(page);
 
   // An import part-way through: everything the load reads — manifest, prompt,
   // captions — has landed, so the tree validates, and the media list is
@@ -203,7 +203,7 @@ test('a tree another tab is still writing is not offered as an installed pack', 
   const other = await context.newPage();
   await other.goto('/');
   await other.getByRole('button', { name: 'Goonpacks' }).click();
-  await expect(other.getByText('No packs imported.')).toBeVisible();
+  await packsListed(other);
   // The sweep spared the tree — it is still on disk — so the marker check on
   // the load path is the only thing keeping a half-written pack out of the
   // library.

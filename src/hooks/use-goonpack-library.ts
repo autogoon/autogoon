@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
 import type { LibraryEntry, PackOption } from '@/lib/goonpacks/entries';
+import { diskSource, type DiskChoice } from '@/lib/goonpacks/disk-source';
 import { prepareImport, type PendingImport } from '@/lib/goonpacks/import';
 import {
   buildLibrary,
@@ -14,6 +15,7 @@ import {
   type LibrarySource,
   type PackRow,
 } from '@/lib/goonpacks/library';
+import { mergedSource } from '@/lib/goonpacks/merged-source';
 import { buildEntries, packKey } from '@/lib/goonpacks/entries';
 import {
   applyOverlay,
@@ -33,7 +35,7 @@ import {
 
 export type { LibraryEntry, PackOption, PackRow, PendingImport };
 
-const source: LibrarySource = {
+const installed: LibrarySource = {
   listKeys: listCompletePackKeys,
   openTree: openPackTree,
   mediaUrl: async (key, media) => {
@@ -45,11 +47,36 @@ const source: LibrarySource = {
   },
 };
 
+// Pack sources on the developer's own disk, played without being zipped and
+// imported first: edit the directory, reload, and that is the whole loop. The
+// routes behind it answer under `npm run dev` and nowhere else, so a deployed
+// build never asks — the index is the OPFS packs alone, exactly as before.
+const IS_DEV = process.env.NODE_ENV === 'development';
+
+// Which sources to offer, and whose descriptions to play each with. Nothing
+// chooses an experiment yet, so every source is offered with its hand-written
+// sidecars — a source described only by an experiment therefore carries no
+// media until the picker names one.
+async function diskChoices(): Promise<DiskChoice[]> {
+  if (!IS_DEV) return [];
+  try {
+    const response = await fetch('/api/inference/packs');
+    if (!response.ok) return [];
+    const { dirs } = (await response.json()) as { dirs?: string[] };
+    return (dirs ?? []).map((dir) => ({ dir }));
+  } catch {
+    // A dev server that isn't answering is not a reason to have no library:
+    // the installed packs are read either way.
+    return [];
+  }
+}
+
 const EMPTY: Library = {
   entries: buildEntries([]),
   rows: [],
   content: new Map(),
   manifests: new Map(),
+  onDisk: new Set(),
 };
 
 // The session's one index, and the components watching it.
@@ -71,7 +98,13 @@ async function load(replaced: ReadonlySet<string>): Promise<Library> {
     purged = true;
     void purgeLegacyDatabase();
   }
-  const built = await buildLibrary(source);
+  const { source, onDisk } = mergedSource(
+    diskSource(await diskChoices()),
+    installed,
+  );
+  // Where each pack was read from is the merge's to say, so it is stamped on
+  // here rather than inside buildLibrary, which only ever sees one source.
+  const built = { ...(await buildLibrary(source)), onDisk: new Set(onDisk()) };
   if (current !== null) carryMediaOver(current, built, replaced);
   current = built;
   for (const listener of listeners) listener(built);
@@ -215,6 +248,7 @@ export function useGoonpackLibrary(onScreen: boolean) {
     status,
     entries: state.entries,
     packs: state.rows,
+    onDisk: state.onDisk,
     importPack,
     removePack,
     resolveVariant,

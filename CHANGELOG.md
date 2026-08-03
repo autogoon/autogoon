@@ -34,6 +34,14 @@
   [GOONPACKS.md](./GOONPACKS.md) tells a pack author to name neither.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
+- internal: **A dev server plays pack sources off disk** — Iterating on a pack
+  meant building a zip, opening the Goonpacks tab, picking it and confirming the
+  replace, every time. Every directory under `goonpacks/` is now offered on the
+  Companions screen as it sits, validated by the same rules an imported pack is,
+  so a reload is the whole loop. A directory replaces an installed pack of the
+  same id and version once it has proved it validates. Nothing changes off a dev
+  server. ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - internal: **The pack index is built on first sight, not at startup** — Reading
   every installed pack's sidecars happened at app load, whether or not anything
   went near a companion. It now happens the first time Companions or Goonpacks
