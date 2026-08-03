@@ -1,7 +1,8 @@
-// The corpus's filename conventions, in one place. Every file in
-// inference-corpus/ is flat and named from the item it belongs to, so the
-// directory listing alone says what exists — no file is opened to find out.
-// docs/2026-08-02-inference-ui-spec.md describes the layout and why it is flat.
+// The corpus's filename conventions, in one place. A corpus is a pack's
+// media/, and every file in one is flat and named from the item it belongs to,
+// so the directory listing alone says what exists — no file is opened to find
+// out. docs/2026-08-02-inference-ui-spec.md describes the layout and why it is
+// flat.
 //
 // Reading a name is stripping a known suffix from the right:
 //
@@ -18,7 +19,10 @@
 
 import { MEDIA_TYPES, type MediaKind } from '@/lib/goonpacks/media';
 
-export const CORPUS_DIR = 'inference-corpus';
+// The repo's pack sources. store.ts carries a PACKS_DIR of its own for the OPFS
+// directory the app installs packs into, which is a different place wearing the
+// same name.
+export const PACKS_DIR = 'goonpacks';
 
 // `<date>-<name>`: digits, lowercase and hyphens only. No dots, so the segment
 // before `.fields.json` is always the whole id.

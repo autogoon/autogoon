@@ -1,12 +1,15 @@
 // The Inference tab's own routing. page.tsx picks the tab off the hash's first
 // segment and ignores the rest, so everything after `#inference/` belongs to
-// this screen: which experiment is under examination, and which item is open
-// for review.
+// this screen: which pack's media is being labelled, which experiment is under
+// examination, and which item is open for review.
 //
-//   #inference                        the summary, on whichever experiment the
-//                                     registry names
-//   #inference/<experiment>           the summary, on that experiment
-//   #inference/<experiment>/<stem>    that item, open for review
+//   #inference                              nothing chosen yet
+//   #inference/<pack>                       that pack
+//   #inference/<pack>/<experiment>          the summary
+//   #inference/<pack>/<experiment>/<stem>   that item, open for review
+//
+// A hash naming neither is filled in from what was last selected (chosen.ts)
+// and replaced, so the address always names both before anything is fetched.
 //
 // Review is a page rather than an overlay so an item can be linked, reloaded
 // and left with the browser's own back — and so Escape belongs to whatever
@@ -23,20 +26,24 @@ export const TAB = 'inference';
 const CHANGED = 'inference:route';
 
 export type InferenceRoute = {
-  // Empty before anything has been chosen. The listing then answers for the
-  // registry's CURRENT and names it.
+  // Empty where the hash names none. choose() then fills it.
+  pack: string;
   experiment: string;
   // Null on the summary screen.
   stem: string | null;
 };
 
+const NOTHING: InferenceRoute = { pack: '', experiment: '', stem: null };
+
+const segment = (part: string | undefined): string =>
+  part === undefined || part === '' ? '' : decodeURIComponent(part);
+
 export function readRoute(hash: string): InferenceRoute {
-  const [base, experiment, ...rest] = hash.replace(/^#/, '').split('/');
-  if (base !== TAB || experiment === undefined || experiment === '') {
-    return { experiment: '', stem: null };
-  }
+  const [base, pack, experiment, ...rest] = hash.replace(/^#/, '').split('/');
+  if (base !== TAB) return NOTHING;
   return {
-    experiment: decodeURIComponent(experiment),
+    pack: segment(pack),
+    experiment: segment(experiment),
     // Rejoined before decoding: a stem is encoded on the way out, so a slash in
     // one can't reach here split — but the corpus is a directory of arbitrary
     // filenames, and rejoining costs nothing to be sure of it.
@@ -44,20 +51,27 @@ export function readRoute(hash: string): InferenceRoute {
   };
 }
 
-export const routeHash = (experiment: string, stem?: string | null): string =>
-  stem === undefined || stem === null
-    ? `#${TAB}/${encodeURIComponent(experiment)}`
-    : `#${TAB}/${encodeURIComponent(experiment)}/${encodeURIComponent(stem)}`;
+export function routeHash(
+  pack: string,
+  experiment: string,
+  stem?: string | null,
+): string {
+  const at = `#${TAB}/${encodeURIComponent(pack)}/${encodeURIComponent(experiment)}`;
+  return stem === undefined || stem === null
+    ? at
+    : `${at}/${encodeURIComponent(stem)}`;
+}
 
 // Moving between items replaces rather than pushes: walking a thousand of them
 // would otherwise bury the summary a thousand entries back, and one press of
 // back should leave review rather than undo a step.
 export function goTo(
+  pack: string,
   experiment: string,
   stem: string | null,
   { replace = false } = {},
 ): void {
-  const url = routeHash(experiment, stem);
+  const url = routeHash(pack, experiment, stem);
   if (replace) window.history.replaceState(null, '', url);
   else window.history.pushState(null, '', url);
   window.dispatchEvent(new Event(CHANGED));
@@ -66,10 +80,7 @@ export function goTo(
 export function useRoute(): InferenceRoute {
   // Read after mount rather than from an initializer: this renders on the
   // server too, where there is no location to read.
-  const [route, setRoute] = useState<InferenceRoute>({
-    experiment: '',
-    stem: null,
-  });
+  const [route, setRoute] = useState<InferenceRoute>(NOTHING);
   useEffect(() => {
     const read = () => setRoute(readRoute(window.location.hash));
     read();

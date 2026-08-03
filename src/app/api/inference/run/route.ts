@@ -7,8 +7,9 @@
 
 import { listCorpus, readRaw, readRun } from '@/inference/corpus';
 import { failed, IS_DEV, notFound } from '@/inference/dev-only';
-import { CURRENT, experimentById } from '@/inference/experiments';
+import { experimentById } from '@/inference/experiments';
 import { fingerprint } from '@/inference/fingerprint';
+import { packDirs, readPack } from '@/inference/packs';
 import { runItem } from '@/inference/run-item';
 
 export const runtime = 'nodejs';
@@ -20,12 +21,14 @@ export async function GET(request: Request): Promise<Response> {
   if (!IS_DEV) return notFound();
   const params = new URL(request.url).searchParams;
   const stem = params.get('stem');
-  const id = params.get('experiment') ?? CURRENT.id;
+  const id = params.get('experiment');
   if (stem === null) return failed(new Error('No item was named.'));
+  if (id === null) return failed(new Error('No experiment was named.'));
   try {
+    const pack = readPack(request, await packDirs());
     return Response.json({
-      run: await readRun(stem, id),
-      raw: await readRaw(stem, id),
+      run: await readRun(pack, stem, id),
+      raw: await readRaw(pack, stem, id),
     });
   } catch (e) {
     return failed(e);
@@ -45,16 +48,17 @@ export async function POST(request: Request): Promise<Response> {
     const experiment =
       typeof body.experiment === 'string'
         ? experimentById(body.experiment)
-        : CURRENT;
+        : undefined;
     if (experiment === undefined) {
       return failed(
         new Error(`No such experiment: ${String(body.experiment)}.`),
       );
     }
-    const item = (await listCorpus()).find((i) => i.stem === body.stem);
+    const pack = readPack(request, await packDirs());
+    const item = (await listCorpus(pack)).find((i) => i.stem === body.stem);
     if (item === undefined) return notFound();
     const version = await fingerprint(experiment.id);
-    return Response.json(await runItem(experiment, item, version));
+    return Response.json(await runItem(pack, experiment, item, version));
   } catch (e) {
     return failed(e);
   }

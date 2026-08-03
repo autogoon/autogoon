@@ -20,12 +20,16 @@ import { mediaUrl, type SurveyedItem } from './item';
 
 export function Compare({
   field,
+  pack,
   item,
   items,
   onAnswer,
   onClose,
 }: {
   field: Field;
+  // Every picture on screen comes from the one pack: exemplars are the corpus's
+  // own confirmed answers, and a corpus is one pack's media.
+  pack: string;
   // The item being labelled — the left-hand picture, and the one exemplar the
   // strip never offers.
   item: SurveyedItem;
@@ -119,13 +123,13 @@ export function Compare({
       className="bg-background fixed inset-0 z-50 flex flex-col gap-4 p-4"
     >
       <div className="flex min-h-0 flex-1 gap-4">
-        <Picture item={item} caption="Labelling" />
+        <Picture pack={pack} item={item} caption="Labelling" />
         {shown === null ? (
           <div className="bg-muted text-muted-foreground flex min-w-0 flex-1 items-center justify-center rounded text-sm">
             Nothing labelled {option.label} yet.
           </div>
         ) : (
-          <Picture item={shown} caption={shown.stem} />
+          <Picture pack={pack} item={shown} caption={shown.stem} />
         )}
       </div>
 
@@ -154,7 +158,7 @@ export function Compare({
             }`}
           >
             <Image
-              src={mediaUrl(other.file)}
+              src={mediaUrl(pack, other.file)}
               alt={other.stem}
               fill
               sizes="80px"
@@ -168,13 +172,21 @@ export function Compare({
   );
 }
 
-function Picture({ item, caption }: { item: SurveyedItem; caption: string }) {
+function Picture({
+  pack,
+  item,
+  caption,
+}: {
+  pack: string;
+  item: SurveyedItem;
+  caption: string;
+}) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
       <div className="bg-muted relative min-h-0 flex-1 overflow-hidden rounded">
         {item.kind === 'image' ? (
           <Image
-            src={mediaUrl(item.file)}
+            src={mediaUrl(pack, item.file)}
             alt={item.stem}
             fill
             sizes="50vw"
@@ -182,7 +194,7 @@ function Picture({ item, caption }: { item: SurveyedItem; caption: string }) {
           />
         ) : (
           <video
-            src={mediaUrl(item.file)}
+            src={mediaUrl(pack, item.file)}
             controls
             className="size-full object-contain"
           />

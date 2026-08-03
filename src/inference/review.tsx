@@ -143,6 +143,7 @@ export function Review({
     return (
       <Compare
         field={field}
+        pack={corpus.pack}
         item={item}
         items={corpus.items}
         onAnswer={(value) => answer(field.id, value)}
@@ -158,11 +159,13 @@ export function Review({
           like any other. */}
       <span className="flex items-center gap-2 text-xl">
         <a
-          href={routeHash(corpus.experiment)}
+          href={routeHash(corpus.pack, corpus.experiment)}
           className="text-muted-foreground hover:text-foreground"
         >
           Inference
         </a>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-muted-foreground">{corpus.pack}</span>
         <span className="text-muted-foreground">/</span>
         <span className="text-muted-foreground">{corpus.experiment}</span>
         <span className="text-muted-foreground">/</span>
@@ -185,7 +188,7 @@ export function Review({
         <div className="bg-muted relative min-w-0 flex-1 overflow-hidden rounded">
           {item.kind === 'image' ? (
             <Image
-              src={mediaUrl(item.file)}
+              src={mediaUrl(corpus.pack, item.file)}
               alt={item.stem}
               fill
               sizes={FRAME}
@@ -193,7 +196,7 @@ export function Review({
             />
           ) : (
             <video
-              src={mediaUrl(item.file)}
+              src={mediaUrl(corpus.pack, item.file)}
               controls
               className="size-full object-contain"
             />

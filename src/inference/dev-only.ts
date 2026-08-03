@@ -4,8 +4,8 @@
 // just a feature flag".
 //
 // What this achieves is that no deployed build answers: every handler returns
-// 404 before reading its request, and every path any of them touches is under
-// inference-corpus/. What it does not achieve is keeping the handlers out of a
+// 404 before reading its request, and every path any of them touches is under a
+// pack's media/. What it does not achieve is keeping the handlers out of a
 // deployed bundle; that is recorded as a limitation in
 // docs/2026-08-02-inference-ui-spec.md rather than solved here.
 

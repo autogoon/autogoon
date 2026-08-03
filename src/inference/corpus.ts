@@ -1,6 +1,9 @@
-// Reading and writing inference-corpus/. Server-only: everything here touches
-// node's filesystem, and the panel reaches it over the routes rather than by
-// importing it.
+// Reading and writing one pack's media/, which is where a corpus lives —
+// INFERENCE.md says why there is no directory of its own for one. Every
+// function takes the pack directory first, and packs.ts is what decides a name
+// is one the caller may use. Server-only: everything here touches node's
+// filesystem, and the panel reaches it over the routes rather than by importing
+// it.
 //
 // The corpus's shape comes from **one readdir**. Every file is named from the
 // item it belongs to (see paths.ts), so grouping the names says which items
@@ -19,13 +22,14 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { CorpusItem, SurveyedItem } from './item';
 import {
-  CORPUS_DIR,
   fieldsName,
   labelsName,
+  PACKS_DIR,
   rawName,
   readName,
   runName,
 } from './paths';
+import { MEDIA_NAME } from '@/lib/goonpacks/pack';
 import { parseLabels, renderLabels, type Labels } from './labels';
 import {
   parseRunFields,
@@ -35,8 +39,19 @@ import {
   type RunParameters,
 } from './runs';
 
-export const corpusPath = (...parts: string[]): string =>
-  join(process.cwd(), CORPUS_DIR, ...parts);
+export const corpusPath = (pack: string, ...parts: string[]): string =>
+  join(process.cwd(), PACKS_DIR, pack, MEDIA_NAME, ...parts);
+
+// A pack's media/ listing, which is the whole of what the corpus is derived
+// from. No directory there is an empty corpus, not a failure: the tool is how
+// you find out you haven't put anything in one.
+export async function mediaNames(pack: string): Promise<string[]> {
+  try {
+    return await readdir(corpusPath(pack));
+  } catch {
+    return [];
+  }
+}
 
 // The pure half of the listing: a directory's names in, the corpus out. Names
 // belonging to no item are dropped, and so is a labels or fields file whose
@@ -74,38 +89,35 @@ export function groupNames(names: string[]): CorpusItem[] {
   return [...items.values()].sort((a, b) => a.stem.localeCompare(b.stem));
 }
 
-export async function listCorpus(): Promise<CorpusItem[]> {
-  let names: string[];
-  try {
-    names = await readdir(corpusPath());
-  } catch {
-    // No corpus directory yet is an empty corpus, not a failure: the tool is
-    // how you find out you haven't made one.
-    return [];
-  }
-  return groupNames(names);
-}
+export const listCorpus = async (pack: string): Promise<CorpusItem[]> =>
+  groupNames(await mediaNames(pack));
 
 // The corpus with every existing labels file read, and one experiment's answers
 // beside them. One pass, concurrent; a file that won't parse throws, naming
 // itself, rather than being counted as absent — a label nobody can read is a
 // label that needs fixing, not one to overlook.
-export async function survey(experiment: string): Promise<SurveyedItem[]> {
-  const items = await listCorpus();
+export async function survey(
+  pack: string,
+  experiment: string,
+): Promise<SurveyedItem[]> {
+  const items = await listCorpus(pack);
   return Promise.all(
     items.map(async (item) => ({
       ...item,
-      labels: item.hasLabels ? await readLabelsNamed(item.stem) : null,
+      labels: item.hasLabels ? await readLabelsNamed(pack, item.stem) : null,
       run: item.runs.includes(experiment)
-        ? await readRun(item.stem, experiment)
+        ? await readRun(pack, item.stem, experiment)
         : null,
     })),
   );
 }
 
-async function readLabelsNamed(stem: string): Promise<Labels | null> {
+async function readLabelsNamed(
+  pack: string,
+  stem: string,
+): Promise<Labels | null> {
   try {
-    return await readLabels(stem);
+    return await readLabels(pack, stem);
   } catch (e) {
     throw new Error(
       `${labelsName(stem)}: ${e instanceof Error ? e.message : String(e)}`,
@@ -115,65 +127,84 @@ async function readLabelsNamed(stem: string): Promise<Labels | null> {
 
 // Missing is null, not an error — an item with no ground truth yet is the
 // ordinary case, and so is an experiment that hasn't run against one.
-async function readIfPresent(name: string): Promise<string | null> {
+async function readIfPresent(
+  pack: string,
+  name: string,
+): Promise<string | null> {
   try {
-    return await readFile(corpusPath(name), 'utf8');
+    return await readFile(corpusPath(pack, name), 'utf8');
   } catch {
     return null;
   }
 }
 
-export async function readLabels(stem: string): Promise<Labels | null> {
-  const text = await readIfPresent(labelsName(stem));
+export async function readLabels(
+  pack: string,
+  stem: string,
+): Promise<Labels | null> {
+  const text = await readIfPresent(pack, labelsName(stem));
   return text === null ? null : parseLabels(text);
 }
 
-export async function writeLabels(stem: string, labels: Labels): Promise<void> {
-  await writeFile(corpusPath(labelsName(stem)), renderLabels(labels), 'utf8');
+export async function writeLabels(
+  pack: string,
+  stem: string,
+  labels: Labels,
+): Promise<void> {
+  await writeFile(
+    corpusPath(pack, labelsName(stem)),
+    renderLabels(labels),
+    'utf8',
+  );
 }
 
 export async function readRun(
+  pack: string,
   stem: string,
   experiment: string,
 ): Promise<RunFields | null> {
-  const text = await readIfPresent(fieldsName(stem, experiment));
+  const text = await readIfPresent(pack, fieldsName(stem, experiment));
   return text === null ? null : parseRunFields(text);
 }
 
 export async function writeRun(
+  pack: string,
   stem: string,
   experiment: string,
   run: RunFields,
 ): Promise<void> {
   await writeFile(
-    corpusPath(fieldsName(stem, experiment)),
+    corpusPath(pack, fieldsName(stem, experiment)),
     renderRunFields(run),
     'utf8',
   );
 }
 
 export const readRaw = (
+  pack: string,
   stem: string,
   experiment: string,
-): Promise<string | null> => readIfPresent(rawName(stem, experiment));
+): Promise<string | null> => readIfPresent(pack, rawName(stem, experiment));
 
 export async function writeRaw(
+  pack: string,
   stem: string,
   experiment: string,
   raw: string,
 ): Promise<void> {
-  await writeFile(corpusPath(rawName(stem, experiment)), raw, 'utf8');
+  await writeFile(corpusPath(pack, rawName(stem, experiment)), raw, 'utf8');
 }
 
 // Written, never read back: `<experiment>.run.json` records what the last run
 // used for whoever opens the corpus, and what says whether a result is current
 // is the version stamped on the result itself.
 export async function writeParameters(
+  pack: string,
   experiment: string,
   parameters: RunParameters,
 ): Promise<void> {
   await writeFile(
-    corpusPath(runName(experiment)),
+    corpusPath(pack, runName(experiment)),
     renderParameters(parameters),
     'utf8',
   );

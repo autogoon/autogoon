@@ -16,13 +16,14 @@
 ## 2026-08-02
 
 - internal: **An Inference screen for labelling a corpus** — A dev-only tab that
-  leafs through a folder of pictures and records what is actually in each one,
+  leafs through a goonpack's media and records what is actually in each picture,
   so a change to how images get described can be scored rather than guessed at.
-  Answers say whether a person or an experiment gave them, and an experiment can
-  only fill what nobody has answered. Each experiment is a frozen directory of
-  its own code and a README describing its approach; the first reproduces what
-  the pack-authoring pipeline does today.
-  [INFERENCE.md](./INFERENCE.md) describes the harness.
+  A corpus is a pack's `media/`, picked from a dropdown, so a labelled set is
+  playable in the app with no extra step. Answers say whether a person or an
+  experiment gave them, and an experiment can only fill what nobody has
+  answered. Each experiment is a frozen directory of its own code and a README
+  describing its approach; the first reproduces what the pack-authoring pipeline
+  does today. [INFERENCE.md](./INFERENCE.md) describes the harness.
 
 - feature: **A conversation opens on a scene** — Every companion now sets up the
   situation you're in: who they are, and how the two of you came to be on the

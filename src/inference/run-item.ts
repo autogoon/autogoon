@@ -1,7 +1,7 @@
-// Running one experiment against one item, and writing everything that falls
-// out of it. The screen's Generate button and the sweep script both come
-// through here, so a spot-check and a whole-corpus run leave the corpus in the
-// same state.
+// Running one experiment against one of a pack's items, and writing everything
+// that falls out of it. The screen's Generate button and the sweep script both
+// come through here, so a spot-check and a whole-corpus run leave the corpus in
+// the same state.
 //
 // Server-only: it writes files.
 
@@ -24,27 +24,28 @@ import type { RunFields } from './runs';
 export type RunResult = { raw: string; run: RunFields; labels: Labels };
 
 export async function runItem(
+  pack: string,
   experiment: Experiment,
   item: CorpusItem,
   // The experiment's version, passed rather than computed: a sweep hashes the
   // directory once and stamps every item it runs with the same answer.
   version: string,
 ): Promise<RunResult> {
-  const raw = await experiment.run(corpusPath(item.file));
+  const raw = await experiment.run(corpusPath(pack, item.file));
   const fields = experiment.parse(raw);
   const run = { ranAt: new Date().toISOString(), version, fields };
   // The reply lands first: it is the thing that cost money, and everything
   // else is derived from it. A crash after this point loses no spend.
-  await writeRaw(item.stem, experiment.id, raw);
-  await writeRun(item.stem, experiment.id, run);
+  await writeRaw(pack, item.stem, experiment.id, raw);
+  await writeRun(pack, item.stem, experiment.id, run);
   // Rewritten every run, because it records what the last one used rather than
   // what the experiment is bound to.
-  await writeParameters(experiment.id, experiment.parameters);
+  await writeParameters(pack, experiment.id, experiment.parameters);
   const labels = fillAbsent(
-    (await readLabels(item.stem)) ?? {},
+    (await readLabels(pack, item.stem)) ?? {},
     fields,
     experiment.id,
   );
-  await writeLabels(item.stem, labels);
+  await writeLabels(pack, item.stem, labels);
   return { raw, run, labels };
 }

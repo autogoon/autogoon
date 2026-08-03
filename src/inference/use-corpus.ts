@@ -1,21 +1,24 @@
-// The Inference screen's state: the corpus, which experiment is under
-// examination, where you are in it, and the four things you can do to the item
-// in front of you.
+// The Inference screen's state: which pack's media is being labelled, which
+// experiment is under examination, where you are in it, and the four things you
+// can do to the item in front of you.
 //
 // Where you are is the URL, not state here — see route.ts. `index` is derived
 // from the stem the hash names, and stepping navigates rather than setting
-// anything, so a reload or a back leaves you where the address bar says.
+// anything, so a reload or a back leaves you where the address bar says. A hash
+// naming no pack or no experiment is filled in from what was last selected
+// (chosen.ts) and replaced, so every request has both to name.
 //
-// The listing is fetched once and kept — it already carries every item's ground
-// truth, so answering a field updates one entry in place rather than re-reading
-// the corpus. What is fetched per item is the raw reply of a run against it,
-// which is the largest thing the corpus holds and is only worth having for the
-// item on screen.
+// The listing is fetched once per pair and kept — it already carries every
+// item's ground truth, so answering a field updates one entry in place rather
+// than re-reading the corpus. What is fetched per item is the raw reply of a run
+// against it, which is the largest thing the corpus holds and is only worth
+// having for the item on screen.
 
 import { useCallback, useEffect, useState } from 'react';
+import { choose, remember, remembered, type Chosen } from './chosen';
 import { FIELDS, type FieldValue } from './fields';
 import { HUMAN, type Labels } from './labels';
-import type { SurveyedItem } from './item';
+import type { PackSource, SurveyedItem } from './item';
 import { goTo, type InferenceRoute } from './route';
 import type { RunFields } from './runs';
 
@@ -23,9 +26,11 @@ export type ItemRun = { fields: Record<string, FieldValue>; raw: string };
 
 export type CorpusView = {
   items: SurveyedItem[];
-  // Every experiment the registry knows, the one selected, and that one's
-  // version (fingerprint.ts). Both strings are empty until the listing has
-  // arrived.
+  // What there is to choose between — every pack source holding a corpus, and
+  // every experiment the registry knows — with the pair under examination and
+  // that experiment's version (fingerprint.ts). All empty until the first read.
+  packs: PackSource[];
+  pack: string;
   experiments: string[];
   experiment: string;
   version: string;
@@ -46,6 +51,7 @@ export type CorpusView = {
   answer: (field: string, value: FieldValue) => void;
   clear: (field: string) => void;
   generate: () => void;
+  selectPack: (pack: string) => void;
   select: (experiment: string) => void;
   reload: () => void;
 };
@@ -58,62 +64,106 @@ export const isAnswered = (labels: Labels | null): boolean =>
 const message = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
 
+const NONE: Chosen = { pack: '', experiment: '' };
+
 export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
-  const [items, setItems] = useState<SurveyedItem[]>([]);
+  const [packs, setPacks] = useState<PackSource[]>([]);
   const [experiments, setExperiments] = useState<string[]>([]);
-  const [experiment, setExperiment] = useState('');
+  const [chosen, setChosen] = useState<Chosen>(NONE);
+  const [items, setItems] = useState<SurveyedItem[]>([]);
   const [version, setVersion] = useState('');
   const [run, setRun] = useState<ItemRun | null>(null);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // The listing carries one experiment's results, so which one is asked for is
-  // part of the request. An empty id is a URL that named none: the route
-  // answers for CURRENT and names it back.
-  const load = useCallback((forExperiment: string) => {
+  // What there is to choose between, read when the tab is first opened. Every
+  // other route needs a pack and an experiment named, so nothing else is
+  // fetched until this has arrived. The guard is `sought` rather than a check
+  // on the lists themselves: a machine where no pack holds media answers two
+  // empty lists, and asking again on every render is not the response to that.
+  const [sought, setSought] = useState(false);
+  useEffect(() => {
+    if (!active || sought) return;
+    setSought(true);
+    setLoading(true);
+    fetch('/api/inference/packs')
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await res.text());
+        return res.json() as Promise<{
+          packs: PackSource[];
+          experiments: string[];
+        }>;
+      })
+      .then((data) => {
+        setPacks(data.packs);
+        setExperiments(data.experiments);
+      })
+      .catch((e: unknown) => setError(message(e)))
+      .finally(() => setLoading(false));
+  }, [active, sought]);
+
+  // Both settled at once and written back into the URL, so the address names
+  // what is on screen whether it was linked, remembered or fallen back to. In
+  // an effect rather than during render: storage doesn't exist on the server,
+  // and a value differing between the two renders is a hydration mismatch.
+  useEffect(() => {
+    if (packs.length === 0 && experiments.length === 0) return;
+    const settled = choose(
+      route,
+      packs.map((p) => p.dir),
+      experiments,
+      remembered(),
+    );
+    setChosen(settled);
+    remember(settled);
+    if (
+      settled.pack !== route.pack ||
+      settled.experiment !== route.experiment
+    ) {
+      goTo(settled.pack, settled.experiment, route.stem, { replace: true });
+    }
+  }, [packs, experiments, route]);
+
+  const { pack, experiment } = chosen;
+
+  const load = useCallback((forPack: string, forExperiment: string) => {
     setLoading(true);
     setError(null);
-    const query =
-      forExperiment === ''
-        ? ''
-        : `?experiment=${encodeURIComponent(forExperiment)}`;
-    fetch(`/api/inference/items${query}`)
+    fetch(
+      `/api/inference/items?pack=${encodeURIComponent(forPack)}&experiment=${encodeURIComponent(forExperiment)}`,
+    )
       .then(async (res) => {
         if (!res.ok) throw new Error(await res.text());
         return res.json() as Promise<{
           items: SurveyedItem[];
-          experiments: string[];
-          experiment: string;
           version: string;
         }>;
       })
       .then((data) => {
         setItems(data.items);
-        setExperiments(data.experiments);
-        setExperiment(data.experiment);
         setVersion(data.version);
       })
       .catch((e: unknown) => setError(message(e)))
       .finally(() => setLoading(false));
   }, []);
 
-  const reload = useCallback(() => load(experiment), [load, experiment]);
+  const reload = useCallback(
+    () => load(pack, experiment),
+    [load, pack, experiment],
+  );
 
-  // Read when the tab is first opened and whenever the URL names a different
-  // experiment — not on every visit to the tab, since the panel stays mounted
-  // behind the other screens and re-reading the corpus because you looked at
-  // Settings would be work for nothing. Reload is the button.
-  // `null` until the first read, which is not the same as having read the empty
-  // id: a URL naming no experiment is the ordinary first visit, and it still
-  // has to fetch.
-  const asked = route.experiment;
-  const [read, setRead] = useState<string | null>(null);
+  // Read once per pack-and-experiment pair, and not on every visit to the tab:
+  // the panel stays mounted behind the other screens, and re-reading the corpus
+  // because you looked at Settings would be work for nothing. Reload is the
+  // button.
+  const pair = `${pack}/${experiment}`;
+  const [read, setRead] = useState('');
   useEffect(() => {
-    if (!active || read === asked) return;
-    setRead(asked);
-    load(asked);
-  }, [active, read, asked, load]);
+    if (pack === '' || experiment === '' || read === pair) return;
+    setRead(pair);
+    load(pack, experiment);
+  }, [pack, experiment, pair, read, load]);
 
   const index = items.findIndex((item) => item.stem === route.stem);
   const current = items[index] ?? null;
@@ -124,21 +174,31 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
   // items; entering review and leaving it push.
   const open = useCallback(
     (to: string | null) =>
-      goTo(experiment, to, { replace: to !== null && route.stem !== null }),
-    [experiment, route.stem],
+      goTo(pack, experiment, to, {
+        replace: to !== null && route.stem !== null,
+      }),
+    [pack, experiment, route.stem],
   );
 
-  const select = useCallback((id: string) => goTo(id, null), []);
+  // Selecting either leaves review. The item on screen was opened under one
+  // pack and one experiment, and neither the next pack nor the next experiment
+  // is bound to hold it.
+  const selectPack = useCallback(
+    (to: string) => goTo(to, experiment, null),
+    [experiment],
+  );
+
+  const select = useCallback((id: string) => goTo(pack, id, null), [pack]);
 
   // The raw reply for whatever is on screen, from whichever experiment is
   // selected. Cleared first, so an item with no run never shows the previous
   // item's text — or the previous experiment's — while this resolves.
   useEffect(() => {
     setRun(null);
-    if (stem === undefined || experiment === '') return;
+    if (stem === undefined || pack === '' || experiment === '') return;
     let live = true;
     fetch(
-      `/api/inference/run?stem=${encodeURIComponent(stem)}&experiment=${encodeURIComponent(experiment)}`,
+      `/api/inference/run?pack=${encodeURIComponent(pack)}&stem=${encodeURIComponent(stem)}&experiment=${encodeURIComponent(experiment)}`,
     )
       .then(
         (res) =>
@@ -160,7 +220,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     return () => {
       live = false;
     };
-  }, [stem, experiment]);
+  }, [pack, stem, experiment]);
 
   const step = useCallback(
     (by: number) => {
@@ -207,7 +267,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     (field: string, value: FieldValue) => {
       if (stem === undefined) return;
       setError(null);
-      fetch('/api/inference/labels', {
+      fetch(`/api/inference/labels?pack=${encodeURIComponent(pack)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stem, field, value }),
@@ -219,7 +279,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
         .then((data) => replace(stem, data.labels))
         .catch((e: unknown) => setError(message(e)));
     },
-    [stem, replace],
+    [pack, stem, replace],
   );
 
   const clear = useCallback(
@@ -227,7 +287,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
       if (stem === undefined) return;
       setError(null);
       fetch(
-        `/api/inference/labels?stem=${encodeURIComponent(stem)}&field=${encodeURIComponent(field)}`,
+        `/api/inference/labels?pack=${encodeURIComponent(pack)}&stem=${encodeURIComponent(stem)}&field=${encodeURIComponent(field)}`,
         { method: 'DELETE' },
       )
         .then(async (res) => {
@@ -237,14 +297,14 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
         .then((data) => replace(stem, data.labels))
         .catch((e: unknown) => setError(message(e)));
     },
-    [stem, replace],
+    [pack, stem, replace],
   );
 
   const generate = useCallback(() => {
-    if (stem === undefined || experiment === '') return;
+    if (stem === undefined || pack === '' || experiment === '') return;
     setGenerating(true);
     setError(null);
-    fetch('/api/inference/run', {
+    fetch(`/api/inference/run?pack=${encodeURIComponent(pack)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stem, experiment }),
@@ -263,10 +323,12 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
       })
       .catch((e: unknown) => setError(message(e)))
       .finally(() => setGenerating(false));
-  }, [stem, experiment, replace]);
+  }, [pack, stem, experiment, replace]);
 
   return {
     items,
+    packs,
+    pack,
     experiments,
     experiment,
     version,
@@ -282,6 +344,7 @@ export function useCorpus(active: boolean, route: InferenceRoute): CorpusView {
     answer,
     clear,
     generate,
+    selectPack,
     select,
     reload,
   };

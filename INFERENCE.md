@@ -11,20 +11,34 @@ its routes answer nothing in any other build.
 
 ## The corpus
 
-`inference-corpus/` at the repo root, gitignored, never committed. Media sits
-flat in it, in the formats [`media.ts`](./src/lib/goonpacks/media.ts) lists, and
-every other file is named from the item it belongs to:
+**A corpus is a goonpack's `media/`.** There is no separate directory for one: a
+corpus and a pack's media set are both a folder of pictures with per-item
+metadata beside them, and keeping them apart meant building a zip and importing
+it to see a labelled set in the app. Every pack source under `goonpacks/` whose
+`media/` holds something to label is a corpus, and the screen picks between
+them. Several corpora is several packs.
 
-    inference-corpus/
+Media sits flat in `media/`, in the formats
+[`media.ts`](./src/lib/goonpacks/media.ts) lists, and every file inference
+writes is named from the item it belongs to:
+
+    goonpacks/<pack>/media/
       2026-08-02-baseline.run.json           an experiment's parameters
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
       beach.2026-08-02-baseline.raw.txt      that experiment's reply, verbatim
       beach.labels.json                      ground truth
+      beach.md                               the pack's own sidecar
 
 Sorted, an item's every file lands in one block, so one picture can be compared
 across experiments in a file browser as readily as in the app.
-[`paths.ts`](./src/inference/paths.ts) is the only reader of these names.
+[`paths.ts`](./src/inference/paths.ts) is the only reader of these names, and
+what it doesn't recognise it leaves alone — the pack's sidecars are not its
+business.
+
+Ground truth is per-pack, which follows from where it sits: the same picture in
+two packs is labelled twice, and the compare screen calibrates against one
+pack's answers.
 
 ## Ground truth
 
@@ -53,19 +67,23 @@ the order the arrows walk them.
 The **Inference** tab, beside Goonpacks. It has no voice word: this is a
 keyboard-driven desk tool rather than something operated during play.
 
-The screen reports on the corpus for one experiment, picked from its dropdown:
-how many items there are, how many a person has answered every field for, how
-many still hold an experiment's answer, and how far the selected experiment has
-run. The spread of the ground truth's own answers across each field's options is
-counted beside them; it belongs to the corpus rather than to any experiment.
+Two dropdowns pick what is being looked at: the pack whose media is the corpus,
+and the experiment. Both are remembered, so the tab opens where it was left, and
+both are in the address — the grammar is in
+[`route.ts`](./src/inference/route.ts).
+
+Under them the screen reports on that corpus for that experiment: how many items
+there are, how many a person has answered every field for, how many still hold
+an experiment's answer, and how far the selected experiment has run. The spread
+of the ground truth's own answers across each field's options is counted beside
+them; it belongs to the corpus rather than to any experiment.
 
 **Review** is a page of its own, not an overlay: the picture, the controls for
 each field, and the selected experiment's reply to it. Every screen here has an
-address, so an item can be linked, reloaded and left with the browser's back —
-the grammar is in [`route.ts`](./src/inference/route.ts). Stepping between items
-replaces the address rather than stacking it, so one press of back leaves review
-rather than undoing one move through a thousand items. A breadcrumb top left
-does the same.
+address, so an item can be linked, reloaded and left with the browser's back.
+Stepping between items replaces the address rather than stacking it, so one
+press of back leaves review rather than undoing one move through a thousand
+items. A breadcrumb top left does the same.
 
 | Key     |                                                     |
 | ------- | --------------------------------------------------- |
@@ -92,10 +110,14 @@ against those would be calibrating against the thing being measured.
 | `Esc`   | leave without answering                    |
 
 **Generate is one call for one item** — it is the spot-check. Running an
-experiment across the whole corpus is `npm run experiment:run`, and re-running
-the items an edit put out of date is `npm run experiment:run:outdated`. Both
-take an experiment id, defaulting to the one the registry names, and both say
-how many items they are about to run before starting.
+experiment across a whole corpus is `npm run experiment:run`, and re-running the
+items an edit put out of date is `npm run experiment:run:outdated`:
+
+    npm run experiment:run goonpacks/elise 2026-08-02-baseline
+
+Both name the pack and the experiment, neither has an "every pack" form, and
+both say how many items they are about to run before starting. This is one model
+call per item, and a pack can hold thousands.
 
 ## Experiments
 
@@ -126,8 +148,9 @@ temperature — because a version is a hash and `qwen/qwen3-vl-235b-a22b-instruc
 is not. It is a record; the version is what says whether a result is current.
 
 Adding one is a new directory, its `README.md`, and an entry in
-[the registry](./src/inference/experiments/index.ts), which also names the one
-the screen starts on.
+[the registry](./src/inference/experiments/index.ts). No entry is the current
+one — findings from one feed back into another, so the set is not a series with
+a head, and the screen opens on whichever was last selected.
 
 ### The experiments
 

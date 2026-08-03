@@ -22,14 +22,11 @@ playwright-report/
 /public/companions/*
 
 # Local goonpack sources (media + manifests) — personal content, never
-# committed. Zip a pack directory's contents to import it in the app. The one
-# exception is the committed, deliberately media-free example pack
+# committed. Zip a pack directory's contents to import it in the app. A pack's
+# media/ is also the inference corpus, so the ground truth labelled against it
+# and every experiment's output are covered by the same line (INFERENCE.md).
+# The one exception is the committed, deliberately media-free example pack
 # (goonpacks/elise/) — and even there, media stays local.
 /goonpacks/*
 !/goonpacks/elise/
 /goonpacks/elise/media/
-
-# The inference corpus — personal media, the ground truth labelled against it
-# and every experiment's output. Never committed; the layout is in
-# docs/2026-08-02-inference-ui-spec.md.
-/inference-corpus/

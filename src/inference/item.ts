@@ -1,11 +1,16 @@
-// What one corpus item is, on both sides of the routes. Kept apart from
-// corpus.ts because that module imports node's filesystem: the panel needs
-// these types, and a value import of the reader would drag `node:fs` into the
-// browser bundle.
+// What the routes carry, on both sides of them. Kept apart from corpus.ts and
+// packs.ts because those modules import node's filesystem: the panel needs
+// these types, and a value import of either reader would drag `node:fs` into
+// the browser bundle.
 
 import type { MediaKind } from '@/lib/goonpacks/media';
 import type { Labels } from './labels';
 import type { RunFields } from './runs';
+
+// A pack source holding a corpus, and how many items are in it. The directory
+// name is what the URL carries and what a request names, so it is the value
+// behind the screen's pack picker as well as its label.
+export type PackSource = { dir: string; items: number };
 
 // Derived from the directory listing alone — see corpus.ts. `runs` holds the
 // experiments that have answered this item, in the order their ids sort.
@@ -26,5 +31,5 @@ export type SurveyedItem = CorpusItem & {
   run: RunFields | null;
 };
 
-export const mediaUrl = (file: string): string =>
-  `/api/inference/media?file=${encodeURIComponent(file)}`;
+export const mediaUrl = (pack: string, file: string): string =>
+  `/api/inference/media?pack=${encodeURIComponent(pack)}&file=${encodeURIComponent(file)}`;

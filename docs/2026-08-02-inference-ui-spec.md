@@ -16,14 +16,13 @@ will.
 
 ## The corpus
 
-`inference-corpus/` at the repo root, gitignored, never committed. It is not a
-goonpack: no manifest, no persona, never zipped, so nothing in
-[`src/lib/goonpacks/`](../src/lib/goonpacks/) governs its layout. The name says
-corpus rather than media because it holds the ground truth and every
-experiment's output as well, and it keeps the data distinct from
-`src/inference/`, which is the code.
+A corpus is a goonpack's `media/`, and the screen picks which pack's. The two
+were the same thing under different names — a folder of pictures with per-item
+metadata beside them — and holding them apart meant a zip and an import stood
+between a labelled set and playing it. [INFERENCE.md](../INFERENCE.md) is the
+current-state description; the layout is unchanged apart from where it sits.
 
-    inference-corpus/
+    goonpacks/<pack>/media/
       2026-08-02-baseline.run.json           one experiment's parameters
       beach.jpg                              the media
       beach.2026-08-02-baseline.fields.json  that experiment's answers for it
@@ -249,6 +248,9 @@ and nothing that costs that should start on a click.
 
 `src/app/api/inference/`, all `runtime = 'nodejs'`:
 
+- **`GET packs`** — the pack sources holding a corpus, and the experiments that
+  can be run over one: what the screen chooses between before it can ask for
+  anything else.
 - **`GET items`** — the corpus listing: file, kind, whether it has ground truth,
   whether the baseline has output.
 - **`GET media`** — the bytes of one item, since the browser cannot read the
@@ -262,12 +264,12 @@ Two constraints on all of them:
 - **They answer nothing outside `npm run dev`.** `GOONPACK-KIT.md` calls the
   gating "the first design question, and it is not just a feature flag". v1
   answers it with a 404 on `NODE_ENV !== 'development'` in every handler, and by
-  keeping every path they touch under `inference-corpus/`. The routes are still
+  keeping every path they touch under a pack's `media/`. The routes are still
   present in a deployed bundle; excluding them from the build is not attempted
   here.
-- **A filename from the client is never joined to a path.** It is matched
-  against the corpus listing and rejected if absent, so no request can name a
-  file outside `inference-corpus/`.
+- **No name from the client is ever joined to a path.** A pack is matched
+  against the pack sources and a filename against that pack's listing, each
+  rejected if absent, so no request can name a file outside a pack's `media/`.
 
 ## Not in v1
 

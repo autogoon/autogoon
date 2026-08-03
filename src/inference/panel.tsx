@@ -1,10 +1,11 @@
 // The Inference tab. The URL decides which of its two screens shows (route.ts):
 // the corpus summary, or one item open for review.
 //
-// The summary reports on the corpus for one experiment at a time. The
-// experiment picker is its subject — the counts describe it, and review shows
-// and generates its replies. The ground-truth tallies are not its: those count
-// what people answered, which belongs to no experiment.
+// The summary reports on one pack's corpus for one experiment at a time. The
+// pack picker chooses the corpus — a corpus is a pack's media/ — and the
+// experiment picker is the summary's subject: the counts describe it, and
+// review shows and generates its replies. The ground-truth tallies are not its:
+// those count what people answered, which belongs to no experiment.
 
 import { useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -61,6 +62,32 @@ export function InferencePanel({ active }: { active: boolean }) {
           </Button>
         }
       >
+        {/* Above the counts, because the counts describe whatever these two
+            name. */}
+        <span className="flex flex-wrap items-center gap-2 pb-1">
+          {corpus.packs.length > 0 && (
+            <Picker
+              label="Pack"
+              value={corpus.pack}
+              onChange={corpus.selectPack}
+              options={corpus.packs.map((pack) => ({
+                value: pack.dir,
+                label: `${pack.dir} · ${pack.items}`,
+              }))}
+            />
+          )}
+          {corpus.experiments.length > 0 && (
+            <Picker
+              label="Experiment"
+              value={corpus.experiment}
+              onChange={corpus.select}
+              options={corpus.experiments.map((id) => ({
+                value: id,
+                label: id,
+              }))}
+            />
+          )}
+        </span>
         <span className="text-muted-foreground block text-sm">
           {summary.total} items · {summary.confirmed} confirmed ·{' '}
           {summary.total - summary.confirmed - summary.untouched} awaiting
@@ -91,30 +118,10 @@ export function InferencePanel({ active }: { active: boolean }) {
         )}
         {summary.total === 0 && (
           <span className="text-muted-foreground block text-sm">
-            Put pictures in <code>inference-corpus/</code> and reload.
+            Put pictures in a pack&rsquo;s <code>media/</code> and reload.
           </span>
         )}
         <span className="flex flex-wrap items-center gap-2 pt-2">
-          {corpus.experiments.length > 0 && (
-            <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
-              Experiment:
-              <span className="relative">
-                <select
-                  aria-label="Experiment"
-                  value={corpus.experiment}
-                  onChange={(e) => corpus.select(e.target.value)}
-                  className="text-foreground bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm"
-                >
-                  {corpus.experiments.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-              </span>
-            </label>
-          )}
           <Button
             onClick={() => {
               if (start !== undefined) corpus.open(start);
@@ -128,5 +135,41 @@ export function InferencePanel({ active }: { active: boolean }) {
 
       <Failure error={corpus.error} />
     </Panel>
+  );
+}
+
+// A labelled select. The chevron is drawn over it because the control's own
+// appearance is stripped, which is what lets it take the app's border and
+// background.
+function Picker({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
+      {label}:
+      <span className="relative">
+        <select
+          aria-label={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="text-foreground bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm"
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
+      </span>
+    </label>
   );
 }
