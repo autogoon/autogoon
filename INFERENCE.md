@@ -45,8 +45,8 @@ disturbing anything already curated.
 include it — a picture with no breasts in it has a `breastSize`, and an
 experiment answering `large` there is one that got it wrong.
 
-The fields, their options and the key that picks each one are in
-[`fields.ts`](./src/inference/fields.ts).
+The fields and their options are in [`fields.ts`](./src/inference/fields.ts), in
+the order the arrows walk them.
 
 ## The screen
 
@@ -63,13 +63,14 @@ counted beside them; it belongs to the corpus rather than to any experiment.
 each field, and the selected experiment's reply to it. Reopening it returns to
 the item it was left on.
 
-| Key                  |                                               |
-| -------------------- | --------------------------------------------- |
-| the option's own key | answers that field                            |
-| `←` `→`              | previous and next                             |
-| `u`                  | the next item nobody has answered             |
-| `g`                  | run the selected experiment against this item |
-| `Esc`                | closes the review                             |
+| Key     |                                                     |
+| ------- | --------------------------------------------------- |
+| `↑` `↓` | move between the fields                             |
+| `←` `→` | answer the focused field, along its options in turn |
+| `a` `d` | previous and next item                              |
+| `Enter` | the next item nobody has answered                   |
+| `g`     | run the selected experiment against this item       |
+| `Esc`   | closes the review                                   |
 
 **Generate is one call for one item** — it is the spot-check. Running an
 experiment across the whole corpus is a script, not a button.

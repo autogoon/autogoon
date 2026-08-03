@@ -4,17 +4,17 @@
 // with only the fields something has answered, so adding one here leaves every
 // existing label valid and simply unanswered for the new field.
 //
-// Each option carries the key that picks it. Review is driven from the
-// keyboard: at a thousand items a saved keystroke is an hour.
+// Order is meaningful in both directions. Review is driven from the keyboard —
+// at a thousand items a saved keystroke is an hour — and the arrows walk this
+// structure: up and down the fields in the order they sit here, left and right
+// along a field's options in the order they sit there. So a field's options
+// read in one direction, weakest first.
 
 export type FieldValue = boolean | string;
 
 export type FieldOption = {
   value: FieldValue;
   label: string;
-  // A single lowercase character. Unique across the whole set, not just within
-  // a field, since one keypress answers whichever field owns it.
-  key: string;
 };
 
 export type Field = {
@@ -34,9 +34,23 @@ export const FIELDS: Field[] = [
     id: 'naked',
     label: 'Naked?',
     options: [
-      { value: true, label: 'Yes', key: 'y' },
-      { value: false, label: 'No', key: 'n' },
-      { value: UNKNOWN, label: 'Unknown', key: 'k' },
+      { value: true, label: 'Yes' },
+      { value: false, label: 'No' },
+      { value: UNKNOWN, label: 'Unknown' },
+    ],
+  },
+  {
+    id: 'breastSize',
+    label: 'Breast size?',
+    // Four buckets rather than a cup size: what a reviewer can read off a
+    // photograph consistently is a bucket, and ground truth two people would
+    // label differently scores nothing.
+    options: [
+      { value: 'small', label: 'Small' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'large', label: 'Large' },
+      { value: 'veryLarge', label: 'Very large' },
+      { value: UNKNOWN, label: 'Unknown' },
     ],
   },
 ];

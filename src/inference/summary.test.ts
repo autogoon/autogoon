@@ -3,7 +3,7 @@
 // baseline has answered is work outstanding, not work done.
 
 import { describe, expect, it } from '@jest/globals';
-import { UNKNOWN, type FieldValue } from './fields';
+import { FIELDS, UNKNOWN, type FieldValue } from './fields';
 import { HUMAN, type Labels } from './labels';
 import type { SurveyedItem } from './item';
 import { summarise } from './summary';
@@ -26,6 +26,14 @@ const item = (
 const byHuman = (value: FieldValue): Labels => ({
   naked: { value, source: HUMAN },
 });
+
+// Every field answered by a person. `confirmed` turns on the whole set, so a
+// fixture naming one field stops meaning "answered" the moment another field
+// is added.
+const everyField = (): Labels =>
+  Object.fromEntries(
+    FIELDS.map((f) => [f.id, { value: f.options[0]!.value, source: HUMAN }]),
+  );
 const bySeed = (value: boolean): Labels => ({
   naked: { value, source: BASELINE },
 });
@@ -40,12 +48,20 @@ describe('summarise', () => {
     expect(summary).toMatchObject({ total: 3, images: 2, videos: 1 });
   });
 
-  it('counts an item confirmed only when a person answered every field', () => {
-    expect(summarise([item('a', byHuman(true))]).confirmed).toBe(1);
+  it('counts an item confirmed when a person answered every field', () => {
+    expect(summarise([item('a', everyField())]).confirmed).toBe(1);
+  });
+
+  it('does not count an item confirmed while a field is unanswered', () => {
+    const missing = everyField();
+    delete missing[FIELDS[0]!.id];
+    expect(summarise([item('a', missing)]).confirmed).toBe(0);
   });
 
   it('counts an item answered Unknown as confirmed, since it was answered', () => {
-    expect(summarise([item('a', byHuman(UNKNOWN))]).confirmed).toBe(1);
+    const labels = everyField();
+    labels.naked = { value: UNKNOWN, source: HUMAN };
+    expect(summarise([item('a', labels)]).confirmed).toBe(1);
   });
 
   it('does not count an item the experiment answered as confirmed', () => {

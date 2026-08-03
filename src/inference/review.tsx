@@ -2,12 +2,20 @@
 // answer it — the picture beside the fields, the navigation, and the selected
 // experiment's reply.
 //
-// The keys are bound here rather than on the screen behind it, so an option key
-// answers only while there is an item to answer. Escape and the ✕ close it; the
+// The keys are bound here rather than on the screen behind it, so they answer
+// only while there is an item to answer. Escape and the ✕ close it; the
 // backdrop does not, because the modal covers the screen and a click landing
 // outside the picture is a slip rather than an intention.
+//
+// The arrows walk the field set: up and down between fields, left and right
+// along the focused field's options. A letter per option would be faster to
+// press and impossible to keep unique — one keypress has to answer whichever
+// field owns it, so every option in the set would need its own letter. Moving
+// left or right answers as it goes, as a radio group does, so setting a value
+// is still one keypress. Item navigation takes the letters the arrows gave up:
+// `a` and `d`, which the hand is already over.
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import { Button } from '@/components/button';
@@ -32,6 +40,32 @@ export function Review({
   onClose: () => void;
 }) {
   const { answer, generate, step, nextUnanswered } = corpus;
+  const [focus, setFocus] = useState(0);
+
+  // A new item starts at the top of the field set, so the first left or right
+  // always means the same field however the last item was left.
+  useEffect(() => setFocus(0), [item.stem]);
+
+  // Move along the focused field's options, answering where you land. An
+  // unanswered field has no position to move from, so right enters at the first
+  // option and left at the last; from then on it steps and stops at the ends.
+  const shift = useCallback(
+    (by: number) => {
+      const field = FIELDS[focus];
+      if (field === undefined) return;
+      const at = field.options.findIndex(
+        (o) => o.value === item.labels?.[field.id]?.value,
+      );
+      const to =
+        at === -1
+          ? by > 0
+            ? 0
+            : field.options.length - 1
+          : Math.min(Math.max(at + by, 0), field.options.length - 1);
+      answer(field.id, field.options[to]!.value);
+    },
+    [focus, item.labels, answer],
+  );
 
   const onKey = useCallback(
     (event: KeyboardEvent) => {
@@ -42,34 +76,45 @@ export function Review({
         onClose();
         return;
       }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setFocus((f) => Math.max(f - 1, 0));
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setFocus((f) => Math.min(f + 1, FIELDS.length - 1));
+        return;
+      }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        step(1);
+        shift(1);
         return;
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        step(-1);
+        shift(-1);
         return;
       }
-      const key = event.key.toLowerCase();
-      if (key === 'u') {
+      if (event.key === 'Enter') {
+        // The Review button that opened this still holds focus behind the
+        // modal, and a keydown Enter would press it again.
+        event.preventDefault();
         nextUnanswered();
         return;
       }
-      if (key === 'g') {
-        generate();
+      const key = event.key.toLowerCase();
+      if (key === 'a') {
+        step(-1);
         return;
       }
-      for (const field of FIELDS) {
-        const option = field.options.find((o) => o.key === key);
-        if (option !== undefined) {
-          answer(field.id, option.value);
-          return;
-        }
+      if (key === 'd') {
+        step(1);
+        return;
       }
+      if (key === 'g') generate();
     },
-    [answer, generate, step, nextUnanswered, onClose],
+    [generate, shift, step, nextUnanswered, onClose],
   );
 
   useEffect(() => {
@@ -122,10 +167,19 @@ export function Review({
         <div className="flex w-lg flex-col justify-between">
           <div className="flex flex-col gap-16">
             <div className="flex flex-col gap-2">
-              {FIELDS.map((field) => {
+              {FIELDS.map((field, at) => {
                 const given = item.labels?.[field.id];
                 return (
-                  <span key={field.id} className="flex items-center gap-2">
+                  <span
+                    key={field.id}
+                    // The focused row is the one the arrows answer, so it has
+                    // to be readable at a glance from across the desk.
+                    className={`flex items-center gap-2 rounded-lg p-2 ${
+                      at === focus
+                        ? 'bg-foreground/5 ring-foreground/30 ring'
+                        : ''
+                    }`}
+                  >
                     <span className="text-sm font-medium">{field.label}</span>
                     {field.options.map((option) => {
                       const chosen = given?.value === option.value;
@@ -133,7 +187,12 @@ export function Review({
                       return (
                         <Button
                           key={String(option.value)}
-                          onClick={() => answer(field.id, option.value)}
+                          // Clicking a field's option focuses it too: the next
+                          // arrow then moves where the eye already is.
+                          onClick={() => {
+                            setFocus(at);
+                            answer(field.id, option.value);
+                          }}
                           className={
                             chosen && confirmed
                               ? 'bg-foreground text-background'
@@ -142,8 +201,7 @@ export function Review({
                                 : undefined
                           }
                         >
-                          {option.label}{' '}
-                          <span className="opacity-50">{option.key}</span>
+                          {option.label}
                         </Button>
                       );
                     })}
@@ -159,16 +217,16 @@ export function Review({
 
             <span className="flex flex-wrap items-center gap-2">
               <Button onClick={() => step(-1)} disabled={corpus.index === 0}>
-                ← Previous
+                Previous <span className="opacity-50">a</span>
               </Button>
               <Button
                 onClick={() => step(1)}
                 disabled={corpus.index >= corpus.items.length - 1}
               >
-                Next →
+                Next <span className="opacity-50">d</span>
               </Button>
               <Button onClick={nextUnanswered}>
-                Next unanswered <span className="opacity-50">u</span>
+                Next unanswered <span className="opacity-50">enter</span>
               </Button>
               <Button onClick={generate} disabled={corpus.generating}>
                 {corpus.generating ? 'Running…' : 'Generate'}{' '}
