@@ -217,6 +217,16 @@ from two experiments differ only in the thing being compared. Without the flag
 the build takes `<stem>.md`, the stock sidecar — whatever wrote it,
 `goonpack:describe` or an author — as it always has.
 
+`npm run goonpack:summarise` takes the same pair, and writes the `mediaSummary`
+from that experiment's captions:
+
+    npm run goonpack:summarise goonpacks/elise 2026-08-02-baseline
+
+Run it before the build. The summary is how a companion knows what is worth
+asking for, so one written from a different experiment's captions offers words
+the set no longer uses — and a corpus with no stock sidecars at all has no
+summary to build from until an experiment is named.
+
 ### Playing one without building it
 
 On a dev server you don't have to build anything. Every directory under

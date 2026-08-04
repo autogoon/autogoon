@@ -3,8 +3,12 @@
 ## 2026-08-04
 
 - enhancement: **Companions answer on a new model** — Companions now run on
-  Nex-N2-Mini. It calls its tools, so a companion who says they're sending you a
-  picture sends one, and it answers faster than the model it replaces.
+  Nex-N2-Mini, which answers faster than the model it replaces.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
+- enhancement: **A request for a picture stops returning the same ones** —
+  Asking a companion for something they have a lot of came back with the same
+  handful every time. Asking again now reaches the rest of the set.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **The model benchmark keeps what it measured** —
