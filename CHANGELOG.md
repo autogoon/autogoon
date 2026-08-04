@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-04
+
+- enhancement: **Companions answer on a new model** — Companions now run on
+  Nex-N2-Mini. It calls its tools, so a companion who says they're sending you a
+  picture sends one, and it answers faster than the model it replaces.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
+- internal: **The model benchmark keeps what it measured** —
+  `npm run llm:benchmark` stores results per conversation and model and reuses
+  them, so adding a candidate pays for that candidate alone;
+  `npm run llm:benchmark:wipe` throws the store away. Models are measured six at
+  a time, and the summary is ordered by mean total, prices one generation rather
+  than the whole run, and carries notes on the models whose behaviour timings
+  can't show. ([#30](https://github.com/autogoon/autogoon/pull/30))
+
+- internal: **Companion prompts say each thing once** — The persona prompts
+  carried trailing clauses that restated the instruction above them, or gave a
+  reason the model can't act on; those are cut. Each prompt is now structured as
+  markdown, so reflowing one can't merge a heading into the text below it.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 ## 2026-08-03
 
 - enhancement: **A companion finds a picture whatever you call it** — Asking a
