@@ -1,117 +1,118 @@
 # 2026-08-02-baseline
 
-The first experiment: one vision model, two calls per image, describing a single
-subject in prose and then answering whether she is naked. It exists so that
-everything after it has something to be measured against, so it changes only
-where it is wrong about its own intent — a better idea belongs in a new
-experiment, where it can be scored against this one.
+As with all experiments, nothing in here might make it into the core.
 
-## Model and parameters
+An outline of what is being investigated, not a specification or a plan.
 
-|             |                                                                       |
-| ----------- | --------------------------------------------------------------------- |
-| Looking     | a vision model, sent the picture — the slug is in `index.ts`          |
-| Reading     | a text model, sent that reply — likewise                              |
-| Endpoint    | OpenRouter's chat completions API, or `LLM_URL` if set                |
-| Temperature | 0                                                                     |
-| Image       | downscaled to a long edge of 1024px, re-encoded as JPEG at quality 80 |
+## The problem
 
-**Two models, because the two calls need different things.** Only the first is
-sent a picture, so only it needs to see; the second is handed text, where the
-field of models is larger, cheaper and quicker, and nothing is paid for an image
-tower that goes unused. Both are recorded on every result (`runs.ts`), so which
-pair produced an answer is read off the answer.
+Two main issues with companion use of media.
 
-Temperature 0 makes two runs of this experiment comparable, so a re-run measures
-how much a hosted model drifts on its own. It does not make them identical:
-batching and expert routing move on the far end regardless.
+### describe-image.ts prompt
 
-## Strategy
+It doesn't reliably determine:
 
-Two requests. **The first** carries the resized image and `PROMPT_ONE`:
-reasoning about the picture at whatever length it takes — the pose, the
-clothing, what is bare, the direction the body and gaze face — and then one
-answer outright, `BREAST SIZE`, because a magnitude is not in anybody's prose
-account of a picture.
+- Sitting vs kneeling down vs kneeling up.
+- Topless vs bare breasts. They are not the same, but describe-image.ts does not
+  distinguish them, and a breast shape under clothes is commonly answered as
+  bare breasts.
+- Nipples visible vs seen through sheer fabric vs pokies, it often "sees" them
+  when they aren't there. It never misses them if they are.
+- If a subject's body is facing away from you, but they are looking at the
+  camera, it often says they are facing the camera but describes the image as
+  the whole body is facing you.
 
-**The second** carries `PROMPT_TWO` with that reasoning substituted into it, and
-no picture. It asks for three things in this order:
+Most other things (hair, clothing, other items in the photos) are detected well.
 
-1. **Reasoning** over the description it was given, field by field.
-2. **Marked answers**, one per line. `BREAST SIZE` it copies through as written,
-   Unknown included; the rest it works out from the clothing and pose the first
-   call described — hair, gaze, setting, body shape, what is exposed, nakedness,
-   bra, panties, topless, and how visible the nipples and genitals are.
-3. **A caption** — one sentence condensed from all of it.
+Additionally, the prompt is written to assume a single, female subject.
 
-Three choices in that shape are deliberate. The picture reaches a model once, so
-what the second call can answer is bounded by what the first wrote down — a
-wrong caption is then attributable to the looking or to the reading of it, which
-one call cannot separate. Within the second call the model writes its reasoning
-out before it concludes anything, because a conclusion asked for on its own is
-one guessed from overall impression rather than read off what it has. And the
-marked answers come after that reasoning rather than before it, for the same
-reason: bare-versus-covered is the discrimination being measured, so the answer
-has to follow the looking.
+### search_media returns poor results
 
-**Only breast size is answered by the call with eyes.** It is a magnitude, and
-prose about a picture doesn't carry one, so the second call was inventing it —
-and an invention from a prior lands on whichever grade the rubric describes as
-ordinary. Everything else follows from the clothing and pose the first call
-writes down, which text does carry, so everything else stayed where it was and
-is the control for the change.
+search_media does keyword matching on a media item's sidecar naively: we match
+each word in a search phrase given by a companion against each media item's
+caption and description, and score any matches.
 
-## What is stored
+But describe-image.ts is not written to produce descriptions or captions
+suitable for keyword search.
 
-Both calls, each as a prompt and the reply it got — `prompt.txt`/`raw.txt` for
-the looking, `prompt2.txt`/`raw2.txt` for the reading — and every field
-[`fields.ts`](../../fields.ts) asks about, read off the second reply's marked
-lines. The first reply is kept because it is the whole of what the second had to
-work from: reading the second against it is what says whether a wrong answer
-came from the looking or from the reading.
+## Goals
 
-Each line is `NAME: <answer>`. A **choice** field's line is read from the front
-against a word list, because the model reliably justifies itself afterwards —
-`NAKED: No — she is wearing a bralette and thong` answers `No`. A **text**
-field's line is kept as written. What each word stores is set out in this
-experiment rather than read from `fields.ts`: the version is a hash of this
-directory alone, so a value recorded here has to live here, or a change
-elsewhere would alter what this produces without moving its version.
+This is the first experiment so the main goal is to work out a workflow for how
+improving inference might work. We'll try these things as part of this:
 
-Two of the fields aren't marked lines. The **caption** is the `CAPTION:` line,
-and the **description** is everything above the first choice answer — the prose
-the model wrote about the picture, headings like `REASONING:` dropped off the
-front. Those two are also the sidecar, built from the fields rather than read
-separately, so what a pack plays and what the caption is scored against are the
-same text.
+- Start manually labelling source media
+- To describe the pose more accurately
+- To fix the topless/bare breasts distinction
+- Determine breast size
+- Deal with multi-subject and multi-gender media better
+- Improve detection of body pose.
+- Investigate whether storing the detected features in structured data helps
+  with manually tagging/scoring inference to objectively measure improvements,
+  and to help with an improved search_media algorithm.
 
-Every field takes the last line it can read, so a model that echoes the format
-template first loses and one that trails an unreadable line after a good answer
-does not. A field with no readable line is absent rather than guessed — an
-absent answer is recoverable, a fabricated one is not. A reply carrying no
-caption, or a caption with no prose behind it, is refused outright: an item with
-fields and no description of what they were read from is worse than one that has
-to be run again.
+## The approach
 
-## What it is known to get wrong
+Use a vision model to reason about the media content and pass all of that
+reasoning to a second text model which would summarise the contents of the media
+item into a fixed set of observations and categories.
 
-Carried on purpose. A baseline quietly improved measures nothing.
+The result would be instead of free text search, there are fixed values for
+things we're interested in:
 
-- **The prompt assumes one female subject.** A second person, a man, and
-  anything happening between people have nowhere to go in the checklist, so they
-  are described as though absent.
-- **Bare breasts are reported where they are covered**, and nipples are reported
-  through fabric where there are none.
-- **Sitting is confused with kneeling**, despite the checklist spelling out how
-  to tell them apart.
-- **Body orientation follows the gaze**: a subject kneeling away from the camera
-  and looking back over her shoulder is described as facing the camera.
-- **Breast size reads Medium whatever the picture holds.** Over the few items
-  labelled and answered both ways it gave the same grade every time, including
-  where the ground truth said otherwise. Asking the call with eyes for it,
-  against what is on screen rather than a cup size, is the change under test;
-  whether it moved is a question for a sweep, not for reading the prompt.
+- Genital visibility: just visible, not visible and unknown
+- Breast size: small, medium, large, extra large and unknown.
+- (See prompt.ts in experiment for a full list.)
 
-## Running it
+A companion that knew the label set could pass these parameters as an object and
+search on them directly, rather than by keyword.
 
-Needs `OPENROUTER_API_KEY`. macOS only — the downscale shells out to `sips`.
+Some fields like clothing, hair, gaze, would remain text searches.
+
+## What we've tried and removed
+
+Nothing.
+
+## What we're trying now
+
+- Two calls instead of one model doing everything.
+- Prompt wording, repeatedly.
+- Storing categorised values against a structured, fixed set of labels.
+- Stripping a null answer ("none") in code before it is stored in a text field,
+  instead of asking the prompt not to produce one.
+- Finding text in the image and storing it as a field, with the aim that it
+  might help the companion find more pictures of the same person (watermarks,
+  text on clothing etc.)
+- Adding the detected text to media_search (although in the core, not a
+  per-experiment media_search implementation which is really what is needed).
+
+## What is working
+
+- Topless vs bare breasts is largely better
+- Nipple visibility is noticeably better.
+- Text detection is very reliable.
+
+## What isn't working
+
+- It's very hard to get breast size to report as anything but medium, even with
+  considerable attempts at prompting - it regularly reports clearly small or
+  large breasts as medium.
+- Having single labels for "Breast size", "Genital visibility: yes/no" doesn't
+  capture multiple subjects.
+
+## What we've not tried
+
+- Fully labelling a large corpus of images manually, and running structured
+  tests following prompt changes. We change something, then check a small number
+  of images manually. This is fine while we're working out the experiment
+  workflow.
+- We've not prompted any companions to try and pass detected text back to a
+  search to see if they can find similar pictures.
+- Using embeddings/vector search for searching (Futuregazing?)
+
+## Futuregazing
+
+Things not necessarily for this experiment, but thoughts which fall out of our
+experimenting.
+
+- We have a fixed set of labels in the inference interface, which other pack
+  creators can't add to. Labels should be extensible. Solved by embeddings.
