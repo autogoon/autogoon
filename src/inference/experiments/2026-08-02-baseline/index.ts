@@ -62,7 +62,7 @@ const TEMPERATURE = 0;
 //     deepseek/deepseek-v4-flash                 $0.18
 //     qwen/qwen3-30b-a3b-instruct-2507           $0.19
 const MODEL = 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
-const TEXT_MODEL = 'qwen/qwen3-30b-a3b-instruct-2507:nitro';
+const TEXT_MODEL = 'nex-agi/nex-n2-mini:nitro';
 
 function resizedJpeg(imagePath: string): Buffer {
   const tmp = join(tmpdir(), `inference-${randomUUID()}.jpg`);
