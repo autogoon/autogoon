@@ -47,3 +47,42 @@ is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
   **Sending is deliberately unfiltered**: `pickMedia` sends any ref it is given,
   already sent or not, because "send me my favourite picture of you" has to
   work.
+
+## Bug braindump
+
+Noticed in use, unsorted and unverified. An entry earns a section above once
+someone has read the code under it.
+
+- The UI for companions is poor.
+
+  - Reset is in the program panel, so you have to open that to reset.
+  - Stop is in the controls panel, so you have to open that to stop — and you
+    might want to manually stop or start.
+  - Other entries in this braindump are Companions UI too.
+  - Connect needs to be in the header.
+
+- Companions report that the settings for the toy haven't changed after they
+  issue an intensity or variety change.
+
+- You can't send a message by text (as opposed to STT) while the companion is
+  speaking. It should butt in just like speech does.
+
+- You should be able to see the toy's status (intensity/variety) while a media
+  popup is open.
+
+- With a media popup open, an indicator that changes (10% → 20%) should be
+  highlighted in a chip, temporarily?
+
+- There should be a control deciding whether the companion replies with just a
+  message or with TTS.
+
+- If you sent the message using text, media the companion sends on their turn
+  shouldn't auto-open.
+
+- The Inference tab should be gated on a setting in Settings, even in dev mode.
+
+- Removing a pack from the goonpacks list doesn't show that the pack has been
+  removed, even when it has. Needs re-testing since disk packs landed.
+
+- With variety off in companions, there was still some variety. Likely the same
+  in Goon and Groove, so all three want checking.
