@@ -374,6 +374,7 @@ export function CompanionsPanel({
                 const found = searchMedia(items, query, {
                   exclude: sentRefs.current,
                   kind,
+                  rand: Math.random,
                 });
                 return {
                   result: describeHits(found),

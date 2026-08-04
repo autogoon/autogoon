@@ -101,12 +101,17 @@ export function searchMedia(
     // gets the best matching video rather than the best match that happens to
     // be one. Omitted searches both.
     kind?: MediaKind;
+    // A 0–1 sample per candidate, ordering the items a query scores equally.
+    // An argument rather than a call inside, so the function stays pure and a
+    // test can pin the order instead of hoping for one. Omitted, ties fall back
+    // to the ref, which is the same list every time.
+    rand?: () => number;
   } = {},
 ): MediaHit[] {
   const wanted = new Set(terms(query));
   if (wanted.size === 0) return [];
 
-  const scored: { item: CompanionMedia; score: number }[] = [];
+  const scored: { item: CompanionMedia; score: number; tie: number }[] = [];
   for (const item of items) {
     if (opts.kind !== undefined && item.kind !== opts.kind) continue;
     if (opts.exclude?.has(item.ref) === true) continue;
@@ -117,12 +122,18 @@ export function searchMedia(
       if (caption.has(w)) score += CAPTION_WEIGHT;
       else if (long.has(w)) score += 1;
     }
-    if (score > 0) scored.push({ item, score });
+    if (score > 0) scored.push({ item, score, tie: opts.rand?.() ?? 0 });
   }
 
-  // Ties break on ref so the same request twice gives the same answer.
+  // Score first, then the sample. A broad query scores most of a set alike, and
+  // ordering that group by ref means the same oldest few reach SEARCH_LIMIT
+  // every time while the rest of the set is never seen. The ref is the last
+  // resort, so a search given no `rand` is still the same list twice running.
   scored.sort(
-    (a, b) => b.score - a.score || a.item.ref.localeCompare(b.item.ref),
+    (a, b) =>
+      b.score - a.score ||
+      a.tie - b.tie ||
+      a.item.ref.localeCompare(b.item.ref),
   );
 
   return scored.slice(0, SEARCH_LIMIT).map(({ item }) => ({

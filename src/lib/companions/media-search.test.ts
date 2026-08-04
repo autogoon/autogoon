@@ -107,6 +107,27 @@ describe('searchMedia', () => {
     expect(searchMedia(set, 'thong').map((h) => h.ref)).toEqual(['a']);
   });
 
+  it('orders items it scores equally by the sample it was given', () => {
+    // Both captions carry the query word once, so nothing but the sample can
+    // separate them — and the samples descend, which is the order the refs
+    // would not produce on their own.
+    const set = [item('a', 'On a beach.'), item('b', 'On a beach.')];
+    const samples = [0.9, 0.1];
+    let i = 0;
+    expect(
+      searchMedia(set, 'beach', { rand: () => samples[i++]! }).map(
+        (h) => h.ref,
+      ),
+    ).toEqual(['b', 'a']);
+  });
+
+  it('gives the same order twice when it is given no sample', () => {
+    const set = [item('b', 'On a beach.'), item('a', 'On a beach.')];
+    expect(searchMedia(set, 'beach').map((h) => h.ref)).toEqual(
+      searchMedia(set, 'beach').map((h) => h.ref),
+    );
+  });
+
   it('carries the caption and kind of each hit, which is what the model reads', () => {
     const hit = searchMedia(SET, 'sunset')[0];
     expect(hit?.caption).toBe('A woman standing on a beach at sunset.');
