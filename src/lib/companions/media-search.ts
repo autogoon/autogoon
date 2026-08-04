@@ -64,9 +64,6 @@ const STOP = new Set([
 // are not the same request, and folding them answers one with the other.
 // Plurals are listed rather than stemmed, so the table can't over-reach onto a
 // word nobody checked.
-//
-// This is the app's vocabulary, not an experiment's: what a picture can be
-// called doesn't change with what wrote the caption.
 const SAME: readonly (readonly string[])[] = [
   ['breasts', 'breast', 'boobs', 'boob', 'tits', 'tit', 'titties', 'titty'],
   ['nipples', 'nipple'],
@@ -102,9 +99,8 @@ export function searchMedia(
     // be one. Omitted searches both.
     kind?: MediaKind;
     // A 0–1 sample per candidate, ordering the items a query scores equally.
-    // An argument rather than a call inside, so the function stays pure and a
-    // test can pin the order instead of hoping for one. Omitted, ties fall back
-    // to the ref, which is the same list every time.
+    // An argument, not a call inside, so the function stays pure and a test can
+    // pin the order. Omitted, ties fall back to the ref.
     rand?: () => number;
   } = {},
 ): MediaHit[] {
@@ -126,9 +122,9 @@ export function searchMedia(
   }
 
   // Score first, then the sample. A broad query scores most of a set alike, and
-  // ordering that group by ref means the same oldest few reach SEARCH_LIMIT
-  // every time while the rest of the set is never seen. The ref is the last
-  // resort, so a search given no `rand` is still the same list twice running.
+  // ordering that group by ref sends the same oldest few every time while the
+  // rest of the set goes unseen. The ref is the last resort, for a search given
+  // no sample.
   scored.sort(
     (a, b) =>
       b.score - a.score ||
