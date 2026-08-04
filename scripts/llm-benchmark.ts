@@ -2,10 +2,17 @@
 //
 //   npm run llm:benchmark              every conversation in llm-benchmark/
 //   npm run llm:benchmark elise        only those whose filename contains it
-//   npm run llm:benchmark <file>       re-print a saved run, sending nothing
+//   npm run llm:benchmark:wipe         throw the measurements away, send nothing
 //
 // Conversations sit in llm-benchmark/, and what a run measured is written to
-// llm-benchmark/results/.
+// llm-benchmark/results/, one file per conversation keyed by model. A pair
+// already measured there is printed rather than sent again, so adding a model
+// to MODELS pays for that model alone. What that buys is one table built from
+// measurements taken on different days: a provider's load moves, so a cached
+// row's timings say how it behaved then, and the row is marked `cached` for
+// exactly that reason. `wipe` is the answer when the timings need to be
+// comparable; it only deletes, so re-measuring is two commands and never a
+// slip of the finger.
 //
 // A conversation is a request copied out of the app — the Debug tab's request
 // viewer, Copy — so it is the app's own LlmMessage shape, ending on the
@@ -22,33 +29,70 @@
 // It does not judge whether a reply is a refusal. Every reply is written out in
 // full and its first line printed, and reading them is the job for now.
 //
-// This is a paid path: runs = models × conversations × 3, each carrying a whole
-// conversation as prompt. It prints what it is about to spend the money on and
-// waits a beat before starting.
+// This is a paid path: runs = the pairs not already measured × 3, each carrying
+// a whole conversation as prompt. It prints what it is about to spend the money
+// on before starting, and each pair is written as it finishes, so ^C keeps what
+// it has paid for.
 //
 // Reads OPENROUTER_API_KEY / LLM_URL from the environment; the npm script loads
 // .env via --env-file-if-exists.
 
 import process from 'node:process';
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// The candidates. Edit this list — it is the point of the script.
+// The candidates. Edit this list — it is the point of the script. Sorted, which
+// is the order the per-conversation tables print in, so a family's cheap and
+// expensive members land next to each other for reading; the summary at the end
+// is ordered by what it measured instead.
 const MODELS = [
-  'xiaomi/mimo-v2.5:nitro',
-  'meta-llama/llama-4-maverick:nitro',
-  'qwen/qwen3-30b-a3b-instruct-2507:nitro',
   'deepseek/deepseek-v4-flash:nitro',
+  'deepseek/deepseek-v4-pro:nitro',
+  'meituan/longcat-2.0:nitro',
+  'meta-llama/llama-4-maverick:nitro',
+  'mistralai/mistral-small-2603:nitro',
+  'moonshotai/kimi-k2.6:nitro',
+  'nex-agi/nex-n2-mini:nitro',
+  'qwen/qwen3-30b-a3b-instruct-2507:nitro',
+  'qwen/qwen3.7-plus:nitro',
+  'qwen/qwen3.8-max:nitro',
+  'stepfun/step-3.7-flash:nitro',
+  'tencent/hy3:nitro',
+  'x-ai/grok-4.3:nitro',
+  'xiaomi/mimo-v2.5:nitro',
   'z-ai/glm-4.7-flash:nitro',
-  'inclusionai/ling-2.6-flash:nitro',
+  'z-ai/glm-5.2:nitro',
 ];
 
+// What a run cannot measure: how a model behaved when the app actually used it,
+// and why a model that isn't in MODELS was taken out. Printed under the summary
+// — the models in the table first, the rest after — so a model that times well
+// and plays badly says so in the same output, and one already ruled out doesn't
+// get added back. Written by hand; nothing here is measured.
+const NOTES: Record<string, string> = {
+  'qwen/qwen3-30b-a3b-instruct-2507:nitro':
+    'Speaks example lines out of the system prompt verbatim as its own dialogue, and talks about sending a picture without calling the tool that sends one.',
+  'inclusionai/ling-2.6-flash:nitro':
+    'Out of the list: 429 from upstream too often to measure, three runs against one conversation coming back rate-limited every time.',
+  'qwen/qwen3.7-flash:nitro':
+    'Out of the list: 429 from upstream on 11 of 12 runs.',
+  'minimax/*':
+    'Out of the list: the app cannot use any of them. Every system message after the first is concatenated onto the leading one, so the clock, the toy state and the ambient cue arrive ahead of the conversation instead of as the last thing said; and reasoning is streamed inside content as a <think> block rather than in reasoning_details, so it is spoken aloud and stored as dialogue. Measured on 3 August 2026 against minimax-m2.5 (Parasail) and minimax-m3 (AtlasCloud), so it is the model and not one host.',
+};
+
 const RUNS = 3;
-// Conversations sit here; every run's results go in the subdirectory, so the
+// How many models are measured at once. A model's own conversations and runs
+// stay in sequence whatever this is: the first call to a provider is the cold
+// one, and the three timings exist to show whether it warms up, which only
+// holds while they follow each other. Across models it is capped rather than
+// all-in because these are latency measurements — a machine with every stream
+// open at once is measuring itself as much as the provider.
+const CONCURRENCY = 6;
+// Conversations sit here; what was measured goes in the subdirectory, so the
 // two never have to be told apart by name.
 const DIR = 'llm-benchmark';
 const RESULTS_DIR = 'llm-benchmark/results';
-const RESULTS_PREFIX = 'results-';
 // Long enough for a whole turn on a slow provider, short enough that one
 // hanging model doesn't hold up the rest of the run.
 const TIMEOUT_MS = 120_000;
@@ -300,7 +344,8 @@ const COLOUR =
   process.stdout.isTTY === true && process.env.NO_COLOR === undefined;
 const CYAN = '36';
 const WHITE = '97';
-// Everything that is text out of the conversation rather than a measurement.
+// Text out of the conversation rather than a measurement, and the second and
+// third places in a table's ranking.
 const YELLOW = '33';
 const GREEN = '32';
 const RED = '31';
@@ -328,36 +373,63 @@ function inOrder(values: (number | null)[]): string {
     .join('/');
 }
 
-// A colour per row, from the means, for the word that labels the group: green
-// on the model with the lowest mean in this table and red on the highest. The
-// figures say how one model behaved run to run; the label says where it stands
-// against the others. Every row the same, or only one row with a mean at all,
-// leaves the labels plain — there is no comparison to draw.
-function byMean(rows: (number | null)[][]): (string | null)[] {
-  const means = rows.map(meanOf);
-  const got = means.filter((m): m is number => m !== null);
-  if (got.length < 2) return means.map(() => null);
-  const best = Math.min(...got);
-  const worst = Math.max(...got);
-  if (best === worst) return means.map(() => null);
-  return means.map((m) =>
-    m === null ? null : m === best ? GREEN : m === worst ? RED : null,
-  );
+// Where each value stands against the rest of its column: green on the lowest,
+// yellow on the next two, red on the highest, and plain for everything between.
+// Down a list this long a lone green says nothing about how close the field
+// behind it came. Placed on distinct values, so rows that tie take the same
+// colour and neither is pushed down a place. A column of one value, or one with
+// nothing to compare, comes back plain — there is no comparison to draw.
+function placings(values: (number | null)[]): (string | null)[] {
+  const got = values.filter((v): v is number => v !== null);
+  const ranked = [...new Set(got)].sort((a, b) => a - b);
+  if (got.length < 2 || ranked.length < 2) return values.map(() => null);
+  const worst = ranked[ranked.length - 1];
+  return values.map((v) => {
+    if (v === null) return null;
+    // Worst first: in a three-place column it is also one of the top three, and
+    // being last is the thing worth seeing.
+    if (v === worst) return RED;
+    if (v === ranked[0]) return GREEN;
+    return v === ranked[1] || v === ranked[2] ? YELLOW : null;
+  });
 }
+
+// The same, for the word that labels a group of runs: the figures say how one
+// model behaved run to run, the label says where it stands against the others.
+const byMean = (rows: (number | null)[][]): (string | null)[] =>
+  placings(rows.map(meanOf));
 
 const label = (word: string, colour: string | null): string =>
   colour === null ? word : paint(colour, word);
 
-// The same, for money rather than time.
-function costColumn(values: number[], width: number): string[] {
-  const best = values.length > 1 ? Math.min(...values) : null;
-  const worst = values.length > 1 ? Math.max(...values) : null;
-  return values.map((v) => {
-    const text = `$${v.toFixed(4)}`.padStart(width);
-    if (best === worst) return text;
-    if (v === best) return paint(GREEN, text);
-    if (v === worst) return paint(RED, text);
-    return text;
+// Greedy word wrap, for the notes under the summary. A word longer than the
+// width goes on its own line rather than being broken.
+function wrap(text: string, width: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    if (line === '') line = word;
+    else if (`${line} ${word}`.length <= width) line += ` ${word}`;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line !== '') lines.push(line);
+  return lines;
+}
+
+// The same placing, for money rather than time. Five decimal places because the
+// figure is one generation's price rather than a whole run's — the cheap models
+// land around a tenth of a cent, and four would print most of them alike. A
+// model whose runs came back with no price at all is dashed rather than shown
+// at zero, which would take the green as the cheapest in the table.
+function costColumn(values: (number | null)[], width: number): string[] {
+  const colours = placings(values);
+  return values.map((v, i) => {
+    const text = (v === null ? '—' : `$${v.toFixed(5)}`).padStart(width);
+    const colour = colours[i];
+    return colour === undefined || colour === null ? text : paint(colour, text);
   });
 }
 
@@ -375,7 +447,83 @@ const firstLine = (run: Run | undefined): string => {
     : '(empty)';
 };
 
-type Result = { model: string; conversation: string; runs: Run[] };
+// `cached` says the runs were read back rather than made just now, which is
+// what the marker in the table is drawn from.
+type Result = {
+  model: string;
+  conversation: string;
+  runs: Run[];
+  cached: boolean;
+};
+
+// One conversation's measurements, the file under RESULTS_DIR. `sourceHash` is
+// of the conversation as it was when they were made: edit it and every model's
+// entry is stale at once, because a table mixing models measured against
+// different inputs compares nothing. The run count isn't stored — the array is
+// it, and a second copy of a number is a second thing to go wrong.
+type Store = {
+  conversation: string;
+  sourceHash: string;
+  models: Record<string, { at: string; runs: Run[] }>;
+};
+
+const storePath = (conversation: string): string =>
+  join(RESULTS_DIR, `${conversation}.json`);
+
+const hashOf = (raw: string): string =>
+  createHash('sha256').update(raw).digest('hex');
+
+// What was measured for one conversation, or an empty store where there is
+// nothing usable: no file, unreadable, or written against a different version
+// of the conversation. Anything unreadable is treated as absent rather than
+// fatal — it costs a re-measure, where stopping costs the whole run.
+async function readStore(
+  conversation: string,
+  sourceHash: string,
+): Promise<Store> {
+  const empty: Store = { conversation, sourceHash, models: {} };
+  const raw = await readFile(storePath(conversation), 'utf8').catch(() => null);
+  if (raw === null) return empty;
+  let parsed: Store;
+  try {
+    parsed = JSON.parse(raw) as Store;
+  } catch {
+    return empty;
+  }
+  if (parsed.sourceHash !== sourceHash || typeof parsed.models !== 'object') {
+    return empty;
+  }
+  return { conversation, sourceHash, models: parsed.models };
+}
+
+// A stored entry stands in for a fresh one only if it holds the runs this
+// invocation would make and every one of them answered. A 429 or a timeout is
+// how the provider behaved that minute rather than a measurement, and kept, it
+// would pin a model as failed for good.
+const usable = (entry: { runs: Run[] } | undefined): boolean =>
+  entry !== undefined &&
+  entry.runs.length === RUNS &&
+  entry.runs.every((r) => r.error === null);
+
+// Written after each model finishes rather than at the end of the run, so ^C
+// keeps what it has already paid for. Models run concurrently and two of them
+// can finish the same conversation at once, so each conversation's writes are
+// chained: the store is one object per conversation, and two overlapping writes
+// to one path can interleave into a file that parses as neither.
+const writeQueue = new Map<string, Promise<void>>();
+function writeStore(store: Store): Promise<void> {
+  const next = (writeQueue.get(store.conversation) ?? Promise.resolve()).then(
+    async () => {
+      await mkdir(RESULTS_DIR, { recursive: true });
+      await writeFile(
+        storePath(store.conversation),
+        JSON.stringify(store, null, 2),
+      );
+    },
+  );
+  writeQueue.set(store.conversation, next);
+  return next;
+}
 
 // One run's timing, or null where it failed — a failed run still has a totalMs,
 // but it is how long the refusal to serve took, and left in, a model that 429s
@@ -432,7 +580,10 @@ function report(
         `  ${paint(WHITE, r.model.padEnd(width))}` +
           `  ${label('reply', replyColour[i] ?? null)} ${inOrder(reply[i]!)}` +
           `  ${label('total', totalColour[i] ?? null)} ${inOrder(total[i]!)}` +
-          `${failed > 0 ? `  ${failed}/${r.runs.length} failed` : ''}`,
+          `${failed > 0 ? `  ${failed}/${r.runs.length} failed` : ''}` +
+          // Timings from another day against timings from this minute: the
+          // marker is what stops the two being read as one measurement.
+          `${r.cached ? '  cached' : ''}`,
       );
       const first = r.runs[0];
       const line =
@@ -445,7 +596,9 @@ function report(
     console.log('');
   }
 
-  console.log(`── Every conversation, by model (${legend}, averaged) ──\n`);
+  console.log(
+    `── Every conversation, by model (${legend}, averaged · $ per generation) ──\n`,
+  );
   // Averaged by run index across the conversations rather than over every run
   // flattened together, which would bury the cold first call.
   const perIndex = (
@@ -462,21 +615,42 @@ function report(
   const perModel = models.map((model) => {
     const rows = results.filter((r) => r.model === model);
     const runs = rows.flatMap((r) => r.runs);
+    // What one generation costs, so the column compares models rather than
+    // however many conversations and runs this invocation happened to make.
+    // Averaged over the runs that came back with a price: a failed run reports
+    // none, and counting it as free would read as a model being cheap.
+    const priced = runs
+      .map((r) => r.costUsd)
+      .filter((c): c is number => c !== null);
     return {
       model,
       runs,
       reply: perIndex(rows, (r) => r.firstReplyTokenMs),
       total: perIndex(rows, (r) => r.totalMs),
-      cost: runs.reduce((a, r) => a + (r.costUsd ?? 0), 0),
+      cost:
+        priced.length === 0
+          ? null
+          : priced.reduce((a, b) => a + b, 0) / priced.length,
     };
   });
-  const replyColour = byMean(perModel.map((m) => m.reply));
-  const totalColour = byMean(perModel.map((m) => m.total));
+  // Quickest mean total at the top, rather than the order MODELS declares: this
+  // table is the ranking, and where a model sits in the source list says
+  // nothing. A model that never returned a timing has no place in that order
+  // and goes to the bottom.
+  const ordered = [...perModel].sort((a, b) => {
+    const at = meanOf(a.total);
+    const bt = meanOf(b.total);
+    if (at === null) return bt === null ? 0 : 1;
+    if (bt === null) return -1;
+    return at - bt;
+  });
+  const replyColour = byMean(ordered.map((m) => m.reply));
+  const totalColour = byMean(ordered.map((m) => m.total));
   const costs = costColumn(
-    perModel.map((m) => m.cost),
-    7,
+    ordered.map((m) => m.cost),
+    8,
   );
-  perModel.forEach((m, i) => {
+  ordered.forEach((m, i) => {
     const failed = m.runs.filter((r) => r.error !== null).length;
     const inContent = m.runs.filter((r) => r.reasoning === 'in-content').length;
     console.log(
@@ -488,55 +662,54 @@ function report(
         `${inContent > 0 ? `  ${inContent} with <think> in content` : ''}`,
     );
   });
+
+  // The table's own models first, then everything else NOTES holds — the ones
+  // taken out of MODELS, which have no row to sit under and are the whole
+  // reason the block isn't built from the table alone.
+  const noted = [
+    ...ordered.map((m) => m.model).filter((m) => NOTES[m] !== undefined),
+    ...Object.keys(NOTES).filter((m) => !models.includes(m)),
+  ];
+  if (noted.length > 0) {
+    const notesWidth = Math.max(...noted.map((m) => m.length));
+    console.log('\n── Notes ──\n');
+    for (const model of noted) {
+      // Wrapped to a hanging indent under the model, so a note long enough to
+      // say something useful doesn't fold back to column zero and read as the
+      // next model's.
+      const lines = wrap(NOTES[model]!, 100 - notesWidth);
+      console.log(`${paint(WHITE, model.padEnd(notesWidth))}  ${lines[0]}`);
+      for (const line of lines.slice(1)) {
+        console.log(`${' '.repeat(notesWidth)}  ${line}`);
+      }
+    }
+  }
 }
 
-// Re-print a results file. Nothing is sent, so no key is needed.
-async function replay(path: string): Promise<void> {
-  const saved = JSON.parse(await readFile(path, 'utf8')) as {
-    at?: string;
-    models?: string[];
-    results?: Result[];
-  };
-  if (!Array.isArray(saved.results) || saved.results.length === 0) {
-    console.error(`${path}: no results in it.`);
-    process.exitCode = 1;
-    return;
-  }
-  const models = saved.models ?? [
-    ...new Set(saved.results.map((r) => r.model)),
-  ];
-  // The closing messages come from the conversation as it stands now. A file
-  // renamed or edited since the run simply shows nothing rather than something
-  // the run didn't see.
-  const tails = new Map<string, string[]>();
-  for (const name of new Set(saved.results.map((r) => r.conversation))) {
-    const messages = await readFile(join(DIR, `${name}.json`), 'utf8')
-      .then((raw) => JSON.parse(raw) as Message[])
-      .catch(() => null);
-    if (Array.isArray(messages)) tails.set(name, tailLines(messages));
-  }
+// Throw away every measurement. Nothing is sent, so no key is needed, and it
+// only deletes — what to re-measure afterwards is the next command's business.
+async function wipe(): Promise<void> {
+  const entries = await readdir(RESULTS_DIR).catch(() => []);
+  const files = entries.filter((f) => f.endsWith('.json'));
+  for (const file of files) await rm(join(RESULTS_DIR, file));
   console.log(
-    `${path}${saved.at === undefined ? '' : ` · run at ${saved.at}`}`,
+    files.length === 0
+      ? `Nothing measured in ${RESULTS_DIR}/.`
+      : `Deleted ${files.map((f) => f.replace(/\.json$/, '')).join(', ')}.`,
   );
-  report(models, saved.results, tails);
 }
 
 async function main(): Promise<void> {
-  // An argument naming a file is a results file to re-print; anything else
-  // filters the conversations a fresh run covers.
   const arg = process.argv[2];
-  if (arg !== undefined && (await stat(arg).catch(() => null))?.isFile()) {
-    await replay(arg);
+  if (arg === '--wipe') {
+    await wipe();
     return;
   }
 
+  // Not checked yet: a run with everything already measured sends nothing, and
+  // should print without a key.
   const apiKey = process.env.OPENROUTER_API_KEY;
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
-  if (!apiKey) {
-    console.error('OPENROUTER_API_KEY is not set (see .env.example).');
-    process.exitCode = 1;
-    return;
-  }
 
   const filter = arg;
   let entries: string[];
@@ -548,7 +721,7 @@ async function main(): Promise<void> {
     return;
   }
   const files = entries
-    .filter((f) => f.endsWith('.json') && !f.startsWith(RESULTS_PREFIX))
+    .filter((f) => f.endsWith('.json'))
     .filter((f) => filter === undefined || f.includes(filter))
     .sort();
   if (files.length === 0) {
@@ -560,7 +733,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  const conversations: { name: string; messages: Message[] }[] = [];
+  // The hash is of the file as read, so a conversation edited since it was
+  // last measured takes its stored entries with it.
+  const conversations: { name: string; messages: Message[]; hash: string }[] =
+    [];
   for (const file of files) {
     const raw = await readFile(join(DIR, file), 'utf8');
     let parsed: unknown;
@@ -581,42 +757,97 @@ async function main(): Promise<void> {
     conversations.push({
       name: file.replace(/\.json$/, ''),
       messages: parsed as Message[],
+      hash: hashOf(raw),
     });
   }
 
-  const total = MODELS.length * conversations.length * RUNS;
+  const stores = new Map<string, Store>();
+  for (const c of conversations) {
+    stores.set(c.name, await readStore(c.name, c.hash));
+  }
+  const toMeasure = MODELS.flatMap((model) =>
+    conversations
+      .filter((c) => !usable(stores.get(c.name)?.models[model]))
+      .map((c) => ({ model, conversation: c })),
+  );
+  const fromDisk = MODELS.length * conversations.length - toMeasure.length;
+
   console.log(
-    `${MODELS.length} models × ${conversations.length} conversations × ${RUNS} runs = ${total} generations, each carrying a whole conversation.`,
+    `${MODELS.length} models × ${conversations.length} conversations: ` +
+      `${fromDisk} pairs already measured, ${toMeasure.length} to run ` +
+      `= ${toMeasure.length * RUNS} generations, each carrying a whole conversation.`,
   );
   console.log(`Conversations: ${conversations.map((c) => c.name).join(', ')}`);
-  console.log('Starting in 3s — ^C to stop.\n');
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
-  const results: {
-    model: string;
-    conversation: string;
-    runs: Run[];
-  }[] = [];
-
-  for (const model of MODELS) {
-    for (const conversation of conversations) {
-      const runs: Run[] = [];
-      for (let i = 0; i < RUNS; i++) {
-        const run = await runOnce(
-          model,
-          conversation.messages,
-          apiKey,
-          baseUrl,
-        );
-        runs.push(run);
-        process.stdout.write(
-          `${model} · ${conversation.name} · run ${i + 1}/${RUNS}: ` +
-            `${run.error === null ? `${secs(run.firstReplyTokenMs)} to reply, ${secs(run.totalMs)} total` : run.error}\n`,
-        );
-      }
-      results.push({ model, conversation: conversation.name, runs });
+  if (toMeasure.length > 0) {
+    if (!apiKey) {
+      console.error('OPENROUTER_API_KEY is not set (see .env.example).');
+      process.exitCode = 1;
+      return;
     }
+    console.log(
+      `${CONCURRENCY} at a time — ^C to stop, and what is measured by then is kept.\n`,
+    );
+
+    // One queue of models, each carrying its own conversations; a worker takes
+    // the next model and works through it in order. Sharing one queue rather
+    // than dealing the models out in advance keeps every worker busy when one
+    // model turns out to be far slower than the rest.
+    const queue = MODELS.map((model) => ({
+      model,
+      todo: toMeasure.filter((p) => p.model === model),
+    })).filter((m) => m.todo.length > 0);
+
+    const worker = async (): Promise<void> => {
+      for (;;) {
+        const next = queue.shift();
+        if (next === undefined) return;
+        for (const { conversation } of next.todo) {
+          const runs: Run[] = [];
+          for (let i = 0; i < RUNS; i++) {
+            const run = await runOnce(
+              next.model,
+              conversation.messages,
+              apiKey,
+              baseUrl,
+            );
+            runs.push(run);
+            process.stdout.write(
+              `${next.model} · ${conversation.name} · run ${i + 1}/${RUNS}: ` +
+                `${run.error === null ? `${secs(run.firstReplyTokenMs)} to reply, ${secs(run.totalMs)} total` : run.error}\n`,
+            );
+          }
+          const store = stores.get(conversation.name)!;
+          store.models[next.model] = { at: new Date().toISOString(), runs };
+          await writeStore(store);
+        }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, queue.length) }, worker),
+    );
   }
+
+  // Every pair, in the order MODELS declares, whether it was measured now or
+  // read back. A pair that failed on this run is still shown — the timings say
+  // nothing but the errors are the point — and is not marked cached, because it
+  // is not what a later run will find on disk.
+  const measured = new Set(
+    toMeasure.map(({ model, conversation }) => `${model} ${conversation.name}`),
+  );
+  const results: Result[] = MODELS.flatMap((model) =>
+    conversations.flatMap((c) => {
+      const entry = stores.get(c.name)?.models[model];
+      if (entry === undefined) return [];
+      return [
+        {
+          model,
+          conversation: c.name,
+          runs: entry.runs,
+          cached: !measured.has(`${model} ${c.name}`),
+        },
+      ];
+    }),
+  );
 
   report(
     MODELS,
@@ -624,19 +855,11 @@ async function main(): Promise<void> {
     new Map(conversations.map((c) => [c.name, tailLines(c.messages)])),
   );
 
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const out = join(RESULTS_DIR, `${RESULTS_PREFIX}${stamp}.json`);
-  await mkdir(RESULTS_DIR, { recursive: true });
-  await writeFile(
-    out,
-    JSON.stringify(
-      { at: new Date().toISOString(), models: MODELS, results },
-      null,
-      2,
-    ),
+  console.log(
+    `\nEvery reply in full: ${RESULTS_DIR}/, one file per conversation.`,
   );
-  console.log(`\nEvery reply in full: ${out}`);
-  console.log(`Read it again without spending: npm run llm:benchmark ${out}`);
+  console.log('Read them again without spending: npm run llm:benchmark');
+  console.log('Throw them away: npm run llm:benchmark:wipe');
 }
 
 await main();
