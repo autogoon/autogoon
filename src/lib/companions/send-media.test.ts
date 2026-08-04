@@ -60,10 +60,18 @@ describe('describeHits', () => {
       describeHits(
         ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
       ),
-    ).toBe(
+    ).toContain(
       'goonpack:pub.pack@1.0.0/on the beach — (picture) on the beach\n' +
         'goonpack:pub.pack@1.0.0/dancing — (video) dancing',
     );
+  });
+
+  it('names send_media ahead of the hits, so finding is not read as sending', () => {
+    const out = describeHits(
+      ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
+    );
+    expect(out).toContain('send_media');
+    expect(out.indexOf('send_media')).toBeLessThan(out.indexOf('goonpack:'));
   });
 
   it('says nothing matched rather than returning an empty list', () => {

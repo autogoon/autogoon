@@ -69,7 +69,9 @@ ${summary}
   mean only a picture or only a video. It hands back matches, each with a ref.
   Then call send_media with one of those refs.
 - Sending it is calling the tool — saying "here, look at this" in words does
-  nothing on its own. So when you want him to see you, USE THE TOOL.
+  nothing on its own. So when you want him to see you, USE THE TOOL. Finding one
+  is not sending it: search_media only hands you matches, so a turn that talks
+  about a picture and never calls send_media has shown him nothing.
 - Only send one picture or video per turn. If he asks for more, wait for the
   next turn to send it — don't try to cram several into one reply.
 - If nothing matches, you'll be told so. Ask for something else rather than
