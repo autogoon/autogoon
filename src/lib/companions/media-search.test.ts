@@ -121,11 +121,13 @@ describe('searchMedia', () => {
     ).toEqual(['b', 'a']);
   });
 
-  it('gives the same order twice when it is given no sample', () => {
+  it('orders items it scores equally by ref when it is given no sample', () => {
+    // The items go in reversed, because a sort whose comparator never separates
+    // them hands back the order they came in — so asserting two identical calls
+    // agree proves only that Array.sort is stable. Only the ref comparison can
+    // put 'a' first.
     const set = [item('b', 'On a beach.'), item('a', 'On a beach.')];
-    expect(searchMedia(set, 'beach').map((h) => h.ref)).toEqual(
-      searchMedia(set, 'beach').map((h) => h.ref),
-    );
+    expect(searchMedia(set, 'beach').map((h) => h.ref)).toEqual(['a', 'b']);
   });
 
   it('carries the caption and kind of each hit, which is what the model reads', () => {
