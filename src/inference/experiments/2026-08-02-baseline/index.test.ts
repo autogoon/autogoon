@@ -25,7 +25,7 @@ WEARING PANTIES: No
 TOPLESS: Yes
 NIPPLE VISIBILITY: Bare and visible
 GENITAL VISIBILITY: Not visible
-TEXT: None
+TEXT: HOTEL CALIFORNIA
 
 CAPTION: Kneeling on a bed in warm light, naked, dark hair loose over one shoulder.`;
 
@@ -61,10 +61,19 @@ describe('parse', () => {
   });
 
   it('keeps words on the picture apart from the caption that describes it', () => {
-    const reply = REPLY.replace('TEXT: None', 'TEXT: HOTEL CALIFORNIA');
-    const { fields } = parse(reply);
+    const { fields } = parse(REPLY);
     expect(fields.text).toBe('HOTEL CALIFORNIA');
     expect(fields.caption).not.toContain('HOTEL CALIFORNIA');
+  });
+
+  it('leaves text absent where the model answered None, which is no text', () => {
+    expect(
+      parse(REPLY.replace('TEXT: HOTEL CALIFORNIA', 'TEXT: None')).fields,
+    ).not.toHaveProperty('text');
+  });
+
+  it('stores none as the clothing of a naked subject, which is an answer', () => {
+    expect(parse(REPLY).fields).toMatchObject({ clothing: 'none' });
   });
 
   it('keeps a text field’s line as written, since no word list covers it', () => {

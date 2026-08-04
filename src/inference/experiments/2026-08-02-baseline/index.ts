@@ -212,6 +212,12 @@ const ANSWERS: {
   id: string;
   marker: RegExp;
   values?: Record<string, FieldValue>;
+  // What this field says when the picture gave it nothing to answer with, where
+  // that is not itself an answer. Only a field with no word list can need one,
+  // and only some of those do: `CLOTHING: none` describes a naked subject and
+  // must be stored, `TEXT: None` means the field was answered with its own
+  // absence. Both are free text, so nothing but the field can tell them apart.
+  unanswered?: RegExp;
 }[] = [
   { id: 'hair', marker: marker('HAIR') },
   { id: 'gaze', marker: marker('GAZE') },
@@ -254,7 +260,11 @@ const ANSWERS: {
       unknown: 'unknown',
     },
   },
-  { id: 'text', marker: marker('TEXT') },
+  // `none` alone, because that is the only thing the models have written for a
+  // picture with no writing on it — 162 of the 695 stored replies carrying a
+  // TEXT line, and no other phrasing among them. A wider pattern would be
+  // guessing at answers nothing has yet given.
+  { id: 'text', marker: marker('TEXT'), unanswered: /^none$/i },
   { id: 'caption', marker: CAPTION },
 ];
 
@@ -286,11 +296,12 @@ function chosen(
 // with no readable line is absent rather than guessed.
 function fields(raw: string): Record<string, FieldValue> {
   const answered: Record<string, FieldValue> = {};
-  for (const { id, marker, values } of ANSWERS) {
+  for (const { id, marker, values, unanswered } of ANSWERS) {
     const read = [...raw.matchAll(marker)]
       .map((match) => {
         const line = (match[1] ?? '').trim();
         if (line === '' || TEMPLATE.test(line)) return undefined;
+        if (unanswered?.test(line) === true) return undefined;
         return values === undefined ? line : chosen(line, values);
       })
       .filter((value) => value !== undefined);
