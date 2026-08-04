@@ -71,6 +71,8 @@ const MODELS = [
 // and plays badly says so in the same output, and one already ruled out doesn't
 // get added back. Written by hand; nothing here is measured.
 const NOTES: Record<string, string> = {
+  'nex-agi/nex-n2-mini:nitro':
+    'Quick, very cheap, and good on the whole. During testing it was shown to take parts of a prompt too literally, and to have trouble with tool calls — most visibly search_media and then send_media, where it searches, reads the matches back and never sends one. It is hard to engineer the prompt perfectly for some personas, so a more capable model may be the safer default; for others it is ideal.',
   'qwen/qwen3-30b-a3b-instruct-2507:nitro':
     'Speaks example lines out of the system prompt verbatim as its own dialogue, and talks about sending a picture without calling the tool that sends one.',
   'inclusionai/ling-2.6-flash:nitro':
