@@ -31,13 +31,11 @@ import { MEDIA_TYPES, splitName } from '../src/lib/goonpacks/media';
 import { sidecarName } from '../src/inference/paths';
 import { experimentById } from '../src/inference/experiments';
 import { DEFAULT_MODEL } from '../src/lib/companions/companions';
+import { out } from './lib/colour';
 
-// Output colours, matching the describing scripts: yellow names the pack, dim
-// carries the steps, green is the summary that ends up in the manifest.
-const yellow = (s: string) =>
-  process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
-const green = (s: string) => (process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s);
-const dim = (s: string) => (process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s);
+// Yellow names the pack, dim carries the steps, green is the summary that ends
+// up in the manifest — the same three the describing scripts use.
+const { yellow, green, dim } = out;
 
 // Written from roadmap/INFERENCE-LIBRARY.md → The set summary, which is the
 // source of truth for what a summary must carry. Neutral rather than written for

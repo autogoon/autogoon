@@ -26,6 +26,7 @@ import {
 import { captionWarning, strayWarning } from './lib/goonpack-report';
 import { packContents } from '../src/inference/pack-contents';
 import { progress } from './lib/progress';
+import { out, err } from './lib/colour';
 import { collectPackFiles } from '../src/inference/pack-source';
 import { writeZip } from './lib/goonpack-zip';
 
@@ -33,13 +34,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const packsDir = join(root, 'goonpacks');
 
 // Per-pack status lines: green for a clean build, yellow for a warning, red for
-// errors. Plain when piped.
-const green = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
-const red = (s: string): string =>
-  process.stderr.isTTY ? `\x1b[31m${s}\x1b[0m` : s;
-const yellow = (s: string): string =>
-  process.stderr.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
+// errors. The warnings and errors are coloured by the stream they go out on,
+// which is stderr, so redirecting one leaves the other's colour alone.
+const { green } = out;
+const { red, yellow } = err;
 
 // The pack directory then the experiment, both positional and both optional —
 // the same two arguments in the same order as `experiment:run`, so the pair a

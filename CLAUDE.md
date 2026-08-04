@@ -50,6 +50,14 @@ bad edit hard to catch. Several small Edit calls beat one clever script. Shell
 that only reads — greps, tests, mutation runs against a scratchpad copy — is
 unaffected.
 
+**Never put a control character in a source file.** A terminal escape is written
+`\x1b`, four characters the language turns into the byte at run time — never the
+byte itself, which is invisible in every diff and viewer and makes the whole
+file binary to `grep`, so it silently answers "no match" to every search run
+over it. A script wanting colour takes it from
+[`scripts/lib/colour.ts`](./scripts/lib/colour.ts), which is the only file that
+writes an escape at all.
+
 ## Secrets / environment
 
 ### Keys

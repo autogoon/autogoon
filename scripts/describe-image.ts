@@ -55,6 +55,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
+import { out } from './lib/colour';
 import {
   renderSidecar,
   SIDECAR_EXT,
@@ -178,15 +179,10 @@ OBSERVATIONS:
 
 CAPTION: <the single caption sentence>`;
 
-// Output colours, shared with describe-missing.ts: yellow names the picture,
-// dim carries the steps and the model's observations, green is the caption.
-// Colour only on a TTY, so piped output stays clean.
-export const yellow = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
-export const green = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
-export const dim = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s;
+// Output colours, re-exported for describe-missing.ts: yellow names the
+// picture, dim carries the steps and the model's observations, green is the
+// caption.
+export const { yellow, green, dim } = out;
 
 // How many terminal rows an inlined picture takes.
 const INLINE_HEIGHT = 30;

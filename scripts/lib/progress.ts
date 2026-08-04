@@ -15,7 +15,7 @@
 // something that only collects, and so nothing here depends on a tty.
 export type Writer = { write: (text: string) => void };
 
-export type Progress = {
+type Progress = {
   // What pass, how many of it are finished, and how many there are. Safe to
   // call for every one of them.
   step: (label: string, done: number, total: number) => void;

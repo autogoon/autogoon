@@ -41,6 +41,7 @@ import process from 'node:process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { out } from './lib/colour';
 
 // The candidates. Edit this list — it is the point of the script. Sorted, which
 // is the order the per-conversation tables print in, so a family's cheap and
@@ -339,11 +340,9 @@ function meanOf(values: (number | null)[]): number | null {
 const secs = (ms: number | null): string =>
   ms === null ? '—' : `${(ms / 1000).toFixed(2)}s`;
 
-// Colour is for reading a column at a glance, so it goes off the moment the
-// output is not a terminal — a redirect into a file, or a pipe into grep, keeps
-// the escape codes out of it. NO_COLOR is the usual opt-out.
-const COLOUR =
-  process.stdout.isTTY === true && process.env.NO_COLOR === undefined;
+// Colour is for reading a column at a glance. The codes are named rather than
+// applied here because a cell's colour is decided by where its number ranks, so
+// it travels as a value; lib/colour decides whether anything is emitted at all.
 const CYAN = '36';
 const WHITE = '97';
 // Text out of the conversation rather than a measurement, and the second and
@@ -351,8 +350,7 @@ const WHITE = '97';
 const YELLOW = '33';
 const GREEN = '32';
 const RED = '31';
-const paint = (code: string, text: string): string =>
-  COLOUR ? `[${code}m${text}[0m` : text;
+const { paint } = out;
 
 // One row's runs, in the order they were made — the first is the cold one, and
 // that is the whole reason they aren't sorted. Green on the quickest, red on
@@ -833,8 +831,14 @@ async function main(): Promise<void> {
   // read back. A pair that failed on this run is still shown — the timings say
   // nothing but the errors are the point — and is not marked cached, because it
   // is not what a later run will find on disk.
+  // Keyed as JSON rather than by joining on a separator: a model id and a
+  // conversation name have no character between them that neither can contain,
+  // and the one this reached for first was a NUL — which made the whole file
+  // binary to grep.
   const measured = new Set(
-    toMeasure.map(({ model, conversation }) => `${model} ${conversation.name}`),
+    toMeasure.map(({ model, conversation }) =>
+      JSON.stringify([model, conversation.name]),
+    ),
   );
   const results: Result[] = MODELS.flatMap((model) =>
     conversations.flatMap((c) => {
@@ -845,7 +849,7 @@ async function main(): Promise<void> {
           model,
           conversation: c.name,
           runs: entry.runs,
-          cached: !measured.has(`${model} ${c.name}`),
+          cached: !measured.has(JSON.stringify([model, c.name])),
         },
       ];
     }),
