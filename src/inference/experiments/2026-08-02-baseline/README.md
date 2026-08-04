@@ -77,13 +77,18 @@ Nothing.
 - Two calls instead of one model doing everything.
 - Prompt wording, repeatedly.
 - Storing categorised values against a structured, fixed set of labels.
+- Letting a sidecar's frontmatter carry any field. It used to refuse unknown
+  keys, which caught a mistyped `capton:`; it now keeps whatever was written, so
+  an experiment can record a new field without changing the pack format.
 - Stripping a null answer ("none") in code before it is stored in a text field,
   instead of asking the prompt not to produce one.
 - Finding text in the image and storing it as a field, with the aim that it
   might help the companion find more pictures of the same person (watermarks,
   text on clothing etc.)
-- Adding the detected text to media_search (although in the core, not a
-  per-experiment media_search implementation which is really what is needed).
+- Scoring the detected text in media_search. Not done yet — the text is stored
+  on the item and nothing searches it.
+- Folding words that mean the same thing together in media_search, so "boobs"
+  and "breasts" score as one word.
 
 ## What is working
 
@@ -114,5 +119,12 @@ Nothing.
 Things not necessarily for this experiment, but thoughts which fall out of our
 experimenting.
 
+- Should inference normalise the words when it writes the sidecar, or
+  media_search when it searches? Normalising in inference would need the
+  companion to search in a specific way, which mediaSummary might help with.
+  Perhaps we need both.
+- An experiment can't change how search works without changing core code. A
+  media_search per experiment would fix that; without one, trying embeddings or
+  vector search means touching a lot of core just to try it.
 - We have a fixed set of labels in the inference interface, which other pack
   creators can't add to. Labels should be extensible. Solved by embeddings.
