@@ -60,14 +60,23 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   // A finding the agent itself advises against stays in the raw report and
   // goes no further: not applying a fix needs no human gate.
   const endorsed = report.findings.filter((f) => f.recommend);
-  log(
-    `${file} [${pass}]: ${report.findings.length} findings, ` +
-      `${endorsed.length} endorsed`,
-  );
 
-  for (const finding of endorsed.filter((f) => !f.mechanical))
+  // One outcome line per pass, whatever happened: `queued` counts every
+  // questions.md entry this pass wrote, `applied` the edits kept on disk.
+  const outcome = (queued: number, applied: number, note = '') =>
+    log(
+      `${file} [${pass}]: findings ${report.findings.length}, ` +
+        `endorsed ${endorsed.length}, applied ${applied}, ` +
+        `queued ${queued}${note}`,
+    );
+
+  const nonMechanical = endorsed.filter((f) => !f.mechanical);
+  for (const finding of nonMechanical)
     queue.question(file, pass, finding, 'non-mechanical');
-  if (dryRun) return;
+  if (dryRun) {
+    outcome(nonMechanical.length, 0, ' (dry run)');
+    return;
+  }
 
   const path = join(cwd, file);
   const snapshot = readFileSync(path, 'utf8');
@@ -77,7 +86,11 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   );
   for (const bounce of bounced)
     queue.question(file, pass, bounce.finding, bounce.reason);
-  if (applied.length === 0) return;
+  const queued = nonMechanical.length + bounced.length;
+  if (applied.length === 0) {
+    outcome(queued, 0);
+    return;
+  }
 
   writeFileSync(path, content);
   let verdict: Verdict;
@@ -95,11 +108,11 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
     throw error;
   }
   if (verdict.ok) {
-    log(`${file} [${pass}]: applied ${applied.length}, kept in working tree`);
+    outcome(queued, applied.length, ', kept in working tree');
   } else {
     writeFileSync(path, snapshot);
     const why = `verify-fail: ${verdict.reasons.join('; ')}`;
     for (const finding of applied) queue.question(file, pass, finding, why);
-    log(`${file} [${pass}]: verify failed, restored`);
+    outcome(queued + applied.length, 0, ' (verify failed, restored)');
   }
 }

@@ -207,6 +207,9 @@ describe('sweepFile', () => {
     expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
       'not-found',
     );
+    expect(logs.join('\n')).toContain(
+      'DOC.md [style]: findings 1, endorsed 1, applied 0, queued 1',
+    );
     // Verify no unexpected claude call (short-circuits after applyFindings, before format/verify)
     expect(logs.join('\n')).not.toContain('unexpected claude call');
     expect(formatCalls).toHaveLength(0);
