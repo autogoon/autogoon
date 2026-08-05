@@ -183,17 +183,6 @@ Ask for the file's word count and the list's total, so the pass can be judged.
 Remind yourself after every file you edit about the IMPORTANT goals above, and
 the process you're following.
 
-## What to expect
-
-Measured over the root docs, this sweep removes about 1–4% of a file's words.
-Reference prose (ARCHITECTURE.md, CLAUDE.md) sits at the bottom of that;
-user-facing prose carrying decorative adjectives sits at the top.
-
-If you are expecting a large cut, the expectation is wrong rather than the pass.
-These docs are dense, not verbose — what reads as padding is the register, and
-fixing it changes how a file reads without shortening it. Say so plainly rather
-than cutting into facts to hit a number.
-
 ## Open questions
 
 Some findings are not yours to settle: a doc and the code disagree and it is the
