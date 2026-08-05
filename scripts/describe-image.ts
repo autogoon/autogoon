@@ -236,8 +236,12 @@ export async function describeImage(
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
   // Qwen3-VL 30B — good enough for bulk captioning and far cheaper than the
   // 235B. Override with MODEL to try another (see the list at the top of this
-  // file).
-  const model = process.env.MODEL ?? 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
+  // file). An empty MODEL is unset, not a model called "".
+  const override = process.env.MODEL;
+  const model =
+    override !== undefined && override !== ''
+      ? override
+      : 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
 
   // parsePack fails a pack over a file MEDIA_TYPES doesn't list, so a sidecar
   // for one is written for nothing. Stills only: MEDIA_TYPES lists videos as
