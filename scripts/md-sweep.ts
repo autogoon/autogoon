@@ -45,7 +45,8 @@ const { values } = parseArgs({
     files: { type: 'string', multiple: true },
     passes: { type: 'string' },
     'dry-run': { type: 'boolean', default: false },
-    model: { type: 'string' },
+    // Defaults to opus rather than inheriting the operator's session model.
+    model: { type: 'string', default: 'opus' },
     out: { type: 'string', default: '.sweep' },
   },
 });

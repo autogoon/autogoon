@@ -169,10 +169,11 @@ rules they enforce live in [CLAUDE.md](./CLAUDE.md) → Documentation and →
 Writing style.
 
 Flags: `--files <paths…>` to sweep a subset, `--passes doc,style` to run fewer
-passes, `--dry-run` to collect reports without editing, `--model <m>` to pin the
-model, `--out <dir>` to move the output dir. The sweep skips any file with
-uncommitted changes and never runs `git add` or `git commit`, so it is safe
-beside other work in the same checkout; review its output with `git diff`.
+passes, `--dry-run` to collect reports without editing, `--model <m>` to
+override the model (default `opus`), `--out <dir>` to move the output dir. The
+sweep skips any file with uncommitted changes and never runs `git add` or
+`git commit`, so it is safe beside other work in the same checkout; review its
+output with `git diff`.
 
 ## Goonpack sources
 
