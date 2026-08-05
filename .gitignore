@@ -35,3 +35,7 @@ playwright-report/
 # they answered. Local only — the directory itself is committed, empty.
 /llm-benchmark/*
 !/llm-benchmark/.gitkeep
+
+# What npm run docs:sweep writes: raw finding reports and the questions
+# queue. Local only.
+/.sweep/
