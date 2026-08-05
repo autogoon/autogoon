@@ -3,7 +3,8 @@
 // validates against the same schemas (--json-schema); the parsers re-check
 // so a malformed envelope fails here, named, not downstream in apply.
 
-export type Pass = 'doc' | 'style' | 'register' | 'duplication';
+export const PASSES = ['doc', 'style', 'register', 'duplication'] as const;
+export type Pass = (typeof PASSES)[number];
 
 export type Finding = {
   category: string;

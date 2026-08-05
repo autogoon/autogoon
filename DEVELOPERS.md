@@ -163,10 +163,10 @@ CHECK-QUESTIONS.md and the sweep's own briefs excluded) in four passes — doc
 findings against a JSON schema. Findings are applied by exact string
 substitution and verified by a second fresh call; accepted fixes stay
 uncommitted in the working tree for review — the sweep never commits. Anything
-needing a human decision lands in a per-file `.sweep/<file>.questions.md`, with
-every raw report under `.sweep/reports/`; a run starts by deleting all sweep
-output from earlier runs, which it makes stale. The pass prompts are in
-`scripts/md-sweep-briefs/`; the rules they enforce live in
+needing a human decision lands in a per-file `.sweep/<file>.questions.md`,
+beside the raw `.sweep/<file>--<pass>.json` reports; a run starts by deleting
+all sweep output from earlier runs, which it makes stale. The pass prompts are
+in `scripts/md-sweep-briefs/`; the rules they enforce live in
 [CLAUDE.md](./CLAUDE.md) → Documentation and → Writing style.
 
 Flags: `--files <paths…>` to sweep a subset, `--passes doc,style` to run fewer

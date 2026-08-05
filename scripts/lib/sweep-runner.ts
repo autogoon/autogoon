@@ -39,6 +39,7 @@ export async function sweepFile(
     deps.log(`${file}: dirty before sweep, skipped`);
     return;
   }
+  deps.queue.startFile(file);
   for (const pass of passes) {
     try {
       await runPass(file, pass, deps);

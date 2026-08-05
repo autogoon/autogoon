@@ -28,12 +28,9 @@ const finding: Finding = {
 };
 
 describe('sweepQueue', () => {
-  it('writes a raw report under reports/ named by file and pass', () => {
+  it('writes a raw report beside the questions, named by file and pass', () => {
     sweepQueue(out).writeReport('modes/GOON.md', 'doc', { findings: [] });
-    const stored = readFileSync(
-      join(out, 'reports', 'modes--GOON.md--doc.json'),
-      'utf8',
-    );
+    const stored = readFileSync(join(out, 'modes--GOON.md--doc.json'), 'utf8');
     expect(JSON.parse(stored)).toEqual({ findings: [] });
   });
 
@@ -60,7 +57,8 @@ describe('sweepQueue', () => {
     queue.reset();
     expect(existsSync(join(out, 'README.md.questions.md'))).toBe(false);
     expect(existsSync(join(out, 'MODES.md.questions.md'))).toBe(false);
-    expect(existsSync(join(out, 'reports'))).toBe(false);
+    expect(existsSync(join(out, 'README.md--doc.json'))).toBe(false);
+    expect(existsSync(join(out, 'MODES.md--style.json'))).toBe(false);
   });
 
   it('reset leaves a file the sweep did not write', () => {
@@ -73,5 +71,18 @@ describe('sweepQueue', () => {
 
   it('reset on an empty output directory is a no-op', () => {
     expect(() => sweepQueue(out).reset()).not.toThrow();
+  });
+
+  it("startFile removes one file's questions and reports and no other's", () => {
+    const queue = sweepQueue(out);
+    queue.question('README.md', 'doc', finding, 'non-mechanical');
+    queue.writeReport('README.md', 'doc', { findings: [] });
+    queue.question('MODES.md', 'doc', finding, 'non-mechanical');
+    queue.writeReport('MODES.md', 'style', { findings: [] });
+    queue.startFile('README.md');
+    expect(existsSync(join(out, 'README.md.questions.md'))).toBe(false);
+    expect(existsSync(join(out, 'README.md--doc.json'))).toBe(false);
+    expect(existsSync(join(out, 'MODES.md.questions.md'))).toBe(true);
+    expect(existsSync(join(out, 'MODES.md--style.json'))).toBe(true);
   });
 });

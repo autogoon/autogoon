@@ -11,12 +11,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { claudeRunner } from './lib/sweep-claude';
-import type { Pass } from './lib/sweep-findings';
+import { PASSES, type Pass } from './lib/sweep-findings';
 import { sweepGit } from './lib/sweep-git';
 import { sweepQueue } from './lib/sweep-queue';
 import { sweepFile } from './lib/sweep-runner';
-
-const PASSES: Pass[] = ['doc', 'style', 'register', 'duplication'];
 
 // Persona prompts are not documentation (doc-check → The document set),
 // CHECK-QUESTIONS.md is a transient decision queue, and the sweep's own
@@ -69,7 +67,7 @@ const tracked = execFileSync('git', ['ls-files', '*.md'], {
 const files = (values.files ?? tracked).sort(
   (a, b) => rank(a) - rank(b) || a.localeCompare(b),
 );
-const passes = (values.passes?.split(',') as Pass[] | undefined) ?? PASSES;
+const passes = (values.passes?.split(',') as Pass[] | undefined) ?? [...PASSES];
 for (const pass of passes)
   if (!PASSES.includes(pass)) throw new Error(`unknown pass: ${pass}`);
 

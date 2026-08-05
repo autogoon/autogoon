@@ -177,9 +177,8 @@ describe('sweepFile', () => {
     );
     expect(existsSync(join(out, 'DOC.md.questions.md'))).toBe(false);
     expect(
-      JSON.parse(
-        readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
-      ).findings,
+      JSON.parse(readFileSync(join(out, 'DOC.md--style.json'), 'utf8'))
+        .findings,
     ).toHaveLength(2);
   });
 
@@ -225,9 +224,8 @@ describe('sweepFile', () => {
       'The app wants to be helpful.\n',
     );
     expect(
-      JSON.parse(
-        readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
-      ).findings,
+      JSON.parse(readFileSync(join(out, 'DOC.md--style.json'), 'utf8'))
+        .findings,
     ).toHaveLength(1);
   });
 
@@ -254,9 +252,7 @@ describe('sweepFile', () => {
       deps([], { claude, log: (l) => logs.push(l) }),
     );
     expect(
-      JSON.parse(
-        readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
-      ),
+      JSON.parse(readFileSync(join(out, 'DOC.md--style.json'), 'utf8')),
     ).toEqual({ nonsense: true });
     expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
       'The app wants to be helpful.\n',
