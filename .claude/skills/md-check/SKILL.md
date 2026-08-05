@@ -58,6 +58,8 @@ in two sections that never see each other — is only visible to something holdi
 one whole file at once. Grouping is what makes a five-file report read like five
 skim-reads, because it is.
 
+**Run agents in the background** Process their findings as they return.
+
 Five agents in flight is the working size. More and the reports arrive faster
 than they can be applied, which is how a report ends up skimmed.
 
