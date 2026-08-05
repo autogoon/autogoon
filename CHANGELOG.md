@@ -3,21 +3,14 @@
 ## 2026-08-04
 
 - enhancement: **Companions answer on a new model** — Companions now run on
-  Nex-N2-Mini, which answers faster than the model it replaces.
+  Nex-N2-Mini, which answers faster than the model it replaces, and fixes the
+  MiniMax models sometimes leaking thinking into the conversation.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - enhancement: **A request for a picture stops returning the same ones** —
   Asking a companion for something they have a lot of came back with the same
   handful every time. Asking again now reaches the rest of the set.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
-
-- internal: **The model benchmark keeps what it measured** —
-  `npm run llm:benchmark` stores results per conversation and model and reuses
-  them, so adding a candidate pays for that candidate alone;
-  `npm run llm:benchmark:wipe` throws the store away. Models are measured six at
-  a time, and the summary is ordered by mean total, prices one generation rather
-  than the whole run, and carries notes on the models whose behaviour timings
-  can't show. ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **Companion prompts say each thing once** — The persona prompts
   carried trailing clauses that restated the instruction above them, or gave a
@@ -27,10 +20,10 @@
 
 ## 2026-08-03
 
-- enhancement: **A companion finds a picture whatever you call it** — Asking a
-  companion for a picture only turned up ones whose description happened to use
-  the same word you did, so anything written up in other words was missed. The
-  everyday words for the same thing now count as one.
+- enhancement: **Synonyms in media search** — Asking a companion for a picture
+  only turned up ones whose description happened to use the same word you did,
+  so anything written up in other words was missed. The everyday words for the
+  same thing now count as one.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - enhancement: **The app no longer takes the microphone by itself** — Opening
@@ -44,36 +37,26 @@
   now takes its control's colour at half strength; the selected one lightens.
   ([#29](https://github.com/autogoon/autogoon/pull/29))
 
+- enhancement: **`goonpack:build` zips only what a pack needs** — It no longer
+  zips the whole directory, and includes only media with a valid sidecar.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
+
 - bug: **A companion fills a silence with the microphone off** — Filling a
   silence only ever worked while the mic was on, so a conversation held by
   typing sat quiet, and turning the mic off stopped a companion picking one up.
   It now follows the conversation, and ends when you leave Companions.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- bug: **Companions are off the MiniMax models** — MiniMax M2.5 and M3 write
-  their thinking into the reply itself, so a companion read it out in their own
-  voice and it stayed in the transcript as something they said. The same models
-  move the clock and toy status — sent at the end of every turn, so they are the
-  latest thing known — to the front of the prompt, behind the whole
-  conversation. The default is now MiMo v2.5, and
-  [GOONPACKS.md](./GOONPACKS.md) tells a pack author to name neither.
+- internal: **`npm run llm:benchmark` times a model against a real conversation**
+  — A conversation copied out of the Debug tab's request viewer, which now has a
+  Copy button, is timed against a list of candidates, and what it measured is
+  kept and reused. `scripts/llm-benchmark.ts` says how it runs.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- internal: **`npm run llm:benchmark` times a model against a real conversation**
-  — Choosing which model a companion runs on meant driving the app by hand and
-  guessing. A conversation copied out of the Debug tab's request viewer — which
-  now has a Copy button — is timed against a list of candidates, with every reply
-  kept to read. ([#30](https://github.com/autogoon/autogoon/pull/30))
-
-- internal: **A dev server plays pack sources off disk** — Iterating on a pack
-  meant building a zip, opening the Goonpacks tab, picking it and confirming the
-  replace, every time. Every directory under `goonpacks/` is now offered on the
-  Companions screen as it sits, validated by the same rules an imported pack is,
-  so a reload is the whole loop. Its card says which experiment's descriptions
-  to play it with — or Stock, the sidecars the pack already ships — and changing
-  that re-reads the directory, so an experiment can be played rather than read.
-  A directory replaces an installed pack of the same id and version once it has
-  proved it validates. Nothing changes off a dev server.
+- internal: **Goonpacks can be played off disk** — On a dev server, every
+  directory under `goonpacks/` is offered on the Companions screen as it sits,
+  so editing a persona prompt and reloading is the whole loop — no zip, no
+  import. Each card picks which descriptions to play the pack with.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **The pack index is built on first sight, not at startup** — Reading
@@ -81,34 +64,26 @@
   went near a companion. It now happens the first time Companions or Goonpacks
   is opened. ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- internal: **A pack ships what a pack needs** — `goonpack:build` zipped every
-  file in a source directory, so anything kept beside the media rode along and
-  a picture nothing had described shipped as bytes no companion could pick. It
-  now writes the manifest, the system prompt, and the media that has a sidecar,
-  counting what it left out. Naming an experiment after the directory builds
-  from that experiment's descriptions instead of the stock ones:
-  `npm run goonpack:build goonpacks/elise 2026-08-02-baseline`.
-  ([#30](https://github.com/autogoon/autogoon/pull/30))
-
 ## 2026-08-02
 
-- feature: **A conversation opens on a scene** — Every companion now sets up the
-  situation you're in: who they are, and how the two of you came to be on the
-  phone. It sits at the top of the conversation, written to you rather than
-  spoken, and a goonpack that rewrites a persona can set its own.
+- feature: **Conversations have intros** — An intro introduces you to the
+  companion and sets the scene, so you know how to play it from your first
+  message. A goonpack sets its own in the manifest.
   ([#28](https://github.com/autogoon/autogoon/pull/28))
 
-- internal: **An Inference screen for labelling a corpus** — A dev-only tab for
-  recording what is actually in each of a pack's pictures, so a change to how
-  images get described can be scored rather than guessed at. What you record
-  stays apart from what an experiment produces, and a labelled set is playable
-  in the app with no extra step. [INFERENCE.md](./INFERENCE.md) describes the
-  harness. ([#30](https://github.com/autogoon/autogoon/pull/30))
+- internal: **Initial infrastructure for running inference experiments** — How a
+  picture gets described decides what a companion can find, and changing it was
+  guesswork. An experiment is a directory of code that describes a pack's media;
+  its answers are recorded against ground truth entered by hand on a dev-only
+  screen, so a prompt change can be measured rather than judged by eye. Early
+  days — one experiment so far, and the workflow it should support is still
+  being worked out. [INFERENCE.md](./INFERENCE.md) describes the harness.
+  ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- internal: **`model`, `contextWindow` and `passesReasoning` moved to the
-  manifest's top level** — Which model to run is a decision about the pack, not
-  about the companion, and an overlay changes it without changing who they are.
-  A pack setting them in the `companion` section is refused, naming the field.
+- internal: **A pack's model settings move out of `companion`** — `model`,
+  `contextWindow` and `passesReasoning` sit at the manifest's top level: which
+  model to run is a decision about the pack, not about the companion. A pack
+  setting them under `companion` is refused, naming the field.
   ([#28](https://github.com/autogoon/autogoon/pull/28))
 
 - internal: **The redundant `'use client'` directives are gone**
@@ -116,32 +91,20 @@
 
 ## 2026-08-01
 
-- feature: **A companion has a clock of their own** — Their pack says where they
-  are, and they're told the real date and time there — following daylight
-  saving — beside the time where you are, so a companion five hours behind you
-  can say so. A persona that fixes its own time of day can turn the real clock
-  off instead, and a companion written as not knowing where you are can be told
-  nothing about your time at all.
+- feature: **A companion knows what time it is where you are** — Their pack says
+  where they are, so they get the real time in both places. No "good morning" at
+  your midnight, and a companion five hours behind you can say so.
   ([#27](https://github.com/autogoon/autogoon/pull/27))
 
-- enhancement: **A companion wants the toy in play** — Once a call turns sexual
-  a companion now treats driving the toy as part of what they're there for,
-  rather than something they wait to be asked for. Starting it still needs your
-  say-so. ([#27](https://github.com/autogoon/autogoon/pull/27))
+- enhancement: **A companion offers the toy unasked** — Once a call turns
+  sexual, driving the toy is part of what a companion is there for rather than
+  something they wait to be asked for. Starting it still needs your say-so.
+  ([#27](https://github.com/autogoon/autogoon/pull/27))
 
-- enhancement: **Companions keep it short** — A companion now answers in two or
-  three sentences rather than paragraphs, and anything they want to tell you in
-  detail arrives a piece at a time across several turns rather than in one
-  block. A companion who used to talk into every silence now says their piece
-  and waits for you. ([#27](https://github.com/autogoon/autogoon/pull/27))
-
-- internal: **Persona prompts no longer name the hardware** — A companion's own
-  text says what they do to the user rather than naming the device or its
-  settings, and says it for a user with nothing to drive as well as one with a
-  toy; the shared control section stays the single place the device is
-  described. The quiet-beat and `wait_for_user` rules moved out of that section
-  into one every companion is given, and [GOONPACKS.md](./GOONPACKS.md) says
-  what a persona should write instead.
+- internal: **Move device-specific instructions out of the persona** — What the
+  device is and how it's driven sits in the shared control section. A companion
+  also goes along with no toy: tell them
+  you're using your hand today and they take it and carry on.
   ([#27](https://github.com/autogoon/autogoon/pull/27))
 
 ## 2026-07-31
@@ -196,11 +159,9 @@
   wore the newest, so the two disagreed.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
-- bug: **Send can't fire off what you can't see** — With something already typed
-  in the box, starting to speak swapped the display to what you were saying but
-  left Send and Say it wired to the typed text, so pressing either sent the
-  hidden line. Both are now out of reach while you're speaking, like the box
-  itself.
+- bug: **Send and Say it lock while you speak** — Both are disabled from the
+  moment you start speaking until your transcript lands, so neither can send the
+  typed text the live transcript has replaced on screen.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
 - bug: **Clearing the conversation stays cleared** — A companion with a pause
@@ -242,11 +203,9 @@
   take.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
-- bug: **A stranded overlay now says why** — An overlay whose base pack was
-  itself unusable — two installed versions of it disagreeing about being an
-  overlay or a complete companion — listed as fine on the Goonpacks screen but
-  appeared on no companion's card. It now lists as incompatible, with the
-  reason.
+- bug: **An overlay with an unusable base pack lists as incompatible** — It
+  listed as fine on the Goonpacks screen but appeared on no companion's card.
+  The reason is now given with it.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
 - bug: **A pack's empty field is refused** — A manifest field left as `""` was
@@ -261,8 +220,7 @@
   neither. It now refuses the file instead.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
-- internal: **Dead surface removed** — A sweep removed everything exported or
-  passed around that no caller read.
+- internal: **Unused exports and arguments removed**
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
 - internal: **A TTS failure reaches the event log** — A non-OK `/api/tts`
@@ -630,31 +588,25 @@
 
 ## 2026-07-24
 
-- feature: **Goonpacks** — Import a companion as a portable zip: a complete new
+- feature: **Goonpacks: import a companion as a zip** — A pack is a complete new
   companion, or an overlay that adds pictures or changes the voice, persona or
-  colour of one you have. A Goonpacks tab (say `packs`) manages the library —
-  import with a confirm step, see what every pack brings, remove per version —
-  and versions of a pack install side by side. Companion cards gain pack
-  pickers: their version and an overlay, newest first and remembered per
-  companion. Every load re-checks stored packs against the current rules; one
-  that fails lists as incompatible with plain-English reasons instead of
-  half-working. Packs cache in browser storage with your zip as the source of
-  truth. Assembly guide in [GOONPACKS.md](./GOONPACKS.md).
+  colour of one you have. The Goonpacks tab (say `packs`) manages the library,
+  and [GOONPACKS.md](./GOONPACKS.md) says how to build one.
   ([#18](https://github.com/autogoon/autogoon/pull/18))
 
-- enhancement: **Better picture captions** — The captioning scripts now have the
-  vision model observe a picture out loud — where the weight is, where the knees
-  and heels are, how each garment sits — before condensing that into the
-  one-line caption, with explicit tests for the poses models confuse (sitting
-  versus kneeling versus squatting), and a check that stops a close-fitting
-  opaque garment being read as see-through. Both `npm run goonpack:describe` and
-  `goonpack:describe-missing` now narrate each step, print those observations,
-  and (in iTerm2) show the picture itself under its caption at the size the
-  model saw it — so you can watch a run go past and judge each caption against
-  what it describes. The caption itself now has to carry the setting, the
-  garments, the hair and what's actually on show — down to what's only faintly
-  visible, stated as precisely as the model saw it — and leaves mood out. The
-  `DESCRIBE_MODEL` environment variable is now just `MODEL`.
+- enhancement: **A caption is written from an observation pass** — The vision
+  model describes what it sees — the pose, how each garment sits — before
+  condensing it into the one-line caption, so a caption carries the setting, the
+  garments, the hair and what is on show rather than the mood.
+  ([#20](https://github.com/autogoon/autogoon/pull/20))
+
+- enhancement: **`goonpack:describe` shows the picture under its caption** —
+  Both it and `goonpack:describe-missing` narrate each step and, in iTerm2,
+  print the picture at the size the model saw it, so a run can be judged as it
+  goes. ([#20](https://github.com/autogoon/autogoon/pull/20))
+
+- enhancement: **`DESCRIBE_MODEL` is now `MODEL`** — The describe scripts read
+  the model to use from `MODEL`.
   ([#20](https://github.com/autogoon/autogoon/pull/20))
 
 - enhancement: **Elise moves out of the app** — The built-in companions are now

@@ -158,13 +158,13 @@ manifest field packs can set. That is the shape
 [The model settings, together or app-wide](#the-model-settings-together-or-app-wide)
 puts in question, so settle that one first.
 
-**Where this came from:** a streamed MiniMax reply whose reasoning leaked into
-what the companion said, because OpenRouter didn't cleanly separate the two.
-`mergeReasoning` in `llm/client.ts` handles that one, folding
-`reasoning_details` into its own array. A non-streamed response carries
-reasoning and content as separate fields and can't blur them. "Don't stream" is
-then a real setting rather than a workaround for the next model that behaves
-that way.
+**Where this came from:** a streamed MiniMax reply whose reasoning sometimes
+leaked into what the companion said, because OpenRouter didn't cleanly separate
+the two when steaming the reply. It turns out MiniMax models also hoist all
+system messages in a thread to the top, so clocks, ambient cues and toy status
+all ended up at the top of the conversation, breaking prompt caching, so it's
+unlikely we'll ever use these models, so we probably don't actually need this
+feature.
 
 To settle: what the transcript shows while a non-streaming turn generates, since
 no text arrives until it's done.
