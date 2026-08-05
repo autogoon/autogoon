@@ -52,7 +52,7 @@ These belong to other checks, not this one:
 
 Text can be accurate on every one of those and still fail here.
 
-## Three questions
+## Four questions
 
 None follows from knowing the rule, and the rules are not enforceable without
 them.
@@ -77,10 +77,21 @@ count: mean words per sentence, glosses per line on dashes or a colon, and `so�
 and `which is…` tails. The count is evidence, not a target; without one, "this
 reads chatty" is an impression.
 
-Run all three over everything in scope. The third reads the whole of any
-document the diff touched, not only the changed lines — the pattern is invisible
-in a hunk. It is always **ask first**: the fix rewrites a document, not a line,
-and it is one question for that document rather than one per sentence.
+**Read a paragraph against the list or table beneath it.** A run of cases in
+prose — "either X, or Y, or Z" — directly above a list giving those same cases
+is one set enumerated twice. The rules that catch it are already in
+[CLAUDE.md](../../../CLAUDE.md) → Writing style, and neither fires on a read
+that stops at the paragraph: the run is "three or more items run together in a
+sentence", and the sentence tying it back to the rule above restates that rule.
+An `either… or…` run also doesn't look like a comma-separated list, so a sweep
+for comma-runs walks past it. Prose above a list states the rule and stops; the
+list carries the cases.
+
+Run all four over everything in scope. The last two read the whole of any
+document the diff touched, not only the changed lines — both patterns are
+invisible in a hunk. The register question is always **ask first**: the fix
+rewrites a document, not a line, and it is one question for that document rather
+than one per sentence.
 
 ## Reporting
 
@@ -111,3 +122,4 @@ Run `npm run format` after edits.
 | "It's only a comment"            | Comments are read while changing the code they sit on.                              |
 | "I wrote that an hour ago"       | Then nothing has read it yet. Your own edits are in scope.                          |
 | "Every sentence here passes"     | Then read the shape they share. A register fault is fifty sentences that each pass. |
+| "The paragraph sets up the list" | Then read both. Setting it up is stating the rule, not running through the cases.   |

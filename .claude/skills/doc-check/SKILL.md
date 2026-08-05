@@ -14,43 +14,48 @@ it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
 What this check must not miss has a right answer in another file: a path that no
 longer resolves, an identifier that was renamed, a claim the code stopped
-supporting. How a sentence is _written_ is another check's subject.
+supporting, a rule stated here and in CLAUDE.md both. How a sentence is
+_written_ is another check's subject.
 
 ## Scope
 
-- **Default: the branch.** `git diff main...HEAD --name-only` plus the
-  identifiers the diff renamed, removed, or added. Then find every doc that
-  mentions any of them. The documents are the ones classed in
-  [The document set](#the-document-set).
+- **Default: the branch.** `git diff main...HEAD --name-only`, plus the
+  identifiers the diff renamed, removed or added. Find every doc mentioning any
+  of those paths or identifiers, within [The document set](#the-document-set).
 - **Code comments are docs too.** **Every comment the diff touched is in
   scope**, whatever file it sits in: if the branch wrote or edited it, read it
-  as a doc — what it names, and whether it still describes the repo around it.
-  Matching the code directly beneath it is another check's subject, and so is
-  how it is written. Beyond the diff, code files still aren't swept — flag those
-  opportunistically, while verifying something else.
+  as a doc. Which check reads a comment for what is in
+  [CLAUDE.md](../../../CLAUDE.md) → Git workflow. Beyond the diff, code files
+  still aren't swept — flag a comment opportunistically, while verifying
+  something else.
 - **`/doc-check all`: full sweep.** Every document in
-  [The document set](#the-document-set), against the whole codebase. Fan out one
-  read-only subagent per cluster and collect their reports; no document in two
-  clusters and none left out.
+  [The document set](#the-document-set), against the whole codebase. How the
+  sweep is run — one agent per file, in what order, and what to brief each with
+  — is [md-check](../md-check/SKILL.md)'s to say.
 
 ## The document set
 
-A document's class and audience decide how it is read. Which documents are
-user-facing, and which files future work may live in, are
-[CLAUDE.md](../../../CLAUDE.md) → Documentation's to say; the table restates
-them so the set is scannable, and follows that file when it changes:
+A document's class decides how it is read; its audience decides what may appear
+in it ([CLAUDE.md](../../../CLAUDE.md) → Documentation). Where the table and
+that file disagree, that file wins:
 
-|                                             | class         | audience  |
-| ------------------------------------------- | ------------- | --------- |
-| README.md, MODES.md, `modes/*.md`           | current-state | user      |
-| ARCHITECTURE.md, DEVELOPERS.md, CLAUDE.md   | current-state | developer |
-| GOONPACKS.md, CHANGELOG.md                  | current-state | both      |
-| `.env.example`                              | current-state | developer |
-| `.claude/skills/*/SKILL.md`                 | current-state | developer |
-| TODO.md, BUG.md, ROADMAP.md, `roadmap/*.md` | future        | developer |
-| dated plans and specs under `docs/`         | future        | developer |
+|                                                         | class         | audience  |
+| ------------------------------------------------------- | ------------- | --------- |
+| README.md, MODES.md, `modes/*.md`                       | current-state | user      |
+| ARCHITECTURE.md, DEVELOPERS.md, INFERENCE.md, CLAUDE.md | current-state | developer |
+| GOONPACKS.md, CHANGELOG.md                              | current-state | both      |
+| `.env.example`                                          | current-state | developer |
+| `.claude/skills/*/SKILL.md`                             | current-state | developer |
+| `src/inference/experiments/*/README.md`                 | current-state | developer |
+| TODO.md, BUG.md, ROADMAP.md, `roadmap/*.md`             | future        | developer |
+| dated plans and specs under `docs/`                     | future        | developer |
 
 `.env.example`'s comments are the documented env contract.
+`goonpacks/*/system-prompt.md` is a pack's persona prompt, not documentation,
+and is out of scope here.
+
+Enumerate the set from `git ls-files '*.md'`, never from the table. A file with
+no row is a finding against the table.
 
 **Current-state** and **future** docs are distinguished in
 [CLAUDE.md](../../../CLAUDE.md) → Documentation. In a future doc, check only the
@@ -82,11 +87,16 @@ Plus these:
    passes a copy and misses the defect.
 6. **Behavioural claims** — read the referenced code and confirm the sentence is
    still true.
+7. **Duplication** — a rule, list or procedure this doc states that another
+   states too. Grep CLAUDE.md and the doc's siblings for the sentence's
+   _subject_, not its wording; a copy is usually reworded. Quote both copies
+   side by side and say which is the source.
 
 ## Output and fixes
 
-Report findings as `FILE:LINE — claim → what the code actually says → fix`, most
-serious first. Then:
+Report findings as
+`FILE:LINE — claim → what the code or the other document actually says → fix`,
+most serious first. A duplication finding quotes both copies. Then:
 
 - **Fix directly:** stale paths, renamed identifiers, incomplete enumerations,
   factually wrong sentences.
@@ -96,8 +106,9 @@ serious first. Then:
 Put those questions **one at a time**, in the four-part form —
 [CLAUDE.md](../../../CLAUDE.md) → Git workflow and → Talking to me.
 
-Run `npm run format` after edits. A clean run reports "no drift found" — don't
-invent findings to seem useful.
+Run `npm run format` after edits. A clean run reports "no findings", alongside
+what was read — don't invent findings to seem useful, and don't leave a clean
+report indistinguishable from a skipped one.
 
 ## Red flags
 
