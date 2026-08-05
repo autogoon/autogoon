@@ -66,19 +66,26 @@ function deps(replies: unknown[], overrides?: Partial<RunnerDeps>): RunnerDeps {
 
 describe('sweepFile', () => {
   it('applies a mechanical finding and keeps it uncommitted when verify passes', async () => {
-    await sweepFile(
-      'DOC.md',
-      ['style'],
-      deps([
-        { findings: [finding], read: 'whole file' },
-        { ok: true, reasons: [] },
-      ]),
-    );
+    const prompts: string[] = [];
+    const claude: ClaudeRunner = async (call) => {
+      prompts.push(call.prompt);
+      if (prompts.length === 1) {
+        return { findings: [finding], read: 'whole file' };
+      }
+      return { ok: true, reasons: [] };
+    };
+    await sweepFile('DOC.md', ['style'], deps([], { claude }));
     expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
       'The app is helpful.\n',
     );
     expect(git('log', '--pretty=%s').trim()).toBe('seed');
     expect(git('status', '--porcelain').trim()).toBe('M DOC.md');
+    // Verify prompt shapes: find has style brief + file, verify has verify brief + diff
+    expect(prompts).toHaveLength(2);
+    expect(prompts[0]!).toContain('style brief');
+    expect(prompts[0]!).toContain('File: DOC.md');
+    expect(prompts[1]!).toMatch(/^verify brief/);
+    expect(prompts[1]!).toContain('+The app is helpful.');
   });
 
   it("stacks a later pass's edit on an earlier kept one without committing", async () => {
@@ -145,19 +152,32 @@ describe('sweepFile', () => {
   });
 
   it('queues a finding whose old text no longer matches', async () => {
+    const logs: string[] = [];
+    const formatCalls: number[] = [];
     await sweepFile(
       'DOC.md',
       ['style'],
-      deps([
+      deps(
+        [
+          {
+            findings: [{ ...finding, old: 'text that is not there' }],
+            read: 'r',
+          },
+        ],
         {
-          findings: [{ ...finding, old: 'text that is not there' }],
-          read: 'r',
+          log: (l) => logs.push(l),
+          format: async () => {
+            formatCalls.push(1);
+          },
         },
-      ]),
+      ),
     );
     expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
       'not-found',
     );
+    // Verify no unexpected claude call (short-circuits after applyFindings, before format/verify)
+    expect(logs.join('\n')).not.toContain('unexpected claude call');
+    expect(formatCalls).toHaveLength(0);
   });
 
   it('stops after the find report on a dry run', async () => {
