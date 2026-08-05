@@ -230,6 +230,9 @@ the work done.
 
 ## Documentation
 
+Readable, usable documentation is the primary goal, for users and developers
+alike. Never compromise on it.
+
 Docs point at code; they don't duplicate it. **Code owns the what** — type
 fields, signatures, tool lists, knob ranges, model slugs, defaults — explained
 by comments at the definition site. **Docs own what code can't say** — intent,
@@ -268,15 +271,25 @@ invariants, the why, and the cross-file shape. Concretely:
   about the present and stays.
 - README, MODES.md and `modes/*.md` are **user-facing**: no repo mechanics
   (committed/gitignored, generated modules, script internals). That belongs in
-  DEVELOPERS.md, ARCHITECTURE.md, or the code. npm commands a user runs to
-  operate a feature are fine.
+  DEVELOPERS.md, ARCHITECTURE.md, or the code — and a user is never sent there
+  to find out how to use the app. npm commands a user runs to operate a feature
+  are fine.
 - **One source of truth.** A rule, list or procedure is stated in exactly one
   place and everywhere else points at it. Two copies drift, and nothing reports
   which one went stale. This file is the source for how work is done here. The
   `/…-check` skills say where to look for a breach, never what the rule is, so a
-  rule added here is checked without touching them. Two exceptions, both of
-  which still link the source: a user-facing doc restating a developer-facing
-  rule in user terms, and a summary naming what a longer doc covers.
+  rule added here is checked without touching them. A restatement pitched above
+  its source is not a copy: a user-facing doc putting a developer-facing rule in
+  user terms, a summary naming what a longer doc covers, a section's opening
+  carrying what its bullets spell out. Someone skimming reads one and someone
+  applying the rule reads the other. Pitch it high enough that a change to the
+  detail below leaves it true, and where the two sit in different files, link
+  the source. This rule is about two statements of the same detail — there, one
+  of them goes.
+- **Repeated duplication between the same two documents means their scopes
+  overlap.** Deleting each duplicated passage leaves the overlap, so the next
+  one duplicates too. Settle what each document covers and move whole sections
+  rather than sentences.
 - **[modes/AUTOPILOT.md](./modes/AUTOPILOT.md) records an algorithm this repo
   does not own.** Autoblow's client bundle is the specification and is not
   published. `autopilot-engine.ts` is derived from reading it, and the doc from
@@ -295,6 +308,8 @@ invariants, the why, and the cross-file shape. Concretely:
   changes it there too, in the same commit.
 - When code you change is mentioned in a doc, updating the doc is part of the
   change.
+- **Not every exception can be codified.** Readability is what these rules and →
+  Writing style are for. Where following one makes a page read worse, break it.
 
 ## Writing style
 
@@ -312,7 +327,8 @@ still break every rule here. `/style-check` reads for these.
   into the mechanism, so write the mechanism. State what is true, not what is
   approximately true. Cut what carries no information: a sentence that loses
   nothing when deleted, an abstraction with no referent ("what the project is
-  for", "the right shape"), a phrase restating the one before it.
+  for", "the right shape"), a phrase restating the one before it. Be ruthless
+  about this.
 - **Reference by name, never by position.** "The second paragraph", "checks
   1-7", "line 40", "the bullet below" — each is wrong as soon as anything is
   inserted, and nothing reports it. Point at a heading, an identifier or a
