@@ -65,7 +65,7 @@ is the guide, with a worked example in the repo.
 ### Privacy
 
 Play runs in your browser: speech recognition is local, and your packs and media
-never leave your machine. Three things do leave it:
+never leave your machine. What does leave it:
 
 - **Device control** — the traffic to Autoblow's cloud API that drives the
   device.
@@ -73,22 +73,22 @@ never leave your machine. Three things do leave it:
   performance timings to Vercel: path, referrer, coarse location, device,
   browser and load metrics. No cookies, and no content — nothing about your
   packs or your play is in it.
-- **Companions**, which can't be local-only: during play your speech is
-  transcribed by a cloud STT service, and the companion's replies come from a
-  cloud LLM and TTS voice.
+- **Companions** can't be local-only. During play your speech is transcribed by
+  a cloud STT service, and the companion's replies come from a cloud LLM and TTS
+  voice.
 
 ### Running hands-free (mobile caveats)
 
-The Autogoon tab has to stay **foregrounded and awake** — it runs the timing
-loop and the microphone continuously, and mobile browsers suspend or throttle
-background or screen-locked tabs. That stops both.
+The Autogoon tab has to stay **foregrounded and awake**. It runs the timing loop
+and the microphone continuously, and mobile browsers suspend or throttle
+background or screen-locked tabs.
 
 - **iOS Safari** — the moment the tab is backgrounded or the screen locks, the
   play mode and the mic stop. You need a **second device** dedicated to Autogoon
   (screen on, tab in front) while you use the toy. This is the only tested
   configuration.
 - **iOS Chrome / Firefox / any iOS browser** _(untested)_ — expected to behave
-  exactly like iOS Safari: Apple requires every iOS browser to use the system
+  exactly like iOS Safari. Apple requires every iOS browser to use the system
   WebKit engine.
 - **Android Chrome** _(untested)_ — a different engine, likely to keep running
   in the foreground with the screen on, but background and locked tabs are still
