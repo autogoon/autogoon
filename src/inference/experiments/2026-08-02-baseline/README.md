@@ -89,6 +89,10 @@ Nothing.
   on the item and nothing searches it.
 - Folding words that mean the same thing together in media_search, so "boobs"
   and "breasts" score as one word.
+- Sampling among the items a query scores equally in media_search. A broad
+  request scores most of a set alike — 161 of 164 described items, for "petite
+  woman in tight clothes showing breasts" — and the tie used to break on the
+  ref, so the same oldest two dozen filled every result.
 
 ## What is working
 
@@ -125,6 +129,9 @@ experimenting.
   Perhaps we need both.
 - An experiment can't change how search works without changing core code. A
   media_search per experiment would fix that; without one, trying embeddings or
-  vector search means touching a lot of core just to try it.
+  vector search means touching a lot of core just to try it. Both search changes
+  this experiment has wanted so far — folding synonyms, and sampling among equal
+  scores — landed in core for that reason, and now apply to every pack whether
+  or not its captions came from an experiment.
 - We have a fixed set of labels in the inference interface, which other pack
   creators can't add to. Labels should be extensible. Solved by embeddings.

@@ -150,7 +150,8 @@ none of them chosen:
 - Exclusion of what's been sent.
 - Near-duplicate collapse.
 - A cursor that continues past the last search.
-- Sampling from everything above a threshold rather than strict top-N.
+- Sampling from everything above a threshold rather than strict top-N. Items a
+  query scores equally are already sampled; the threshold is what isn't built.
 
 Sampling above a threshold is also what "something at random" needs, so it may
 serve the query-less request too. Which one earns its place is a question for a
