@@ -25,7 +25,8 @@ grep -rE '(bg|text|border|ring)-[a-z]+-[0-9]{2,3}' src
 
 On top of that, companion and play-mode accents are interpolated at render
 (`bg-${accent}-500` in `chooser-card.tsx`) against the `@source inline(...)`
-safelist in `globals.css`, which covers seventeen hues at a single shade.
+safelist in `globals.css`, which covers seventeen hues at shade 500 — and the
+same seventeen at 600 for the segmented controls.
 
 The two layers meet wherever a token-coloured foreground sits on a palette
 background, and that pairing is only checked by looking at it. The changelog's

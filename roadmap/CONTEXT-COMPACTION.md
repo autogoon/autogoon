@@ -1,23 +1,31 @@
 # Context compaction — a conversation that outgrows the window
 
-A companion's thread only grows. Every turn is appended and the whole of it is
-re-sent on the next one. `contextWindow` is recorded per companion for this, and
-nothing reads it yet.
+A companion's thread only grows: every turn is appended, nothing but **Clear**
+removes one, and the whole of it is re-sent on the next turn. Each companion
+records a `contextWindow`, which nothing reads yet — this is the work that would
+read it.
 
-`search_media` is what makes it a real limit rather than headroom for long
-sessions. Its result is the largest thing a turn can hold, up to `SEARCH_LIMIT`
-lines of ref and caption, and it is replayed for the rest of the conversation.
-That replay is what lets a companion send from an earlier search. A thread with
-a few dozen searches in it is far bigger than its spoken turns suggest.
+`search_media` is what makes the window a real limit rather than headroom for
+long sessions. One result is up to `SEARCH_LIMIT` lines of ref, kind and
+caption, and it is replayed for the rest of the conversation — which is what
+lets a companion send from an earlier search. A thread with a few dozen searches
+in it is far bigger than its spoken turns suggest.
 
-The model's window is not the first limit it reaches. The whole thread is
-re-serialised into `localStorage` on every turn, and past the origin's quota
-that write fails. `persistThread` logs the failure to the Companions event log,
-but nothing recovers the turn, so the conversation rewinds to the last version
-that fit on the next load.
+How many a search returns is [Inference library](INFERENCE-LIBRARY.md)'s to
+settle, not this one's.
+
+The model's window is not the first limit the thread reaches. The whole thread
+is re-serialised into `localStorage` at every append — the user turn, each tool
+round, the reply — and past the origin's quota that write fails. `persistThread`
+logs the failure to the Debug tab's Events card and the session carries on from
+memory, but every later append fails too, so the next load finds the
+conversation rewound to the last version that fit.
 
 To settle:
 
-- which shape does it — summarising older turns, keeping a rolling window of
-  recent turns verbatim, or both;
-- what happens to the `reasoning_details` belonging to the messages that go.
+- which shape does it — summarising older turns, keeping only the most recent
+  turns verbatim, or both;
+- what happens to the `reasoningDetails` on the assistant turns that go;
+- what the exclusion set does when turns go — it is rebuilt from the thread
+  ([Inference library](INFERENCE-LIBRARY.md) → The search is thread-scoped), so
+  trimming makes a companion re-send what they can no longer see they sent.

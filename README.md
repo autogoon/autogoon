@@ -11,14 +11,13 @@ stroker from your browser, **entirely by voice**.
 ## For users
 
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
-to install; just open it and enter your device token.
+to install and no wearable; open it and enter your device token.
 
-- **Hands-free from start to finish** — just say what you want to happen, any
-  time. Tap **Listen** once.
-- **No app, no wearable** — it all runs in this one browser tab.
+- **Hands-free from start to finish** — every control has a spoken word, shown
+  on screen; say it any time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine;
   only device-control traffic leaves it.
-- **Four play modes**, each steered live by voice:
+- **Four play modes**:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose, with an intensity dial and faster/slower time-stretch.
   - **[Groove](./modes/GROOVE.md)** — a manual stroke pattern you shape live
@@ -27,27 +26,25 @@ to install; just open it and enter your device token.
     own Vacuglide autopilot.
   - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
     drives the toy themselves; needs your own keys today.
-- **Switch by voice** — from home, say a mode's name to enter it; while stopped,
-  say exit to come back and choose another. Once running, the mode locks in.
+- **Switch by voice** — from home, say a mode's name to enter it; say exit to
+  come back and choose another, once you've stopped.
 
 ### Companions — someone to talk to
 
-Talk to an AI companion. They chat back in their own voice, remember the
-conversation, and drive the toy themselves. They speak unprompted too, not only
-in reply. Going quiet doesn't end the conversation.
+A companion has their own voice, remembers the conversation, and speaks
+unprompted. Going quiet doesn't end the conversation.
 
 **Companions isn't usable on the public app yet.** Chat, voice and hearing are
-paid cloud services. On a deploy the mode sits behind an access ID and stays
-hidden without one. Run the dev server with your own keys and it's there, no ID
-needed. [modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and
-videos. **Coming to the hosted app** once those services run on
+paid cloud services. On a deploy the mode is hidden unless you have an access
+ID. Run the dev server with your own keys and it's there, no ID needed.
+[modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and videos.
+**Coming to the hosted app** once those services run on
 [keys you enter in the app](./TODO.md#bring-your-own-api-keys) rather than the
 server's.
 
 ### Goonpacks — a companion in a zip
 
-A [goonpack](./GOONPACKS.md) is one companion as a file, imported straight into
-the app. A pack carries:
+A [goonpack](./GOONPACKS.md) is imported straight into the app. A pack carries:
 
 - their persona;
 - their voice;
@@ -58,9 +55,9 @@ A pack is either a complete new companion or an overlay on one you already have,
 adding media or swapping a voice or persona.
 
 **A companion with a pack will send you pictures and videos.** Ask for what you
-want in words. They search their own set, send one that fits, and never send the
-same one twice in a conversation. The search reads text written when the pack
-was built. Nothing is sent to a vision model mid-play.
+want. They search their own set, send one that fits, and never send the same one
+twice in a conversation. The search reads text written when the pack was built.
+Nothing is sent to a vision model mid-play.
 
 Assembling a pack is plain-text work, no coding. [GOONPACKS.md](./GOONPACKS.md)
 is the guide, with a worked example in the repo.
@@ -76,19 +73,19 @@ from a cloud LLM and TTS voice.
 
 ### Running hands-free (mobile caveats)
 
-The controlling tab has to stay **foregrounded and awake** — it runs the timing
-loop and the microphone continuously, and mobile browsers suspend or heavily
-throttle background or screen-locked tabs, which stops both.
+The Autogoon tab has to stay **foregrounded and awake** — it runs the timing
+loop and the microphone continuously, and mobile browsers suspend or throttle
+background or screen-locked tabs, which stops both.
 
 - **iOS Safari** — the moment the tab is backgrounded or the screen locks, the
-  play mode and the mic stop. In practice you need a **second device** dedicated
-  to Autogoon (screen on, tab in front) while you use the toy. This is the only
-  tested configuration.
+  play mode and the mic stop. You need a **second device** dedicated to Autogoon
+  (screen on, tab in front) while you use the toy. This is the only tested
+  configuration.
 - **iOS Chrome / Firefox / any iOS browser** _(untested)_ — expected to behave
   exactly like iOS Safari: Apple requires every iOS browser to use the system
   WebKit engine.
-- **Android Chrome** _(untested)_ — likely more forgiving in the foreground with
-  the screen on (different engine), but background/locked tabs are still
+- **Android Chrome** _(untested)_ — a different engine, likely to keep running
+  in the foreground with the screen on, but background and locked tabs are still
   throttled. A single device _may_ work if you keep the tab in front and the
   screen awake (e.g. Screen Wake Lock).
 
@@ -100,9 +97,13 @@ A Next.js single-page app (App Router, TypeScript, Tailwind) with **no accounts
 and no server-side database** — your device token, settings and conversations
 live in your browser and nowhere else. Speech recognition is
 [vosk](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) running fully
-in-browser; the only server-side pieces serve Companions — thin proxies for its
-chat, voice and hearing, there purely so the API keys never reach the client,
-plus the check that validates an access ID.
+in-browser. The server side exists only for Companions:
+
+- proxies for its chat and voice;
+- a route minting a single-use token for its hearing;
+- the check that validates an access ID.
+
+They are there so the API keys never reach the client.
 
 ### Documentation
 

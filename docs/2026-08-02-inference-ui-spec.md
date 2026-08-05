@@ -236,7 +236,7 @@ against a stored reply, which needs no network.
 
 ## The screen
 
-A fourth top-level tab, **Inference**, beside Goonpacks in the strip
+A top-level tab, **Inference**, beside Goonpacks in the strip
 ([`page.tsx`](../src/app/page.tsx)).
 
 - **Dev-only**, on `IS_DEV` alone — it is not a Companions feature and does not
@@ -278,7 +278,9 @@ and nothing that costs that should start on a click.
   whether the baseline has output.
 - **`GET media`** — the bytes of one item, since the browser cannot read the
   disk.
-- **`GET labels` / `PUT labels`** — one item's ground truth.
+- **`PUT labels` / `DELETE labels`** — set one field's answer for one item, or
+  take it back. Reading is not here: the listing already carries every item's
+  labels.
 - **`POST run`** — run the selected experiment against one item and write what
   it produced. This is the only route that spends money.
 - **`POST reparse`** — derive one item's fields and sidecar again from the reply
@@ -288,12 +290,12 @@ and nothing that costs that should start on a click.
 
 Two constraints on all of them:
 
-- **They answer nothing outside `npm run dev`.** `GOONPACK-KIT.md` calls the
-  gating "the first design question, and it is not just a feature flag". v1
-  answers it with a 404 on `NODE_ENV !== 'development'` in every handler, and by
-  keeping every path they touch under a pack's `media/`. The routes are still
-  present in a deployed bundle; excluding them from the build is not attempted
-  here.
+- **They answer nothing outside `npm run dev`.** The gating is a design question
+  rather than a feature flag: the routes must not be reachable in a deployed
+  build at all. v1 answers it with a 404 on `NODE_ENV !== 'development'` in
+  every handler, and by keeping every path they touch under a pack's `media/`.
+  The routes are still present in a deployed bundle; excluding them from the
+  build is not attempted here.
 - **No name from the client is ever joined to a path.** A pack is matched
   against the pack sources and a filename against that pack's listing, each
   rejected if absent, so no request can name a file outside a pack's `media/`.

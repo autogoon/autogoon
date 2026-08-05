@@ -10,9 +10,12 @@ The ways a session can run. Each play mode has its own doc under
 - [Autopilot](modes/AUTOPILOT.md) — a faithful recreation of Autoblow's own
   Vacuglide autopilot.
 - [Companions](modes/COMPANIONS.md) — talk to an AI companion who talks back
-  through the session and drives the toy themselves.
+  through the session and drives the toy themselves. Not on the public app yet;
+  its doc covers what running it takes today.
 
-The three device-driving play modes all answer to `start`, `stop` and `reset`.
-Each mode's own doc covers the words particular to it.
+Goon, Groove and Autopilot all take `start`, `stop` and `reset`, plus `up` /
+`down` to lengthen or shorten the stroke by hand. Companions takes no spoken
+words of its own — you talk to the companion instead. Each play mode's own doc
+covers the words particular to it.
 
 Play-mode candidates that don't exist yet live in the [roadmap](./ROADMAP.md).

@@ -1,9 +1,14 @@
 # Improve keyword detection
 
 Sound from another device in the room — a TV playing with the sound up —
-commonly triggers keywords. The browser's own noise cancellation already handles
-audio the machine itself is playing.
+commonly runs a command. The browser's own echo cancellation already handles
+audio the app itself is playing, though the keyword spotter takes the browser
+default rather than asking for it (`src/components/keyword-spotter.tsx`).
 
-Does Vosk support any options which can require a certain volume, or clarity?
-Are there other KWS options which rely on voice training, so the recognizer
-picks out the user's voice and ignores background noise?
+Does vosk expose a setting that requires a minimum input level, or a minimum
+confidence, before a word counts as heard? Is there a keyword spotter that can
+be trained on one voice, so the recognizer picks the user out and ignores
+everyone else in the room?
+
+A level gate sits in the worklet that feeds the recognizer
+(`public/kws-audio-worklet.js`); only a confidence gate would come from vosk.

@@ -10,24 +10,27 @@ for the inaccuracies,
 [People, video, duplicates, batches](../roadmap/INFERENCE-LIBRARY.md#people-video-duplicates-batches)
 for the clips.
 
-The failures below are in the model's long-form observations, not in the caption
-condensed from them.
+The failures under [What it gets wrong](#what-it-gets-wrong) are in the model's
+observations — the sidecar's `description`. The caption condensed from them is
+[What the caption loses](#what-the-caption-loses).
 
 ## What it gets wrong
 
 - **Breasts reported bare when they are covered.**
 - **Nipples reported visible through fabric when they are not.**
 - **Body orientation.** Someone kneeling with their back to the camera, head
-  turned to look over their shoulder, is reported as facing the camera. Which of
-  the two "facing" should mean is partly a question of semantics.
+  turned to look over their shoulder, is reported as facing the camera. Whether
+  "facing" is the torso or the head is partly a question of semantics.
 - **Sitting confused with kneeling.**
-- **More than one person in frame, and the genders of them**. At the moment the
-  prompts assume one person in frame, so we don't know if gender detection is a
-  problem.
+- **More than one person in frame.** `PROMPT` assumes a single female subject,
+  so nothing in it can report a second person, or anyone's sex.
 
 ## What it never reports
 
-- **Breast size.** No field asks for it.
+- **Breast size.** Nothing in `PROMPT` asks for it. The baseline experiment does
+  — `breastSize` in [`fields.ts`](../src/inference/fields.ts) — and
+  [its README](../src/inference/experiments/2026-08-02-baseline/README.md)
+  records how that went.
 
 ## What the caption loses
 
@@ -35,38 +38,40 @@ condensed from them.
 
 ## Video
 
-- A video clip gets no sidecar from any script. `describe-image.ts` refuses
-  anything `MEDIA_TYPES` does not list as an image, so a clip's caption and
-  description are written by hand.
+- A video clip gets no sidecar from anything that writes one.
+  `describe-image.ts` refuses anything `MEDIA_TYPES` does not list as an image,
+  so a clip's caption and description are written by hand.
 
 ## What produced these
 
-- `describe-image.ts`, its `PROMPT` and its default model.
+- `describe-image.ts` as it stood on 2026-08-02: its `PROMPT`, and
+  `qwen/qwen3-vl-235b-a22b-instruct`, its default model then.
 - Images downscaled to a long edge of `MAX_EDGE` before sending.
 
 ## Measuring a fix
 
-[The inference UI spec](./2026-08-02-inference-ui-spec.md) is what gets built to
-answer these: a corpus, ground truth written by hand, and one frozen directory
-of code per experiment. What follows is the method that spec serves and doesn't
-itself decide.
+[The inference UI spec](./2026-08-02-inference-ui-spec.md) is what was built to
+answer these, and [INFERENCE.md](../INFERENCE.md) is what it became. What
+follows is the method that spec serves and doesn't itself decide.
 
-**Scoring.** Enumerated fields compare directly against the ground truth.
-Descriptive fields — the clothes, the setting — will never match word for word
-and need an LLM to rate similarity. The comparison is paired, the same images
-under two processes, so what counts is which items flipped rather than the two
-rates. Hosted models are not deterministic even at `temperature: 0`, so
-re-running one process unchanged measures the noise floor.
+**Scoring.** Choice fields compare directly against the ground truth. Text
+fields — the clothing, the setting — will never match word for word and need an
+LLM to rate similarity. The comparison is paired, the same images under two
+experiments, so what counts is which items flipped rather than the two rates.
+Hosted models are not deterministic even at `temperature: 0`, so re-running one
+process unchanged measures the noise floor.
 
-**Corpus size.** Roughly twenty instances of each case under test, so could end
-up being several hundred items. The errors are false positives, so
-plainly-negative cases matter as much as positive ones. All fields we're looking
-for need to be labelled — a diff between two runs flags anything that moved.
+**Corpus size.** How big the labelled set has to be is in
+[the inference UI spec](./2026-08-02-inference-ui-spec.md) → Scale. The errors
+are false positives, so plainly-negative cases matter as much as positive ones.
+Every field in [`fields.ts`](../src/inference/fields.ts) has to be labelled — a
+diff between two runs flags anything that moved.
 
 **Caption and summary are their own steps.** Condensing a description into a
-caption, and summarising a set into `mediaSummary`, each run per experiment and
-each need their own scoring. Search may read structured data rather than a
-caption at all.
+caption, and summarising a set into `mediaSummary`, each need their own scoring.
+Search may read structured data rather than a caption at all. (Both now run per
+experiment — [INFERENCE.md](../INFERENCE.md) → Playing what an experiment
+described. Neither is scored.)
 
 **Open: customising the inference per companion.** Whether a pack author can
 tailor how their media is described, and how, is likelier to fall out of an

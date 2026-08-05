@@ -3,10 +3,10 @@
 Move goonpack authoring — creating, captioning, checking, building — out of the
 npm scripts and a text editor, and into the app itself as a screen.
 
-The app today only _consumes_ packs: import a zip, and it lives in browser
-storage. Everything that goes into making one happens elsewhere:
+Making a pack still happens outside the app:
 
 - Captions come from `scripts/describe-image.ts`.
+- The `mediaSummary` comes from `scripts/summarise-pack.ts`.
 - The manifest and `system-prompt.md` are hand-edited files.
 - `goonpack:build` zips a directory.
 
@@ -24,7 +24,12 @@ workaround for not having a screen.
 
 So the first piece is a review surface. Pick a pack, leaf through its pictures,
 see each one beside its caption and the model's full observations, jump into the
-caption with a keystroke, and save.
+caption with a keystroke, and save. The Inference tab
+([INFERENCE.md](../INFERENCE.md)) is most of that already. What it doesn't do is
+write the pack's own `<stem>.md`: every file it writes is named for the
+experiment that produced it, so there is no way to sit down with a pack and fix
+a caption — [TODO.md](../TODO.md) → Let the Inference screen write a plain
+sidecar.
 
 **What changes as a pack grows.** Reading every caption is the right workflow
 while a pack is a curated few hundred. Past that nobody will read them all — see
@@ -39,7 +44,8 @@ pass or a search flags, rather than to all of them.
 Each is a spec's worth of work on its own, roughly in the order they earn their
 keep:
 
-- **Caption review** — leaf, compare, edit, save.
+- **Caption review** — leaf, compare, edit, save. Built on the Inference tab,
+  bar the plain sidecar.
 - **Describing a whole pack** — run the description pass over everything without
   a caption, with progress, cost and failures on screen, and the model choice in
   front of you. This is the job that dominates once a pack is collected rather
@@ -58,15 +64,17 @@ keep:
 
 ## The constraint that shapes it
 
-Nothing in `src/` touches the filesystem today: no API route reads or writes
-disk, and packs reach the app as uploaded zips. A kit that edits pictures and
-sidecars where they actually live would be the app's first filesystem route. It
-can only exist on the machine holding the pack sources, so it is **dev-only** —
-present under `npm run dev`, absent from any deploy.
+A kit that edits pictures and sidecars where they actually live can only exist
+on the machine holding the pack sources, so it is **dev-only** — present under
+`npm run dev`, absent from any deploy.
 
-That gating is the first design question, and it is not just a feature flag: the
-routes must not be reachable in a deployed build at all. The answer decides
-whether the editing logic can assume a directory or has to assume a zip.
+That gating is settled and built. `src/inference/dev-only.ts` gates every
+`api/inference` route on `NODE_ENV`, each handler answering 404 before it reads
+its request, and `src/lib/goonpacks/disk-source.ts` builds a library over pack
+source directories through those routes — so the editing logic assumes a
+directory, not a zip. What it does not do is keep the handlers out of a deployed
+bundle, recorded as a limitation in
+[the inference UI spec](../docs/2026-08-02-inference-ui-spec.md).
 
 Open questions:
 
@@ -77,5 +85,6 @@ Open questions:
   either become thin wrappers over shared code the screen also uses, or stay as
   they are and the screen duplicates them. Sharing is better and needs the
   captioning logic to move out of `scripts/`.
-- **Re-captioning from the screen**, one picture or a selection. It puts a paid
-  API call behind a button and needs the model choice surfaced.
+- **Re-captioning a selection.** One picture from a button is built (`i` on the
+  Inference tab, `src/app/api/inference/run/route.ts`); a selection, and the
+  model choice surfaced beside it, are what is left.

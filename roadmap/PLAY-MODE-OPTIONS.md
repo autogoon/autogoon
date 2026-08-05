@@ -46,7 +46,7 @@ the ticked options, with torture and the ruins ignoring your voice once started
 - **Other play modes** — the options belong to every play mode eventually.
 - **Configurable eject** — the first cut hard-codes speed 40 with the Stroke +
   valve open for 15 seconds; both should be configurable.
-- **Configurable wind-down shape** — the current wind-down curve suits its
-  author; others may want it longer, shorter, or shaped differently.
+- **Configurable wind-down shape** — the current wind-down suits its author;
+  others may want it longer, shorter, or shaped differently.
 
 Any outcome that ignores **Stop** is backstopped by the always-on safe word.

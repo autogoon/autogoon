@@ -2,9 +2,8 @@
 
 ## 2026-08-04
 
-- enhancement: **Companions answer on a new model** — Companions now run on
-  Nex-N2-Mini, which answers faster than the model it replaces, and fixes the
-  MiniMax models sometimes leaking thinking into the conversation.
+- enhancement: **A companion no longer reads their thinking out loud** — Replies
+  arrive sooner too, since Companions moved onto Nex-N2-Mini.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - enhancement: **A request for a picture stops returning the same ones** —
@@ -32,9 +31,10 @@
   Microphone setting turns the old behaviour back on.
   ([#29](https://github.com/autogoon/autogoon/pull/29))
 
-- enhancement: **Segmented controls show a hover** — The Intensity and
-  variability options gave no feedback under the pointer. An unselected segment
-  now takes its control's colour at half strength; the selected one lightens.
+- enhancement: **Segmented controls show a hover** — Every row of segments —
+  Autopilot's three settings, Groove's two variability knobs — gave no feedback
+  under the pointer. An unselected segment now takes its control's colour at
+  half strength; the selected one lightens.
   ([#29](https://github.com/autogoon/autogoon/pull/29))
 
 - enhancement: **`goonpack:build` zips only what a pack needs** — It no longer

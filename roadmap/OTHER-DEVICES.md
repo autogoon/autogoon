@@ -83,5 +83,5 @@ Open questions:
   to refer to what the user is using without the app having told them something
   untrue about it.
 - **The safe word** is always on, but with no program running it has nothing to
-  stop. The safeword-as-hard-stop item in [TODO.md](../TODO.md) is the same gap,
-  reached from a different direction.
+  stop. [The safe word](./SAFE-WORD.md) is the same gap, reached from a
+  different direction.
