@@ -57,7 +57,7 @@ export function sweepQueue(outDir: string): SweepQueue {
       const entry = [
         `## ${file} — ${pass} — ${finding.category}`,
         '',
-        `- why queued: ${why}`,
+        `- why asked: ${why}`,
         `- old: ${finding.old}`,
         `- new: ${finding.new}`,
         `- evidence: ${finding.evidence}`,

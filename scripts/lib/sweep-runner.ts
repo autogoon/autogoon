@@ -62,13 +62,14 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   // goes no further: not applying a fix needs no human gate.
   const endorsed = report.findings.filter((f) => f.recommend);
 
-  // One outcome line per pass, whatever happened: `queued` counts every
-  // questions.md entry this pass wrote, `applied` the edits kept on disk.
-  const outcome = (queued: number, applied: number, note = '') =>
+  // One outcome line per pass, whatever happened: `questions` counts every
+  // entry this pass wrote to the file's questions file, `applied` the edits
+  // kept on disk.
+  const outcome = (questions: number, applied: number, note = '') =>
     log(
       `${file} [${pass}]: findings ${report.findings.length}, ` +
         `endorsed ${endorsed.length}, applied ${applied}, ` +
-        `queued ${queued}${note}`,
+        `questions ${questions}${note}`,
     );
 
   const nonMechanical = endorsed.filter((f) => !f.mechanical);
@@ -87,9 +88,9 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   );
   for (const bounce of bounced)
     queue.question(file, pass, bounce.finding, bounce.reason);
-  const queued = nonMechanical.length + bounced.length;
+  const questions = nonMechanical.length + bounced.length;
   if (applied.length === 0) {
-    outcome(queued, 0);
+    outcome(questions, 0);
     return;
   }
 
@@ -109,11 +110,11 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
     throw error;
   }
   if (verdict.ok) {
-    outcome(queued, applied.length, ', kept in working tree');
+    outcome(questions, applied.length, ', kept in working tree');
   } else {
     writeFileSync(path, snapshot);
     const why = `verify-fail: ${verdict.reasons.join('; ')}`;
     for (const finding of applied) queue.question(file, pass, finding, why);
-    outcome(queued + applied.length, 0, ' (verify failed, restored)');
+    outcome(questions + applied.length, 0, ' (verify failed, restored)');
   }
 }
