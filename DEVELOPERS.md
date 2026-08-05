@@ -170,10 +170,11 @@ Writing style.
 
 Flags: `--files <paths…>` to sweep a subset, `--passes doc,style` to run fewer
 passes, `--dry-run` to collect reports without editing, `--model <m>` to
-override the model (default `opus`), `--out <dir>` to move the output dir. The
-sweep skips any file with uncommitted changes and never runs `git add` or
-`git commit`, so it is safe beside other work in the same checkout; review its
-output with `git diff`.
+override the model (default `opus`), `--out <dir>` to move the output dir,
+`--concurrency <n>` for how many files run at once (default 4; a file's own
+passes always run in order). The sweep skips any file with uncommitted changes
+and never runs `git add` or `git commit`, so it is safe beside other work in the
+same checkout; review its output with `git diff`.
 
 ## Goonpack sources
 

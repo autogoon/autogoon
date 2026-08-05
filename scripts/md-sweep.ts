@@ -1,9 +1,9 @@
 // scripts/md-sweep.ts
-// Enumerates the tracked .md set and drives sweep-runner over it, one file
-// at a time, root docs first. Sequential on purpose: reports must be
-// reviewable in the questions file faster than they accumulate. A re-run
-// skips as dirty any file whose earlier sweep edits are still unreviewed in
-// the working tree.
+// Enumerates the tracked .md set and drives sweep-runner over it, root docs
+// first. Files run through a bounded worker pool (--concurrency); the four
+// passes within a file stay sequential, because each pass edits what the
+// next one reads. A re-run skips as dirty any file whose earlier sweep edits
+// are still unreviewed in the working tree.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -48,8 +48,14 @@ const { values } = parseArgs({
     // Defaults to opus rather than inheriting the operator's session model.
     model: { type: 'string', default: 'opus' },
     out: { type: 'string', default: '.sweep' },
+    // Files in flight at once; 1 restores a fully sequential run.
+    concurrency: { type: 'string', default: '4' },
   },
 });
+
+const concurrency = Number(values.concurrency);
+if (!Number.isInteger(concurrency) || concurrency < 1)
+  throw new Error(`--concurrency must be a positive integer`);
 
 const cwd = process.cwd();
 const tracked = execFileSync('git', ['ls-files', '*.md'], {
@@ -95,14 +101,21 @@ const deps = {
 };
 
 console.error(
-  `${files.length} files, passes: ${passes.join(', ')}${
+  `${files.length} files, passes: ${passes.join(', ')}, concurrency ${concurrency}${
     deps.dryRun ? ' (dry run)' : ''
   }`,
 );
 deps.queue.runHeader(
   `${new Date().toISOString()} — ${files.length} files, passes ${passes.join(',')}`,
 );
-for (const file of files) await sweepFile(file, passes, deps);
+// Workers pull from one shared iterator, so each file runs exactly once and
+// an early finisher moves straight on to the next.
+const remaining = files[Symbol.iterator]();
+await Promise.all(
+  Array.from({ length: Math.min(concurrency, files.length) }, async () => {
+    for (const file of remaining) await sweepFile(file, passes, deps);
+  }),
+);
 console.error(
   `done — review the working diff with git diff; questions and reports in ${values.out}/`,
 );
