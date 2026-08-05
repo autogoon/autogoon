@@ -157,15 +157,16 @@ tests never use the real mic, but the browsers still request the permission.)
 
 ## Documentation sweep
 
-`npm run docs:sweep` reviews every tracked `.md` file (persona prompts and
-CHECK-QUESTIONS.md excluded) in four passes — doc (truth), style, register,
-duplication — each a fresh `claude -p` call returning findings against a JSON
-schema. Findings are applied by exact string substitution and verified by a
-second fresh call; accepted fixes stay uncommitted in the working tree for
-review — the sweep never commits. Anything needing a human decision lands in
-`.sweep/questions.md`, with every raw report under `.sweep/reports/`. The pass
-prompts are in `scripts/md-sweep-briefs/`; the rules they enforce live in
-[CLAUDE.md](./CLAUDE.md) → Documentation and → Writing style.
+`npm run docs:sweep` reviews every tracked `.md` file (persona prompts,
+CHECK-QUESTIONS.md and the sweep's own briefs excluded) in four passes — doc
+(truth), style, register, duplication — each a fresh `claude -p` call returning
+findings against a JSON schema. Findings are applied by exact string
+substitution and verified by a second fresh call; accepted fixes stay
+uncommitted in the working tree for review — the sweep never commits. Anything
+needing a human decision lands in `.sweep/questions.md`, with every raw report
+under `.sweep/reports/`. The pass prompts are in `scripts/md-sweep-briefs/`; the
+rules they enforce live in [CLAUDE.md](./CLAUDE.md) → Documentation and →
+Writing style.
 
 Flags: `--files <paths…>` to sweep a subset, `--passes doc,style` to run fewer
 passes, `--dry-run` to collect reports without editing, `--model <m>` to pin the
