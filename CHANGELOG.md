@@ -9,6 +9,12 @@
   `claude -p` context so long sessions cannot drift back into the style being
   removed. See [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
 
+- bug: **Privacy claims corrected** — The README and the home screen claimed
+  only device-control traffic leaves your machine; the deployed app also
+  reports anonymous page views and performance timings to Vercel. The
+  [Privacy](README.md#privacy) section now says exactly what leaves and what
+  never does.
+
 ## 2026-08-04
 
 - enhancement: **A companion no longer reads their thinking out loud** — Replies
