@@ -91,9 +91,8 @@ background or screen-locked tabs.
   exactly like iOS Safari. Apple requires every iOS browser to use the system
   WebKit engine.
 - **Android Chrome** _(untested)_ — a different engine, likely to keep running
-  in the foreground with the screen on, but background and locked tabs are still
-  throttled. A single device _may_ work if you keep the tab in front and the
-  screen awake (e.g. Screen Wake Lock).
+  with the tab in front and the screen awake (e.g. Screen Wake Lock), but
+  background and locked tabs are still throttled. A single device _may_ work.
 
 ## For developers
 
