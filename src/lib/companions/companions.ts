@@ -1,6 +1,7 @@
 // The built-in companions. An imported goonpack adds further companions at
 // runtime (src/lib/goonpacks/).
 import type { MediaKind } from '@/lib/goonpacks/media';
+import type { SidecarValue } from '@/lib/goonpacks/sidecar';
 import { AIMEE_SYSTEM_PROMPT } from './aimee-prompt';
 import { MILEY_SYSTEM_PROMPT } from './miley-prompt';
 
@@ -20,6 +21,11 @@ export type CompanionMedia = {
   kind: MediaKind;
   caption: string;
   description: string;
+  // Everything else the sidecar's frontmatter carried, whatever it was called.
+  // The pack format does not own the question set (goonpacks/sidecar.ts), so
+  // what is in here is whatever wrote the sidecar — empty for one carrying a
+  // caption alone.
+  values: Record<string, SidecarValue>;
   ref: string;
   src?: string;
   load(): Promise<string>;
@@ -98,10 +104,12 @@ export const companionClockZone = (companion: Companion): string | undefined =>
 // `:nitro` sorts OpenRouter's providers by throughput instead of its default
 // price-weighted load balancing — a companion's reply is spoken, so time to
 // first token is the pause before they answer.
-export const DEFAULT_MODEL = 'minimax/minimax-m3:nitro';
-// MiniMax M3's providers on OpenRouter serve a 1,000,000-token window.
-export const DEFAULT_CONTEXT_WINDOW = 1_000_000;
-export const DEFAULT_PASSES_REASONING = true;
+//
+// Which models have been measured, how they timed, and which are ruled out and
+// why, are in scripts/llm-benchmark.ts — `npm run llm:benchmark` prints them.
+export const DEFAULT_MODEL = 'nex-agi/nex-n2-mini:nitro';
+export const DEFAULT_CONTEXT_WINDOW = 262_000;
+export const DEFAULT_PASSES_REASONING = false;
 // Middling on both counts: a companion who fills a silence without talking over
 // you. A pack says otherwise by setting them.
 export const DEFAULT_CHATTINESS = 3;

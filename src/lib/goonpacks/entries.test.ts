@@ -7,6 +7,7 @@ import {
   effectiveMedia,
   keyId,
   keyVersion,
+  mediaSource,
   newestFirst,
   overlayNeedsZone,
   packKey,
@@ -116,45 +117,50 @@ describe('countMedia', () => {
   });
 });
 
+const none = { images: 0, videos: 0 };
+const opt = (extra: object): PackOption => ({
+  key: 'pub.o@1',
+  label: 'pub',
+  media: none,
+  changed: [],
+  ...extra,
+});
+const BASE = opt({ key: 'pub.b@1', media: { images: 9, videos: 1 } });
+
 describe('effectiveMedia', () => {
-  const none = { images: 0, videos: 0 };
-  const opt = (extra: object) => ({
-    key: 'pub.o@1',
-    label: 'pub',
-    media: none,
-    changed: [],
-    ...extra,
-  });
   it("no overlay, or a medialess overlay, plays the base's set", () => {
-    expect(effectiveMedia(null, { images: 9, videos: 1 })).toEqual({
-      images: 9,
-      videos: 1,
-    });
-    expect(effectiveMedia(opt({}), { images: 9, videos: 1 })).toEqual({
-      images: 9,
-      videos: 1,
-    });
+    expect(effectiveMedia(null, BASE)).toEqual({ images: 9, videos: 1 });
+    expect(effectiveMedia(opt({}), BASE)).toEqual({ images: 9, videos: 1 });
   });
   it("an overlay that carries media replaces the base's set", () => {
     expect(
-      effectiveMedia(opt({ media: { images: 4, videos: 2 } }), {
-        images: 9,
-        videos: 0,
-      }),
+      effectiveMedia(opt({ media: { images: 4, videos: 2 } }), BASE),
     ).toEqual({ images: 4, videos: 2 });
   });
   it("an overlay carrying only videos replaces the base's set", () => {
     expect(
-      effectiveMedia(opt({ media: { images: 0, videos: 2 } }), {
-        images: 9,
-        videos: 0,
-      }),
+      effectiveMedia(opt({ media: { images: 0, videos: 2 } }), BASE),
     ).toEqual({ images: 0, videos: 2 });
   });
   it('an overlay with noMedia plays nothing, whatever the base carries', () => {
-    expect(
-      effectiveMedia(opt({ noMedia: true }), { images: 9, videos: 0 }),
-    ).toEqual(none);
+    expect(effectiveMedia(opt({ noMedia: true }), BASE)).toEqual(none);
+  });
+});
+
+// Which pack the media is read out of, which is the same question one step
+// earlier: for a pack source on disk it decides whose sidecars an experiment
+// choice applies to.
+describe('mediaSource', () => {
+  it('is the base where no overlay is selected, or the overlay brings no set', () => {
+    expect(mediaSource(null, BASE)).toBe(BASE);
+    expect(mediaSource(opt({}), BASE)).toBe(BASE);
+  });
+  it('is the overlay where it brings a set of its own', () => {
+    const overlay = opt({ media: { images: 4, videos: 0 } });
+    expect(mediaSource(overlay, BASE)).toBe(overlay);
+  });
+  it('is neither where the overlay strips the media, since none is played', () => {
+    expect(mediaSource(opt({ noMedia: true }), BASE)).toBeNull();
   });
 });
 

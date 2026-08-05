@@ -13,6 +13,7 @@ const item = (
   kind,
   caption,
   description: `${caption}, at length`,
+  values: {},
   ref: `goonpack:pub.pack@1.0.0/${caption}`,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},
@@ -25,8 +26,15 @@ describe('pickMedia', () => {
     const pick = pickMedia(ITEMS, { ref: ITEMS[1]!.ref });
     expect(pick.show).toBe(ITEMS[1]);
     expect(pick.sent).toEqual({
-      result: 'Sent him the video: dancing',
+      result: 'Sent him the video: dancing\n\ndancing, at length',
       mediaRef: ITEMS[1]!.ref,
+    });
+  });
+
+  it("hands back the description, since she has to talk about what he's looking at", () => {
+    const pick = pickMedia(ITEMS, { ref: ITEMS[0]!.ref });
+    expect(pick.sent).toMatchObject({
+      result: expect.stringContaining(ITEMS[0]!.description),
     });
   });
 
@@ -52,10 +60,18 @@ describe('describeHits', () => {
       describeHits(
         ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
       ),
-    ).toBe(
+    ).toContain(
       'goonpack:pub.pack@1.0.0/on the beach — (picture) on the beach\n' +
         'goonpack:pub.pack@1.0.0/dancing — (video) dancing',
     );
+  });
+
+  it('names send_media ahead of the hits, so finding is not read as sending', () => {
+    const out = describeHits(
+      ITEMS.map((m) => ({ ref: m.ref, caption: m.caption, kind: m.kind })),
+    );
+    expect(out).toContain('send_media');
+    expect(out.indexOf('send_media')).toBeLessThan(out.indexOf('goonpack:'));
   });
 
   it('says nothing matched rather than returning an empty list', () => {

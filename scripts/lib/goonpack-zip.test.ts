@@ -12,7 +12,13 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { unzipSync } from 'fflate';
+import type { Shipped } from '../../src/inference/pack-contents';
 import { writeZip } from './goonpack-zip';
+
+// Most cases ship a file under the name it already has; the substitution is
+// its own test.
+const same = (names: string[]): Shipped[] =>
+  names.map((n) => ({ entry: n, source: n }));
 
 let dir: string;
 
@@ -29,7 +35,7 @@ async function zipAndRead(
   names: string[],
 ): Promise<Record<string, Uint8Array>> {
   const out = join(dir, 'out.zip');
-  await writeZip(dir, names, out);
+  await writeZip(dir, same(names), out);
   return unzipSync(new Uint8Array(readFileSync(out)));
 }
 
@@ -40,7 +46,27 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+// The archive's size on disk, which is how the compression method shows from
+// the outside: unzipping hands back the original bytes either way.
+async function zipSize(names: string[]): Promise<number> {
+  const out = join(dir, 'size.zip');
+  await writeZip(dir, same(names), out);
+  return readFileSync(out).length;
+}
+
 describe('writeZip', () => {
+  it('stores media rather than spending time deflating it', async () => {
+    // Ten thousand identical bytes: anything deflating this crushes it, and
+    // anything storing it comes out bigger than the file.
+    write('media/a.jpg', text('x'.repeat(10_000)));
+    expect(await zipSize(['media/a.jpg'])).toBeGreaterThan(10_000);
+  });
+
+  it("deflates a pack's text, which is what actually shrinks", async () => {
+    write('media/a.md', text('x'.repeat(10_000)));
+    expect(await zipSize(['media/a.md'])).toBeLessThan(1_000);
+  });
+
   it('writes every named file to its path in the archive, with its bytes', async () => {
     write('manifest.json', text('{"id":"test.pack"}'));
     write('media/a.jpg', text('the picture'));
@@ -65,6 +91,24 @@ describe('writeZip', () => {
     write('media/big.mp4', big);
     const entries = await zipAndRead(['media/big.mp4']);
     expect(entries['media/big.mp4']).toEqual(big);
+  });
+
+  it('writes an entry under the name asked for rather than the file it read', async () => {
+    write('media/a.2026-08-02-baseline.sidecar.md', text('what it said'));
+    const out = join(dir, 'named.zip');
+    await writeZip(
+      dir,
+      [
+        {
+          entry: 'media/a.md',
+          source: 'media/a.2026-08-02-baseline.sidecar.md',
+        },
+      ],
+      out,
+    );
+    const entries = unzipSync(new Uint8Array(readFileSync(out)));
+    expect(Object.keys(entries)).toEqual(['media/a.md']);
+    expect(Buffer.from(entries['media/a.md']!).toString()).toBe('what it said');
   });
 
   it('writes an empty file, which arrives with no data event at all', async () => {

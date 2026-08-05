@@ -20,6 +20,7 @@ function entry(
     kind: 'image',
     caption: 'a still',
     description: 'a still, described at length',
+    values: {},
     ref: 'goonpack:pub.pack@1.0.0/one',
     load: () =>
       open().then((url) => {

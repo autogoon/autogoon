@@ -156,6 +156,20 @@ and whether it calls tools reliably, are properties of the model rather than of
 your prompt, so try one before settling on it. A model that stops calling tools
 gives you a companion who talks about the toy without ever driving it.
 
+**Don't name a MiniMax model.** Anything under `minimax/` — M2.5, M3 — breaks
+two things every companion depends on, and it is the model that does it rather
+than any one provider serving it:
+
+- The time and the state of the toy are sent at the end of every request, along
+  with the nudge that tells your companion a silence has gone unanswered.
+  MiniMax models move all three to the very top, ahead of the conversation, so
+  what should be the last thing they were told is the first — read and then
+  buried under everything since. They answer with a stale idea of the toy, and a
+  silence reads to them as no silence at all.
+- Their thinking comes back inside the reply, wrapped in `<think>` tags, instead
+  of separately. It is spoken aloud in their voice and kept in the transcript as
+  something they said.
+
 Set `contextWindow` and `passesReasoning` whenever you set `model`, and leave
 all three out otherwise. They describe the model named beside them. A pack that
 sets `model` alone takes the app's defaults for the other two; an overlay that
@@ -273,6 +287,13 @@ The companion's pictures and videos, directly in `media/` (no subfolders).
 `.mov` is rejected: it plays in Safari and unreliably everywhere else, so a
 `.mov` pack would work on your machine and not on someone else's. Re-encode it
 as MP4.
+
+Anything else in `media/` is left where it is. A file whose extension is none of
+those above, and a sidecar whose picture has been renamed away, are counted in a
+warning when the pack builds rather than refusing it — `media/` is a working
+directory as often as it is a finished set, and another tool's files can sit
+beside the pictures without breaking anything. Read the warning, though: a typo
+in an extension looks exactly the same from here.
 
 Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
 `beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
@@ -426,16 +447,26 @@ just that pack, which is the order to do them in for a new one:
 
 ### Building the zip
 
-A pack holds three things and nothing else: `manifest.json`, `system-prompt.md`
-and `media/`. Anything else in the zip — a leftover `notes.md`, a subfolder
-inside `media/` — is refused on import, named so you can see which file it was.
+A pack holds three things: `manifest.json`, `system-prompt.md` and `media/`.
+Anything else at the zip's root — a leftover `notes.md` — is refused on import,
+named so you can see which file it was, as is a subfolder inside `media/`. Files
+sitting _inside_ `media/` that aren't media are warned about rather than
+refused; see
+[Pictures, videos and their sidecars](#pictures-videos-and-their-sidecars).
 
 Any zip tool works. Zip the directory's contents so `manifest.json` is at the
-root. If you're running the app from source, `npm run goonpack:build` zips every
-pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating each one
-first with the app's own import checks. A pack that builds is a pack that
-imports. Name one to build just that pack:
+root. If you're running the app from source, `npm run goonpack:build` writes
+every pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating
+each one first with the app's own import checks. A pack that builds is a pack
+that imports. Name one to build just that pack:
 `npm run goonpack:build goonpacks/elise`.
+
+It writes the manifest, the system prompt, and **the media that has a sidecar**
+— a picture nothing describes is one no companion can pick, so it is left out
+and counted in a warning rather than shipped. Anything else sitting in `media/`
+is left out too, which is how a labelling tool keeps its working files beside
+the pictures without any of them reaching the zip; a name there that belongs to
+neither is named in a second warning.
 
 ### Importing a pack and updating it
 
@@ -453,10 +484,11 @@ On the Companions screen, a companion's card carries the pack pickers: the
 version (newest first, and the default) and an overlay to lay on top. The card's
 description, colour and feature line follow what you've picked.
 
-Every app load re-checks every stored pack against the current rules. A pack
-that fails — its base was removed, or the pack format has moved on — stays on
-the Goonpacks tab marked incompatible with the reasons, and isn't offered on the
-chooser. Fix the cause, or re-import a corrected zip, and it comes back.
+Every session re-checks every stored pack against the current rules, the first
+time you open Companions or Goonpacks. A pack that fails — its base was removed,
+or the pack format has moved on — stays on the Goonpacks tab marked incompatible
+with the reasons, and isn't offered on the chooser. Fix the cause, or re-import
+a corrected zip, and it comes back.
 
 A sent picture or video stays in the conversation as a stable reference, not a
 copy. It resolves against whichever pack is currently loaded. Switch away from

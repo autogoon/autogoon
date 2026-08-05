@@ -78,7 +78,9 @@ reaches any impressive size.
    of matches, each a ref and its caption.
 5. **They send by ref.** `send_media` takes one of those refs, so the sends
    after a search cost no inference at all, and they have read the caption of
-   what they chose before it lands.
+   what they chose before it lands. The send hands back the description as well
+   — a caption is enough to choose between twenty-five, and not enough to talk
+   about the one now on his screen.
 6. **No match is an answer.** When nothing is close the search says so, and they
    ask for something else — far better than them announcing a picture that never
    came.
@@ -148,7 +150,8 @@ none of them chosen:
 - Exclusion of what's been sent.
 - Near-duplicate collapse.
 - A cursor that continues past the last search.
-- Sampling from everything above a threshold rather than strict top-N.
+- Sampling from everything above a threshold rather than strict top-N. Items a
+  query scores equally are already sampled; the threshold is what isn't built.
 
 Sampling above a threshold is also what "something at random" needs, so it may
 serve the query-less request too. Which one earns its place is a question for a

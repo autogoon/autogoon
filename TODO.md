@@ -102,35 +102,23 @@ you say you're cumming, so the ending stops being a setting and becomes
 something they do to you. And because they can choose, they can say they will,
 and do something else.
 
-### Pick packs up off disk in dev
+### Score a search on what an experiment recorded
 
-Iterating on a pack means: edit, `npm run goonpack:build`, open the Goonpacks
-tab, pick the zip, confirm the replace. Every time. The build is the only step
-doing anything the app couldn't do itself.
+Every media item carries the fields the experiment that described it recorded —
+`CompanionMedia.values`, straight out of the sidecar's frontmatter — and nothing
+reads them. `searchMedia` scores the caption and the long description and
+nothing else.
 
-On a locally-run server, have the app ask a route on load what pack directories
-are sitting in `goonpacks/`. Import each one exactly as though it had been
-chosen in the picker and replaced: the same validation, the same storage. Reload
-becomes the whole loop.
+The first one worth scoring is `text`: words on the picture itself, which is the
+strongest "more of this" signal there is. It should count for what a caption hit
+counts for. The rest stay unscored until there is a reason.
 
-The source directory rather than a built zip, because validation now runs on the
-extracted tree. The tree is the thing that ships and the zip only carries it, so
-importing the directory imports what would ship.
-
-Deliberately load-time only, with no watching for changes. A reload is a small
-enough ask, and polling can come later if it isn't.
-
-**Dev-server only, and it has to be enforced server-side.** The route reads the
-developer's own filesystem, which is what a deploy must not do.
-`access-check.ts` already has the `NODE_ENV === 'development'` precedent to
-follow.
-
-Also worth deciding what happens when a disk pack and an installed one collide,
-and whether a pack imported this way should be visibly marked as having come
-from disk rather than chosen.
-
-A stopgap: [Goonpack kit](./roadmap/GOONPACK-KIT.md) is where pack authoring
-moves into the app properly. Small enough to be worth doing anyway.
+**The scoring is the experiment's, not the pack's** — a pack can be built from
+any experiment, and which fields are worth what is a property of the questions
+that experiment asked. Where that lives is unsettled: the experiment registry is
+server-only (its modules import node's filesystem to run a model), so a scoring
+_function_ can't cross into the browser without splitting the parser out, while
+a scoring _config_ is data and rides the same route the pack does.
 
 ### The model settings, together or app-wide
 
@@ -170,13 +158,13 @@ manifest field packs can set. That is the shape
 [The model settings, together or app-wide](#the-model-settings-together-or-app-wide)
 puts in question, so settle that one first.
 
-**Where this came from:** a streamed MiniMax reply whose reasoning leaked into
-what the companion said, because OpenRouter didn't cleanly separate the two.
-`mergeReasoning` in `llm/client.ts` handles that one, folding
-`reasoning_details` into its own array. A non-streamed response carries
-reasoning and content as separate fields and can't blur them. "Don't stream" is
-then a real setting rather than a workaround for the next model that behaves
-that way.
+**Where this came from:** a streamed MiniMax reply whose reasoning sometimes
+leaked into what the companion said, because OpenRouter didn't cleanly separate
+the two when steaming the reply. It turns out MiniMax models also hoist all
+system messages in a thread to the top, so clocks, ambient cues and toy status
+all ended up at the top of the conversation, breaking prompt caching, so it's
+unlikely we'll ever use these models, so we probably don't actually need this
+feature.
 
 To settle: what the transcript shows while a non-streaming turn generates, since
 no text arrives until it's done.
@@ -264,6 +252,41 @@ the tool silently ignored.
 
 To settle: what the refusal says. It is all the model learns from, and one that
 reads as "no pictures" would stop them offering any.
+
+## Inference
+
+### Drop "corpus" as a term
+
+A corpus is a pack's `media/`, which makes the word a second name for something
+that already has one. It describes how labelling happens to be implemented, not
+what the feature is, and a reader meeting it has to be told the equivalence
+before the sentence means anything.
+
+It is throughout `src/inference/` — a module, a hook, their tests, the API
+routes, the panel and the review screen — and through
+[INFERENCE.md](./INFERENCE.md) and
+[docs/2026-08-02-inference-ui-spec.md](./docs/2026-08-02-inference-ui-spec.md).
+So it is a rename of modules, hooks and exported functions, not a search and
+replace over prose. What replaces it is the first thing to settle: the pack, or
+its media, depending on the sentence.
+
+### Let the Inference screen write a plain sidecar
+
+The screen is most of the caption-review surface
+[GOONPACK-KIT.md](./roadmap/GOONPACK-KIT.md) asks for — a picture beside what a
+model said about it, keyboard-driven, editable. What stops it being that is the
+experiment: every answer is stamped with the experiment that produced it, and
+every file it writes is named for one, so there is no way to sit down with a
+pack and fix a caption.
+
+Writing the stock `<stem>.md` when no experiment is chosen would close the gap.
+An experiment run keeps its stamped files and its ground-truth rules; a plain
+edit writes the sidecar a pack plays with. That is the kit's first piece, on the
+screen that already exists.
+
+To settle: whether a hand-written caption still counts as `human` ground truth
+for scoring, and what happens when an experiment later answers an item somebody
+has already edited by hand.
 
 ## Goonpacks
 

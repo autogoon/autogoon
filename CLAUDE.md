@@ -50,6 +50,13 @@ bad edit hard to catch. Several small Edit calls beat one clever script. Shell
 that only reads — greps, tests, mutation runs against a scratchpad copy — is
 unaffected.
 
+**Never put a control character in a source file.** Write a terminal escape as
+`\x1b` and a separator as text; the byte itself is invisible in a diff, and one
+of them makes the file binary to `grep`, which then reports no match for every
+search over it. A script wanting colour takes it from
+[`scripts/lib/colour.ts`](./scripts/lib/colour.ts), the only file that writes an
+escape.
+
 ## Secrets / environment
 
 ### Keys
@@ -149,11 +156,15 @@ them.
 
 ## Changelog
 
-Keep [CHANGELOG.md](./CHANGELOG.md) current. Update it **after each logical set
-of changes** as part of the work itself — not tied to a commit or PR (a change
-can span several commits, and commits land after a PR is opened). If you
-finished something a user would notice, it gets an entry before you consider the
-work done.
+Keep [CHANGELOG.md](./CHANGELOG.md) current. **It is there to be skimmed.**
+Someone opening it wants to see what the app gained since they last looked, so
+features and enhancements are what carry it; bugs and internal entries are the
+record behind them. Update it **after each logical set of changes** as part of
+the work itself — the timing follows the work, not a commit or a PR, since a
+change can span several commits. The entry still carries its PR link, and that
+can only go in once the PR exists, which is usually mid-branch rather than at
+the end. If you finished something a user would notice, it gets an entry before
+you consider the work done.
 
 - **Format:** one bullet per change — wrapped over indented lines and separated
   by blank lines for readability — newest first, grouped under the date it
@@ -169,9 +180,10 @@ work done.
 - **Every notable change gets an entry, described for whoever cares about it.**
   A user-facing change gets a user-friendly description — _what the app does,
   not how it's built_. A developer-facing change (an internal refactor and the
-  like) gets a developer-friendly description of _what changed_, tagged
-  `internal`. Don't force a user angle onto a pure refactor, and don't drop a
-  change just because users won't notice it.
+  like) gets a developer-friendly description of _what changed_ — which is not
+  the same as being tagged `internal`: a feature, an enhancement or a bug can
+  each be something only a developer would notice. Don't force a user angle onto
+  a pure refactor, and don't drop a change just because users won't notice it.
 - **One entry for the branch's feature, not one per piece of it.** The work a
   feature needed to exist — the format it stores, the validation, the script
   that writes it — is the feature, and goes in its entry. Something that stands
@@ -180,6 +192,31 @@ work done.
 - **The entry says what changed; the PR it links carries the detail.** Don't
   explain the mechanism, list the parts, or narrate how the branch arrived at
   it. If a sentence would only matter to someone reading the diff, cut it.
+- **Lead with what you get, not what we did.** The summary and first sentence
+  are the benefit; the cause is a clause at the end if it earns a mention.
+  "Companions are off the MiniMax models" is a decision — what the reader
+  noticed is a companion reading its own thinking out loud.
+- **Name it what the app names it, and say where it is.** If there is a word on
+  screen for the thing — an intro, a pack, a play mode — use it, and say where
+  it appears. An entry describing the concept, or naming it with no way to find
+  it, is unmappable — including by whoever wrote it.
+- **The summary alone says what the change is.** Read it with the description
+  covered — if it doesn't identify the change, rewrite it. "A companion finds a
+  picture whatever you call it" names nothing; "Synonyms added to media search"
+  does.
+- **An entry makes one point, and can't assume the thing it describes.** Folding
+  a feature's parts into one entry is not the same as listing them: four facts
+  about a tool the reader has never heard of is a changelog of the tool.
+- **Two sentences is the normal size.** Longer has to earn it — the branch's
+  whole feature, or saying how finished something is.
+- **One concrete example beats the options it stands for.** "No 'good morning'
+  at your midnight" does the work of a sentence enumerating what a pack author
+  can turn off.
+- **Point rather than describe.** Documentation for anything user-facing, the
+  source file for anything only a developer would notice — by who reads it, not
+  which tag it wears.
+- **Tag by who notices, not by what changed.** A build that ships different
+  files is an `enhancement` to whoever builds packs, not `internal`.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_
   fixed within the same PR is not a changelog bug — leave it out; the net
   user-facing feature/enhancement line already covers the behaviour.

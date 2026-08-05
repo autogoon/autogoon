@@ -27,6 +27,7 @@ import {
   parse,
   type ThreadTurn,
 } from '@/lib/companions/conversation';
+import { AMBIENT_CUE } from '@/lib/companions/ambient';
 import type { Companion } from '@/lib/companions/companions';
 import type { CompanionTool } from '@/lib/companions/tools';
 import type { LlmMessage, ToolCall } from '@/lib/llm/client';
@@ -315,6 +316,145 @@ describe('useVoiceSession', () => {
 
     expect(localStorage.getItem(THREAD_KEY)).toBeNull();
     expect(result.current.status.thread).toEqual([]);
+  });
+
+  it('ends an ambient request with the cue, after the live state it is meant to follow', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    const poke = sent[1]!;
+    expect(poke.at(-1)).toEqual({ role: 'system', content: AMBIENT_CUE });
+    expect(poke.at(-2)?.content).toContain('TOY STATUS');
+  });
+
+  it('sends no cue on a turn the user asked for', async () => {
+    replies = [{ content: 'hello' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+
+    expect(sent.flat().filter((m) => m.content === AMBIENT_CUE)).toEqual([]);
+  });
+
+  it('keeps the cue out of the thread, so the turn after a poke is not answered as a silence', async () => {
+    ambientDelay = 50;
+    replies = [
+      { content: 'hello' },
+      { content: 'still there?' },
+      { content: 'there you are' },
+    ];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+    act(() => {
+      result.current.submitText('sorry, back', { speak: true });
+    });
+    await settle();
+
+    expect(
+      result.current.status.thread.map((t) => 'content' in t && t.content),
+    ).not.toContain(AMBIENT_CUE);
+    expect(sent.at(-1)!.filter((m) => m.content === AMBIENT_CUE)).toEqual([]);
+  });
+
+  it('drops the cue once a tool round has run, leaving the results as what the companion answers', async () => {
+    ambientDelay = 50;
+    replies = [
+      { content: 'hello' },
+      { content: 'mm, hold on', toolCalls: [call('search_media')] },
+      { content: 'there you go' },
+    ];
+    const result = await session([searchMedia([])]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    // Counted from the front: the poke re-arms as each turn ends, so how many
+    // requests follow these three is a matter of how long the test waited.
+    const [, pokeRound, toolRound] = sent;
+    expect(pokeRound!.at(-1)).toEqual({ role: 'system', content: AMBIENT_CUE });
+    expect(toolRound!.filter((m) => m.content === AMBIENT_CUE)).toEqual([]);
+    expect(toolRound!.at(-1)?.content).toContain('TOY STATUS');
+  });
+
+  it('fills a silence after a typed turn taken with the mic never started', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello', 'still there?']);
+  });
+
+  it('keeps filling silences after stop(), which takes down the mic and not the conversation', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+    await act(async () => {
+      result.current.start();
+    });
+
+    act(() => {
+      result.current.stop();
+    });
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello', 'still there?']);
+  });
+
+  it('fills no silence after endSession(), so a poke cannot follow you off the screen', async () => {
+    ambientDelay = 50;
+    replies = [{ content: 'hello' }, { content: 'still there?' }];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+    act(() => {
+      result.current.endSession();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    expect(played.map((p) => p.text)).toEqual(['hello']);
   });
 
   it("renders the companion's clock in their own zone and the user's in the browser's", async () => {

@@ -6,14 +6,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Companion } from '@/lib/companions/companions';
 import type { LibraryEntry, PackOption } from '@/lib/goonpacks/entries';
+import { diskSource, type DiskChoice } from '@/lib/goonpacks/disk-source';
 import { prepareImport, type PendingImport } from '@/lib/goonpacks/import';
 import {
   buildLibrary,
   carryMediaOver,
+  replacedByDisk,
   type Library,
   type LibrarySource,
   type PackRow,
 } from '@/lib/goonpacks/library';
+import { mergedSource } from '@/lib/goonpacks/merged-source';
 import { buildEntries, packKey } from '@/lib/goonpacks/entries';
 import {
   applyOverlay,
@@ -33,7 +36,7 @@ import {
 
 export type { LibraryEntry, PackOption, PackRow, PendingImport };
 
-const source: LibrarySource = {
+const installed: LibrarySource = {
   listKeys: listCompletePackKeys,
   openTree: openPackTree,
   mediaUrl: async (key, media) => {
@@ -45,11 +48,57 @@ const source: LibrarySource = {
   },
 };
 
+// Pack sources on the developer's own disk, played without being zipped and
+// imported first: edit the directory, reload, and that is the whole loop. The
+// routes behind it answer under `npm run dev` and nowhere else, so a deployed
+// build never asks — the index is the OPFS packs alone, exactly as before.
+const IS_DEV = process.env.NODE_ENV === 'development';
+
+// Which experiment's descriptions a pack source is played with, remembered per
+// directory. No entry means the stock sidecars — the plain `<stem>.md` beside
+// each item, whether goonpack:describe or an author wrote it — which is the
+// choice goonpack:build makes when its second argument is left off.
+const EXPERIMENT_PREFIX = 'goonpacks:disk-experiment:';
+
+export const chosenExperiment = (dir: string): string | undefined =>
+  globalThis.localStorage?.getItem(EXPERIMENT_PREFIX + dir) ?? undefined;
+
+// Which sources to offer, whose descriptions to play each with, and which
+// experiments there are to choose between.
+async function diskChoices(): Promise<{
+  choices: DiskChoice[];
+  experiments: string[];
+}> {
+  const none = { choices: [], experiments: [] };
+  if (!IS_DEV) return none;
+  try {
+    const response = await fetch('/api/inference/packs');
+    if (!response.ok) return none;
+    const { dirs, experiments } = (await response.json()) as {
+      dirs?: string[];
+      experiments?: string[];
+    };
+    return {
+      choices: (dirs ?? []).map((dir) => ({
+        dir,
+        experiment: chosenExperiment(dir),
+      })),
+      experiments: experiments ?? [],
+    };
+  } catch {
+    // A dev server that isn't answering is not a reason to have no library:
+    // the installed packs are read either way.
+    return none;
+  }
+}
+
 const EMPTY: Library = {
   entries: buildEntries([]),
   rows: [],
   content: new Map(),
   manifests: new Map(),
+  onDisk: new Map(),
+  experiments: [],
 };
 
 // The session's one index, and the components watching it.
@@ -71,7 +120,19 @@ async function load(replaced: ReadonlySet<string>): Promise<Library> {
     purged = true;
     void purgeLegacyDatabase();
   }
-  const built = await buildLibrary(source);
+  const { choices, experiments } = await diskChoices();
+  const disk = diskSource(choices);
+  const { source, clashed } = mergedSource(disk.source, installed);
+  // Where each pack was read from is the disk source's to say, so it is stamped
+  // on here rather than inside buildLibrary, which only ever sees one source.
+  const built = {
+    ...(await buildLibrary(source)),
+    onDisk: disk.dirs(),
+    experiments,
+  };
+  // A directory that shadowed an installed pack and then validated is the copy
+  // being worked on, so the extraction it replaced goes.
+  for (const key of replacedByDisk(clashed(), built)) await removePackTree(key);
   if (current !== null) carryMediaOver(current, built, replaced);
   current = built;
   for (const listener of listeners) listener(built);
@@ -104,7 +165,12 @@ function rebuild(replaced?: string): Promise<Library> {
   return remember(previous.catch(() => null).then(() => load(keys)));
 }
 
-export function useGoonpackLibrary() {
+// `onScreen` is what builds the index. Every panel in the app is mounted for
+// the whole session and hidden with a class, so a hook that built on mount
+// built at startup — reading every installed pack's sidecars before anything
+// had asked for a companion. Whichever of the two screens is opened first pays
+// for it; the other finds the same build already in flight.
+export function useGoonpackLibrary(onScreen: boolean) {
   const [state, setState] = useState<Library>(() => current ?? EMPTY);
   // "error" is a library that couldn't be read at all — storage refused, rather
   // than a pack being wrong. The panels say so instead of waiting forever.
@@ -112,16 +178,23 @@ export function useGoonpackLibrary() {
     current === null ? 'loading' : 'ready',
   );
 
+  // Watching is separate from building, and lasts the panel's whole life: an
+  // import on the Goonpacks tab rebuilds the index, and the chooser has to hear
+  // about it whether or not it is the screen being looked at.
   useEffect(() => {
     listeners.add(setState);
-    void library().then(
-      () => setStatus('ready'),
-      () => setStatus('error'),
-    );
     return () => {
       listeners.delete(setState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!onScreen) return;
+    void library().then(
+      () => setStatus('ready'),
+      () => setStatus('error'),
+    );
+  }, [onScreen]);
 
   // Mirror a rebuild's outcome into `status`, and still let the caller see a
   // failure: an import reports its own on the confirm sheet.
@@ -166,6 +239,24 @@ export function useGoonpackLibrary() {
     [track],
   );
 
+  // Play a pack source with a different experiment's descriptions — or with the
+  // stock ones, which is what `undefined` means. The whole index is
+  // rebuilt, because the directory is read again from the top: its media set,
+  // and every caption and description in it, are what the choice decides.
+  const chooseExperiment = useCallback(
+    async (dir: string, experiment: string | undefined) => {
+      if (experiment === undefined) {
+        globalThis.localStorage?.removeItem(EXPERIMENT_PREFIX + dir);
+      } else {
+        globalThis.localStorage?.setItem(EXPERIMENT_PREFIX + dir, experiment);
+      }
+      await track(rebuild()).catch(() => {
+        // the error state is already on screen
+      });
+    },
+    [track],
+  );
+
   // Resolve a pick to a playable Companion. Everything it needs is already in
   // the index — no I/O, no object URLs minted here (those happen on first
   // render), so a variant switch is synchronous in all but name.
@@ -203,6 +294,9 @@ export function useGoonpackLibrary() {
     status,
     entries: state.entries,
     packs: state.rows,
+    onDisk: state.onDisk,
+    experiments: state.experiments,
+    chooseExperiment,
     importPack,
     removePack,
     resolveVariant,

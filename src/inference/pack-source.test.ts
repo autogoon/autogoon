@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { collectPackFiles } from './goonpack-source';
+import { collectPackFiles } from './pack-source';
 
 let dir: string;
 
@@ -29,12 +29,12 @@ afterEach(() => {
 });
 
 describe('collectPackFiles', () => {
-  it('lists every file the source holds, including one that has no place in a pack', () => {
+  it('lists every file the source holds, including one that has no place in a pack', async () => {
     write('manifest.json', '{}');
     write('system-prompt.md', 'You are Testy.');
     write('media/a.jpg', 'bytes');
     write('notes.md', 'scratch');
-    expect(collectPackFiles(dir).sort()).toEqual([
+    expect((await collectPackFiles(dir)).sort()).toEqual([
       'manifest.json',
       'media/a.jpg',
       'notes.md',
@@ -42,7 +42,7 @@ describe('collectPackFiles', () => {
     ]);
   });
 
-  it('keeps the media files that sort after a subfolder, and names the subfolder by its contents', () => {
+  it('keeps the media files that sort after a subfolder, and names the subfolder by its contents', async () => {
     // The defect: readFileSync throws EISDIR on a directory, which ended the
     // collection and dropped every file sorting after it — with a subfolder
     // sorting first, that was the pack's whole media set.
@@ -50,7 +50,7 @@ describe('collectPackFiles', () => {
     write('media/aaa-sub/x.jpg');
     write('media/b.jpg');
     write('media/c.mp4');
-    expect(collectPackFiles(dir).sort()).toEqual([
+    expect((await collectPackFiles(dir)).sort()).toEqual([
       'manifest.json',
       'media/aaa-sub/x.jpg',
       'media/b.jpg',
@@ -58,26 +58,26 @@ describe('collectPackFiles', () => {
     ]);
   });
 
-  it('follows a symlinked directory, so a media set stored elsewhere on disk reaches the pack', () => {
+  it('follows a symlinked directory, so a media set stored elsewhere on disk reaches the pack', async () => {
     // The defect: readdirSync reports a symlink as a symlink whatever it points
     // at, so a symlinked media/ was read as a file and threw EISDIR.
     write('elsewhere/a.jpg', 'bytes');
     write('pack/manifest.json', '{}');
     symlinkSync(join(dir, 'elsewhere'), join(dir, 'pack/media'));
-    expect(collectPackFiles(join(dir, 'pack')).sort()).toEqual([
+    expect((await collectPackFiles(join(dir, 'pack'))).sort()).toEqual([
       'manifest.json',
       'media/a.jpg',
     ]);
   });
 
-  it('keeps macOS junk, so the zip carries what the directory carries', () => {
+  it('keeps macOS junk, so the zip carries what the directory carries', async () => {
     // parsePack drops these before it judges anything, so keeping them costs no
     // verdict — and it is what makes a built zip match a hand-made one.
     write('manifest.json', '{}');
     write('.DS_Store', 'junk');
     write('media/a.jpg');
     write('media/._a.jpg', 'junk');
-    expect(collectPackFiles(dir).sort()).toEqual([
+    expect((await collectPackFiles(dir)).sort()).toEqual([
       '.DS_Store',
       'manifest.json',
       'media/._a.jpg',

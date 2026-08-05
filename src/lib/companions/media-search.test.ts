@@ -10,10 +10,12 @@ const item = (
   caption: string,
   description = '',
   kind: CompanionMedia['kind'] = 'image',
+  values: CompanionMedia['values'] = {},
 ): CompanionMedia => ({
   kind,
   caption,
   description,
+  values,
   ref,
   load: () => Promise.resolve('blob:x'),
   forget: () => {},
@@ -76,6 +78,56 @@ describe('searchMedia', () => {
       'c',
       'd',
     ]);
+  });
+
+  it('finds an item captioned in one word of a group from a request in another', () => {
+    const set = [item('a', 'Kneeling on a bed, breasts bare.'), SET[1]!];
+    expect(searchMedia(set, 'tits')[0]?.ref).toBe('a');
+  });
+
+  it('finds an item captioned in the singular from a request in the plural', () => {
+    const set = [item('a', 'On a bed, one nipple showing.'), SET[1]!];
+    expect(searchMedia(set, 'nipples')[0]?.ref).toBe('a');
+  });
+
+  // Refs put the one-word caption first on a tie, so a folding that counted
+  // each of the group's words separately would reverse this rather than leave
+  // the order it found.
+  it('scores a caption carrying two words of a group as one carrying either', () => {
+    const one = item('a', 'Bare breasts.');
+    const both = item('b', 'Bare boobs, tits out.');
+    expect(searchMedia([one, both], 'tits').map((h) => h.ref)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
+
+  it('keeps a request apart from a garment narrower than the one it names', () => {
+    const set = [item('a', 'Wearing a thong.'), item('b', 'Wearing panties.')];
+    expect(searchMedia(set, 'thong').map((h) => h.ref)).toEqual(['a']);
+  });
+
+  it('orders items it scores equally by the sample it was given', () => {
+    // Both captions carry the query word once, so nothing but the sample can
+    // separate them — and the samples descend, which is the order the refs
+    // would not produce on their own.
+    const set = [item('a', 'On a beach.'), item('b', 'On a beach.')];
+    const samples = [0.9, 0.1];
+    let i = 0;
+    expect(
+      searchMedia(set, 'beach', { rand: () => samples[i++]! }).map(
+        (h) => h.ref,
+      ),
+    ).toEqual(['b', 'a']);
+  });
+
+  it('orders items it scores equally by ref when it is given no sample', () => {
+    // The items go in reversed, because a sort whose comparator never separates
+    // them hands back the order they came in — so asserting two identical calls
+    // agree proves only that Array.sort is stable. Only the ref comparison can
+    // put 'a' first.
+    const set = [item('b', 'On a beach.'), item('a', 'On a beach.')];
+    expect(searchMedia(set, 'beach').map((h) => h.ref)).toEqual(['a', 'b']);
   });
 
   it('carries the caption and kind of each hit, which is what the model reads', () => {

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
 import { skipWithoutOpfs } from './opfs';
+import { packsListed } from './packs';
 
 // 1x1 transparent PNG.
 const TINY_PNG = Buffer.from(
@@ -167,7 +168,11 @@ test('removing a pack deletes its tree and its chooser card', async ({
 }) => {
   await installCompletePack(page);
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
-  await expect(page.getByText('No packs imported.')).toBeVisible();
+  // Elise's row is what says the rebuild has rendered — she is a pack source
+  // on disk and never leaves the list — so Testy's absence beside her is an
+  // absence rather than a list that hasn't come back yet.
+  await packsListed(page);
+  await expect(page.getByText('e2e.testy', { exact: true })).toHaveCount(0);
   expect(await treeExists(page, 'e2e.testy@1.0.0')).toBe(false);
 
   // Aimee is on the chooser whatever happens, so waiting for her card is what

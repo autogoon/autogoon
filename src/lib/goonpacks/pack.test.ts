@@ -73,6 +73,7 @@ describe('parsePack', () => {
       mimeType: 'image/jpeg',
       caption: 'desc a',
       description: 'Description a.',
+      values: {},
     });
     expect(pack.media[1]).toMatchObject({
       name: 'b',
@@ -138,18 +139,17 @@ describe('parsePack', () => {
     ).rejects.toThrow(/a\.md/);
   });
 
-  it('refuses a sidecar with no media file beside it, which is half a rename', async () => {
-    await expect(
-      parsePack(
-        tree({
-          'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
-          'system-prompt.md': 'You are Testy.',
-          'media/a.jpg': '',
-          'media/a.md': sidecar('A caption.', 'A description.'),
-          'media/b.md': sidecar('Orphan.', 'No picture for this one.'),
-        }),
-      ),
-    ).rejects.toThrow(/b\.md/);
+  it('reports a sidecar with no media file beside it as a stray, which is half a rename', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': complete({ mediaSummary: 'Beach shots.' }),
+        'system-prompt.md': 'You are Testy.',
+        'media/a.jpg': '',
+        'media/a.md': sidecar('A caption.', 'A description.'),
+        'media/b.md': sidecar('Orphan.', 'No picture for this one.'),
+      }),
+    );
+    expect(pack.strays).toEqual(['b']);
   });
 
   it('names the sidecar that failed to parse, not just the pack', async () => {
@@ -222,15 +222,47 @@ describe('parsePack', () => {
     await expect(parsePack(t)).rejects.toThrow(/mp4 or \.webm/);
   });
 
-  it('rejects an unsupported extension in media/, naming the file and the allowed types', async () => {
-    const t = tree({
-      'manifest.json': manifest({ base: 'autogoon.aimee' }),
-      'media/a.gif': '',
-    });
-    const problems = await parsePack(t).catch((e: PackError) => e.problems);
-    expect(problems).toEqual([
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
-    ]);
+  it('reports an unplayable file in media/ as a stray basename rather than refusing the pack', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({ base: 'autogoon.aimee' }),
+        'media/a.gif': '',
+      }),
+    );
+    expect(pack.strays).toEqual(['a']);
+  });
+
+  it('counts a basename once, however many working files an item accumulates', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          base: 'autogoon.aimee',
+          mediaSummary: 'Beach shots.',
+        }),
+        'media/a.jpg': '',
+        'media/a.md': sidecar('A caption.', 'A description.'),
+        'media/a.labels.json': '{}',
+        'media/a.2026-08-02-baseline.raw.txt': '',
+      }),
+    );
+    expect(pack.strays).toEqual([]);
+    expect(pack.media.map((m) => m.file)).toEqual(['a.jpg']);
+  });
+
+  it('lists a media file with no sidecar as undescribed, not as a problem', async () => {
+    const pack = await parsePack(
+      tree({
+        'manifest.json': manifest({
+          base: 'autogoon.aimee',
+          mediaSummary: 'Beach shots.',
+        }),
+        'media/a.jpg': '',
+        'media/b.jpg': '',
+        'media/b.md': sidecar('B caption.', 'B description.'),
+      }),
+    );
+    expect(pack.undescribed).toEqual(['a.jpg']);
+    expect(pack.strays).toEqual([]);
   });
 
   it('rejects a subfolder under media/, naming the path', async () => {
@@ -435,7 +467,6 @@ describe('parsePack', () => {
       }),
     ).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
       'A complete pack needs a system-prompt.md file.',
       'A complete pack needs a voiceId field in the companion section of manifest.json.',
       'A complete pack needs a description field in the companion section of manifest.json.',
@@ -456,7 +487,6 @@ describe('parsePack', () => {
     ).catch((e: PackError) => e.problems);
     expect(problems).toEqual([
       'manifest.json is missing the version field - this is the version number of your pack',
-      'Unsupported file in media/: a.gif — media must be jpg, jpeg, png, webp, mp4 or webm, each with a matching .md sidecar.',
     ]);
   });
 });

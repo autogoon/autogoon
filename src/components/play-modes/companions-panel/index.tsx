@@ -35,7 +35,10 @@ import { SessionControls } from '@/components/session-controls';
 import { Slider } from '@/components/slider';
 import { Sparkline } from '@/components/sparkline';
 import { StrokeCard } from '@/components/stroke-card';
-import { useGoonpackLibrary } from '@/hooks/use-goonpack-library';
+import {
+  chosenExperiment,
+  useGoonpackLibrary,
+} from '@/hooks/use-goonpack-library';
 import type { PlayerView } from '@/hooks/use-player';
 import { useStrokeControls } from '@/hooks/use-stroke-controls';
 import type { VacuglideDeviceController } from '@/hooks/use-vacuglide-device';
@@ -110,8 +113,9 @@ export function CompanionsPanel({
 
   // One index per session, shared with the Goonpacks tab: an import or removal
   // there rebuilds it and this chooser is told, so there is nothing to re-sync
-  // when the screen comes back into view.
-  const library = useGoonpackLibrary();
+  // when the screen comes back into view. Built the first time either screen is
+  // opened rather than at startup, which is what `active` carries here.
+  const library = useGoonpackLibrary(active);
 
   // The picked, fully-resolved companion (variant applied, prompt sections
   // filled). Chosen in the setup view and fixed for the play session (the nav
@@ -370,6 +374,7 @@ export function CompanionsPanel({
                 const found = searchMedia(items, query, {
                   exclude: sentRefs.current,
                   kind,
+                  rand: Math.random,
                 });
                 return {
                   result: describeHits(found),
@@ -439,6 +444,7 @@ export function CompanionsPanel({
   const {
     start: startListening,
     stop: stopListening,
+    endSession,
     submitText,
     cancelReply,
     clearThread,
@@ -491,10 +497,11 @@ export function CompanionsPanel({
     }
   }, [active, view, player.state, player.source, device, engine]);
 
-  // A hot mic must not linger once you leave Companions. stop() is idempotent.
+  // Neither a hot mic nor a pending poke must linger once you leave Companions:
+  // the companion would speak with the screen that shows her gone. Idempotent.
   useEffect(() => {
-    if (!active) stopListening();
-  }, [active, stopListening]);
+    if (!active) endSession();
+  }, [active, endSession]);
 
   const reset = useCallback(() => {
     setIntensity(DEFAULT_INTENSITY);
@@ -730,6 +737,13 @@ export function CompanionsPanel({
                     sel={variantSel[entry.companion.id]}
                     onSelectPacks={selectPacks}
                     onPick={pickVariant}
+                    disk={{
+                      dirs: library.onDisk,
+                      experiments: library.experiments,
+                      chosen: chosenExperiment,
+                      onChoose: (dir, experiment) =>
+                        void library.chooseExperiment(dir, experiment),
+                    }}
                   />
                 ))
               )}

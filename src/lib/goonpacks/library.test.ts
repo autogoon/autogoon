@@ -117,6 +117,35 @@ describe('buildLibrary', () => {
     expect(content.media[0]!.caption).toBe('a still');
   });
 
+  // The pack format does not own the question set, so a sidecar carries
+  // whatever wrote it chose to record (sidecar.ts). Nothing between the
+  // frontmatter and the item a companion searches may drop a key it doesn't
+  // recognise.
+  it('carries the rest of a sidecar’s frontmatter onto the item, whatever it is called', async () => {
+    const pack = completePack('pub.comp');
+    pack['media/a.md'] =
+      `---\ncaption: "a still"\ntext: "HOTEL CALIFORNIA"\nnaked: true\n---\n\na still, described at length\n`;
+    const lib = await buildLibrary(source({ 'pub.comp@1.0.0': pack }));
+    const content = lib.content.get('pub.comp@1.0.0')!;
+    expect(content.media[0]!.values).toEqual({
+      text: 'HOTEL CALIFORNIA',
+      naked: true,
+    });
+    // The other item's sidecar carries a caption alone, and gets an empty bag
+    // rather than the first one's or none at all.
+    expect(content.media[1]!.values).toEqual({});
+  });
+
+  // Where a pack was read from is the merge's to say (merged-source.ts): a
+  // source answers for a key without saying where it read it, so a library
+  // built over one place marks nothing.
+  it('marks no pack as coming off disk, which only a merge of two sources knows', async () => {
+    const lib = await buildLibrary(
+      source({ 'pub.comp@1.0.0': completePack('pub.comp') }),
+    );
+    expect([...lib.onDisk]).toEqual([]);
+  });
+
   it("leaves a media item's src unset until load() is called", async () => {
     const lib = await buildLibrary(
       source({ 'pub.comp@1.0.0': completePack('pub.comp') }),

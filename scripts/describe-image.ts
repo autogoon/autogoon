@@ -55,6 +55,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { MEDIA_TYPES } from '../src/lib/goonpacks/media';
+import { out } from './lib/colour';
 import {
   renderSidecar,
   SIDECAR_EXT,
@@ -178,15 +179,10 @@ OBSERVATIONS:
 
 CAPTION: <the single caption sentence>`;
 
-// Output colours, shared with describe-missing.ts: yellow names the picture,
-// dim carries the steps and the model's observations, green is the caption.
-// Colour only on a TTY, so piped output stays clean.
-export const yellow = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[33m${s}\x1b[0m` : s;
-export const green = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[32m${s}\x1b[0m` : s;
-export const dim = (s: string): string =>
-  process.stdout.isTTY ? `\x1b[2m${s}\x1b[0m` : s;
+// Output colours, re-exported for describe-missing.ts: yellow names the
+// picture, dim carries the steps and the model's observations, green is the
+// caption.
+export const { yellow, green, dim } = out;
 
 // How many terminal rows an inlined picture takes.
 const INLINE_HEIGHT = 30;
@@ -240,7 +236,7 @@ export async function describeImage(
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
   // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
   // MODEL to try another (see the list at the top of this file).
-  const model = process.env.MODEL ?? 'qwen/qwen3-vl-235b-a22b-instruct';
+  const model = process.env.MODEL ?? 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
 
   // parsePack fails a pack over a file MEDIA_TYPES doesn't list, so a sidecar
   // for one is written for nothing. Stills only: MEDIA_TYPES lists videos as
@@ -337,7 +333,10 @@ export async function describeImage(
     );
   }
 
-  return { caption, description };
+  // No values: this script asks for a caption and observations and nothing
+  // else. What fills a sidecar's frontmatter is the Inference harness's to
+  // decide (src/inference/fields.ts), and it composes its own.
+  return { caption, description, values: {} };
 }
 
 // CLI: describe one image and write its sidecar. Runs only when invoked

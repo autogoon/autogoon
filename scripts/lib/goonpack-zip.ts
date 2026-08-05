@@ -1,15 +1,24 @@
-// A pack source written out as a zip, one file open at a time: each is deflated
+// A pack source written out as a zip, one file open at a time: each is written
 // as it is read and the reader pauses when the output stream is full, so peak
 // memory is a chunk rather than the pack. The app reads a pack back the same
-// way (src/lib/goonpacks/extract.ts).
+// way (src/lib/goonpacks/extract.ts), and reads a stored entry as readily as a
+// deflated one — fflate's Unzip handles the stored method with nothing
+// registered.
 import { createReadStream, createWriteStream } from 'node:fs';
 import { join } from 'node:path';
-import { Zip, ZipDeflate } from 'fflate';
+import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
+import { MEDIA_TYPES, splitName } from '../../src/lib/goonpacks/media';
+import type { Shipped } from '../../src/inference/pack-contents';
 
 export function writeZip(
   dir: string,
-  names: string[],
+  // What goes in and where each entry is read from — the two differ where a
+  // build takes an experiment's sidecar as an item's own (pack-contents.ts).
+  files: readonly Shipped[],
   out: string,
+  // How many files are written, as each one finishes. Deflating a pack of
+  // pictures is the longest thing the build does.
+  onFile?: (done: number, total: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const sink = createWriteStream(out);
@@ -21,14 +30,19 @@ export function writeZip(
       if (final) sink.end(() => resolve());
     });
     const next = (i: number): void => {
-      if (i === names.length) return zip.end();
-      const name = names[i]!;
-      // Deflated, like the `zip -r` an author would run. Stills and video
-      // barely shrink, but a pack's text does, and text is what a pack
-      // accumulates as more media is described.
-      const entry = new ZipDeflate(name, { level: 6 });
+      if (i === files.length) return zip.end();
+      const file = files[i]!;
+      // Media is stored and everything else deflated. Pictures and video tend
+      // to shrink by under a percent, which doesn't pay for the time spent
+      // trying — it is the dominant cost of building a large pack. A pack's
+      // text does shrink, and text is what a pack accumulates as more media is
+      // described. A zip carries a method per entry, so the two mix freely.
+      const entry =
+        MEDIA_TYPES[splitName(file.entry).ext] === undefined
+          ? new ZipDeflate(file.entry, { level: 6 })
+          : new ZipPassThrough(file.entry);
       zip.add(entry);
-      const source = createReadStream(join(dir, name));
+      const source = createReadStream(join(dir, file.source));
       source.on('error', reject);
       source.on('data', (chunk: string | Buffer) => {
         // The stream is opened with no encoding, so every chunk is a Buffer.
@@ -42,6 +56,7 @@ export function writeZip(
       // final push is the only one its entry gets.
       source.on('end', () => {
         entry.push(new Uint8Array(0), true);
+        onFile?.(i + 1, files.length);
         next(i + 1);
       });
     };
