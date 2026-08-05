@@ -16,7 +16,7 @@ to install and no wearable; open it and enter your device token.
 - **Hands-free from start to finish** — every control has a spoken word, shown
   on screen; say it any time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine;
-  only device-control traffic leaves it.
+  [Privacy](#privacy) says what leaves it.
 - **Four play modes**:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose, with an intensity dial and faster/slower time-stretch.
@@ -32,7 +32,7 @@ to install and no wearable; open it and enter your device token.
 ### Companions — someone to talk to
 
 A companion has their own voice, remembers the conversation, and speaks
-unprompted. Going quiet doesn't end the conversation.
+unprompted.
 
 **Companions isn't usable on the public app yet.** Chat, voice and hearing are
 paid cloud services. On a deploy the mode is hidden unless you have an access
@@ -64,18 +64,24 @@ is the guide, with a worked example in the repo.
 
 ### Privacy
 
-Everything runs in your browser; the only thing that leaves your machine is the
-control traffic to Autoblow's cloud API for the device itself.
+Play runs in your browser: speech recognition is local, and your packs and media
+never leave your machine. Three things do leave it:
 
-The exception is **Companions**, which can't be local-only: during play your
-speech is transcribed by a cloud STT service, and the companion's replies come
-from a cloud LLM and TTS voice.
+- **Device control** — the traffic to Autoblow's cloud API that drives the
+  device.
+- **Visit analytics** — the deployed app reports anonymous page views and
+  performance timings to Vercel: path, referrer, coarse location, device,
+  browser and load metrics. No cookies, and no content — nothing about your
+  packs or your play is in it.
+- **Companions**, which can't be local-only: during play your speech is
+  transcribed by a cloud STT service, and the companion's replies come from a
+  cloud LLM and TTS voice.
 
 ### Running hands-free (mobile caveats)
 
 The Autogoon tab has to stay **foregrounded and awake** — it runs the timing
 loop and the microphone continuously, and mobile browsers suspend or throttle
-background or screen-locked tabs, which stops both.
+background or screen-locked tabs. That stops both.
 
 - **iOS Safari** — the moment the tab is backgrounded or the screen locks, the
   play mode and the mic stop. You need a **second device** dedicated to Autogoon
