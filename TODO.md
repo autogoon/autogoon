@@ -120,9 +120,6 @@ server-only (its modules import node's filesystem to run a model), so a scoring
 _function_ can't cross into the browser without splitting the parser out, while
 a scoring _config_ is data and rides the same route the pack does.
 
-Blocked by the `text` field storing "there is none" as an answer, which would
-match every picture that has no writing on it. See TOFIX.md.
-
 ### The model settings, together or app-wide
 
 `model`, `contextWindow` and `passesReasoning` describe one model. `resolve.ts`
@@ -255,6 +252,41 @@ the tool silently ignored.
 
 To settle: what the refusal says. It is all the model learns from, and one that
 reads as "no pictures" would stop them offering any.
+
+## Inference
+
+### Drop "corpus" as a term
+
+A corpus is a pack's `media/`, which makes the word a second name for something
+that already has one. It describes how labelling happens to be implemented, not
+what the feature is, and a reader meeting it has to be told the equivalence
+before the sentence means anything.
+
+It is throughout `src/inference/` — a module, a hook, their tests, the API
+routes, the panel and the review screen — and through
+[INFERENCE.md](./INFERENCE.md) and
+[docs/2026-08-02-inference-ui-spec.md](./docs/2026-08-02-inference-ui-spec.md).
+So it is a rename of modules, hooks and exported functions, not a search and
+replace over prose. What replaces it is the first thing to settle: the pack, or
+its media, depending on the sentence.
+
+### Let the Inference screen write a plain sidecar
+
+The screen is most of the caption-review surface
+[GOONPACK-KIT.md](./roadmap/GOONPACK-KIT.md) asks for — a picture beside what a
+model said about it, keyboard-driven, editable. What stops it being that is the
+experiment: every answer is stamped with the experiment that produced it, and
+every file it writes is named for one, so there is no way to sit down with a
+pack and fix a caption.
+
+Writing the stock `<stem>.md` when no experiment is chosen would close the gap.
+An experiment run keeps its stamped files and its ground-truth rules; a plain
+edit writes the sidecar a pack plays with. That is the kit's first piece, on the
+screen that already exists.
+
+To settle: whether a hand-written caption still counts as `human` ground truth
+for scoring, and what happens when an experiment later answers an item somebody
+has already edited by hand.
 
 ## Goonpacks
 
