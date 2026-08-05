@@ -17,7 +17,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\" \"scripts/md-sweep-briefs/*.md\"",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "playwright test"
