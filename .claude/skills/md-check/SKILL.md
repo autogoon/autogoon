@@ -74,8 +74,11 @@ anthropomorphism, read clearly without having to hold the whole knowledge of the
 codebase in your head to be able to parse a sentence. No gloss, the register is
 right.
 
-IMPORTANT: The current call for any given finding is the one which improves the
+IMPORTANT: THe current call for any given finding is the one which improves the
 documentation.
+
+It is expected that we repeat the important "remind yourself" instructions, to
+maintain the quality this skill produces
 
 ## Pass 1 — doc-check
 
