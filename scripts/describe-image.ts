@@ -37,7 +37,7 @@
 //     Claude Sonnet 4.5        anthropic/claude-sonnet-4.5
 //     GPT-4.1                  openai/gpt-4.1
 //     GPT-4o                   openai/gpt-4o
-//     Qwen3-VL 235B            qwen/qwen3-vl-235b-a22b-instruct  (strongest open-weight; the default below)
+//     Qwen3-VL 235B            qwen/qwen3-vl-235b-a22b-instruct  (strongest open-weight)
 //     Qwen2.5-VL 72B           qwen/qwen2.5-vl-72b-instruct
 //
 //   Cheap, good for bulk captioning (goonpack:describe-missing over a whole folder):
@@ -234,8 +234,9 @@ export async function describeImage(
     throw new Error('OPENROUTER_API_KEY is not set — put it in .env.');
   }
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
-  // Qwen3-VL 235B — the strongest open vision model on OpenRouter. Override with
-  // MODEL to try another (see the list at the top of this file).
+  // Qwen3-VL 30B — good enough for bulk captioning and far cheaper than the
+  // 235B. Override with MODEL to try another (see the list at the top of this
+  // file).
   const model = process.env.MODEL ?? 'qwen/qwen3-vl-30b-a3b-instruct:nitro';
 
   // parsePack fails a pack over a file MEDIA_TYPES doesn't list, so a sidecar
