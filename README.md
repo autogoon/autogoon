@@ -11,11 +11,11 @@ stroker from your browser, **entirely by voice**.
 ## For users
 
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
-to install and no wearable; open it and enter your device token.
+to install and no wearable. Open it and enter your device token.
 
 - **Hands-free from start to finish** — every control has a spoken word, shown
-  on screen; say it any time. Tap **Listen** once.
-- **Private by default** — speech recognition runs entirely on your machine;
+  on screen. Say it any time. Tap **Listen** once.
+- **Private by default** — speech recognition runs entirely on your machine.
   [Privacy](#privacy) says what leaves it.
 - **Four play modes**:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
@@ -25,7 +25,7 @@ to install and no wearable; open it and enter your device token.
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
     own Vacuglide autopilot.
   - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
-    drives the toy themselves; needs your own keys today.
+    drives the toy themselves. Needs your own keys today.
 - **Switch by voice** — from home, say a mode's name to enter it; say exit to
   come back and choose another, once you've stopped.
 
