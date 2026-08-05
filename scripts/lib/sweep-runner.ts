@@ -50,14 +50,13 @@ export async function sweepFile(
 
 async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   const { claude, git, queue, briefs, cwd, log, dryRun, model } = deps;
-  const report = parseFindReport(
-    await claude({
-      prompt: `${briefs[pass]}\n\nFile: ${file}`,
-      schema: FINDINGS_SCHEMA,
-      model,
-    }),
-  );
-  queue.writeReport(file, pass, report);
+  const raw = await claude({
+    prompt: `${briefs[pass]}\n\nFile: ${file}`,
+    schema: FINDINGS_SCHEMA,
+    model,
+  });
+  queue.writeReport(file, pass, raw);
+  const report = parseFindReport(raw);
   log(`${file} [${pass}]: ${report.findings.length} findings`);
 
   for (const finding of report.findings.filter((f) => !f.mechanical))

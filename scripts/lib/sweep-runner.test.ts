@@ -210,6 +210,25 @@ describe('sweepFile', () => {
     expect(lines.join('\n')).toContain('dirty');
   });
 
+  it('writes the raw find report before a malformed reply fails to parse', async () => {
+    const logs: string[] = [];
+    const claude: ClaudeRunner = async () => ({ nonsense: true });
+    await sweepFile(
+      'DOC.md',
+      ['style'],
+      deps([], { claude, log: (l) => logs.push(l) }),
+    );
+    expect(
+      JSON.parse(
+        readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
+      ),
+    ).toEqual({ nonsense: true });
+    expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
+      'The app wants to be helpful.\n',
+    );
+    expect(logs.join('\n')).toContain('findings is not an array');
+  });
+
   it('continues to the next pass when a claude call throws', async () => {
     const calls: string[] = [];
     const claude: ClaudeRunner = async (call) => {

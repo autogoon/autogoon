@@ -7,7 +7,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { claudeRunner } from './lib/sweep-claude';
@@ -18,9 +18,14 @@ import { sweepFile } from './lib/sweep-runner';
 
 const PASSES: Pass[] = ['doc', 'style', 'register', 'duplication'];
 
-// Persona prompts are not documentation (doc-check → The document set), and
-// CHECK-QUESTIONS.md is a transient decision queue.
-const EXCLUDED = [/^goonpacks\/.*system-prompt\.md$/, /^CHECK-QUESTIONS\.md$/];
+// Persona prompts are not documentation (doc-check → The document set),
+// CHECK-QUESTIONS.md is a transient decision queue, and the sweep's own
+// briefs are prompts, not documentation — the same rationale as the personas.
+const EXCLUDED = [
+  /^goonpacks\/.*system-prompt\.md$/,
+  /^CHECK-QUESTIONS\.md$/,
+  /^scripts\/md-sweep-briefs\//,
+];
 
 // Most-read first: the root docs are what other files point at.
 function rank(file: string): number {
@@ -71,7 +76,7 @@ const brief = (name: string) =>
 const deps = {
   claude: claudeRunner({ cwd }),
   git: sweepGit(cwd),
-  queue: sweepQueue(join(cwd, values.out)),
+  queue: sweepQueue(resolve(cwd, values.out)),
   format: async (file: string) => {
     execFileSync('npx', ['prettier', '--write', file], { cwd });
   },
@@ -92,6 +97,9 @@ console.error(
   `${files.length} files, passes: ${passes.join(', ')}${
     deps.dryRun ? ' (dry run)' : ''
   }`,
+);
+deps.queue.runHeader(
+  `${new Date().toISOString()} — ${files.length} files, passes ${passes.join(',')}`,
 );
 for (const file of files) await sweepFile(file, passes, deps);
 console.error(

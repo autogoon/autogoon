@@ -29,3 +29,6 @@ passage claims.
 `old` is verbatim and unique in the file; `new` is exact replacement text. Order
 findings worst first. A clean file returns an empty `findings` array, and `read`
 says what was read.
+
+The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
+breaks as they appear on disk, or the replacement will not match.

@@ -34,3 +34,6 @@ report it with `mechanical: false` and name the file in `rationale`.
 Order findings most important first. A clean file returns an empty `findings`
 array. In `read`, say what you read and what you verified — a clean report must
 be distinguishable from a skipped one.
+
+The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
+breaks as they appear on disk, or the replacement will not match.

@@ -40,4 +40,17 @@ describe('sweepQueue', () => {
     expect(questions).toContain('src/x.ts:1');
     expect(questions).toContain('verify-fail: lost a fact');
   });
+
+  it('writes a run header before the questions that follow it', () => {
+    const queue = sweepQueue(out);
+    queue.runHeader('2026-08-05T00:00:00.000Z — 1 files, passes doc');
+    queue.question('README.md', 'doc', finding, 'non-mechanical');
+    const questions = readFileSync(join(out, 'questions.md'), 'utf8');
+    const headerIndex = questions.indexOf(
+      '## Run 2026-08-05T00:00:00.000Z — 1 files, passes doc',
+    );
+    const questionIndex = questions.indexOf('README.md — doc — drift');
+    expect(headerIndex).toBeGreaterThanOrEqual(0);
+    expect(questionIndex).toBeGreaterThan(headerIndex);
+  });
 });

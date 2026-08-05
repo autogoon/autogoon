@@ -9,6 +9,7 @@ import type { Finding, Pass } from './sweep-findings';
 export type SweepQueue = {
   writeReport: (file: string, pass: Pass, report: unknown) => void;
   question: (file: string, pass: Pass, finding: Finding, why: string) => void;
+  runHeader: (info: string) => void;
 };
 
 const slug = (file: string) => file.replaceAll('/', '--');
@@ -22,6 +23,10 @@ export function sweepQueue(outDir: string): SweepQueue {
         join(dir, `${slug(file)}--${pass}.json`),
         JSON.stringify(report, null, 2),
       );
+    },
+    runHeader: (info) => {
+      mkdirSync(outDir, { recursive: true });
+      appendFileSync(join(outDir, 'questions.md'), `## Run ${info}\n\n`);
     },
     question: (file, pass, finding, why) => {
       mkdirSync(outDir, { recursive: true });

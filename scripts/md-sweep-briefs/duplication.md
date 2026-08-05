@@ -23,3 +23,6 @@ Never propose deleting:
 precision and neither carries a detail the other lacks. In `read`, give the
 file's word count and the total words the findings would remove, so the pass can
 be judged.
+
+The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
+breaks as they appear on disk, or the replacement will not match.

@@ -18,3 +18,6 @@ For each instance, the test is: delete the tail, and what does the reader lose?
 replacement. `mechanical` is true for a pure split and for a deletion that loses
 nothing; false where judging what the tail carries could go either way. Order
 findings worst first.
+
+The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
+breaks as they appear on disk, or the replacement will not match.
