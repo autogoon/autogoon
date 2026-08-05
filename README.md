@@ -17,7 +17,7 @@ to install and no wearable. Open it and enter your device token.
   on screen. Say it any time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine.
   [Privacy](#privacy) says what leaves it.
-- **Four play modes**:
+- **Play modes**:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose, with an intensity dial and faster/slower time-stretch.
   - **[Groove](./modes/GROOVE.md)** — a manual stroke pattern you shape live
