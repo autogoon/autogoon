@@ -8,6 +8,7 @@ const finding = {
   evidence: 'src/lib/player.ts:12',
   rationale: 'renamed',
   mechanical: true,
+  recommend: true,
 };
 
 describe('parseFindReport', () => {
@@ -20,6 +21,13 @@ describe('parseFindReport', () => {
     const { mechanical: _mechanical, ...partial } = finding;
     expect(() => parseFindReport({ findings: [partial], read: 'r' })).toThrow(
       /mechanical/,
+    );
+  });
+
+  it('throws naming the field when a finding omits recommend', () => {
+    const { recommend: _recommend, ...partial } = finding;
+    expect(() => parseFindReport({ findings: [partial], read: 'r' })).toThrow(
+      /recommend/,
     );
   });
 

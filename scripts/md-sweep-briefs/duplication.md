@@ -24,5 +24,11 @@ precision and neither carries a detail the other lacks. In `read`, give the
 file's word count and the total words the findings would remove, so the pass can
 be judged.
 
+`recommend` is true when, weighing your own rationale, you would make this
+change; false when you would advise against it — a restatement that carries the
+fact in terms its audience needs is the common case here. Report the finding
+either way rather than suppressing it: a `recommend: false` finding is kept in
+the raw report for audit and goes no further.
+
 The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
 breaks as they appear on disk, or the replacement will not match.

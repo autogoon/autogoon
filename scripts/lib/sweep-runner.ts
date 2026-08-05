@@ -57,9 +57,15 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   });
   queue.writeReport(file, pass, raw);
   const report = parseFindReport(raw);
-  log(`${file} [${pass}]: ${report.findings.length} findings`);
+  // A finding the agent itself advises against stays in the raw report and
+  // goes no further: not applying a fix needs no human gate.
+  const endorsed = report.findings.filter((f) => f.recommend);
+  log(
+    `${file} [${pass}]: ${report.findings.length} findings, ` +
+      `${endorsed.length} endorsed`,
+  );
 
-  for (const finding of report.findings.filter((f) => !f.mechanical))
+  for (const finding of endorsed.filter((f) => !f.mechanical))
     queue.question(file, pass, finding, 'non-mechanical');
   if (dryRun) return;
 
@@ -67,7 +73,7 @@ async function runPass(file: string, pass: Pass, deps: RunnerDeps) {
   const snapshot = readFileSync(path, 'utf8');
   const { content, applied, bounced } = applyFindings(
     snapshot,
-    report.findings.filter((f) => f.mechanical),
+    endorsed.filter((f) => f.mechanical),
   );
   for (const bounce of bounced)
     queue.question(file, pass, bounce.finding, bounce.reason);

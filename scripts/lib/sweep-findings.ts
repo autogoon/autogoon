@@ -17,6 +17,10 @@ export type Finding = {
   // False when two defensible outcomes exist — routed to the questions
   // file instead of applied.
   mechanical: boolean;
+  // False when the reviewer, weighing its own rationale, advises against
+  // the fix. Recorded in the raw report for audit, applied nowhere, and
+  // never queued — not applying a fix needs no human gate.
+  recommend: boolean;
 };
 
 export type FindReport = { findings: Finding[]; read: string };
@@ -29,6 +33,7 @@ const FINDING_PROPERTIES = {
   evidence: { type: 'string' },
   rationale: { type: 'string' },
   mechanical: { type: 'boolean' },
+  recommend: { type: 'boolean' },
 } as const;
 
 export const FINDINGS_SCHEMA = {
@@ -72,6 +77,7 @@ export function parseFindReport(value: unknown): FindReport {
     field(f?.evidence, 'evidence', 'string');
     field(f?.rationale, 'rationale', 'string');
     field(f?.mechanical, 'mechanical', 'boolean');
+    field(f?.recommend, 'recommend', 'boolean');
   }
   return report;
 }

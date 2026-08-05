@@ -26,6 +26,11 @@ Sweep for:
 preserves the claim exactly; false wherever the rewrite would change what the
 passage claims.
 
+`recommend` is true when, weighing your own rationale, you would make this
+change; false when you would advise against it. Report the finding either way
+rather than suppressing it: a `recommend: false` finding is kept in the raw
+report for audit and goes no further.
+
 `old` is verbatim and unique in the file; `new` is exact replacement text. Order
 findings worst first. A clean file returns an empty `findings` array, and `read`
 says what was read.

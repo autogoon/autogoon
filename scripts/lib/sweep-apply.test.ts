@@ -10,6 +10,7 @@ function finding(old: string, replacement: string): Finding {
     evidence: 'e',
     rationale: 'r',
     mechanical: true,
+    recommend: true,
   };
 }
 

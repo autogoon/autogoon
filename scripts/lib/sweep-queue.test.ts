@@ -18,6 +18,7 @@ const finding: Finding = {
   evidence: 'src/x.ts:1',
   rationale: 'because',
   mechanical: false,
+  recommend: true,
 };
 
 describe('sweepQueue', () => {

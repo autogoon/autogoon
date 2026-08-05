@@ -27,6 +27,10 @@ Each finding:
 - `mechanical` — true only when no defensible alternative outcome exists. False
   when: two resolutions differ in cost; the code, not the doc, looks wrong; the
   fix would change a policy; the fix belongs in a different file.
+- `recommend` — true when, weighing your own rationale, you would make this
+  change; false when you would advise against it. Report the finding either way
+  rather than suppressing it: a `recommend: false` finding is kept in the raw
+  report for audit and goes no further.
 
 A fix in a file other than the one under review is never applied by this pass —
 report it with `mechanical: false` and name the file in `rationale`.

@@ -19,5 +19,10 @@ replacement. `mechanical` is true for a pure split and for a deletion that loses
 nothing; false where judging what the tail carries could go either way. Order
 findings worst first.
 
+`recommend` is true when, weighing your own rationale, you would make this
+change; false when you would advise against it. Report the finding either way
+rather than suppressing it: a `recommend: false` finding is kept in the raw
+report for audit and goes no further.
+
 The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
 breaks as they appear on disk, or the replacement will not match.

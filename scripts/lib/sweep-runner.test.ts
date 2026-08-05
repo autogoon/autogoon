@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sweepFile, type RunnerDeps } from './sweep-runner';
@@ -37,6 +43,7 @@ const finding: Finding = {
   evidence: '-',
   rationale: 'personification',
   mechanical: true,
+  recommend: true,
 };
 
 // One canned reply per claude call, in call order.
@@ -149,6 +156,31 @@ describe('sweepFile', () => {
     expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
       'non-mechanical',
     );
+  });
+
+  it('keeps a finding the agent advises against in the report only', async () => {
+    await sweepFile(
+      'DOC.md',
+      ['style'],
+      deps([
+        {
+          findings: [
+            { ...finding, mechanical: false, recommend: false },
+            { ...finding, recommend: false },
+          ],
+          read: 'r',
+        },
+      ]),
+    );
+    expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
+      'The app wants to be helpful.\n',
+    );
+    expect(existsSync(join(out, 'questions.md'))).toBe(false);
+    expect(
+      JSON.parse(
+        readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
+      ).findings,
+    ).toHaveLength(2);
   });
 
   it('queues a finding whose old text no longer matches', async () => {
