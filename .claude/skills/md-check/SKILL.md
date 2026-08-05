@@ -187,16 +187,29 @@ the process you're following.
 
 ## Open questions
 
-Some findings are not yours to settle: a doc and the code disagree and it is the
-code that looks wrong, a fix would change a policy, a section belongs in another
-file. Write each one to `CHECK-QUESTIONS.md` at the repo root as it arises, with
-the evidence, the options and what each costs, and the resulting text where it
-is short enough — enough that it can be decided later without re-reading the
-source. Then carry on; do not stop the sweep on it.
+A finding goes to `CHECK-QUESTIONS.md` only when there is a decision to make.
+Name the two outcomes in a sentence each before you write the entry. If one of
+them is "leave it wrong", it is not a question. Fix it.
 
-DO NOT add every finding you can't decide on, only serious findings that do need
-addressing urgency - claims about privacy, security issues, policies which
-contradict etc.
+Decisions: a doc and the code disagree and it is the code that looks wrong; a
+fix would change a policy; a section belongs in another file; two defensible
+resolutions with different costs.
+
+Not decisions, however far outside `.md` the fix lands: a missing row in
+`.env.example`, a stale identifier in a code comment, a broken link, a renamed
+script, a value that no longer matches the code. **The sweep's scope governs
+which files it reads, never which it may correct.** A fault found in
+`ROADMAP.md` and fixed in `package.json` is the sweep working. Reaching for
+scope as the reason to record rather than fix — "not a `.md` file", "another
+check owns it" — is the failure this paragraph exists to stop.
+
+Seriousness is the second filter, not the first. Once something is genuinely a
+decision, record it only if it needs one: privacy or security claims,
+contradictory policies, a defect in shipped behaviour.
+
+Write each with the evidence, the options and what each costs, and the resulting
+text where it is short enough — enough that it can be decided later without
+re-reading the source. Then carry on; do not stop the sweep on it.
 
 **Write it down at the time.** A question you intend to record later is a
 question you have lost: the report it came from is thousands of words back, and
