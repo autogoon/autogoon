@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { sweepQueue } from './sweep-queue';
@@ -31,27 +37,41 @@ describe('sweepQueue', () => {
     expect(JSON.parse(stored)).toEqual({ findings: [] });
   });
 
-  it("appends questions with the finding's evidence and the why", () => {
+  it("appends questions to the file's own question file", () => {
     const queue = sweepQueue(out);
-    queue.question('README.md', 'doc', finding, 'non-mechanical');
-    queue.question('README.md', 'doc', finding, 'verify-fail: lost a fact');
-    const questions = readFileSync(join(out, 'questions.md'), 'utf8');
-    expect(questions).toContain('README.md — doc — drift');
+    queue.question('modes/GOON.md', 'doc', finding, 'non-mechanical');
+    queue.question('modes/GOON.md', 'doc', finding, 'verify-fail: lost a fact');
+    const questions = readFileSync(
+      join(out, 'modes--GOON.md.questions.md'),
+      'utf8',
+    );
+    expect(questions).toContain('modes/GOON.md — doc — drift');
     expect(questions).toContain('old text');
     expect(questions).toContain('src/x.ts:1');
     expect(questions).toContain('verify-fail: lost a fact');
   });
 
-  it('writes a run header before the questions that follow it', () => {
+  it('reset removes every question file and report from earlier runs', () => {
     const queue = sweepQueue(out);
-    queue.runHeader('2026-08-05T00:00:00.000Z — 1 files, passes doc');
     queue.question('README.md', 'doc', finding, 'non-mechanical');
-    const questions = readFileSync(join(out, 'questions.md'), 'utf8');
-    const headerIndex = questions.indexOf(
-      '## Run 2026-08-05T00:00:00.000Z — 1 files, passes doc',
-    );
-    const questionIndex = questions.indexOf('README.md — doc — drift');
-    expect(headerIndex).toBeGreaterThanOrEqual(0);
-    expect(questionIndex).toBeGreaterThan(headerIndex);
+    queue.writeReport('README.md', 'doc', { findings: [] });
+    queue.question('MODES.md', 'doc', finding, 'non-mechanical');
+    queue.writeReport('MODES.md', 'style', { findings: [] });
+    queue.reset();
+    expect(existsSync(join(out, 'README.md.questions.md'))).toBe(false);
+    expect(existsSync(join(out, 'MODES.md.questions.md'))).toBe(false);
+    expect(existsSync(join(out, 'reports'))).toBe(false);
+  });
+
+  it('reset leaves a file the sweep did not write', () => {
+    const queue = sweepQueue(out);
+    queue.question('README.md', 'doc', finding, 'non-mechanical');
+    writeFileSync(join(out, 'notes.md'), 'mine\n');
+    queue.reset();
+    expect(readFileSync(join(out, 'notes.md'), 'utf8')).toBe('mine\n');
+  });
+
+  it('reset on an empty output directory is a no-op', () => {
+    expect(() => sweepQueue(out).reset()).not.toThrow();
   });
 });

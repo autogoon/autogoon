@@ -1,32 +1,52 @@
-// The sweep's paper trail: every raw find report (audit), and the
-// questions a human settles later — non-mechanical findings, unmatchable
-// replacements, and edits verify rejected.
+// The sweep's paper trail: every raw find report (audit), and the questions
+// a human settles later — non-mechanical findings, unmatchable replacements,
+// and edits verify rejected. Questions are per file, in
+// `<file>.questions.md` beside `reports/`. A run begins with reset(): the
+// passes are ordered because each changes what the next reads, so output
+// from before the run no longer describes the files on disk. reset removes
+// only what the sweep itself writes, never the output dir wholesale.
 
-import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import type { Finding, Pass } from './sweep-findings';
 
 export type SweepQueue = {
+  reset: () => void;
   writeReport: (file: string, pass: Pass, report: unknown) => void;
   question: (file: string, pass: Pass, finding: Finding, why: string) => void;
-  runHeader: (info: string) => void;
 };
 
 const slug = (file: string) => file.replaceAll('/', '--');
 
 export function sweepQueue(outDir: string): SweepQueue {
+  const reportsDir = join(outDir, 'reports');
+  const questionFile = (file: string) =>
+    join(outDir, `${slug(file)}.questions.md`);
   return {
+    reset: () => {
+      rmSync(reportsDir, { recursive: true, force: true });
+      let entries: string[];
+      try {
+        entries = readdirSync(outDir);
+      } catch {
+        return;
+      }
+      for (const name of entries)
+        if (name.endsWith('.questions.md'))
+          rmSync(join(outDir, name), { force: true });
+    },
     writeReport: (file, pass, report) => {
-      const dir = join(outDir, 'reports');
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(reportsDir, { recursive: true });
       writeFileSync(
-        join(dir, `${slug(file)}--${pass}.json`),
+        join(reportsDir, `${slug(file)}--${pass}.json`),
         JSON.stringify(report, null, 2),
       );
-    },
-    runHeader: (info) => {
-      mkdirSync(outDir, { recursive: true });
-      appendFileSync(join(outDir, 'questions.md'), `## Run ${info}\n\n`);
     },
     question: (file, pass, finding, why) => {
       mkdirSync(outDir, { recursive: true });
@@ -41,7 +61,7 @@ export function sweepQueue(outDir: string): SweepQueue {
         '',
         '',
       ].join('\n');
-      appendFileSync(join(outDir, 'questions.md'), entry);
+      appendFileSync(questionFile(file), entry);
     },
   };
 }

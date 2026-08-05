@@ -105,9 +105,10 @@ console.error(
     deps.dryRun ? ' (dry run)' : ''
   }`,
 );
-deps.queue.runHeader(
-  `${new Date().toISOString()} — ${files.length} files, passes ${passes.join(',')}`,
-);
+// Any run invalidates all earlier sweep output — the doc pass edits what the
+// later passes read, so nothing recorded before this run still describes the
+// files on disk.
+deps.queue.reset();
 // Workers pull from one shared iterator, so each file runs exactly once and
 // an early finisher moves straight on to the next.
 const remaining = files[Symbol.iterator]();

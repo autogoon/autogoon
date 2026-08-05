@@ -127,7 +127,7 @@ describe('sweepFile', () => {
     expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
       'The app wants to be helpful.\n',
     );
-    expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
+    expect(readFileSync(join(out, 'DOC.md.questions.md'), 'utf8')).toContain(
       'verify-fail: lost a fact',
     );
   });
@@ -153,7 +153,7 @@ describe('sweepFile', () => {
     expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
       'The app wants to be helpful.\n',
     );
-    expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
+    expect(readFileSync(join(out, 'DOC.md.questions.md'), 'utf8')).toContain(
       'non-mechanical',
     );
   });
@@ -175,7 +175,7 @@ describe('sweepFile', () => {
     expect(readFileSync(join(repo, 'DOC.md'), 'utf8')).toBe(
       'The app wants to be helpful.\n',
     );
-    expect(existsSync(join(out, 'questions.md'))).toBe(false);
+    expect(existsSync(join(out, 'DOC.md.questions.md'))).toBe(false);
     expect(
       JSON.parse(
         readFileSync(join(out, 'reports', 'DOC.md--style.json'), 'utf8'),
@@ -204,7 +204,7 @@ describe('sweepFile', () => {
         },
       ),
     );
-    expect(readFileSync(join(out, 'questions.md'), 'utf8')).toContain(
+    expect(readFileSync(join(out, 'DOC.md.questions.md'), 'utf8')).toContain(
       'not-found',
     );
     expect(logs.join('\n')).toContain(
