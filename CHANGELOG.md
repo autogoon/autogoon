@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-05
+
+- feature: **Documentation sweep** — `npm run docs:sweep` reviews every tracked
+  `.md` file for truth, style, register and duplication faults, applies
+  unambiguous fixes as an uncommitted working-tree diff for review, and queues
+  judgement calls in `.sweep/questions.md`. Each review runs in a fresh
+  `claude -p` context so long sessions cannot drift back into the style being
+  removed. See [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
+
 ## 2026-08-04
 
 - enhancement: **A companion no longer reads their thinking out loud** — Replies
