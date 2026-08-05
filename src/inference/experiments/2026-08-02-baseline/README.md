@@ -60,7 +60,7 @@ The result would be instead of free text search, there are fixed values for
 things we're interested in:
 
 - Genital visibility: just visible, not visible and unknown
-- Breast size: small, medium, large, extra large and unknown.
+- Breast size: small, medium, large, very large and unknown.
 - (See prompt.ts in experiment for a full list.)
 
 A companion that knew the label set could pass these parameters as an object and
@@ -74,7 +74,7 @@ Nothing.
 
 ## What we're trying now
 
-- Two calls instead of one model doing everything.
+- Two calls to two models, instead of one model doing everything.
 - Prompt wording, repeatedly.
 - Storing categorised values against a structured, fixed set of labels.
 - Letting a sidecar's frontmatter carry any field. It used to refuse unknown
@@ -85,14 +85,13 @@ Nothing.
 - Finding text in the image and storing it as a field, with the aim that it
   might help the companion find more pictures of the same person (watermarks,
   text on clothing etc.)
-- Scoring the detected text in media_search. Not done yet — the text is stored
+- Scoring the detected text in search_media. Not done yet — the text is stored
   on the item and nothing searches it.
-- Folding words that mean the same thing together in media_search, so "boobs"
+- Folding words that mean the same thing together in search_media, so "boobs"
   and "breasts" score as one word.
-- Sampling among the items a query scores equally in media_search. A broad
-  request scores most of a set alike — 161 of 164 described items, for "petite
-  woman in tight clothes showing breasts" — and the tie used to break on the
-  ref, so the same oldest two dozen filled every result.
+- Sampling among the items a query scores equally in search_media. A broad
+  request scores nearly a whole set alike, and the tie used to break on the ref,
+  so the same oldest handful filled every result.
 
 ## What is working
 
@@ -124,11 +123,11 @@ Things not necessarily for this experiment, but thoughts which fall out of our
 experimenting.
 
 - Should inference normalise the words when it writes the sidecar, or
-  media_search when it searches? Normalising in inference would need the
+  search_media when it searches? Normalising in inference would need the
   companion to search in a specific way, which mediaSummary might help with.
   Perhaps we need both.
 - An experiment can't change how search works without changing core code. A
-  media_search per experiment would fix that; without one, trying embeddings or
+  search_media per experiment would fix that; without one, trying embeddings or
   vector search means touching a lot of core just to try it. Both search changes
   this experiment has wanted so far — folding synonyms, and sampling among equal
   scores — landed in core for that reason, and now apply to every pack whether
