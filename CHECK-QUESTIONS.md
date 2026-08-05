@@ -67,10 +67,10 @@ Current text, modes/GOON.md:
 
     - **Wind-down** — the device eases off in a slow, deliberate glide from a
       moderate pace down to a standstill over about ten seconds, the strokes
-      shortening as it goes, then rests. It's one way of finishing rather than the
-      default.
+      shortening as it goes, then rests.
 
-modes/GROOVE.md carries the same claim in a sentence.
+modes/GROOVE.md → Cumming makes the same claim: "the device eases down in a slow
+glide from a moderate pace to a standstill over about ten seconds".
 
 **The options.**
 
@@ -85,17 +85,15 @@ modes/GROOVE.md carries the same claim in a sentence.
 
     - **Wind-down** — the device eases off in a slow, deliberate glide from a
       moderate pace down to a crawl over about ten seconds, the strokes shortening
-      as it goes, and stays there until it stops half an hour later. It's one way of
-      finishing rather than the default.
+      as it goes, and stays there until it stops half an hour later.
 
-## 3. The register, document-wide — DECIDED: fix it throughout
+## 3. The register, document-wide — decided; the counts say where
 
-Kept here for the counts, which say where the work is. CLAUDE.md → Writing style
-names a recurring shape — a claim, a gloss on dashes or a colon, then a
-consequence on `so…` or `which is…` — and the docs use it as the default rather
-than where the reader needs it.
+CLAUDE.md → Writing style names a recurring shape — a claim, a gloss on dashes
+or a colon, then a consequence on `so…` or `which is…` — and the docs use it as
+the default rather than where the reader needs it.
 
-**The evidence**, as measured by the style agents:
+**The evidence.**
 
 - ARCHITECTURE.md — ~188 sentences, 22 `so`-tails, 19 em-dash glosses, 6
   `X, not Y` contrasts (3 as bolded leads). Roughly every eighth sentence ends
@@ -108,7 +106,9 @@ than where the reader needs it.
 - DEVELOPERS.md — 64 sentences, and a second shape on top: 7
   definition-by-contrast constructions (`rather than` ×3, `, not …` ×4).
 - CHANGELOG.md — 43 `, so…` / `, which…` tails across the 61 most recent
-  entries, so an entry reads as talk rather than a record.
+  entries. An entry reads as talk rather than a record.
+- This file — 184 sentences, 3,747 words, 62 em-dashes, 16 `, so` tails, 7
+  `, which` tails, 18 `rather than` contrasts. It is in the set like any other.
 
 The pass breaks the tail off where it carries nothing, one document at a time,
 across every `.md` file in the set.
@@ -131,7 +131,7 @@ Under Git workflow:
 
     - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
       `npm run typecheck`, `lint` and `format` clean, `npm test` and
-      `npm run test:e2e` both run (see Verifying changes for what each covers), the
+      `npm run test:e2e` both run (see Verifying changes for what each covers), …
 
 One says "before committing", the other "before opening a PR". Git workflow
 already points back at Verifying changes for what each command covers, so the
@@ -145,9 +145,9 @@ own what the commands are and Git workflow to own when they run.
     When `format` changes files, commit those changes as part of the work; don't
     leave them or revert them. When the gates run is in Git workflow.
 
-## 5. CLAUDE.md's "A nice way to think about it"
+## 5. CLAUDE.md's "A way to think about it"
 
-**The problem.** The triplet restates three definitions given ten lines above
+**The problem.** The triplet restates three definitions given in the list above
 it, and two of its three bullets have no verb.
 
 **The evidence.** CLAUDE.md → Documentation has already defined all three files
@@ -155,7 +155,7 @@ it, and two of its three bullets have no verb.
 known defects in behaviour that is already implemented", "ROADMAP.md and
 `roadmap/*.md` — longer-term features and direction". Then:
 
-    A nice way to think about it:
+    A way to think about it:
 
     - ROADMAP.md says what could be, framed in how things are.
     - TODO.md how they should be.
@@ -165,8 +165,7 @@ Style rules breached: "a sentence that loses nothing when deleted", "a phrase
 restating the one before it", "none that only parses beside its neighbour".
 
 **The options.** Delete the four lines, or keep them as a deliberate mnemonic.
-It reads as something written on purpose, which is why it is a question rather
-than a cut.
+They read as written on purpose. That is why this is a question and not a cut.
 
 ## 6. BUG.md — two entries in the braindump
 
@@ -185,20 +184,19 @@ button at all (`goonpacks-panel.tsx:198-212`).
 
 **6b.** Deleting `- Other entries in this braindump are Companions UI too.` Two
 independent style passes flagged it as naming no defect. It does tell a reader
-reworking the Companions UI to read the rest of the list, which is why it
-stands.
+reworking the Companions UI to read the rest of the list. That is why it stands.
 
 ## 7. GOONPACKS.md — two additions rather than corrections
 
 **7a. Caption weighting and the synonym table.** GOONPACKS.md is the pack
 format's reference for authors, and its caption advice leaves out the two things
-that decide how a caption behaves. `media-search.ts:89-90` and `:118-119` set
-`CAPTION_WEIGHT = 2`, so a caption hit scores double a description hit — which
-is the reason for "a caption should say what's actually in the shot".
-`media-search.ts:57-73` folds synonym groups (`breasts/boobs/tits`,
-`panties/knickers`) to one word before scoring, so an author agonising over
-which word to caption with is agonising over nothing, while a word outside those
-groups has to be written to be found.
+that decide how a caption behaves. `media-search.ts:90` sets
+`CAPTION_WEIGHT = 2` and `:118-119` adds it for a caption hit against 1 for a
+description hit, which is the reason for "a caption should say what's actually
+in the shot". `media-search.ts:67-75` folds synonym groups
+(`breasts/boobs/tits`, `panties/knickers`) to one word before scoring, so which
+word of a group a caption uses makes no difference. A word outside those groups
+has to be written to be found.
 
 **The resulting text**, replacing the caption paragraph:
 
@@ -222,7 +220,7 @@ a checkout.
 
 **The problem.** CLAUDE.md → Documentation says "README, MODES.md and
 `modes/*.md` are **user-facing**: no repo mechanics (committed/gitignored,
-generated modules, script internals) — that belongs in DEVELOPERS.md,
+generated modules, script internals). That belongs in DEVELOPERS.md,
 ARCHITECTURE.md, or the code." modes/COMPANIONS.md is written as a developer
 doc. Its own second sentence says so: "This doc carries the design rationale."
 
@@ -237,7 +235,8 @@ object per companion", "Shared prompt sections", "Configuration" — carry no
 sentence a user could act on.
 
 GOON.md, GROOVE.md and AUTOPILOT.md each carry one pointer line to
-ARCHITECTURE.md and no internals, which is the shape the rule describes.
+ARCHITECTURE.md and none of the repo's mechanics. That is the shape the rule
+describes.
 
 **The options.**
 
@@ -304,47 +303,48 @@ CLAUDE.md → Documentation says `modes/*.md` states its play mode's engine valu
 four. The current prose is accurate as it stands, and adding four numbers
 changes the bullets' shape, so this is a restructuring rather than a correction.
 
-## 12. The media-set counts are already pushed
+## 12. The media-set counts are published; the fix is not
 
-**The problem.** The two Secrets breaches this sweep fixed are in the working
-tree only. Both are still in `HEAD` on `main`, merged and pushed as PR #30, so
-the fix stops them being read going forward and does not unpublish them.
+**The problem.** The two Secrets breaches this sweep found are fixed locally
+only. `ef9adfc` took both out, and `origin/main` is six commits behind `HEAD` at
+`e44496b`. Pushing stops them being read going forward. It does not unpublish
+them: they were merged as PR #30.
 
 **The evidence.**
-`git show HEAD:src/inference/experiments/2026-08-02-baseline/README.md` still
+`git show origin/main:src/inference/experiments/2026-08-02-baseline/README.md`
 holds the described-item count of the local set, with the search phrase that
 matched it;
-`git show HEAD:src/inference/experiments/2026-08-02-baseline/index.ts` still
-holds the count of stored replies over that same set. The README count was
-introduced by `98800c7` and never removed.
+`git show origin/main:src/inference/experiments/2026-08-02-baseline/index.ts`
+holds the count of stored replies over that same set. `98800c7` introduced the
+README count.
 
 CLAUDE.md → Secrets is explicit about what this costs: "`/personal-check` is the
-backstop, not the defence — history rewrites are the only fix once pushed."
+backstop, not the defence. History rewrites are the only fix once pushed."
 
 **The options.**
 
-- **Accept it.** Commit the working-tree fix and let the history stand. The
-  counts stay in the repo's public history and in anything that mirrored it.
-- **Rewrite history.** Removes them from the branch, at the cost of a
-  force-push; GitHub retains orphaned objects regardless, so the exposure is
+- **Accept it.** Push the fix and let the history stand. The counts stay in the
+  repo's public history and in anything that mirrored it.
+- **Rewrite history.** Takes them out of the published commits, at the cost of a
+  force-push. GitHub retains orphaned objects regardless, so the exposure is
   reduced rather than ended.
 
-Nothing here is a name, a path or a person — it is the size of a private media
-set and one search phrase. That is what makes accepting it plausible, and it is
-still your call rather than mine.
+Nothing here is a name, a path or a person: it is the size of a private media
+set and one search phrase. That is what makes accepting it plausible.
 
-**Whichever you choose**, `personal-check`'s scope is what let it through: its
-content pass reads the lines a branch added _and later deleted_, and subtracts
-the ones the final tree still holds. Both breaches were in the final tree, so
-neither was in the set the method reads. That fix is applied.
+**Whichever you choose**, `/personal-check` would not have found these. Its
+default scope is the branch — `main..HEAD`, every revision of every file the
+branch changed — and both counts were committed on `main` before this sweep
+started, so no revision walk over these commits reaches them. Only
+`/personal-check all` reads the whole tree, and the sweep that found them was
+`/md-check` reading every file. Nothing in the skill has been changed.
 
 ## 13. The keyword spotter asks for no audio constraints
 
 **The problem.** Not a doc question — a possible defect the doc-check turned up.
 `roadmap/KEYWORD-DETECTION.md` said "the browser's own noise cancellation
-already handles audio the machine itself is playing", and the doc has been
-corrected to say echo cancellation and to note the gap. Whether the gap should
-be closed is yours.
+already handles audio the machine itself is playing". The doc now says echo
+cancellation and notes the gap; whether to close the gap is open.
 
 **The evidence.** The Companions mic asks for all three constraints by name
 (`src/lib/voice/mic.ts:53-58`):
@@ -363,10 +363,10 @@ The keyword spotter's only `getUserMedia` call asks for none of them
       audio: { channelCount: 1 },
     });
 
-So on the built-in play modes, whether audio the app is playing gets cancelled
-before it reaches the recognizer rests on a per-browser default, across
-Chromium, Firefox and WebKit. Goonpack video playing behind a play screen is the
-case that matters, and a false detection there runs a command on the device.
+So on the built-in play modes, whether audio the app is playing is cancelled
+before it reaches the recognizer rests on a per-browser default across Chromium,
+Firefox and WebKit. Goonpack video playing behind a play screen is the case that
+matters: a false detection there runs a command on the device.
 
 **The options.** Add the three constraints to the spotter's call, matching the
 Companions path — one edit, and it makes the two mic paths consistent. Or leave
@@ -374,7 +374,7 @@ it and treat the defaults as sufficient, in which case
 `roadmap/KEYWORD-DETECTION.md`'s new sentence should say so rather than flagging
 it.
 
-## 13. INFERENCE.md transcribes the UI spec's reasoning
+## 14. INFERENCE.md transcribes the UI spec's reasoning
 
 **The problem.** Six passages of `docs/2026-08-02-inference-ui-spec.md` are
 restated near word-for-word in INFERENCE.md, and four of those a third time in a
@@ -389,14 +389,14 @@ exactly one place and everywhere else points at it."
 - the archive naming and why time comes before version — spec, INFERENCE.md,
   `paths.ts:18-26`;
 - "an absent field is one nobody has answered", with its reasoning — spec,
-  INFERENCE.md, `labels.ts:6-9`, the last two nearly verbatim;
+  INFERENCE.md, `labels.ts:1-9`, the last two nearly verbatim;
 - `unknown` is a value like any other — spec, INFERENCE.md, `fields.ts:47-51`;
 - a prompt and its reply are a numbered pair — spec, INFERENCE.md,
   `paths.ts:56-59`;
 - `run()` / `parse()` and per-record parameters — spec, INFERENCE.md,
   `experiment.ts:7-11` and `runs.ts:4-9`.
 
-Five code comments already cite the spec by name for this reasoning
+Six code comments already cite the spec by name for this reasoning
 (`experiment.ts:3`, `runs.ts:2`, `paths.ts:4`, `labels.ts:4`, `fields.ts:3`,
 `dev-only.ts:10`), so the spec is where the reasoning lives and the citations
 are working as intended.
@@ -415,7 +415,7 @@ are working as intended.
 No replacement text: the unit is a document, and which of the two is the source
 is the decision.
 
-## 14. The UI spec records boundaries that were later crossed
+## 15. The UI spec records boundaries that were later crossed
 
 **The problem.** Four things `docs/2026-08-02-inference-ui-spec.md` states as
 settled have since been reversed. A dated spec is a record, so rewriting it
@@ -429,16 +429,18 @@ decision as current, and one of them is cited by a code comment.
   keeps its results readable is that each one records the version of the
   directory that produced it", and cites this very section by name.
   `INFERENCE.md` → Experiments agrees with the code.
-  `docs/2026-08-02-describe-accuracy.md` still carries "one frozen directory of
-  code per experiment" too.
 - **"its output never reaches a pack."** Reversed:
   `npm run goonpack:build <pack> <experiment>` builds a pack from an
   experiment's sidecars, and the Companions card's Descriptions select plays
   them.
-- **"Not in v1: any field but `naked`; batch running; any comparison view."**
-  All three shipped, bar scoring and diffing two runs.
+- **Not in v1** (spec → Not in v1): any field but `naked`, batch running an
+  experiment over the corpus, and any comparison view. All three shipped;
+  scoring and diffing two runs, in the same bullet as the comparison view, did
+  not.
 - **The `src/inference/` file tree** lists seven modules; twenty-five sit there
-  now, and `panel.tsx` is no longer the screen.
+  now, and `panel.tsx` is no longer the only screen — it renders the corpus
+  summary itself and hands one item open for review to `review.tsx`
+  (`panel.tsx:40`).
 
 **The options.** A dated **Superseded** note under each, naming what replaced it
 and pointing at INFERENCE.md — which keeps the record and the reason, and is
@@ -448,22 +450,26 @@ and accept that the file is read as history only.
 The freezing one is the one that matters: a code comment sends a reader to a
 section stating the reverse of the invariant the code holds.
 
-## 15. Two files list what the descriptions get wrong
+## 16. Two files list what the descriptions get wrong
 
 `docs/2026-08-02-describe-accuracy.md` → What it gets wrong lists five failures
 — bare-vs-covered breasts, nipples through fabric, body orientation,
 sitting-vs-kneeling, multiple subjects.
-`src/inference/experiments/2026-08-02-baseline/README.md` lists the same five in
-the same terms, and adds how each has since gone ("Topless vs bare breasts is
-largely better", "Nipple visibility is noticeably better").
+`src/inference/experiments/2026-08-02-baseline/README.md` → describe-image.ts
+prompt states four of them, and the single-female-subject assumption in a
+sentence after the list. Its What is working section carries a verdict on two:
+"Topless vs bare breasts is largely better", "Nipple visibility is noticeably
+better".
 
 Collapsing the dated file's list to a pointer would gut the observations it
 exists to hold. Leaving both means it is maintained twice and the README is
-already ahead. The middle option is one sentence after the list:
+already ahead on two of the five. The middle option is one sentence after the
+list, and the precedent is in the same file: What it never reports already sends
+breast size to that README.
 
-    Where each of these now stands is in [the baseline experiment's README](../src/inference/experiments/2026-08-02-baseline/README.md).
+    How these have gone since is in [the baseline experiment's README](../src/inference/experiments/2026-08-02-baseline/README.md).
 
-## 15. The baseline experiment's README opens on a problem it never resolves
+## 17. The baseline experiment's README opens on a problem it never resolves
 
 Two findings on `src/inference/experiments/2026-08-02-baseline/README.md`, both
 needing someone who knows what happened rather than what the code says.
