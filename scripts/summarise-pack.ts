@@ -6,22 +6,16 @@
 //   npm run goonpack:summarise goonpacks/elise 2026-08-02-baseline
 //                                                  from that experiment's descriptions
 //
-// The pack directory then the experiment, both positional and both optional —
-// the same two arguments in the same order as goonpack:build, so the pair that
-// builds a pack is the pair that summarises it. Left off, the experiment is the
-// stock `<stem>.md` beside each item, which is what builds too.
+// The pack directory then the experiment, both positional and both optional:
+// the same pair goonpack:build takes. Left off, the experiment is the stock
+// `<stem>.md` beside each item, which is what builds too.
 //
-// Run it whenever the set changes — a summary is derived, never hand-written, so
-// re-running it is the way to fix one that has gone stale. A pack that carries
-// media must have one before it builds or imports (parsePack enforces that).
+// Run it whenever the set changes. A summary is derived, never hand-written, and
+// a pack carrying media must have one before it builds or imports.
 //
-// This is a .ts run through tsx, like goonpack-build.ts, so it can import
-// parseSidecar rather than hand-rolling a second frontmatter parser.
-//
-// Reads OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script
-// loads .env via --env-file-if-exists. The model is the named experiment's text
-// model, or the app's default companion model with no experiment; MODEL
-// overrides both.
+// Reads OPENROUTER_API_KEY (and LLM_URL) from the environment. The model is the
+// named experiment's text model, or the app's default companion model without
+// one; MODEL overrides both.
 import process from 'node:process';
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -34,17 +28,16 @@ import { DEFAULT_MODEL } from '../src/lib/companions/companions';
 import { out } from './lib/colour';
 
 // Yellow names the pack, dim carries the steps, green is the summary that ends
-// up in the manifest — the same three the describing scripts use.
+// up in the manifest.
 const { yellow, green, dim } = out;
 
-// Written from roadmap/INFERENCE-LIBRARY.md → The set summary, which is the
-// source of truth for what a summary must carry. Neutral rather than written for
-// a particular companion: one summary per set, and the persona's own prompt
-// supplies the attitude to it.
+// Written from roadmap/INFERENCE-LIBRARY.md → The set summary, which says what a
+// summary must carry. Neutral rather than written for a particular companion:
+// one summary per set, and the persona's own prompt supplies the attitude to it.
 //
-// Captions only, not the long descriptions: a set of a couple of thousand items
-// runs to millions of characters of description, and the captions already carry
-// the vocabulary a summary is an inventory of.
+// Captions only. A set of a couple of thousand items runs to millions of
+// characters of description, and the captions carry the vocabulary a summary is
+// an inventory of.
 const PROMPT = `You are given the caption of every picture and video in one media
 set. Write a summary of what the set contains.
 
@@ -73,17 +66,15 @@ what kind of request is answerable, not holding a catalogue to choose from.
 Its length follows the set — say what is there and stop. Reply with the summary
 itself.`;
 
-// The caption of every item that would ship, in filename order — the sidecar
-// found the way packContents finds it, so the summary describes the set the
-// pack plays with rather than everything lying in media/.
+// The caption of every item that would ship, in filename order, its sidecar
+// found the way packContents finds it.
 //
 // It walks the media and looks up each item's sidecar, never the other way
 // round. A described corpus holds a run-stamped copy of every sidecar it has
-// ever written, so walking the sidecars counts an item once per time it was
-// described — weighting the summary by how often a picture was re-run, and
-// making the input several times the size it should be.
+// written, so walking the sidecars would count an item once per time it was
+// described.
 //
-// A sidecar that won't parse stops the run naming the file, rather than
+// A sidecar that won't parse stops the run, naming the file, rather than
 // summarising a set with a hole in it.
 function readCaptions(packDir: string, experiment?: string): string[] {
   const mediaDir = join(packDir, 'media');
@@ -109,12 +100,10 @@ function readCaptions(packDir: string, experiment?: string): string[] {
   return captions;
 }
 
-// Which model writes the summary: MODEL overrides everything, then the
-// experiment whose descriptions are being summarised — its second call is the
-// one that turns a reply into prose, so it is already the choice made for this
-// text — and otherwise whatever the app plays companions on. Nothing is
-// hardcoded here: a summary written by a model no companion runs describes the
-// set in a voice nothing else in the app uses.
+// Which model writes the summary: MODEL first, then the experiment being
+// summarised, whose second call already does this same text job, and otherwise
+// whatever the app plays companions on. Nothing is hardcoded, so no summary is
+// written in a voice nothing else in the app uses.
 function modelFor(experiment: string | undefined): string {
   const override = process.env.MODEL;
   if (override !== undefined && override !== '') return override;
@@ -146,8 +135,8 @@ async function summarise(input: string, model: string): Promise<string> {
     },
     body: JSON.stringify({
       model,
-      // Deterministic, so re-running the same set compares prompts and models
-      // rather than sampling luck.
+      // Deterministic, so re-running a set compares prompts and models, not
+      // sampling luck.
       temperature: 0,
       messages: [
         { role: 'system', content: PROMPT },
@@ -171,8 +160,8 @@ async function summarise(input: string, model: string): Promise<string> {
 }
 
 // One pack source named on the command line, or every directory under
-// goonpacks/ that holds a manifest.json. A named source that isn't a pack is an
-// error, since the argument asked for that one by name.
+// goonpacks/ holding a manifest.json. A named source that isn't a pack is an
+// error: the argument asked for that one.
 function packsToSummarise(named: string | undefined): string[] {
   if (named !== undefined && named !== '') {
     if (!existsSync(join(named, 'manifest.json'))) {
@@ -205,8 +194,8 @@ async function summarisePack(
   console.log(yellow(packDir));
   const captions = readCaptions(packDir, experiment);
   if (captions.length === 0) {
-    // Naming the experiment matters here: a set fully described under a
-    // different one looks identical to a set nobody has described at all.
+    // Named, because a set fully described under another experiment looks
+    // identical here to one nobody has described at all.
     console.log(
       dim(
         `  nothing described ${experiment === undefined ? 'by a stock sidecar' : `by ${experiment}`} in ${join(packDir, 'media')}` +

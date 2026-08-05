@@ -1,12 +1,9 @@
-// The one place an ANSI escape is written. Every script's coloured output comes
-// from here, so no other file carries an escape sequence — and nothing carries a
-// raw control byte, which is what makes a source file binary to grep: the file
-// then answers "no match" to every search, including the ones a review runs.
+// The one place an ANSI escape is written. A file holding a control byte is
+// binary to grep, which then reports no match for every search over it.
 //
-// Keyed to a stream rather than assuming stdout, because warnings go to stderr
-// while progress goes to stdout, and only the stream actually attached to a
-// terminal should be coloured — `npm run goonpack:build 2> errors` leaves a
-// clean file either way.
+// Colour is keyed to a stream. Warnings go to stderr and progress to stdout, so
+// `npm run goonpack:build 2> errors` leaves the file clean and the terminal
+// coloured.
 
 import process from 'node:process';
 

@@ -4,38 +4,25 @@
 //   npm run llm:benchmark elise        only those whose filename contains it
 //   npm run llm:benchmark:wipe         throw the measurements away, send nothing
 //
-// Conversations sit in llm-benchmark/, and what a run measured is written to
-// llm-benchmark/results/, one file per conversation keyed by model. A pair
-// already measured there is printed rather than sent again, so adding a model
-// to MODELS pays for that model alone. What that buys is one table built from
-// measurements taken on different days: a provider's load moves, so a cached
-// row's timings say how it behaved then, and the row is marked `cached` for
-// exactly that reason. `wipe` is the answer when the timings need to be
-// comparable; it only deletes, so re-measuring is two commands and never a
-// slip of the finger.
+// A conversation in llm-benchmark/ is a request copied out of the app's Debug
+// tab, so a run asks a model for the next turn of a real one. Three runs per
+// model per conversation, timed to the first token, to the first token of the
+// reply, and to the last. They print in the order they were made: the first call
+// to a provider is the cold one.
 //
-// A conversation is a request copied out of the app — the Debug tab's request
-// viewer, Copy — so it is the app's own LlmMessage shape, ending on the
-// live-state system message. One run asks a model to produce the next turn from
-// it, which is exactly what the app asks for.
+// Measurements are stored per conversation and model in llm-benchmark/results/,
+// and reused, so adding a model pays for that model alone. Rows read back are
+// marked `cached` — they were timed on another day, under another load. `wipe`
+// throws them away.
 //
-// What it measures, three runs per model per conversation: time to the first
-// token, time to the first token of the reply itself (a thinking model spends
-// the gap between them reasoning, and only the reply is spoken), and the time to
-// the last. The three are printed in the order they were run, never sorted:
-// the first call to a provider is the cold one, and whether it warms up is only
-// visible while the runs are still in sequence.
+// A paid path: three generations per unmeasured pair, each carrying a whole
+// conversation. It says what it is about to spend before starting, and writes
+// each pair as it finishes, so ^C keeps what it paid for.
 //
-// It does not judge whether a reply is a refusal. Every reply is written out in
-// full and its first line printed, and reading them is the job for now.
+// It does not judge a reply. Every one is written out in full and its first
+// line printed; reading them is the job.
 //
-// This is a paid path: runs = the pairs not already measured × 3, each carrying
-// a whole conversation as prompt. It prints what it is about to spend the money
-// on before starting, and each pair is written as it finishes, so ^C keeps what
-// it has paid for.
-//
-// Reads OPENROUTER_API_KEY / LLM_URL from the environment; the npm script loads
-// .env via --env-file-if-exists.
+// Reads OPENROUTER_API_KEY / LLM_URL from the environment.
 
 import process from 'node:process';
 import { createHash } from 'node:crypto';
@@ -43,10 +30,10 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { out } from './lib/colour';
 
-// The candidates. Edit this list — it is the point of the script. Sorted, which
-// is the order the per-conversation tables print in, so a family's cheap and
-// expensive members land next to each other for reading; the summary at the end
-// is ordered by what it measured instead.
+// The candidates. Edit this list; it is the point of the script.
+//
+// Sorted, which is the order the per-conversation tables print in. The summary
+// at the end is ordered by mean total instead.
 const MODELS = [
   'deepseek/deepseek-v4-flash:nitro',
   'deepseek/deepseek-v4-pro:nitro',
@@ -66,11 +53,10 @@ const MODELS = [
   'z-ai/glm-5.2:nitro',
 ];
 
-// What a run cannot measure: how a model behaved when the app actually used it,
-// and why a model that isn't in MODELS was taken out. Printed under the summary
-// — the models in the table first, the rest after — so a model that times well
-// and plays badly says so in the same output, and one already ruled out doesn't
-// get added back. Written by hand; nothing here is measured.
+// Hand-written notes on what a run cannot measure: how a model behaved when the
+// app used it, and why a model absent from MODELS was taken out. Printed under
+// the summary, so a model that times well and plays badly says so in the same
+// output.
 const NOTES: Record<string, string> = {
   'nex-agi/nex-n2-mini:nitro':
     'Quick, very cheap, and good on the whole. During testing it was shown to take parts of a prompt too literally, and to have trouble with tool calls — most visibly search_media and then send_media, where it searches, reads the matches back and never sends one. It is hard to engineer the prompt perfectly for some personas, so a more capable model may be the safer default; for others it is ideal.',
@@ -86,14 +72,10 @@ const NOTES: Record<string, string> = {
 
 const RUNS = 3;
 // How many models are measured at once. A model's own conversations and runs
-// stay in sequence whatever this is: the first call to a provider is the cold
-// one, and the three timings exist to show whether it warms up, which only
-// holds while they follow each other. Across models it is capped rather than
-// all-in because these are latency measurements — a machine with every stream
-// open at once is measuring itself as much as the provider.
+// stay in sequence whatever this is, since the three timings only show a warm-up
+// while they follow each other. Capped across models because a machine holding
+// every stream open times its own contention too.
 const CONCURRENCY = 6;
-// Conversations sit here; what was measured goes in the subdirectory, so the
-// two never have to be told apart by name.
 const DIR = 'llm-benchmark';
 const RESULTS_DIR = 'llm-benchmark/results';
 // Long enough for a whole turn on a slow provider, short enough that one
@@ -159,12 +141,11 @@ function toWire(m: Message): WireMessage {
   return out;
 }
 
-// Tool declarations built from the names the conversation already calls. The
-// app's own descriptions live in the panel that declares them and can't be
-// imported into a script, and a transcript replaying tool calls with no tools
-// declared is rejected by some providers — so every name used gets a stub with
-// open parameters. It is enough to make the request valid; it is not what the
-// app sends, so a model's tool-calling is not what this measures.
+// Tool declarations built from the names the conversation already calls: some
+// providers reject a transcript replaying tool calls with none declared, so
+// every name used gets a stub with open parameters. The app's real descriptions
+// live in the panel and can't be imported here, so this measures nothing about
+// a model's tool-calling.
 function toolsFrom(messages: Message[]): unknown[] {
   const names = new Set<string>();
   for (const m of messages) {
@@ -184,9 +165,8 @@ function toolsFrom(messages: Message[]): unknown[] {
   }));
 }
 
-// One streamed generation, timed. Never throws: a transport failure, a non-200
-// or a timeout comes back as a Run carrying `error`, so one dead model doesn't
-// end the benchmark.
+// One streamed generation, timed. Never throws — a failure comes back as a Run
+// carrying `error`, so one dead model doesn't end the benchmark.
 async function runOnce(
   model: string,
   messages: Message[],
@@ -220,8 +200,7 @@ async function runOnce(
       body: JSON.stringify({
         model,
         stream: true,
-        // Asks OpenRouter for the usage block in the final chunk, which is
-        // where the provider and the price of this run come from.
+        // The usage block in the final chunk carries the provider and price.
         stream_options: { include_usage: true },
         usage: { include: true },
         messages: messages.map(toWire),
@@ -352,12 +331,9 @@ const GREEN = '32';
 const RED = '31';
 const { paint } = out;
 
-// One row's runs, in the order they were made — the first is the cold one, and
-// that is the whole reason they aren't sorted. Green on the quickest, red on
-// the slowest, so where the colours land says whether the provider warmed up.
-// Padded before painting: the escape codes have no width, and padding after
-// would push every later column out by their length. A row whose runs all took
-// the same time, or which has only one that answered, is left plain.
+// One row's runs, unsorted, so where the green and red land says whether the
+// provider warmed up. Padded before painting: escape codes have no width, and
+// padding after would push every later column out by their length.
 function inOrder(values: (number | null)[]): string {
   const got = values.filter((v): v is number => v !== null);
   const best = got.length > 1 ? Math.min(...got) : null;
@@ -374,11 +350,8 @@ function inOrder(values: (number | null)[]): string {
 }
 
 // Where each value stands against the rest of its column: green on the lowest,
-// yellow on the next two, red on the highest, and plain for everything between.
-// Down a list this long a lone green says nothing about how close the field
-// behind it came. Placed on distinct values, so rows that tie take the same
-// colour and neither is pushed down a place. A column of one value, or one with
-// nothing to compare, comes back plain — there is no comparison to draw.
+// yellow on the next two, red on the highest. Placed on distinct values, so rows
+// that tie take the same colour rather than one being pushed down a place.
 function placings(values: (number | null)[]): (string | null)[] {
   const got = values.filter((v): v is number => v !== null);
   const ranked = [...new Set(got)].sort((a, b) => a - b);
@@ -394,8 +367,7 @@ function placings(values: (number | null)[]): (string | null)[] {
   });
 }
 
-// The same, for the word that labels a group of runs: the figures say how one
-// model behaved run to run, the label says where it stands against the others.
+// The same, for the word labelling a group of runs.
 const byMean = (rows: (number | null)[][]): (string | null)[] =>
   placings(rows.map(meanOf));
 
@@ -419,11 +391,9 @@ function wrap(text: string, width: number): string[] {
   return lines;
 }
 
-// The same placing, for money rather than time. Five decimal places because the
-// figure is one generation's price rather than a whole run's — the cheap models
-// land around a tenth of a cent, and four would print most of them alike. A
-// model whose runs came back with no price at all is dashed rather than shown
-// at zero, which would take the green as the cheapest in the table.
+// The same placing, for money. Five decimal places because one generation on a
+// cheap model costs about a tenth of a cent. A model that reported no price is
+// dashed, not zeroed — zero would take the green as the cheapest here.
 function costColumn(values: (number | null)[], width: number): string[] {
   const colours = placings(values);
   return values.map((v, i) => {
@@ -433,9 +403,8 @@ function costColumn(values: (number | null)[], width: number): string[] {
   });
 }
 
-// The reply's first line, for reading down a column. A reply with nothing in it
-// is usually a turn the model spent on a tool call, so it says which rather
-// than "(empty)" — the two look identical in a transcript and mean opposite
+// The reply's first line. An empty reply is usually a turn spent on a tool call,
+// so it names the call: in a transcript the two look alike and mean opposite
 // things about whether the model answered.
 const firstLine = (run: Run | undefined): string => {
   if (run === undefined) return '(no run)';
@@ -447,8 +416,6 @@ const firstLine = (run: Run | undefined): string => {
     : '(empty)';
 };
 
-// `cached` says the runs were read back rather than made just now, which is
-// what the marker in the table is drawn from.
 type Result = {
   model: string;
   conversation: string;
@@ -457,10 +424,9 @@ type Result = {
 };
 
 // One conversation's measurements, the file under RESULTS_DIR. `sourceHash` is
-// of the conversation as it was when they were made: edit it and every model's
-// entry is stale at once, because a table mixing models measured against
-// different inputs compares nothing. The run count isn't stored — the array is
-// it, and a second copy of a number is a second thing to go wrong.
+// the conversation as it was when they were made: edit it and every model's
+// entry is stale, since a table mixing models measured against different inputs
+// compares nothing.
 type Store = {
   conversation: string;
   sourceHash: string;
@@ -473,10 +439,9 @@ const storePath = (conversation: string): string =>
 const hashOf = (raw: string): string =>
   createHash('sha256').update(raw).digest('hex');
 
-// What was measured for one conversation, or an empty store where there is
-// nothing usable: no file, unreadable, or written against a different version
-// of the conversation. Anything unreadable is treated as absent rather than
-// fatal — it costs a re-measure, where stopping costs the whole run.
+// What was measured for one conversation, or an empty store: no file,
+// unreadable, or written against a different version of it. Unreadable counts as
+// absent, costing a re-measure where stopping would cost the whole run.
 async function readStore(
   conversation: string,
   sourceHash: string,
@@ -497,19 +462,18 @@ async function readStore(
 }
 
 // A stored entry stands in for a fresh one only if it holds the runs this
-// invocation would make and every one of them answered. A 429 or a timeout is
-// how the provider behaved that minute rather than a measurement, and kept, it
-// would pin a model as failed for good.
+// invocation would make and every one answered. A 429 is how the provider
+// behaved that minute, not a measurement; kept, it would pin a model as failed
+// for good.
 const usable = (entry: { runs: Run[] } | undefined): boolean =>
   entry !== undefined &&
   entry.runs.length === RUNS &&
   entry.runs.every((r) => r.error === null);
 
-// Written after each model finishes rather than at the end of the run, so ^C
-// keeps what it has already paid for. Models run concurrently and two of them
-// can finish the same conversation at once, so each conversation's writes are
-// chained: the store is one object per conversation, and two overlapping writes
-// to one path can interleave into a file that parses as neither.
+// Written after each model finishes, so ^C keeps what it has paid for. Two
+// models can finish the same conversation at once, and two overlapping writes to
+// one path interleave into a file that parses as neither — so each
+// conversation's writes are chained.
 const writeQueue = new Map<string, Promise<void>>();
 function writeStore(store: Store): Promise<void> {
   const next = (writeQueue.get(store.conversation) ?? Promise.resolve()).then(
@@ -525,19 +489,17 @@ function writeStore(store: Store): Promise<void> {
   return next;
 }
 
-// One run's timing, or null where it failed — a failed run still has a totalMs,
-// but it is how long the refusal to serve took, and left in, a model that 429s
-// three times straight away takes the green as the quickest.
+// One run's timing, or null where it failed. A failed run still has a totalMs,
+// but it timed a refusal — left in, a model that 429s three times takes the
+// green as the quickest.
 const timings = (
   runs: Run[],
   of: (r: Run) => number | null,
 ): (number | null)[] => runs.map((r) => (r.error === null ? of(r) : null));
 
-// Where the conversation had got to, for the table below it: the last thing
-// either of them actually said. The system messages that follow it — the clock,
-// the toy, the quiet-beat cue — are the same on every conversation and say
-// nothing about what a model is being asked to continue. A turn spent on a tool
-// call carries no words, so it is passed over for the one that does.
+// Where the conversation had got to: the last thing either of them said. The
+// system messages after it are the same on every conversation, and a turn spent
+// on a tool call carries no words, so both are passed over.
 const TAIL_CHARS = 150;
 function tailLines(messages: Message[]): string[] {
   const said = messages.filter(
@@ -552,8 +514,7 @@ function tailLines(messages: Message[]): string[] {
   ];
 }
 
-// Both tables, from results either just measured or read back off disk. `tails`
-// carries each conversation's closing messages, where they could be found.
+// Both tables. `tails` carries each conversation's closing messages.
 function report(
   models: string[],
   results: Result[],
@@ -581,16 +542,13 @@ function report(
           `  ${label('reply', replyColour[i] ?? null)} ${inOrder(reply[i]!)}` +
           `  ${label('total', totalColour[i] ?? null)} ${inOrder(total[i]!)}` +
           `${failed > 0 ? `  ${failed}/${r.runs.length} failed` : ''}` +
-          // Timings from another day against timings from this minute: the
-          // marker is what stops the two being read as one measurement.
           `${r.cached ? '  cached' : ''}`,
       );
       const first = r.runs[0];
       const line =
         `    ${first?.reasoning === 'in-content' ? '<think> in content · ' : ''}` +
         firstLine(first);
-      // Yellow like the conversation above it, since it is the same thing —
-      // words, not timings. A run that failed says so in red instead.
+      // Yellow like the conversation above: words, not timings.
       console.log(paint(first?.error == null ? YELLOW : RED, line));
     });
     console.log('');
@@ -616,9 +574,8 @@ function report(
     const rows = results.filter((r) => r.model === model);
     const runs = rows.flatMap((r) => r.runs);
     // What one generation costs, so the column compares models rather than
-    // however many conversations and runs this invocation happened to make.
-    // Averaged over the runs that came back with a price: a failed run reports
-    // none, and counting it as free would read as a model being cheap.
+    // however many runs this invocation made. Averaged over the priced runs: a
+    // failed one reports nothing, and counting it as free reads as cheap.
     const priced = runs
       .map((r) => r.costUsd)
       .filter((c): c is number => c !== null);
@@ -633,10 +590,8 @@ function report(
           : priced.reduce((a, b) => a + b, 0) / priced.length,
     };
   });
-  // Quickest mean total at the top, rather than the order MODELS declares: this
-  // table is the ranking, and where a model sits in the source list says
-  // nothing. A model that never returned a timing has no place in that order
-  // and goes to the bottom.
+  // Quickest mean total at the top: this table is the ranking. A model that
+  // never returned a timing goes to the bottom.
   const ordered = [...perModel].sort((a, b) => {
     const at = meanOf(a.total);
     const bt = meanOf(b.total);
@@ -663,9 +618,9 @@ function report(
     );
   });
 
-  // The table's own models first, then everything else NOTES holds — the ones
-  // taken out of MODELS, which have no row to sit under and are the whole
-  // reason the block isn't built from the table alone.
+  // The table's own models first, then the rest of NOTES: the ones taken out of
+  // MODELS have no row to sit under, and are why this isn't built from the
+  // table.
   const noted = [
     ...ordered.map((m) => m.model).filter((m) => NOTES[m] !== undefined),
     ...Object.keys(NOTES).filter((m) => !models.includes(m)),
@@ -674,9 +629,8 @@ function report(
     const notesWidth = Math.max(...noted.map((m) => m.length));
     console.log('\n── Notes ──\n');
     for (const model of noted) {
-      // Wrapped to a hanging indent under the model, so a note long enough to
-      // say something useful doesn't fold back to column zero and read as the
-      // next model's.
+      // A hanging indent under the model, so a long note doesn't fold back to
+      // column zero and read as the next model's.
       const lines = wrap(NOTES[model]!, 100 - notesWidth);
       console.log(`${paint(WHITE, model.padEnd(notesWidth))}  ${lines[0]}`);
       for (const line of lines.slice(1)) {
@@ -686,8 +640,7 @@ function report(
   }
 }
 
-// Throw away every measurement. Nothing is sent, so no key is needed, and it
-// only deletes — what to re-measure afterwards is the next command's business.
+// Throw away every measurement. Nothing is sent, so no key is needed.
 async function wipe(): Promise<void> {
   const entries = await readdir(RESULTS_DIR).catch(() => []);
   const files = entries.filter((f) => f.endsWith('.json'));
@@ -706,8 +659,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Not checked yet: a run with everything already measured sends nothing, and
-  // should print without a key.
+  // Not checked yet: a fully-measured run sends nothing and prints without one.
   const apiKey = process.env.OPENROUTER_API_KEY;
   const baseUrl = process.env.LLM_URL ?? 'https://openrouter.ai/api/v1';
 
@@ -788,10 +740,9 @@ async function main(): Promise<void> {
       `${CONCURRENCY} at a time — ^C to stop, and what is measured by then is kept.\n`,
     );
 
-    // One queue of models, each carrying its own conversations; a worker takes
-    // the next model and works through it in order. Sharing one queue rather
-    // than dealing the models out in advance keeps every worker busy when one
-    // model turns out to be far slower than the rest.
+    // One queue of models, each carrying its own conversations. Sharing a queue
+    // rather than dealing them out keeps every worker busy when one model turns
+    // out far slower than the rest.
     const queue = MODELS.map((model) => ({
       model,
       todo: toMeasure.filter((p) => p.model === model),
@@ -827,14 +778,10 @@ async function main(): Promise<void> {
     );
   }
 
-  // Every pair, in the order MODELS declares, whether it was measured now or
-  // read back. A pair that failed on this run is still shown — the timings say
-  // nothing but the errors are the point — and is not marked cached, because it
-  // is not what a later run will find on disk.
-  // Keyed as JSON rather than by joining on a separator: a model id and a
-  // conversation name have no character between them that neither can contain,
-  // and the one this reached for first was a NUL — which made the whole file
-  // binary to grep.
+  // Every pair, measured now or read back. One that failed this run is still
+  // shown, since the errors are the point, and is not marked cached. Keyed as
+  // JSON because no single character is guaranteed absent from both a model id
+  // and a conversation name.
   const measured = new Set(
     toMeasure.map(({ model, conversation }) =>
       JSON.stringify([model, conversation.name]),

@@ -1,12 +1,10 @@
-// What the scripts' colour helper decides: whether to emit an escape at all.
-// The codes themselves are not asserted by name — which SGR number is green is
-// not this module's decision to get wrong — but that a non-terminal gets none,
-// and that the text survives either way, are.
+// What the colour helper decides: whether to emit an escape at all. Which SGR
+// number is green is not asserted; that is the terminal's vocabulary, not this
+// module's choice.
 import { describe, it, expect } from '@jest/globals';
 import { palette } from './colour';
 
-// Built rather than written, so this file carries no control character either —
-// which is the thing lib/colour exists to keep out of the rest of them.
+// Built, so this file carries no control character either.
 const ESC = String.fromCharCode(27);
 
 describe('palette', () => {
