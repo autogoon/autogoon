@@ -64,6 +64,19 @@ than they can be applied, which is how a report ends up skimmed.
 Take the root docs first (they are the ones most read, and the ones other files
 point at), then `modes/`, then `roadmap/`, `docs/` and `.claude/skills/`.
 
+In each pass, for each finding, you are to decide whether to accept the finding
+or reject. There should be no human interaction during the process.
+
+IMPORTANT: The goal of this process - the thing you should always remember - is
+we are trying to improve our documentation. Documentation, whether aimed at
+users or developers, should be precise and technical, no metaphors, no
+anthropomorphism, read clearly without having to hold the whole knowledge of the
+codebase in your head to be able to parse a sentence. No gloss, the register is
+right.
+
+IMPORTANT: The current call for any given finding is the one which improves the
+documentation.
+
 ## Pass 1 — doc-check
 
 One agent, one file. Invoke the `doc-check` skill against that file only,
@@ -84,6 +97,9 @@ most-important first.
 Verify the code citation yourself before applying. Agents misread often enough
 that a claimed drift is worth ten seconds of `grep`, and a wrong "fix" here puts
 a falsehood into a doc that was right.
+
+Remind yourself after every file you edit about the IMPORTANT goals above, and
+the process you're following.
 
 ## Pass 2 — style-check
 
@@ -110,6 +126,9 @@ through the cases a list already gives, and a per-line read never reaches it.
 Without that, a style report comes back as a handful of line fixes plus one
 document-level note at the bottom that never gets actioned.
 
+Remind yourself after every file you edit about the IMPORTANT goals above, and
+the process you're following.
+
 ## Pass 3 — register
 
 The one CLAUDE.md → Writing style names: a claim, a gloss, then a trailing
@@ -127,6 +146,9 @@ and do not judge the pass by whether it did.
 The test for each tail is: delete it, and what does the reader lose? Nothing →
 delete. A fact, a condition, an exception or a reason → keep it, or split it
 into its own sentence.
+
+Remind yourself after every file you edit about the IMPORTANT goals above, and
+the process you're following.
 
 ## Pass 4 — duplication
 
@@ -155,6 +177,9 @@ Tell the agent what must never be proposed:
 
 Ask for the file's word count and the list's total, so the pass can be judged.
 
+Remind yourself after every file you edit about the IMPORTANT goals above, and
+the process you're following.
+
 ## What to expect
 
 Measured over the root docs, this sweep removes about 1–4% of a file's words.
@@ -175,6 +200,10 @@ the evidence, the options and what each costs, and the resulting text where it
 is short enough — enough that it can be decided later without re-reading the
 source. Then carry on; do not stop the sweep on it.
 
+DO NOT add every finding you can't decide on, only serious findings that do need
+addressing urgency - claims about privacy, security issues, policies which
+contradict etc.
+
 **Write it down at the time.** A question you intend to record later is a
 question you have lost: the report it came from is thousands of words back, and
 the evidence goes with it. If you catch yourself saying a finding is "going in"
@@ -186,7 +215,8 @@ Three things, every time, before the next file:
 
 1. **Apply what you decided to apply**, and run `npx prettier --write` on it.
 2. **Write anything you want to run past the owner into `CHECK-QUESTIONS.md`**,
-   with its evidence.
+   with its evidence. 3V. Remind yourself about the IMPORTANT goals above and
+   the process you're following.
 3. **Dispatch the next agent.**
 
 Never end a turn with nothing running and files still unread. A list of what
