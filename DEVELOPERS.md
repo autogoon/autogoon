@@ -95,8 +95,7 @@ itself. The repo carries one deliberately media-free example pack
 
 Don't submit features that:
 
-- bundle, host, or download content (`goonpacks/elise/` is the one exception,
-  and it stays media-free);
+- bundle, host, or download content;
 - index, list, or link to packs or content sources (no "browse packs", curated
   lists, or in-app galleries of third-party content);
 - point users at places to acquire content — in the app or its docs.
@@ -110,7 +109,7 @@ Two layers, both local-only (no CI):
 - **Unit tests** — `npm test` (Jest via `next/jest`). They live next to what
   they test. `jest.config.mjs` holds the match set. Import from `@jest/globals`.
   The environment is node by default. A test that renders a hook or a component
-  asks for jsdom in a `@jest-environment jsdom` docblock at the top of the file
+  declares jsdom in a `@jest-environment jsdom` docblock at the top of the file
   (`src/hooks/use-media-url.test.ts` is an example). Keep that opt-in per file;
   a global jsdom would slow every engine test down for nothing.
 - **End-to-end tests** — `npm run test:e2e` (Playwright, in `tests/e2e/`). Every
@@ -162,20 +161,26 @@ CHECK-QUESTIONS.md and the sweep's own briefs excluded) in four passes — doc
 (truth), style, register, duplication — each a fresh `claude -p` call returning
 findings against a JSON schema. Findings are applied by exact string
 substitution and verified by a second fresh call; accepted fixes stay
-uncommitted in the working tree for review — the sweep never commits. Anything
-needing a human decision lands in a per-file `.sweep/<file>.questions.md`,
-beside the raw `.sweep/<file>--<pass>.json` reports; a run starts by deleting
-all sweep output from earlier runs, which it makes stale. The pass prompts are
-in `scripts/md-sweep-briefs/`; the rules they enforce live in
+uncommitted in the working tree for review. Anything needing a human decision
+lands in a per-file `.sweep/<file>.questions.md`, beside the raw
+`.sweep/<file>--<pass>.json` reports; a run starts by deleting all sweep output
+from earlier runs, which it makes stale. The pass prompts are in
+`scripts/md-sweep-briefs/`; the rules they enforce live in
 [CLAUDE.md](./CLAUDE.md) → Documentation and → Writing style.
 
-Flags: `--files <paths…>` to sweep a subset, `--passes doc,style` to run fewer
-passes, `--dry-run` to collect reports without editing, `--model <m>` to
-override the model (default `opus`), `--out <dir>` to move the output dir,
-`--concurrency <n>` for how many files run at once (default 4; a file's own
-passes always run in order). The sweep skips any file with uncommitted changes
-and never runs `git add` or `git commit`, so it is safe beside other work in the
-same checkout; review its output with `git diff`.
+Flags:
+
+- `--files <paths…>` — sweep a subset;
+- `--passes doc,style` — run fewer passes;
+- `--dry-run` — collect reports without editing;
+- `--model <m>` — override the model (default `opus`);
+- `--out <dir>` — move the output dir;
+- `--concurrency <n>` — how many files run at once (default 4; a file's own
+  passes always run in order).
+
+The sweep skips any file with uncommitted changes and never runs `git add` or
+`git commit`, so it is safe beside other work in the same checkout; review its
+output with `git diff`.
 
 ## Goonpack sources
 

@@ -51,9 +51,8 @@ saying so in words, every session and every new companion.
 ### Put the wind-down on a curve
 
 It steps down in two straight-line phases. Give it the `RAMP_GAMMA` curve Goon's
-dips ramp on, so its steps shrink as it approaches a standstill instead of
-stepping evenly the whole way. A 5-unit change at speed 10 is felt far more than
-the same change at speed 90.
+dips ramp on, so its steps shrink as it approaches a standstill. A 5-unit change
+at speed 10 is felt far more than the same change at speed 90.
 
 Goon, Groove and Companions each carry their own copy of the constants.
 

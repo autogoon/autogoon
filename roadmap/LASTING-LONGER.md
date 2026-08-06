@@ -64,8 +64,8 @@ Not tracking, scoring, or automating the stop.
 - **Smooth Stop / gentle Start** — the app controls the motor, so Stop can wind
   down and Start can ramp back gently rather than all-or-nothing, cutting the
   risk of the restart itself tipping him over.
-- **Stop is an emergency brake, not the main control** — the man should ease off
-  as arousal climbs and only hit Stop when he has to, not flip between full and
+- **Stop is a last resort, not the main control** — the man should ease off as
+  arousal climbs and only hit Stop when he has to, not flip between full and
   zero.
 - **Already exists** — speed control + Stop/Start are built; the training is in
   the framing, teaching him to use them this way.
@@ -84,8 +84,8 @@ Not tracking, scoring, or automating the stop.
   - Ask for short subjective feedback after each session rather than showing
     numbers.
 - **End-of-program review** — reveal the data and the man's own feedback from
-  along the way, so progress surfaces as reassurance at the end rather than a
-  running score he watches each day.
+  along the way, so progress surfaces as reassurance rather than a running score
+  he watches each day.
 
 ### Pelvic-floor and breathing module
 
@@ -99,7 +99,7 @@ Not tracking, scoring, or automating the stop.
 - **Nothing on screen during the act** — no timer, sparkline, or score; it pulls
   attention off bodily sensation, which is the skill the training is meant to
   build.
-- **Data surfaces later** — kept out of the session, shown only in the review.
+- **Data surfaces later** — shown only in the review.
 
 ## Sources
 

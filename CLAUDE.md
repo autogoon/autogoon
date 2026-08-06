@@ -144,11 +144,10 @@ the app in the browser and watching what it does.
   should see. For anything about content, assert only invariants that hold for
   any sane reply, and record the flake rate you measured.
 
-`npm run lint` runs with `--max-warnings 0`, and the repo is kept at **zero
-warnings**. Fix every lint and typecheck warning or error before you finish,
-including ones your direct changes didn't cause. Never treat one as
-"pre-existing, not mine." Both `npm run lint` and `npm run typecheck` produce no
-output when they pass.
+The repo is kept at **zero warnings**. Fix every lint and typecheck warning or
+error before you finish, including ones your direct changes didn't cause. Never
+treat one as "pre-existing, not mine." Both `npm run lint` and
+`npm run typecheck` produce no output when they pass.
 
 Before committing — or at the latest before a finished PR is reviewed — run
 `npm run typecheck`, `npm run lint`, and `npm run format`. If `format` changes
@@ -196,7 +195,7 @@ the work done.
 - **Lead with what you get, not what we did.** The summary and first sentence
   are the benefit; the cause is a clause at the end if it earns a mention.
   "Companions are off the MiniMax models" is a decision — what the reader
-  noticed is a companion reading its own thinking out loud.
+  noticed is a companion reading their own thinking out loud.
 - **Name it what the app names it, and say where it is.** If there is a word on
   screen for the thing — an intro, a pack, a play mode — use it, and say where
   it appears. An entry describing the concept, or naming it with no way to find
@@ -265,10 +264,10 @@ invariants, the why, and the cross-file shape. Concretely:
   the code does now — not what it replaced ("replaces the old spinners", "this
   used to…", "renamed from…"), and not what might come ("we'll add…", "for a
   future mode"). The past belongs in [CHANGELOG.md](./CHANGELOG.md) and git
-  history; the future belongs in the files above. Both go stale, and neither
-  helps someone reading the code in front of them. The exception is provenance
-  that explains a live constraint — why code is shaped oddly _today_. That is
-  about the present and stays.
+  history; the future belongs in TODO.md, BUG.md, ROADMAP.md or a dated plan
+  under `docs/`. Both go stale, and neither helps someone reading the code in
+  front of them. The exception is provenance that explains a live constraint —
+  why code is shaped oddly _today_. That is about the present and stays.
 - README, MODES.md and `modes/*.md` are **user-facing**: no repo mechanics
   (committed/gitignored, generated modules, script internals). That belongs in
   DEVELOPERS.md, ARCHITECTURE.md, or the code — and a user is never sent there
@@ -372,13 +371,18 @@ still break every rule here. `/style-check` reads for these.
   merge**: push with `git push -u origin <branch>`, then open a PR against
   `main` with `gh pr create`.
 - **Before opening a PR** (or marking a draft ready), the whole gate set passes:
-  `npm run typecheck`, `lint` and `format` clean, `npm test` and
-  `npm run test:e2e` both run (see Verifying changes for what each covers), the
-  CHANGELOG entry written, and the five checks, **in this order**:
-  `/code-check`, `/test-check`, `/doc-check`, `/style-check`, `/personal-check`.
+
+  - `npm run typecheck`, `lint` and `format` clean;
+  - `npm test` and `npm run test:e2e` both run (see Verifying changes for what
+    each covers);
+  - the CHANGELOG entry written;
+  - the five checks, **in this order**: `/code-check`, `/test-check`,
+    `/doc-check`, `/style-check`, `/personal-check`.
+
   All five run on every branch. A check that only runs when someone judges it
   relevant is a check that never runs, and each one reports "nothing found"
   cheaply when a branch didn't go near its subject.
+
 - **Never discard a valid finding for being outside the check's remit.** Report
   it. A duplicate line costs nothing; a finding dropped because another check
   owns it is lost.
@@ -441,10 +445,10 @@ things worth knowing up front:
   (`src/lib/play-modes/*-engine.ts`, no React, no device) only _generates a
   program_ — a schedule of timed speed/valve events over program-time — and
   rescales each event's magnitude at send time. Generation is split into two
-  channels: `generateSpeed` (the stateful backbone) and `generateValves` (a
-  _pure_ overlay laid across a span of already-built speed), so the Player can
-  re-lay valves over an unchanged speed script (`invalidateValves()`) for a
-  valve-only knob like Autopilot's vacuum maintenance. The one shared **Player**
+  channels: `generateSpeed` (stateful) and `generateValves` (a _pure_ overlay
+  laid across a span of already-built speed), so the Player can re-lay valves
+  over an unchanged speed script (`invalidateValves()`) for a valve-only knob
+  like Autopilot's vacuum maintenance. The one shared **Player**
   (`src/lib/player.ts`, owned by `useVacuglideDevice`) actually _plays_ a
   program: it owns the clock, the tick loop, device sends, and transport
   (play/pause/seek/playback-rate, and dropping + regenerating the not-yet-played
@@ -467,9 +471,8 @@ things worth knowing up front:
 - **Commands are declared once**: each action is a `Command` (the type is
   commented in `src/hooks/use-voice-commands.ts`). The button and the spoken
   word share one run handler and one enabled flag, so a disabled control is also
-  out of the grammar. `useVoiceCommands` (`src/hooks/use-voice-commands.ts`)
-  registers the active panel's enabled words with the recognizer and routes
-  detections back.
+  out of the grammar. `useVoiceCommands` registers the active panel's enabled
+  words with the recognizer and routes detections back.
 - **Voice-first in play**: play is operated hands-free, so nearly every control
   on a play mode's screens — and the navigation that reaches them — should also
   be a voice command. When adding one, give it a word (and the on-screen

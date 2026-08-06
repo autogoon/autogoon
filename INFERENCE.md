@@ -55,7 +55,7 @@ the only reader of these names, and what it doesn't recognise, the pack's
 sidecars included, it leaves alone.
 
 Ground truth is per-pack. The same picture in two packs is labelled twice, and
-the compare screen calibrates against one pack's answers.
+the compare screen draws its exemplars from one pack's answers.
 
 ## Ground truth
 
@@ -174,8 +174,8 @@ pack can hold thousands.
 
 **`experiment:run` brings a pack up to the experiment as it stands** — every
 item it has never answered, and every item it answered before its last edit.
-`experiment:run:outdated` takes only the second of those. Reach for it where the
-gaps are deliberate and only the stale answers want redoing.
+`experiment:run:outdated` takes only the outdated ones. Reach for it where the
+gaps are deliberate and only the stale answers need redoing.
 
 Both print the whole standing before they start — how many images, how many
 answered, how many outdated, how many never run — and then what the run takes of
@@ -193,7 +193,7 @@ paid for, so it is allowed to land.
 
 They go in **random order**. Filename order is not a random sample of a pack, so
 a sweep that stopped part-way through it would have covered whatever sorts
-first. Those are the items the compare screen would then be calibrating against.
+first. Those are the items the compare screen would then offer as exemplars.
 Running again picks up where the last one stopped, since an item the experiment
 has already answered is skipped.
 
@@ -207,7 +207,7 @@ builds a pack whose captions and descriptions are that experiment's:
 **Media with no sidecar** is left out, since a picture nothing can describe is
 one no companion can pick. The build prints how many it dropped. So is
 **everything else inference wrote**: the labels, the replies, the prompts, the
-fields, and each run's own copy of the four.
+fields, and each run's own archived copies of them.
 
 Named that way it is strictly that experiment's work. An item it never described
 is left out rather than falling back to the stock sidecar, so two packs built
@@ -237,15 +237,14 @@ each item sit as many sidecars as have been written about it: the stock
 `<stem>.md`, and one per experiment that has answered it. Choosing an experiment
 chooses which of those to read.
 
-**What each select decides.** A card carries whichever of these it has a choice
-to offer — Base only where more than one version is installed, Overlay only
-where the companion has any, Descriptions only for a pack read off disk:
+**What each select decides.** A card carries a select only where it has a choice
+to offer:
 
-| Select       | The question                          |
-| ------------ | ------------------------------------- |
-| Base         | which version of the companion        |
-| Overlay      | what is laid on top, media included   |
-| Descriptions | which sidecars the media is read with |
+| Select       | The question                          | Offered where                      |
+| ------------ | ------------------------------------- | ---------------------------------- |
+| Base         | which version of the companion        | more than one version is installed |
+| Overlay      | what is laid on top, media included   | the companion has an overlay       |
+| Descriptions | which sidecars the media is read with | a pack read off disk               |
 
 Descriptions is answered after Overlay, because Overlay settles _where the media
 comes from_. Descriptions then applies to whichever directory that leaves.

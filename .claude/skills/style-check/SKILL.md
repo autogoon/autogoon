@@ -4,15 +4,15 @@ description:
   Use before opening a PR and again before merging it — reads everything the
   branch added or changed, in documentation and in code comments, against
   CLAUDE.md's writing style. Cuts metaphors, personification, restatement,
-  padding, anything that carries nothing, and a register that says everything
-  the same way. Checks nothing for truth.
+  padding, and a register that says everything the same way. Checks nothing for
+  truth.
 ---
 
 # Style check
 
 Read everything the branch wrote against the style CLAUDE.md sets. Nothing here
-is settled by looking in another file: text carrying nothing is not false, so
-asking whether it is true passes it.
+is settled by looking in another file: text carrying nothing is not false.
+Asking whether it is true passes it.
 
 Where this runs among the checks, and why, is in [CLAUDE.md](../../../CLAUDE.md)
 → Git workflow.
@@ -34,13 +34,13 @@ Writing style as well, but rewriting history to fix one costs more than the
 flaw: report what you find and leave it.
 
 Text written **during** an earlier check is in scope like any other. So is your
-own fix here — a rewrite matches its surroundings, and that is how the register
+own fix here — a rewrite matches its surroundings. That is how the register
 spreads. Read what you wrote against the shape, not only against the rules.
 
 ## The style
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Writing style is a check.**
-Read them there. They are not repeated, so a rule added there is checked without
+Read them there. They are not repeated. A rule added there is checked without
 this file changing.
 
 These belong to other checks, not this one:
@@ -68,14 +68,14 @@ anything?** If it says as much without, it goes. This catches:
 it names something the reader can point at, or it stands where a mechanism
 should be.
 
-**Name the shape the document is written in, and count it.** The first two
-questions run inside a paragraph. A register fault survives both: each instance
-carries information, and no single word stands where a mechanism should be. What
-fails is that every sentence says its thing the same way. The rule is in
-[CLAUDE.md](../../../CLAUDE.md) → Writing style. What this check adds is the
-count: mean words per sentence, glosses per line on dashes or a colon, and `so…`
-and `which is…` tails. The count is evidence, not a target; without one, "this
-reads chatty" is an impression.
+**Name the shape the document is written in, and count it.** Cutting a phrase
+and asking what a word means both run inside a paragraph. A register fault
+survives both: each instance carries information, and no single word stands
+where a mechanism should be. What fails is that every sentence says its thing
+the same way. The rule is in [CLAUDE.md](../../../CLAUDE.md) → Writing style.
+What this check adds is the count: mean words per sentence, glosses per line on
+dashes or a colon, and `so…` and `which is…` tails. The count is evidence, not a
+target. Without one, "this reads chatty" is an impression.
 
 **Read a paragraph against the list or table beneath it.** A run of cases in
 prose — "either X, or Y, or Z" — directly above a list giving those same cases
@@ -83,15 +83,14 @@ is one set enumerated twice. The rules that catch it are already in
 [CLAUDE.md](../../../CLAUDE.md) → Writing style, and neither fires on a read
 that stops at the paragraph: the run is "three or more items run together in a
 sentence", and the sentence tying it back to the rule above restates that rule.
-An `either… or…` run also doesn't look like a comma-separated list, so a sweep
-for comma-runs walks past it. Prose above a list states the rule and stops; the
-list carries the cases.
+An `either… or…` run also doesn't look like a comma-separated list. Prose above
+a list states the rule and stops; the list carries the cases.
 
-Run all four over everything in scope. The last two read the whole of any
-document the diff touched, not only the changed lines — both patterns are
-invisible in a hunk. The register question is always **ask first**: the fix
-rewrites a document, not a line, and it is one question for that document rather
-than one per sentence.
+Run all four over everything in scope. The register question and the
+list-versus-prose question read the whole of any document the diff touched, not
+only the changed lines — both patterns are invisible in a hunk. The register
+question is always **ask first**: the fix rewrites a document, not a line, and
+it is one question for that document rather than one per sentence.
 
 ## Reporting
 

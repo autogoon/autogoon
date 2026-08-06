@@ -13,10 +13,10 @@ the other files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
   word included — while the header shows the green mic. Nothing retries and
   nothing reports it; only toggling Listen off and on recovers.
 
-  Reaching it needs an engine that refuses to resume a context created without a
+  Reaching it needs an engine that will not resume a context created without a
   user gesture. The autostart-on-load path always creates the context that way.
-  Chromium and Firefox appear not to refuse. Playwright's WebKit cannot stand in
-  for Safari, so whether Safari does is unverified.
+  Chromium and Firefox appear to resume it anyway. Playwright's WebKit cannot
+  stand in for Safari, so whether Safari does is unverified.
 
   Which of the two fixes is right depends on that answer. Awaiting the resume
   and failing the start unless the context is running keeps `listening` accurate

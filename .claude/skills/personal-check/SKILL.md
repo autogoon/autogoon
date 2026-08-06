@@ -4,14 +4,14 @@ description:
   Use before pushing to the public repo, before opening a PR and again before
   merging it, or after writing docs/content — scans for personal information,
   identifying details, or content-sourcing references that shouldn't be public,
-  and checks whether any finding is already baked into git history.
+  and checks whether any finding is already committed to git history.
 ---
 
 # Personal check
 
-This repo is **public**. Scan for personal information and make it generic — and
-remember that anything ever committed lives in **history**, not just HEAD: a
-finding is not fixed until the history that contains it is rewritten.
+This repo is **public**. Scan for personal information and make it generic.
+Anything ever committed lives in **history**, not just HEAD: a finding is not
+fixed until the history that contains it is rewritten.
 
 ## What to look for
 
@@ -42,15 +42,15 @@ Below is where those leaks hide, which the rules alone would not tell you:
   fix: remediation is always a history rewrite (a message-only
   `filter-branch --msg-filter` keeps every tree identical).
 - **PR titles, descriptions and comments** — public the moment they're posted,
-  and not in git at all, so no `git` search will ever find them. Read the body
-  you wrote (`gh pr view <n> --json title,body,comments`) with the same eye as a
+  and not in git at all. No `git` search will ever find them. Read the body you
+  wrote (`gh pr view <n> --json title,body,comments`) with the same eye as a
   doc. **Where an edit takes personal information out**, editing is not removal:
   GitHub keeps a revision history behind the body's _edited_ marker, readable by
-  anyone who can see the PR. Deleting a revision is UI-only and author-only, so
-  that edit has to be followed by "open the edited dropdown and delete the
+  anyone who can see the PR. Deleting a revision is UI-only and author-only.
+  That edit has to be followed by "open the edited dropdown and delete the
   revision" — say so rather than calling it fixed. An edit that only adds or
-  reworks text leaves nothing in the old revision that wasn't already public, so
-  it needs no follow-up and isn't worth mentioning.
+  reworks text leaves nothing in the old revision that wasn't already public. It
+  needs no follow-up and isn't worth mentioning.
 
 ## Scope
 
@@ -95,10 +95,10 @@ passes.
 ### Do not let the findings so far shape the search
 
 Once a finding exists, the cheap next move is to grep the rest of history for
-its wording — which finds more of what is already known and nothing else. The
+its wording. That finds more of what is already known and nothing else. The
 identifier patterns come from **What to look for** and run in full regardless.
 For the categories no regex covers — a set's size, a folder layout, hardware,
-sourcing — reading is the only pass that works, so that remainder gets read, not
+sourcing — reading is the only pass that works. That remainder gets read, not
 searched.
 
 ## History

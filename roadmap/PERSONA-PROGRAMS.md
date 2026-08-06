@@ -17,7 +17,7 @@ in the persona prompt, where an author can already write it:
 - `variety` may be prompt too, or may be the trait that sets the `variety` knob.
 
 Settling that before adding fields matters because a manifest field is a
-compatibility surface, and packs in the wild make one expensive to take back.
+compatibility surface. Packs in the wild make one expensive to take back.
 
 What this has to prove is that character bends both the chat and the generated
 program. More than one companion, and the chooser to pick between them, have

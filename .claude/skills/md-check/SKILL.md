@@ -21,10 +21,10 @@ are.
 
 **A subagent reviews; you apply.** Every agent this skill dispatches is
 read-only and returns findings. You make every edit yourself, with Edit. This is
-not a preference about tooling — the passes below turn up the same fault in
+not a preference about tooling — the four passes turn up the same fault in
 several files at once, and a fix applied consistently across them can only come
-from one hand. Agents editing in parallel produce four dialects of the same
-correction.
+from one hand. Agents editing in parallel produce inconsistent versions of the
+same correction.
 
 If a pass looks too large to apply by hand, that is the signal to narrow the
 pass, not to let an agent edit.
@@ -35,8 +35,8 @@ pass, not to let an agent edit.
    sentence has to be true before it is worth rewriting.
 2. **style-check** — the per-line faults: personification, coined metaphor,
    padding, positional reference, vocabulary, pronouns.
-3. **register** — the shape of the sentences, which only reads as a fault across
-   a whole document.
+3. **register** — the shape of the sentences. It only reads as a fault across a
+   whole document.
 4. **duplication** — whole sentences that can go, judged against the file
    entire.
 
@@ -55,13 +55,12 @@ find.
 related the files look.** An agent given several files reads each one shallowly
 and reports the union, and the fault this sweep is really after — the same fact
 in two sections that never see each other — is only visible to something holding
-one whole file at once. Grouping is what makes a five-file report read like five
-skim-reads, because it is.
+one whole file at once.
 
-**Run agents in the background** Process their findings as they return.
+**Run agents in the background.** Process their findings as they return.
 
 Five agents in flight is the working size. More and the reports arrive faster
-than they can be applied, which is how a report ends up skimmed.
+than they can be applied. That is how a report ends up skimmed.
 
 Take the root docs first (they are the ones most read, and the ones other files
 point at), then `modes/`, then `roadmap/`, `docs/` and `.claude/skills/`.
@@ -69,18 +68,17 @@ point at), then `modes/`, then `roadmap/`, `docs/` and `.claude/skills/`.
 In each pass, for each finding, you are to decide whether to accept the finding
 or reject. There should be no human interaction during the process.
 
-IMPORTANT: The goal of this process - the thing you should always remember - is
-we are trying to improve our documentation. Documentation, whether aimed at
-users or developers, should be precise and technical, no metaphors, no
-anthropomorphism, read clearly without having to hold the whole knowledge of the
-codebase in your head to be able to parse a sentence. No gloss, the register is
-right.
+IMPORTANT: The goal of this process is to improve our documentation.
+Documentation, whether aimed at users or developers, should be precise and
+technical, no metaphors, no anthropomorphism, read clearly without having to
+hold the whole knowledge of the codebase in your head to be able to parse a
+sentence. No gloss, the register is right.
 
-IMPORTANT: THe current call for any given finding is the one which improves the
+IMPORTANT: The current call for any given finding is the one which improves the
 documentation.
 
-It is expected that we repeat the important "remind yourself" instructions, to
-maintain the quality this skill produces
+The "remind yourself" instructions are repeated deliberately, to maintain the
+quality this skill produces.
 
 ## Pass 1 — doc-check
 
@@ -93,7 +91,7 @@ Brief it for two kinds of finding, not one:
 - **duplication** — the same rule, list or procedure stated in two places. This
   is doc-check's remit, via CLAUDE.md → Documentation's "One source of truth",
   and it is the half that gets forgotten. Ask for both copies quoted side by
-  side, so which one moves is a decision you can make from the report.
+  side. Which one moves is a decision you can make from the report.
 
 Ask for each finding as: the quoted current text, the `file:line` of the code or
 the other document that proves it, and the exact replacement. Findings ordered
@@ -103,7 +101,7 @@ Verify the code citation yourself before applying. Agents misread often enough
 that a claimed drift is worth ten seconds of `grep`, and a wrong "fix" here puts
 a falsehood into a doc that was right.
 
-Remind yourself after every file you edit about the IMPORTANT goals above, and
+Remind yourself after every file you edit about the goals this skill states, and
 the process you're following.
 
 ## Pass 2 — style-check
@@ -116,22 +114,22 @@ Brief it explicitly that these three are findings with verbatim replacement
 text, not observations:
 
 - **personification** — sweep for it by verb, and say in the brief which
-  subjects are mechanisms rather than modules, since the distinction is the
-  whole judgement. In this repo: a companion is a character and may know, choose
-  and remember; a VAD marking end-of-utterance, a browser releasing a lock and
-  an LLM ending its turn are mechanisms; a panel, engine, screen, pack or the
-  app is not.
+  subjects are mechanisms rather than modules. The distinction is the whole
+  judgement. In this repo: a companion is a character and may know, choose and
+  remember; a VAD marking end-of-utterance, a browser releasing a lock and an
+  LLM ending its turn are mechanisms; a panel, engine, screen, pack or the app
+  is not.
 - **coined metaphor** — terms of art stay, coinages get the mechanism.
 - **register** — see pass 3.
 
-Ask for the fourth of `style-check`'s questions by name — reading a paragraph
-against the list or table beneath it. It is the one that finds prose running
-through the cases a list already gives, and a per-line read never reaches it.
+Ask by name for `style-check`'s question "Read a paragraph against the list or
+table beneath it". It is the one that finds prose running through the cases a
+list already gives, and a per-line read never reaches it.
 
 Without that, a style report comes back as a handful of line fixes plus one
 document-level note at the bottom that never gets actioned.
 
-Remind yourself after every file you edit about the IMPORTANT goals above, and
+Remind yourself after every file you edit about the goals this skill states, and
 the process you're following.
 
 ## Pass 3 — register
@@ -152,7 +150,7 @@ The test for each tail is: delete it, and what does the reader lose? Nothing →
 delete. A fact, a condition, an exception or a reason → keep it, or split it
 into its own sentence.
 
-Remind yourself after every file you edit about the IMPORTANT goals above, and
+Remind yourself after every file you edit about the goals this skill states, and
 the process you're following.
 
 ## Pass 4 — duplication
@@ -163,8 +161,8 @@ Pass 1 has already asked for duplication across documents. What is left here is
 duplication _within_ one — the same fact in two sections that never see each
 other — plus restatement inside a paragraph, announcing sentences and flourish.
 If pass 1 was briefed properly, the cross-section finds here are few; if this
-pass returns a lot of them, pass 1's brief was too narrow, which is worth
-knowing before the next file.
+pass returns a lot of them, pass 1's brief was too narrow. That is worth knowing
+before the next file.
 
 Ask for a list of deletable sentences: each quoted verbatim, with the other
 place the fact is stated quoted alongside it, and the resulting text where the
@@ -180,9 +178,9 @@ Tell the agent what must never be proposed:
 - in CLAUDE.md, any requirement or exception, and any phrasing whose force is
   the phrasing.
 
-Ask for the file's word count and the list's total, so the pass can be judged.
+Ask for the file's word count and the list's total. The pass can then be judged.
 
-Remind yourself after every file you edit about the IMPORTANT goals above, and
+Remind yourself after every file you edit about the goals this skill states, and
 the process you're following.
 
 ## Open questions
@@ -199,9 +197,9 @@ Not decisions, however far outside `.md` the fix lands: a missing row in
 `.env.example`, a stale identifier in a code comment, a broken link, a renamed
 script, a value that no longer matches the code. **The sweep's scope governs
 which files it reads, never which it may correct.** A fault found in
-`ROADMAP.md` and fixed in `package.json` is the sweep working. Reaching for
+`ROADMAP.md` and fixed in `package.json` is the sweep working. Never reach for
 scope as the reason to record rather than fix — "not a `.md` file", "another
-check owns it" — is the failure this paragraph exists to stop.
+check owns it".
 
 Seriousness is the second filter, not the first. Once something is genuinely a
 decision, record it only if it needs one: privacy or security claims,
@@ -214,17 +212,18 @@ re-reading the source. Then carry on; do not stop the sweep on it.
 **Write it down at the time.** A question you intend to record later is a
 question you have lost: the report it came from is thousands of words back, and
 the evidence goes with it. If you catch yourself saying a finding is "going in"
-or "queued", that sentence is the whole of the work done so far.
+or "queued", nothing has been written down yet.
 
 ## After every file, without being asked
 
-Three things, every time, before the next file:
+Four things, every time, before the next file:
 
 1. **Apply what you decided to apply**, and run `npx prettier --write` on it.
 2. **Write anything you want to run past the owner into `CHECK-QUESTIONS.md`**,
-   with its evidence. 3V. Remind yourself about the IMPORTANT goals above and
-   the process you're following.
-3. **Dispatch the next agent.**
+   with its evidence.
+3. **Remind yourself of the goals this skill states and the process you're
+   following.**
+4. **Dispatch the next agent.**
 
 Never end a turn with nothing running and files still unread. A list of what
 comes next is not work in progress — nothing is queued unless an agent is
@@ -240,7 +239,7 @@ settled.
 
 ## Finishing a file
 
-Run `npx prettier --write <file>` after applying, so the reflow lands with the
+Run `npx prettier --write <file>` after applying. The reflow lands with the
 change rather than in a later commit.
 
 Line counts mean nothing here — prose rewrapping dominates them. Measure `wc -w`

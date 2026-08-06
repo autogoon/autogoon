@@ -9,8 +9,8 @@ description:
 
 # Doc check
 
-Verify the repo's documentation still tells the truth about the code, and that
-it follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
+Verify the repo's documentation is still true about the code, and that it
+follows [CLAUDE.md](../../../CLAUDE.md) → Documentation.
 
 What this check must not miss has a right answer in another file: a path that no
 longer resolves, an identifier that was renamed, a claim the code stopped
@@ -23,8 +23,7 @@ _written_ is another check's subject.
   identifiers the diff renamed, removed or added. Find every doc mentioning any
   of those paths or identifiers, within [The document set](#the-document-set).
 - **Code comments are docs too.** **Every comment the diff touched is in
-  scope**, whatever file it sits in: if the branch wrote or edited it, read it
-  as a doc. Which check reads a comment for what is in
+  scope**, whatever file it sits in. Which check reads a comment for what is in
   [CLAUDE.md](../../../CLAUDE.md) → Git workflow. Beyond the diff, code files
   still aren't swept — flag a comment opportunistically, while verifying
   something else.
@@ -69,8 +68,8 @@ between it and the code.
 ## What to check, per doc
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Documentation and → Changelog
-is a check.** Read them there. They are not repeated here, so a rule added to
-either is checked without this file changing.
+is a check.** They are not repeated here. A rule added to either is checked
+without this file changing.
 
 Plus these:
 

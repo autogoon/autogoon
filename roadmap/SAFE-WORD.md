@@ -21,5 +21,5 @@ To settle:
 
 - **How they are told.** A marked message the app writes onto the thread, the
   way an ambient turn is cued, or a user turn.
-- **The two concurrent mic captures.** vosk and ElevenLabs STT both hear the
+- **The two concurrent mic captures.** vosk and ElevenLabs STT both receive the
   word, so it must not also arrive as an ordinary transcribed turn.

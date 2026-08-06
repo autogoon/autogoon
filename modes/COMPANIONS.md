@@ -72,10 +72,10 @@ persona-neutral blocks in `shared-prompt.ts`:
 - how a turn arrives, and when to stop taking one.
 
 Each export is commented with where it slots in. A persona module interpolates
-the first four as `{{tokens}}`; the clock and conversation blocks are appended
-at load (`fillSharedSections` in `src/lib/goonpacks/prompt.ts`), so a pack
-author never has to know they exist. Either way those rules can't drift between
-companions.
+the reply-format, speaking-style, device and media blocks as `{{tokens}}`; the
+clock and conversation blocks are appended at load (`fillSharedSections` in
+`src/lib/goonpacks/prompt.ts`), so a pack author never has to know they exist.
+Either way those rules can't drift between companions.
 
 The device description is part of that shared set because **what the toy does to
 you isn't a persona's to invent.** With only the tool names to go on, a model
@@ -125,14 +125,13 @@ everything before them — persona and whole conversation — identical, which i
 what prompt caching matches on.
 
 **Tool calls are persisted and replayed.** A companion's `tool_calls` and the
-results they return are stored on the thread, and replayed to the model as a
-proper agentic sequence: assistant-with-`tool_calls` → `tool` result → spoken
-reaction. Without that, the model drifts back to narrating actions instead of
-taking them.
+results they return are stored on the thread, and replayed to the model as an
+agentic sequence: assistant-with-`tool_calls` → `tool` result → spoken reaction.
+Without that, the model drifts back to narrating actions instead of taking them.
 
 **A turn can hold a chain of calls.** After a tool runs, its result is fed back
 and the tools are offered again. One turn can search for a picture and then send
-it, or set two knobs, rather than the second act waiting for a later turn.
+it, or set two knobs, rather than the second call waiting for a later turn.
 
 The chain ends when the companion answers with words instead of a call — their
 reaction to what they did. A cap bounds a turn that never gets there
@@ -141,8 +140,8 @@ reaction to what they did. A cap bounds a turn that never gets there
 ## Filling a silence
 
 A companion doesn't wait to be spoken to. At the end of each of their turns they
-line up another, so a lull gets filled. They might pick the thread back up,
-tease you about the quiet, or say something about what the toy is doing to you.
+line up another. They might pick the thread back up, tease you about the quiet,
+or say something about what the toy is doing to you.
 
 Start speaking and the pending turn is dropped.
 
@@ -185,16 +184,16 @@ A companion with nothing to send gets neither tool, and is told outright that
 they have nothing. Ask, and they say so.
 
 Pictures and videos are **bring-your-own**. They arrive via a
-[goonpack](../GOONPACKS.md), never bundled with the app. The built-in companions
-ship with none; give one media by importing an overlay pack for them.
+[goonpack](../GOONPACKS.md). The built-in companions ship with none; give one
+media by importing an overlay pack for them.
 
 ## Goonpacks
 
 The Companions screen lists the built-ins alongside any packs you've imported. A
-companion's card carries pickers for their pack version and any overlay, so you
-choose exactly what plays. Pack admin — importing, removing, seeing what each
-pack brings — lives on the Goonpacks tab. See [GOONPACKS.md](../GOONPACKS.md)
-for assembling and importing a pack.
+companion's card carries pickers for their pack version and any overlay. Pack
+admin — importing, removing, seeing what each pack brings — lives on the
+Goonpacks tab. See [GOONPACKS.md](../GOONPACKS.md) for assembling and importing
+a pack.
 
 ## Configuration
 
@@ -203,12 +202,12 @@ Everything is wired through env vars documented in
 `ELEVENLABS_API_KEY`. All are read server-side only, so no key ever reaches the
 client.
 
-The one to understand is **`COMPANIONS_ACCESS_IDS`**, the access gate. The
-Companions routes spend real money (LLM, TTS, STT) behind a shared URL, so on a
-deploy they are **fail-closed** (`access-check.ts`). With no IDs configured, the
-mode is hidden and every paid route rejects everything. Set at least one ID and
-enter it under Settings to unlock. Hand out different IDs to different people,
-and revoke one by deleting it.
+**`COMPANIONS_ACCESS_IDS`** is the access gate. The Companions routes spend real
+money (LLM, TTS, STT) behind a shared URL, so on a deploy they are
+**fail-closed** (`access-check.ts`). With no IDs configured, the mode is hidden
+and every paid route rejects everything. Set at least one ID and enter it under
+Settings to unlock. Hand out different IDs to different people, and revoke one
+by deleting it.
 
 Running locally (`npm run dev`) needs none of that. The gate is open in dev, and
 Companions appears as soon as your keys are in `.env`.

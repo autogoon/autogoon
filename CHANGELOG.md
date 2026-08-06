@@ -4,8 +4,9 @@
 
 - feature: **Documentation sweep** — `npm run docs:sweep` reviews every tracked
   `.md` file for truth, style, register and duplication faults, applies
-  unambiguous fixes as an uncommitted working-tree diff for review, and queues
-  judgement calls per file under `.sweep/`. Each review runs in a fresh
+  unambiguous fixes as an uncommitted working-tree diff for review, and writes
+  the judgement calls it can't make as questions, per file, under `.sweep/`.
+  Each review runs in a fresh
   `claude -p` context so long sessions cannot drift back into the style being
   removed. See [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
 
@@ -74,7 +75,7 @@
   import. Each card picks which descriptions to play the pack with.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- internal: **The pack index is built on first sight, not at startup** — Reading
+- internal: **The pack index is built when it's first needed, not at startup** — Reading
   every installed pack's sidecars happened at app load, whether or not anything
   went near a companion. It now happens the first time Companions or Goonpacks
   is opened. ([#30](https://github.com/autogoon/autogoon/pull/30))
@@ -195,7 +196,7 @@
 - bug: **A failed connection no longer costs the rest of the session** — If the
   speech connection didn't come up — a blip on the network, or the service
   refusing once — the companion stopped hearing anything until you stopped and
-  started again, and nothing said why. It now tries again on the next thing you
+  started again, and nothing said why. It now retries on the next thing you
   say, and the failure shows in the event log.
   ([#26](https://github.com/autogoon/autogoon/pull/26))
 
@@ -524,15 +525,14 @@
   them shortly after they start replying doesn't wait for a new connection to be
   set up first. Your microphone audio is only sent while you're actually saying
   something, so holding the line open costs nothing. The transcription service
-  still closes an unused connection after a while of its own accord, so a very
+  still closes an unused connection itself after a while, so a very
   late interruption reconnects as before.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - enhancement: **The message being spoken shimmers** — Instead of a separate
   "Loading voice" and "Speaking" row in the conversation, the message itself now
   carries a slow shimmer around its edge: faint and unhurried while the voice
-  loads, brighter and quicker once the words are being said. The message
-  being spoken is the thing you're reading, so it's the thing that's marked.
+  loads, brighter and quicker once the words are being said.
   Listening, Thinking and Replying keep their own row — there's no message on
   screen yet for those. Over an open picture, the corner badge still names every
   stage.
@@ -573,7 +573,7 @@
   to appear as you said it, especially when you spoke briefly or quietly: the
   app checked whether the microphone heard voice at the moment the transcript
   came back, by which point you had usually stopped. A transcript is now
-  believed on the evidence of the speech that produced it — how long you were
+  accepted on the evidence of the speech that produced it — how long you were
   audible for, or simply carrying more than one word — so it shows up as you
   talk. Interrupting a companion works on short interjections too, which
   previously couldn't cut them off at all. ([#22](https://github.com/autogoon/autogoon/pull/22))
@@ -631,7 +631,7 @@
   over. ([#18](https://github.com/autogoon/autogoon/pull/18))
 
 - enhancement: **A bolder, more consistent look** — Body text steps up from
-  small to base size with one muted voice across every card, buttons wear a
+  small to base size with one muted voice across every card, buttons have a
   visible standard style that brightens on hover, voice-command chips become
   amber pills, and a card's controls (pack pickers, Remove) float in its top
   corner. ([#18](https://github.com/autogoon/autogoon/pull/18))
@@ -871,8 +871,7 @@
   ticked you don't know what's coming. Torture and both ruins deliberately
   ignore your voice once started — Stop, and every other command with it; only
   the safe word halts them — and your ticks are remembered on this device. The
-  Goon card on home shouts about it, and each algorithm now wears its own icon
-  while we're at it. ([#11](https://github.com/autogoon/autogoon/pull/11))
+  Goon card on home shouts about it, and each algorithm now has its own icon. ([#11](https://github.com/autogoon/autogoon/pull/11))
 
 - feature: **Add safe word** — Saying it while anything is playing always stops
   the device instantly, on every algorithm, exactly like Stop (nothing is
@@ -914,10 +913,10 @@
   just a single 10-second stroke− application at session start — the
   every-minute stroke− pulses and the five-minutely stroke+ pulses are gone.
 
-- enhancement: **Flatten the UI** — The whole app now wears the home screen's
+- enhancement: **Flatten the UI** — The whole app now takes the home screen's
   flat look — the boxed cards are gone (headings and whitespace do the
   separating), Start and Play are one calm blue everywhere, the Stroke −/+
-  buttons wear a cyan tint instead of black, and the algorithm chooser entries
+  buttons are tinted cyan instead of black, and the algorithm chooser entries
   carry a big colour-coded icon on a soft diagonal tint of the same colour.
   Small controls — the token and safe word inputs, Test, Connect and the header
   chips — share a single lifted style so they stand out on the dark background.

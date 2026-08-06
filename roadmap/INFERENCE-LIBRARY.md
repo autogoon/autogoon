@@ -154,9 +154,9 @@ none of them chosen:
 - Sampling from everything above a threshold rather than strict top-N. Items a
   query scores equally are already sampled; the threshold is what isn't built.
 
-Sampling above a threshold is also what "something at random" needs, so it may
-serve the query-less request too. Which one earns its place is a question for a
-real library; what the tool must not do is foreclose them.
+Sampling above a threshold is also what "something at random" needs. Which one
+earns its place is a question for a real library; what the tool must not do is
+foreclose them.
 
 How many a search returns is the other half, and it can be answered without
 picking a lever. `SEARCH_LIMIT` is an arbitrary starting point. Too few and a

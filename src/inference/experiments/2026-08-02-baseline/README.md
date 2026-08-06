@@ -16,8 +16,8 @@ It doesn't reliably determine:
 - Topless vs bare breasts. They are not the same, but describe-image.ts does not
   distinguish them, and a breast shape under clothes is commonly answered as
   bare breasts.
-- Nipples visible vs seen through sheer fabric vs pokies, it often "sees" them
-  when they aren't there. It never misses them if they are.
+- Nipples visible vs seen through sheer fabric vs pokies, it often reports them
+  when they aren't there. It never omits them if they are.
 - If a subject's body is facing away from you, but they are looking at the
   camera, it often says they are facing the camera but describes the image as
   the whole body is facing you.
@@ -37,8 +37,8 @@ suitable for keyword search.
 
 ## Goals
 
-This is the first experiment so the main goal is to work out a workflow for how
-improving inference might work. We'll try these things as part of this:
+This is the first experiment so the main goal is to work out a workflow for
+improving inference. We'll try these things as part of this:
 
 - Start manually labelling source media
 - To describe the pose more accurately
@@ -56,8 +56,8 @@ Use a vision model to reason about the media content and pass all of that
 reasoning to a second text model which would summarise the contents of the media
 item into a fixed set of observations and categories.
 
-The result would be instead of free text search, there are fixed values for
-things we're interested in:
+Instead of free text search, there would be fixed values for things we're
+interested in:
 
 - Genital visibility: just visible, not visible and unknown
 - Breast size: small, medium, large, very large and unknown.
@@ -129,7 +129,7 @@ experimenting.
 - An experiment can't change how search works without changing core code. A
   search_media per experiment would fix that; without one, trying embeddings or
   vector search means touching a lot of core just to try it. Both search changes
-  this experiment has wanted so far — folding synonyms, and sampling among equal
+  made for this experiment so far — folding synonyms, and sampling among equal
   scores — landed in core for that reason, and now apply to every pack whether
   or not its captions came from an experiment.
 - We have a fixed set of labels in the inference interface, which other pack

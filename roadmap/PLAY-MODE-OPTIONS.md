@@ -3,14 +3,14 @@
 Options every play mode should eventually share, grouped by when they happen:
 
 - **mid-play**: Before you decide to finish.
-- **end-play**: The point you decide you want to cum — it drops into a finish
+- **end-play**: The point you decide you want to cum. It drops into a finish
   mode and drives you toward climax.
 - **after-play**: From the moment you start to cum.
 
 The Autopilot play mode is a faithful recreation of Autoblow's Autopilot; with
 none of these options enabled it stays one.
 
-## Mid-play — before you decide to finish
+## Mid-play
 
 - **Edge** — say **"edge"** → short cool-down → wait → build back up.
   - **Edge length** — how long the pause lasts before it ramps back: short
@@ -20,28 +20,28 @@ none of these options enabled it stays one.
     - Maybe a voice command to resume, but then it's the same as Stop/Start.
     - [nogasm](https://github.com/nogasm/nogasm) is prior art on timing the
       pause — worth reading before settling this.
-  - A % chance it **ignores your "edge"**
+  - A % chance **"edge" does nothing**
     - **Does the chance grow?** Maybe it climbs the longer the session runs, it
       climbs with each "edge" you survive, or it's just a flat chance every
       time.
   - **How to best expose the options?** A voice-first panel can only carry so
     many knobs.
 
-## End-play — the run to finish
+## End-play
 
 Autopilot goes to full speed until you say stop, Goon goes to the end of its
 ramp (so to the intensity percentage set.)
 
-## After-play — from the moment you cum
+## After-play
 
 Saying **"cumming"** splices in an after-play behaviour. The first cut is built
 and shipped on Goon — wind-down, torture and the two ruins, drawn at random from
-the ticked options, with torture and the ruins ignoring your voice once started
-— see [modes/GOON.md](../modes/GOON.md). Ideas beyond it:
+the ticked options, with torture and the ruins taking no input once started —
+see [modes/GOON.md](../modes/GOON.md). Ideas beyond it:
 
-- **A torture period** — the first cut slams to 100% and holds "forever"; refine
-  it with a torture duration (fixed, tunable, or randomly drawn), and decide
-  what follows it.
+- **A torture period** — the first cut goes straight to full speed and holds
+  there indefinitely; refine it with a torture duration (fixed, tunable, or
+  randomly drawn), and decide what follows it.
 - **Combined outcomes** — e.g. ruin, then torture.
 - **Other play modes** — the options belong to every play mode eventually.
 - **Configurable eject** — the first cut hard-codes speed 40 with the Stroke +
@@ -49,4 +49,4 @@ the ticked options, with torture and the ruins ignoring your voice once started
 - **Configurable wind-down shape** — the current wind-down suits its author;
   others may want it longer, shorter, or shaped differently.
 
-Any outcome that ignores **Stop** is backstopped by the always-on safe word.
+An outcome that **Stop** cannot end is backstopped by the always-on safe word.

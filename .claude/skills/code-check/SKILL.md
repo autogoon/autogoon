@@ -15,8 +15,7 @@ against the code. Where this runs among the checks, and why, is in
 [CLAUDE.md](../../../CLAUDE.md) → Git workflow.
 
 **It is about code, not features.** Whether something should exist is a product
-question and lives in [TODO.md](../../../TODO.md). This asks whether what does
-exist holds up.
+question and lives in [TODO.md](../../../TODO.md).
 
 **It is not a checklist.** A finding is anything in the branch that breaks one
 of those rules — including something no rule names, where the code clearly works
@@ -40,8 +39,7 @@ without this file changing.
 
 **A comment that no longer describes the code beneath it is a finding here.**
 Every comment the diff touched, read against the code it sits on — because this
-is the check with that hunk open, and the two can only be judged against each
-other by whoever is reading both. Three shapes cost more than no comment at all,
+is the check with that hunk open. Three shapes cost more than no comment at all,
 because they are believed:
 
 - a comment describing a branch that has gone;

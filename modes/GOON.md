@@ -34,7 +34,7 @@ raw pattern **100 → floor → 100**. A **position** runs from 0 to the end of 
 session, and the curves are sampled at that position:
 
 - **Build speed** — Groove's Intensity knob, driven for you — eases from **25 →
-  100** across the whole session, a patient start that accelerates toward the
+  100** across the whole session, a slow start that accelerates toward the
   finish.
 - **Dip variability** winds down from Groove's _high_ to _off_ over the **first
   five-sixths** of the session (25 minutes of a 30-minute build). Early on a dip
@@ -43,11 +43,10 @@ session, and the curves are sampled at that position:
   standard, predictable `100 → 60`.
 - **Timing variability** winds down from Groove's _high_ (**75%**) to _off_
   across the **whole session**. Early legs can be cut to a quarter of their
-  length, so the pace lurches; only the very last legs take their full,
-  unhurried ten seconds.
+  length. The pace lurches. Only the very last legs take their full ten seconds.
 
 Then the **final sixth is a taper** (the last 5 minutes of a 30-minute build).
-The dip floor rises from 60 to 100, so the dips shrink away to nothing and the
+The dip floor rises from 60 to 100. The dips shrink away to nothing and the
 program arrives at a flat hold at the top. The timing is still slackening off
 through all of that, and the dips keep a little unevenness right up to the point
 where they vanish.
@@ -74,14 +73,13 @@ card in setup. Tick any of the outcomes; at the cumming point one is drawn at
 random from the ticked set. At least one must be ticked before you can play, and
 your ticks are remembered on this device:
 
-- **Wind-down** — the device eases off in a slow, deliberate glide from a
-  moderate pace down to a standstill over about ten seconds, the strokes
-  shortening as it goes, then rests.
+- **Wind-down** — the device eases off from a moderate pace down to a standstill
+  over about ten seconds, the strokes shortening as it goes, then rests.
 - **Torture** — straight to full speed and held there. Indefinitely.
 - **Ruin: stay in** — stops dead, leaving you seated with the vacuum seal held.
 - **Ruin: eject** — drives the toy to push you out (a steady pace with the
   stroke+ valve held open for fifteen seconds), then rests. Building the
-  ejecting force takes a second or two of movement, which is stimulation at
+  ejecting force takes a second or two of movement. That is stimulation at
   exactly the wrong moment, with voice-recognition lag on top. It can tip into a
   finish instead of a ruin. A ruin is timing-dependent even by hand.
 

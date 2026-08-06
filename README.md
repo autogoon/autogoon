@@ -13,8 +13,8 @@ stroker from your browser, **entirely by voice**.
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
 to install and no wearable. Open it and enter your device token.
 
-- **Hands-free from start to finish** — every control has a spoken word, shown
-  on screen. Say it any time. Tap **Listen** once.
+- **Hands-free** — every control has a spoken word, shown on screen. Say it any
+  time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine.
   [Privacy](#privacy) says what leaves it.
 - **Play modes**:
@@ -100,7 +100,7 @@ background or screen-locked tabs.
 
 A Next.js single-page app (App Router, TypeScript, Tailwind) with **no accounts
 and no server-side database** — your device token, settings and conversations
-live in your browser and nowhere else. Speech recognition is
+live in your browser. Speech recognition is
 [vosk](https://github.com/ccoreilly/vosk-browser) (WASM Kaldi) running fully
 in-browser. The server side exists only for Companions:
 

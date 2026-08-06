@@ -10,9 +10,9 @@ baseline description of one, and record by hand whether the subject is naked.
 
 This is not [Goonpack kit](../roadmap/GOONPACK-KIT.md), which authors packs —
 its review surface edits a caption so a pack reads better. This one records what
-is true so a model can be scored, and its output never reaches a pack. The two
-want the same leafing surface and may converge later; nothing here assumes they
-will.
+is true so a model can be scored, and its output never reaches a pack. One
+leafing surface would serve both, and they may converge later; nothing here
+assumes they will.
 
 ## The corpus
 
@@ -47,15 +47,15 @@ even once the screen is good, because a good screen hides the layout anyway.
 
 The ground truth is a picked subset of the corpus, but not a small one: twenty
 instances of each case across twenty fields is four hundred items before a
-single edge case, and edge cases are most of what a yardstick is for. A labelled
-set in the low thousands is where this ends up, in a directory holding more
-pictures than that and, with several experiments run, several times as many
+single edge case, and edge cases are most of what a ground truth set is for. A
+labelled set in the low thousands is where this ends up, in a directory holding
+more pictures than that and, with several experiments run, several times as many
 files again.
 
 So the tool has to be quick at both ends — listing thousands of items, and
-taking thousands of answers by hand. The second is why Review is driven from the
-keyboard rather than by clicking: at a thousand items a saved keystroke is an
-hour.
+taking thousands of answers by hand. Taking the answers is why Review is driven
+from the keyboard rather than by clicking: at a thousand items a saved keystroke
+is an hour.
 
 The flat layout is what makes that cheap. **The listing is one `readdir`**, with
 every item's state read off the filenames: no `stat` per item, nothing opened to
@@ -81,10 +81,12 @@ them over the labels, so no fact is recorded twice and no source stamp is needed
 to tell the two apart. What an experiment says is a proposal; what is here is
 what somebody decided.
 
-Three things follow from keeping them in separate files: the review screen lists
-the fields holding only a proposal as a worklist rather than an invisible state,
-scoring reads the labels alone, and an experiment can never be scored against
-its own output.
+Keeping them in separate files means:
+
+- the review screen lists the fields holding only a proposal as a worklist
+  rather than an invisible state;
+- scoring reads the labels alone;
+- an experiment can never be scored against its own output.
 
 `unknown` is a value like any other, not a state — an option in the enum of any
 field that needs one. A picture with nobody's breasts in it has `breastSize`
@@ -137,21 +139,20 @@ disk across the whole corpus without calling a model again.
 holding them. Items are inferred one at a time over days and an experiment may
 be edited between two of them, so a single record could only describe the last
 run. The `version` beside them identifies the code that produced the answers and
-cannot be read back into a model name, which is what the parameters are for: the
-question always arrives at a result, and the result answers it alone.
+cannot be read back into a model name, which is what the parameters are for.
 
 **The prompt is written beside the reply**, not left to the experiment's
 directory. That directory is edited between runs, so it is the current prompt
 rather than the one any given result was produced under, and recovering an
 earlier one means matching a hash against git by hand.
 
-**Each of the four is written twice**: once under the plain name, which is the
-latest and the only one anything reads, and once under
+**Each of these files is written twice**: once under the plain name, which is
+the latest and the only one anything reads, and once under
 `<item>.<experiment>.<YYYYMMDDHHmmss>.<version>.<kind>`. Time first so an item's
 runs sort in the order they happened, version second so every archived file
 names the code that made it rather than only `fields.json` carrying it inside.
-The archive is for reading by hand; nothing parses it, and `readName` knows the
-shape only so that the module writing these names can also recognise them.
+The archive is for reading by hand; nothing parses it, and `readName` matches
+the shape only so that the module writing these names can also recognise them.
 
 ## Experiments
 
@@ -166,11 +167,11 @@ changes what a model returns. Each experiment states its own model, resolution
 and prompt.
 
 An experiment exports two functions, and the split is what makes the stored raw
-reply worth keeping. **`run()`** sends the image and costs money, over as many
-calls as the experiment wants; it answers with what it sent as well as what came
-back, because an experiment feeding one call's reply into the next call's prompt
-has no static prompt to record. **`parse()`** turns a stored reply into the
-fields and the sidecar, and costs nothing, so a parser that turns out to be
+reply worth keeping. **`run()`** sends the image and costs money, over however
+many calls the experiment makes; it answers with what it sent as well as what
+came back, because an experiment feeding one call's reply into the next call's
+prompt has no static prompt to record. **`parse()`** turns a stored reply into
+the fields and the sidecar, and costs nothing, so a parser that turns out to be
 wrong is fixed by walking the corpus calling `parse()` alone. Both derivations
 come from the one call rather than two, so a broken caption reader stops an item
 being recorded at all rather than leaving it scored and undescribed. A registry
@@ -248,20 +249,20 @@ A top-level tab, **Inference**, beside Goonpacks in the strip
 
 Two views:
 
-- **Summary** — how many items, how many the baseline has run against, and per
-  field how many answers are confirmed against how many still hold an
-  experiment's. A labelled count far below the item count is the ordinary state,
-  not a backlog.
+- **Summary** — how many items, how many the selected experiment has run
+  against, and per field how many answers are confirmed against how many still
+  hold an experiment's. A labelled count far below the item count is the
+  ordinary state, not a backlog.
 - **Review** — one item at a time, large. The picture, the label controls, the
   raw reply from any run against this item, a **Generate** button, and two ways
   to move: **next** steps through the corpus in order, **next unlabelled** skips
   to the next item nobody has answered. Reviewing everything and working through
   what's unanswered are both real, so neither replaces the other.
 
-**Infer** runs the baseline for that item and writes what it produced, touching
-no ground truth. A control showing an experiment's answer reads differently from
-one showing yours, so confirming a proposal is a distinct act from leaving it —
-a field is never promoted to an answer by moving on.
+**Infer** runs the selected experiment for that item and writes what it
+produced, touching no ground truth. A control showing an experiment's answer
+reads differently from one showing yours, so confirming a proposal is a distinct
+act from leaving it.
 
 Infer stays per item — it is the spot-check. Running an experiment across the
 corpus is a script rather than a button, because it is thousands of paid calls

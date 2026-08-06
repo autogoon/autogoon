@@ -22,8 +22,8 @@ observations — the sidecar's `description`. The caption condensed from them is
   turned to look over their shoulder, is reported as facing the camera. Whether
   "facing" is the torso or the head is partly a question of semantics.
 - **Sitting confused with kneeling.**
-- **More than one person in frame.** `PROMPT` assumes a single female subject,
-  so nothing in it can report a second person, or anyone's sex.
+- **More than one person in frame.** `PROMPT` is written for a single female
+  subject, so nothing in it can report a second person, or anyone's sex.
 
 ## What it never reports
 
@@ -51,8 +51,8 @@ observations — the sidecar's `description`. The caption condensed from them is
 ## Measuring a fix
 
 [The inference UI spec](./2026-08-02-inference-ui-spec.md) is what was built to
-answer these, and [INFERENCE.md](../INFERENCE.md) is what it became. What
-follows is the method that spec serves and doesn't itself decide.
+answer these, and [INFERENCE.md](../INFERENCE.md) is what it became. The method
+is what that spec serves and doesn't itself decide.
 
 **Scoring.** Choice fields compare directly against the ground truth. Text
 fields — the clothing, the setting — will never match word for word and need an
