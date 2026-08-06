@@ -9,12 +9,13 @@
   under `.sweep/`. Each review runs in a fresh `claude -p` context, so a long
   session cannot drift back into the style being removed. See
   [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
+  ([#31](https://github.com/autogoon/autogoon/pull/31))
 
 - bug: **Privacy claims corrected** — The README and the home screen claimed
   only device-control traffic leaves your machine; the deployed app also
   reports anonymous page views and performance timings to Vercel. The
   [Privacy](README.md#privacy) section now says exactly what leaves and what
-  never does.
+  never does. ([#31](https://github.com/autogoon/autogoon/pull/31))
 
 ## 2026-08-04
 
