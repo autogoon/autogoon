@@ -4,12 +4,12 @@
 
 import type { Finding } from './sweep-findings';
 
-export type Bounce = {
+type Bounce = {
   finding: Finding;
   reason: 'not-found' | 'not-unique' | 'no-op';
 };
 
-export type ApplyResult = {
+type ApplyResult = {
   content: string;
   applied: Finding[];
   bounced: Bounce[];

@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 export type ClaudeCall = { prompt: string; schema: object; model?: string };
 export type ClaudeRunner = (call: ClaudeCall) => Promise<unknown>;
 
-export type Exec = (
+type Exec = (
   file: string,
   args: string[],
   opts: { cwd: string },

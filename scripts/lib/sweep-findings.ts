@@ -24,7 +24,7 @@ export type Finding = {
   recommend: boolean;
 };
 
-export type FindReport = { findings: Finding[]; read: string };
+type FindReport = { findings: Finding[]; read: string };
 export type Verdict = { ok: boolean; reasons: string[] };
 
 const FINDING_PROPERTIES = {
