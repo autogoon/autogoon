@@ -50,8 +50,9 @@ that file disagree, that file wins:
 | dated plans and specs under `docs/`                     | future        | developer |
 
 `.env.example`'s comments are the documented env contract.
-`goonpacks/*/system-prompt.md` is a pack's persona prompt, not documentation,
-and is out of scope here.
+`goonpacks/*/system-prompt.md` is a pack's persona prompt and
+`scripts/md-sweep-briefs/*.md` are the documentation sweep's prompts — neither
+is documentation, and both are out of scope here.
 
 Enumerate the set from `git ls-files '*.md'`, never from the table. A file with
 no row is a finding against the table.

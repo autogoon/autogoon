@@ -36,6 +36,6 @@ playwright-report/
 /llm-benchmark/*
 !/llm-benchmark/.gitkeep
 
-# What npm run docs:sweep writes: raw finding reports and the questions
-# queue. Local only.
+# What npm run docs:sweep writes: a raw finding report per file and pass, and
+# the questions it leaves for a human. Local only.
 /.sweep/

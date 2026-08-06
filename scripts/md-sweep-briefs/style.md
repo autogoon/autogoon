@@ -35,5 +35,7 @@ report for audit and goes no further.
 findings worst first. A clean file returns an empty `findings` array, and `read`
 says what was read.
 
-The file is hard-wrapped at 80 columns; `old` must reproduce the exact line
-breaks as they appear on disk, or the replacement will not match.
+`old` must reproduce the file's exact line breaks, or the replacement will not
+match. Most files are hard-wrapped at 80 columns and prettier rewraps them after
+the edit; `CHANGELOG.md` and `goonpacks/**/*.md` are not rewrapped, so write
+`new` already wrapped there.

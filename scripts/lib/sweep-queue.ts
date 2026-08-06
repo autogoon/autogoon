@@ -5,10 +5,16 @@
 // begins with reset(): the passes are ordered because each changes what the
 // next reads, so output from before the run no longer describes the files on
 // disk. reset removes only the names the sweep itself writes, never the
-// output dir wholesale.
+// output dir wholesale. startFile() does the same for one file as its review
+// begins, so nothing recorded for it outlives the run that reviews it.
 
-import { appendFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
-import { writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { PASSES, type Finding, type Pass } from './sweep-findings';
 
