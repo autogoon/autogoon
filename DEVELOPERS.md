@@ -156,15 +156,15 @@ tests never use the real mic, but the browsers still request the permission.)
 
 ## Documentation sweep
 
-`npm run docs:sweep` reviews every tracked `.md` file (persona prompts,
-CHECK-QUESTIONS.md and the sweep's own briefs excluded) in four passes — doc
-(truth), style, register, duplication — each a fresh `claude -p` call returning
-findings against a JSON schema. Findings are applied by exact string
-substitution and verified by a second fresh call; accepted fixes stay
-uncommitted in the working tree for review. Anything needing a human decision
-lands in a per-file `.sweep/<file>.questions.md`, beside the raw
-`.sweep/<file>--<pass>.json` reports; a run starts by deleting all sweep output
-from earlier runs, which it makes stale. The pass prompts are in
+`npm run docs:sweep` reviews every tracked `.md` file in four passes: doc
+(truth), style, register, duplication. Persona prompts, CHECK-QUESTIONS.md and
+the sweep's own briefs are excluded. Each pass is a fresh `claude -p` call
+returning findings against a JSON schema. The unambiguous ones are applied by
+exact string substitution, then a second fresh call verifies the result.
+Accepted fixes stay uncommitted in the working tree for review. Anything needing
+a human decision becomes a question in `.sweep/<file>.questions.md`, beside that
+file's raw `.sweep/<file>--<pass>.json` reports. A run begins by deleting the
+output of earlier runs, which it makes stale. The pass prompts are in
 `scripts/md-sweep-briefs/`; the rules they enforce live in
 [CLAUDE.md](./CLAUDE.md) → Documentation and → Writing style.
 

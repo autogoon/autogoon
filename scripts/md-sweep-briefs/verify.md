@@ -1,4 +1,4 @@
-An automated sweep pass has edited one documentation file; the working diff is
+An automated sweep pass has edited one documentation file; that pass's diff is
 appended to this prompt. Judge the edit, not the file's remaining faults — other
 passes own those. Read the file itself with Read where a hunk alone cannot be
 judged.

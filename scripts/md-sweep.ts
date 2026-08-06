@@ -1,4 +1,3 @@
-// scripts/md-sweep.ts
 // Enumerates the tracked .md set and drives sweep-runner over it, root docs
 // first. Files run through a bounded worker pool (--concurrency); the four
 // passes within a file stay sequential, because each pass edits what the

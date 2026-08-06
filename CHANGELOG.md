@@ -3,12 +3,12 @@
 ## 2026-08-05
 
 - feature: **Documentation sweep** — `npm run docs:sweep` reviews every tracked
-  `.md` file for truth, style, register and duplication faults, applies
+  `.md` file for truth, style, register and duplication faults, applies the
   unambiguous fixes as an uncommitted working-tree diff for review, and writes
-  the judgement calls it can't make as questions, per file, under `.sweep/`.
-  Each review runs in a fresh
-  `claude -p` context so long sessions cannot drift back into the style being
-  removed. See [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
+  everything that needs a human decision as questions, one file at a time,
+  under `.sweep/`. Each review runs in a fresh `claude -p` context, so a long
+  session cannot drift back into the style being removed. See
+  [DEVELOPERS.md](./DEVELOPERS.md#documentation-sweep).
 
 - bug: **Privacy claims corrected** — The README and the home screen claimed
   only device-control traffic leaves your machine; the deployed app also
@@ -75,8 +75,9 @@
   import. Each card picks which descriptions to play the pack with.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
-- internal: **The pack index is built when it's first needed, not at startup** — Reading
-  every installed pack's sidecars happened at app load, whether or not anything
+- internal: **The pack index is built when it's first needed, not at startup** —
+  Reading every installed pack's sidecars happened at app load, whether or not
+  anything
   went near a companion. It now happens the first time Companions or Goonpacks
   is opened. ([#30](https://github.com/autogoon/autogoon/pull/30))
 
@@ -871,7 +872,8 @@
   ticked you don't know what's coming. Torture and both ruins deliberately
   ignore your voice once started — Stop, and every other command with it; only
   the safe word halts them — and your ticks are remembered on this device. The
-  Goon card on home shouts about it, and each algorithm now has its own icon. ([#11](https://github.com/autogoon/autogoon/pull/11))
+  Goon card on home shouts about it, and each algorithm now has its own icon.
+  ([#11](https://github.com/autogoon/autogoon/pull/11))
 
 - feature: **Add safe word** — Saying it while anything is playing always stops
   the device instantly, on every algorithm, exactly like Stop (nothing is

@@ -20,8 +20,8 @@ Each finding:
 
 - `old` — the file's current text, verbatim, long enough to appear exactly once
   in the file.
-- `new` — the exact replacement, or "" to delete. Write it to CLAUDE.md →
-  Writing style.
+- `new` — the exact replacement, or "" to delete, written in the style CLAUDE.md
+  → Writing style sets.
 - `evidence` — the `file:line` that proves the drift, or the other copy quoted.
 - `rationale` — one sentence.
 - `mechanical` — true only when no defensible alternative outcome exists. False
