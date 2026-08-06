@@ -87,7 +87,6 @@ describe('sweepFile', () => {
     );
     expect(git('log', '--pretty=%s').trim()).toBe('seed');
     expect(git('status', '--porcelain').trim()).toBe('M DOC.md');
-    // Verify prompt shapes: find has style brief + file, verify has verify brief + diff
     expect(prompts).toHaveLength(2);
     expect(prompts[0]!).toContain('style brief');
     expect(prompts[0]!).toContain('File: DOC.md');
@@ -115,7 +114,7 @@ describe('sweepFile', () => {
     expect(git('log', '--pretty=%s').trim()).toBe('seed');
   });
 
-  it('restores the file and queues the findings when verify fails', async () => {
+  it('restores the file and asks about the findings when verify fails', async () => {
     await sweepFile(
       'DOC.md',
       ['style'],
@@ -144,7 +143,7 @@ describe('sweepFile', () => {
     );
   });
 
-  it('queues a non-mechanical finding without applying it', async () => {
+  it('asks about a non-mechanical finding without applying it', async () => {
     await sweepFile(
       'DOC.md',
       ['style'],
@@ -182,7 +181,7 @@ describe('sweepFile', () => {
     ).toHaveLength(2);
   });
 
-  it('queues a finding whose old text no longer matches', async () => {
+  it('asks about a finding whose old text no longer matches', async () => {
     const logs: string[] = [];
     const formatCalls: number[] = [];
     await sweepFile(

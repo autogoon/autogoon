@@ -24,6 +24,13 @@ describe('applyFindings', () => {
     expect(result.bounced).toHaveLength(0);
   });
 
+  it('writes a replacement containing $ sequences literally', () => {
+    const result = applyFindings('run the build', [
+      finding('the build', 'npm run build -- $& and ${DIR}'),
+    ]);
+    expect(result.content).toBe('run npm run build -- $& and ${DIR}');
+  });
+
   it('deletes when new is empty', () => {
     const result = applyFindings('keep. drop this. keep.', [
       finding(' drop this.', ''),
