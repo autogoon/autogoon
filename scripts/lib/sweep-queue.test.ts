@@ -72,17 +72,4 @@ describe('sweepQueue', () => {
   it('reset on an empty output directory is a no-op', () => {
     expect(() => sweepQueue(out).reset()).not.toThrow();
   });
-
-  it("startFile removes one file's questions and reports and no other's", () => {
-    const queue = sweepQueue(out);
-    queue.question('README.md', 'doc', finding, 'non-mechanical');
-    queue.writeReport('README.md', 'doc', { findings: [] });
-    queue.question('MODES.md', 'doc', finding, 'non-mechanical');
-    queue.writeReport('MODES.md', 'style', { findings: [] });
-    queue.startFile('README.md');
-    expect(existsSync(join(out, 'README.md.questions.md'))).toBe(false);
-    expect(existsSync(join(out, 'README.md--doc.json'))).toBe(false);
-    expect(existsSync(join(out, 'MODES.md.questions.md'))).toBe(true);
-    expect(existsSync(join(out, 'MODES.md--style.json'))).toBe(true);
-  });
 });

@@ -5,8 +5,7 @@
 // begins with reset(): the passes are ordered because each changes what the
 // next reads, so output from before the run no longer describes the files on
 // disk. reset removes only the names the sweep itself writes, never the
-// output dir wholesale. startFile() does the same for one file as its review
-// begins, so nothing recorded for it outlives the run that reviews it.
+// output dir wholesale.
 
 import {
   appendFileSync,
@@ -20,7 +19,6 @@ import { PASSES, type Finding, type Pass } from './sweep-findings';
 
 export type SweepQueue = {
   reset: () => void;
-  startFile: (file: string) => void;
   writeReport: (file: string, pass: Pass, report: unknown) => void;
   question: (file: string, pass: Pass, finding: Finding, why: string) => void;
 };
@@ -44,12 +42,6 @@ export function sweepQueue(outDir: string): SweepQueue {
       }
       for (const name of entries)
         if (sweepWritten(name)) rmSync(join(outDir, name), { force: true });
-    },
-    // The moment a file's review starts, everything recorded for it goes.
-    startFile: (file) => {
-      rmSync(questionFile(file), { force: true });
-      for (const pass of PASSES)
-        rmSync(join(outDir, `${slug(file)}--${pass}.json`), { force: true });
     },
     writeReport: (file, pass, report) => {
       mkdirSync(outDir, { recursive: true });
