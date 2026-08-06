@@ -11,32 +11,10 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { claudeRunner } from './lib/sweep-claude';
-import { PASSES, type Pass } from './lib/sweep-findings';
+import { parsePasses, selectFiles } from './lib/sweep-files';
 import { sweepGit } from './lib/sweep-git';
 import { sweepQueue } from './lib/sweep-queue';
 import { sweepFile } from './lib/sweep-runner';
-
-// Persona prompts are not documentation (doc-check → The document set),
-// CHECK-QUESTIONS.md is a transient decision queue, and the sweep's own
-// briefs are prompts, not documentation — the same rationale as the personas.
-const EXCLUDED = [
-  /^goonpacks\/.*system-prompt\.md$/,
-  /^CHECK-QUESTIONS\.md$/,
-  /^scripts\/md-sweep-briefs\//,
-];
-
-// Most-read first: the root docs are what other files point at.
-function rank(file: string): number {
-  if (!file.includes('/')) return 0;
-  for (const [i, prefix] of [
-    'modes/',
-    'roadmap/',
-    'docs/',
-    '.claude/skills/',
-  ].entries())
-    if (file.startsWith(prefix)) return i + 1;
-  return 5;
-}
 
 const { values } = parseArgs({
   options: {
@@ -61,15 +39,10 @@ const tracked = execFileSync('git', ['ls-files', '*.md'], {
   encoding: 'utf8',
 })
   .split('\n')
-  .filter(Boolean)
-  .filter((file) => !EXCLUDED.some((pattern) => pattern.test(file)));
+  .filter(Boolean);
 
-const files = (values.files ?? tracked).sort(
-  (a, b) => rank(a) - rank(b) || a.localeCompare(b),
-);
-const passes = (values.passes?.split(',') as Pass[] | undefined) ?? [...PASSES];
-for (const pass of passes)
-  if (!PASSES.includes(pass)) throw new Error(`unknown pass: ${pass}`);
+const files = selectFiles(tracked, values.files);
+const passes = parsePasses(values.passes);
 
 const briefsDir = join(
   dirname(fileURLToPath(import.meta.url)),
