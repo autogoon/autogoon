@@ -261,8 +261,8 @@ const ANSWERS: {
     },
   },
   // `none` alone, because that is the only thing the models have written for a
-  // picture with no writing on it — 162 of the 695 stored replies carrying a
-  // TEXT line, and no other phrasing among them. A wider pattern would be
+  // picture with no writing on it — every stored reply carrying a TEXT line
+  // uses it, with no other phrasing among them. A wider pattern would be
   // guessing at answers nothing has yet given.
   { id: 'text', marker: marker('TEXT'), unanswered: /^none$/i },
   { id: 'caption', marker: CAPTION },

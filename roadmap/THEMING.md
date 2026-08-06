@@ -25,7 +25,8 @@ grep -rE '(bg|text|border|ring)-[a-z]+-[0-9]{2,3}' src
 
 On top of that, companion and play-mode accents are interpolated at render
 (`bg-${accent}-500` in `chooser-card.tsx`) against the `@source inline(...)`
-safelist in `globals.css`, which covers seventeen hues at a single shade.
+safelist in `globals.css`, which covers seventeen hues at shade 500 — and the
+same seventeen at 600 for the segmented controls.
 
 The two layers meet wherever a token-coloured foreground sits on a palette
 background, and that pairing is only checked by looking at it. The changelog's
@@ -38,8 +39,8 @@ existed.
 Whether light mode is a supported theme.
 
 It is currently offered — a three-way toggle, and `system` as the default, so a
-visitor whose OS is light gets it without choosing. That is a promise the
-palette layer doesn't keep.
+visitor whose OS is light gets it without choosing. The palette layer does not
+support it.
 
 ## Dropping light mode
 
@@ -55,18 +56,19 @@ dark app. For an app operated in the dark, hands-free, that may cost little.
 
 Keep both themes and give the palette semantic tokens — an accent set, a status
 set (success, warning, danger) — defined per theme like the existing ones, so
-`text-emerald-500` becomes something that means what it is for.
+`text-emerald-500` names a role rather than a hue.
 
 It costs a pass over every component that names a colour, and a decision about
 the accent system: seventeen hues at one shade works because every accent sits
 on a dark surface, and a light surface needs a second shade per hue or a
 different treatment. The safelist doubles with it. What it buys is that the
-failure mode above stops being possible, rather than being fixed one pill at a
-time.
+pairing that broke the changelog pills stops being possible, rather than being
+fixed one pill at a time.
 
 ## Either way
 
-Neither branch gives a check that catches the next one automatically. A contrast
-check over the rendered pairs is its own piece of work and is worth considering
-on top of whichever branch is taken — it is the only thing here that would have
-reported the pills without someone opening the screen in a light theme.
+Neither branch gives a check that catches the next bad pairing automatically. A
+contrast check over the rendered pairs is its own piece of work and is worth
+considering on top of whichever branch is taken — it is the only thing here that
+would have reported the pills without someone opening the screen in a light
+theme.

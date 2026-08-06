@@ -18,13 +18,6 @@ Importing **unpacks** the zip into your browser's storage. The zip itself isn't
 kept, so keep your own copy. If the browser ever clears its storage the pack
 goes with it, and importing the zip again brings it back.
 
-You don't need to be a developer to make one. A pack is at most three things,
-zipped:
-
-- a `manifest.json`, a few lines describing the pack;
-- a `system-prompt.md`, their persona, written in plain English;
-- a `media/` folder, if they send pictures or videos.
-
 ### Complete packs and overlays
 
 **A complete pack** is a new companion, with everything they need to exist: a
@@ -41,8 +34,6 @@ is still the same companion, keeping the same conversation memory whichever pack
 it's played with. If your overlay renames them, that is a different companion;
 make a complete pack.
 
-Overlays always sit on a companion, never on another overlay.
-
 ### The files in a pack
 
 Lay out a directory like this, then zip its **contents** (the manifest sits at
@@ -55,8 +46,7 @@ the zip root, not inside a folder):
 [`goonpacks/elise/`](./goonpacks/elise/) is a complete pack you can open: Elise,
 the companion these examples use, with her full manifest and a persona prompt to
 crib from. It ships with no media, since the repo never distributes imagery (see
-the [content policy](./DEVELOPERS.md#content-policy)). Pictures and videos are
-always yours to add.
+the [content policy](./DEVELOPERS.md#content-policy)).
 
 ### manifest.json — every field
 
@@ -88,8 +78,7 @@ The top level's own fields:
 - **`format`** — always `1`.
 - **`id`** — the pack's identity, as `publisher.packname`.
 - **`version`** — your own version label, any text.
-- **`aboutThePack`** and **`intro`** — see
-  [Describing the pack](#describing-the-pack).
+- **`aboutThePack`** — see [Describing the pack](#describing-the-pack).
 
 `format` is the version of the _pack format_, not of your pack. A pack declaring
 anything else is refused on import.
@@ -100,8 +89,9 @@ keep it, and for a complete pack it is what the companion's conversation memory
 is tied to. If an update changes who they _are_, give it a new id.
 
 `version` is shown exactly as written (`"1.0.0"`, `"2024-06"`, `"v2 final"`).
-Versions install side by side and sort alphanumerically, newest first. Use a
-scheme that sorts.
+The card's version picker offers them newest first. Digit runs compare as
+numbers, so `1.10.0` is newer than `1.9.0`. Keep to one scheme across a pack's
+versions and the order comes out right.
 
 #### Describing the pack
 
@@ -116,9 +106,10 @@ by someone deciding something different:
   is made.
 
 `aboutThePack` is what the Goonpacks list and the import confirmation show:
-"Beach photo set for Aimee", "Elise, a flirty e-girl streamer". Leave out what
-the pack holds, counts included. The app reads that from the pack itself, and a
-hand-written count goes stale.
+"Beach photo set for Aimee", "Elise, a flirty e-girl streamer". Leave out the
+inventory — how many pictures, how many videos. The app counts those from the
+pack itself and shows them beside your line, and a hand-written count goes
+stale.
 
 `intro` is required on a complete pack. An overlay carries one only where it has
 moved the scene. [Writing the intro](#writing-the-intro) says what belongs in
@@ -131,18 +122,18 @@ carries media needs one.
 
 Your companion is given this rather than a list of every item. It should say
 what sorts of picture are in the set, roughly in what proportion, and the words
-the captions use for them. That is how they tell what's worth offering, and how
-they ask for one.
+the captions use for them. That is how they tell what's worth offering, and what
+words to search with.
 
-Write it with `npm run goonpack:summarise`, which builds it from the pack's own
-sidecars. Run that again whenever the set changes.
+Write it with `npm run goonpack:summarise`. Run that again whenever the set
+changes.
 
 #### Setting the LLM model
 
-All three sit at the top level, beside `id` and `version`. Which model to run is
-a decision about the pack, and an overlay that rewrites a persona often changes
-it without changing who the companion is. All three are optional, and an overlay
-that sets none keeps its base's.
+`model`, `contextWindow` and `passesReasoning` sit at the top level, beside `id`
+and `version`. Which model to run is a decision about the pack, and an overlay
+that rewrites a persona often changes it without changing who the companion is.
+All three are optional, and an overlay that sets none keeps its base's.
 
 - **`model`** — the OpenRouter model slug the conversation runs on.
 - **`contextWindow`** — that model's context window, in tokens (a number, no
@@ -153,7 +144,7 @@ that sets none keeps its base's.
 Omit `model` and the pack runs on the app's default. Pick one that suits the
 persona and allows the kind of roleplay you're writing. Whether it will refuse,
 and whether it calls tools reliably, are properties of the model rather than of
-your prompt, so try one before settling on it. A model that stops calling tools
+your prompt. Try one before settling on it. A model that stops calling tools
 gives you a companion who talks about the toy without ever driving it.
 
 **Don't name a MiniMax model.** Anything under `minimax/` — M2.5, M3 — breaks
@@ -162,19 +153,17 @@ than any one provider serving it:
 
 - The time and the state of the toy are sent at the end of every request, along
   with the nudge that tells your companion a silence has gone unanswered.
-  MiniMax models move all three to the very top, ahead of the conversation, so
-  what should be the last thing they were told is the first — read and then
-  buried under everything since. They answer with a stale idea of the toy, and a
-  silence reads to them as no silence at all.
+  MiniMax models move all three to the top, ahead of the conversation, so what
+  should be the last thing they were told is the first. They answer with a stale
+  idea of the toy, and a silence reads to them as no silence at all.
 - Their thinking comes back inside the reply, wrapped in `<think>` tags, instead
   of separately. It is spoken aloud in their voice and kept in the transcript as
   something they said.
 
 Set `contextWindow` and `passesReasoning` whenever you set `model`, and leave
-all three out otherwise. They describe the model named beside them. A pack that
-sets `model` alone takes the app's defaults for the other two; an overlay that
-sets `model` alone takes its base's. Either way it is describing a model that
-doesn't exist.
+all three out otherwise. A pack that sets `model` alone takes the app's defaults
+for the other two; an overlay that sets `model` alone takes its base's. Either
+way the window and the flag belong to a different model from the one running.
 
 #### Describing the companion
 
@@ -202,11 +191,11 @@ manifest.
 `name` and `gender` are forbidden on an overlay: it is the same companion.
 
 `voiceId` is the voice's id string from ElevenLabs. It must exist in the
-ElevenLabs account the app runs with. Voices don't travel between accounts.
+ElevenLabs account the app runs with.
 
 `chattiness` applies while the toy is idle, `playfulness` while it's running.
 Someone of few words can still keep up a filthy running commentary once things
-are underway, and one setting couldn't say so. Each buys the pause after they
+are underway, and one setting couldn't say so. Each sets the pause after they
 finish speaking. A higher number is a shorter pause, and in play every pause is
 about half as long. Each is varied a little, leaning shorter rather than longer,
 so the gap isn't the same twice. The figure for every value is tabulated in
@@ -215,12 +204,11 @@ beside the curves it comes from. They're measured from the moment the talking
 stops. The gap between turns is always longer than that, because the next line
 still has to be written and spoken first.
 
-`timezone` is their location today, not where they're from. An overlay that
-takes them somewhere else sets its own. They're told the real date and time in
-that zone, refreshed every turn, and it follows daylight saving. What they're
-told never names the place, only the clock, so a companion whose prompt keeps
-their whereabouts vague stays vague. They're also told this is theirs and not
-yours, and that you may be hours ahead or behind.
+`timezone` is their location today, not where they're from. They're told the
+real date and time in that zone, refreshed every turn, and it follows daylight
+saving. What they're told never names the place, only the clock, so a companion
+whose prompt keeps their whereabouts vague stays vague. They're also told this
+is theirs and not yours, and that you may be hours ahead or behind.
 
 `usesRealTime` settles which wins when a persona has already fixed the hour. A
 prompt opening "it's evening and you've just finished filming" and a companion
@@ -242,7 +230,7 @@ their setup assumes.
 
 Everything else an overlay carries is **only what changes**:
 
-- `media/`;
+- `media/`, with its own `mediaSummary`;
 - `system-prompt.md`;
 - `intro`;
 - the model fields;
@@ -252,21 +240,21 @@ Everything else an overlay carries is **only what changes**:
 
 Each field the overlay sets replaces the base's while the overlay is selected,
 and anything left out stays the base's. An overlay that rewrites the persona
-usually wants its own `intro` too. The two describe the same scene, and one
+usually needs its own `intro` too. The two describe the same scene, and one
 changing without the other leaves them contradicting each other on screen.
 
-`noMedia` is for when "none" is the point. Simply omitting `media/` keeps the
-base's set.
+`noMedia` is for when "none" is the point. Omitting `media/` keeps the base's
+set.
 
 `name` and `gender` are rejected outright. Same companion, same memory (see
 [Complete packs and overlays](#complete-packs-and-overlays)).
 
 `timezone` is how an overlay moves a companion somewhere else. An overlay that
-switches `usesRealTime` back on needs a zone from somewhere, and the base
-version chosen in the card is where it looks. Paired with one that has no zone,
-the overlay can't be selected until it carries a zone of its own.
+switches `usesRealTime` back on needs a zone from somewhere, and it comes from
+the base version chosen in the card. Paired with one that has no zone, the
+overlay can't be selected until it carries a zone of its own.
 
-An overlay that changes only the companion's colour is just:
+An overlay that changes only the companion's colour is:
 
     {
       "format": 1,
@@ -284,16 +272,15 @@ The companion's pictures and videos, directly in `media/` (no subfolders).
 - **Pictures:** `.jpg`, `.jpeg`, `.png` or `.webp`.
 - **Videos:** `.mp4` or `.webm`.
 
-`.mov` is rejected: it plays in Safari and unreliably everywhere else, so a
-`.mov` pack would work on your machine and not on someone else's. Re-encode it
-as MP4.
+`.mov` is rejected: it plays in Safari and unreliably everywhere else. A `.mov`
+pack would work on your machine and not on someone else's. Re-encode it as MP4.
 
 Anything else in `media/` is left where it is. A file whose extension is none of
 those above, and a sidecar whose picture has been renamed away, are counted in a
-warning when the pack builds rather than refusing it — `media/` is a working
+warning when the pack builds rather than refusing it. `media/` is a working
 directory as often as it is a finished set, and another tool's files can sit
-beside the pictures without breaking anything. Read the warning, though: a typo
-in an extension looks exactly the same from here.
+beside the pictures without breaking anything. Read the warning, though: a
+mistyped extension lands in it looking exactly like another tool's working file.
 
 Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
 `beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
@@ -311,21 +298,21 @@ sun is low and the light is warm.
 
 A search matches the request's words against the caption and the description
 together. Each hit comes back with its caption, and the companion chooses from
-those. A caption should say what's actually in the shot, and a word that appears
-only in the description will still find the item.
+those. A caption should say what's in the shot, and a word that appears only in
+the description will still find the item.
 
-**A file with no valid sidecar isn't part of the set.** The companion can't
-search for it or send it, and it isn't in the count you see on their card.
+**A file with no sidecar yet isn't part of the set.** The companion can't search
+for it or send it, and it isn't in the count you see on their card.
 
 A sidecar not written yet doesn't stop the pack building. The build says how
-many are still waiting. One that is there but won't read — no caption, an empty
-body, a misspelt field — refuses the whole pack, naming the file: that's a
+many are still waiting. One that is there but won't read — no frontmatter, no
+caption, an empty body — refuses the whole pack, naming the file. That is a
 description that went wrong rather than one not written yet.
 
-A sidecar with no picture or video beside it is refused too. It means a rename
-took one and left the other.
+A sidecar with no picture or video beside it is counted in the same warning. It
+means a rename took one and left the other.
 
-Two files can't share a name across types (`beach.jpg` and `beach.mp4`) — the
+Two files can't share a name across types (`beach.jpg` and `beach.mp4`). The
 conversation refers to them by name, so one name means one thing.
 
 ## Creating a goonpack
@@ -345,14 +332,14 @@ they speak.
 
 Leave out anything only your companion can see: what they're wearing, what their
 room looks like, the weather where they are. Leave out that neither of them can
-see the other, too — it's a phone call.
+see the other, too — the session is voice, and the player knows it.
 
 The persona prompt's setup describes the same scene from your companion's side,
-so the two have to agree. Only the persona reaches the model; the intro is read
+so the two have to agree. Only the persona reaches the model. The intro is read
 and never spoken, so nothing in it instructs your companion.
 
-Newlines survive as written: a blank line makes a paragraph, and two is usually
-enough.
+Newlines are kept as written: a blank line starts a paragraph, and two
+paragraphs is usually enough.
 
 ### Writing the persona
 
@@ -412,7 +399,7 @@ land:
   `mediaSummary`, which tells them what their set holds and so what there is to
   ask for. With none, it tells them they have nothing to send.
 
-Omit a token and that section is absent — a persona with no `{{MEDIA_SECTION}}`
+Omit a token and that section is absent. A persona with no `{{MEDIA_SECTION}}`
 never gets the instructions for sending. Misspell one and it stays in your
 prompt as you typed it, which is how you'll spot it. The section texts live in
 the app (`src/lib/companions/shared-prompt.ts`), so they stay current as the app
@@ -425,11 +412,11 @@ and yours unless `knowsUserTime` is off.
 
 ### Writing the sidecars
 
-Three scripts write them for you, using your configured LLM. That means they
-cost money — one call per picture, so a set of a thousand is a thousand calls —
-and they need `OPENROUTER_API_KEY` in `.env` (see
+Two scripts write them for you, one LLM call per picture — a set of a thousand
+is a thousand calls. A third writes the pack's `mediaSummary`, in one call for
+the whole set. All three cost money and need `OPENROUTER_API_KEY` in `.env` (see
 [`.env.example`](./.env.example)). Point `describe-missing` at a handful first
-and read what comes back before turning it loose on a whole set.
+and read what comes back before running it over a whole set.
 
 - `npm run goonpack:describe-missing` — every picture with no sidecar yet;
 - `npm run goonpack:describe <path-to-image>` — one picture;
@@ -439,7 +426,7 @@ and read what comes back before turning it loose on a whole set.
 Videos are left alone; write their sidecars by hand.
 
 `describe-missing`, `summarise` and `build` all take a pack directory to work on
-just that pack, which is the order to do them in for a new one:
+just that pack. That is the order to do them in for a new one:
 
     npm run goonpack:describe-missing goonpacks/elise
     npm run goonpack:summarise goonpacks/elise
@@ -457,23 +444,18 @@ refused; see
 Any zip tool works. Zip the directory's contents so `manifest.json` is at the
 root. If you're running the app from source, `npm run goonpack:build` writes
 every pack directory under `goonpacks/` to `goonpacks/<dir>.zip`, validating
-each one first with the app's own import checks. A pack that builds is a pack
-that imports. Name one to build just that pack:
-`npm run goonpack:build goonpacks/elise`.
+each one first with the app's own import checks.
 
-It writes the manifest, the system prompt, and **the media that has a sidecar**
-— a picture nothing describes is one no companion can pick, so it is left out
-and counted in a warning rather than shipped. Anything else sitting in `media/`
-is left out too, which is how a labelling tool keeps its working files beside
-the pictures without any of them reaching the zip; a name there that belongs to
-neither is named in a second warning.
+It writes the manifest, the system prompt, and **the media that has a sidecar**.
+A picture nothing describes is one no companion can pick, so it is left out and
+counted in a warning rather than shipped. Anything else sitting in `media/` is
+left out too. A name there that belongs to neither is named in a second warning.
 
 ### Importing a pack and updating it
 
 Goonpacks tab → **Import pack**. The pack's card is shown from its manifest
-before anything is written, so you see what you're about to install. The unpack
-runs once you confirm, with a progress line, and the installed row that follows
-adds what the pack turned out to hold.
+before anything is written. The unpack runs once you confirm, with a progress
+line, and the installed row that follows adds what the pack turned out to hold.
 
 Versions install side by side; only re-importing the exact same id + version
 replaces one. Each installed version lists on the Goonpacks tab with what it

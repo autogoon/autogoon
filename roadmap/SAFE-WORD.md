@@ -2,7 +2,7 @@
 
 The safe word halts the Player and nothing else. `page.tsx` routes it straight
 to `player.pause()`. The device stops; the companion's reply plays on, and their
-next turn opens as though nothing happened.
+next turn opens knowing only that the toy is no longer running.
 
 It should stop the toy and cut them off. `cancelReply` already does the cutting
 off, for a barge-in. Then they react in character: a companion cut off
@@ -21,5 +21,5 @@ To settle:
 
 - **How they are told.** A marked message the app writes onto the thread, the
   way an ambient turn is cued, or a user turn.
-- **The two concurrent mic captures.** vosk and ElevenLabs STT both hear the
+- **The two concurrent mic captures.** vosk and ElevenLabs STT both receive the
   word, so it must not also arrive as an ordinary transcribed turn.

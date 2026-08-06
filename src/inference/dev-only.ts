@@ -1,7 +1,7 @@
 // The gate on every inference route. The tool edits files on the machine
-// holding them, so it exists under `npm run dev` and nowhere else —
-// roadmap/GOONPACK-KIT.md calls this "the first design question, and it is not
-// just a feature flag".
+// holding them, so it exists under `npm run dev` and nowhere else. The gating
+// is a design question rather than a feature flag: the routes must not be
+// reachable in a deployed build at all.
 //
 // What this achieves is that no deployed build answers: every handler returns
 // 404 before reading its request, and every path any of them touches is under a

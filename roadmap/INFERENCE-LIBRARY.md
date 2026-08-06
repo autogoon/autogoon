@@ -75,7 +75,7 @@ reaches any impressive size.
    the media.
 4. **Mid-conversation.** They call `search_media` with a description of what
    they want — "me on my knees looking up at him" — and get back a bounded set
-   of matches, each a ref and its caption.
+   of matches, each a ref, its kind and its caption.
 5. **They send by ref.** `send_media` takes one of those refs, so the sends
    after a search cost no inference at all, and they have read the caption of
    what they chose before it lands. The send hands back the description as well
@@ -112,6 +112,7 @@ Two texts, two passes:
 
 Both halves are candidates rather than decisions. The methods worth comparing:
 
+- the lexical overlap that ships (`src/lib/companions/media-search.ts`);
 - a cheap LLM reading all the captions;
 - caption-embedding top-k;
 - top-k plus the rerank;
@@ -153,9 +154,9 @@ none of them chosen:
 - Sampling from everything above a threshold rather than strict top-N. Items a
   query scores equally are already sampled; the threshold is what isn't built.
 
-Sampling above a threshold is also what "something at random" needs, so it may
-serve the query-less request too. Which one earns its place is a question for a
-real library; what the tool must not do is foreclose them.
+Sampling above a threshold is also what "something at random" needs. Which one
+earns its place is a question for a real library; what the tool must not do is
+foreclose them.
 
 How many a search returns is the other half, and it can be answered without
 picking a lever. `SEARCH_LIMIT` is an arbitrary starting point. Too few and a
@@ -231,7 +232,8 @@ overlay changes the set.
 
 ### The yardstick comes first
 
-Around a hundred images, deliberately loaded with the hard cases:
+A labelled set deliberately loaded with the hard cases (how big it has to be is
+in [the inference UI spec](../docs/2026-08-02-inference-ui-spec.md) → Scale):
 
 - Sheer versus opaque.
 - Nipples through fabric.
@@ -245,10 +247,11 @@ Around a hundred images, deliberately loaded with the hard cases:
 
 Hand-write the ground truth once.
 
-It's an afternoon's work and nothing else under **Producing the descriptions**
-should start without it — every comparison here is otherwise an impression
-rather than a number, which is how the current prompt came to be confidently
-wrong in a few places.
+Nothing else under **Producing the descriptions** should start without it —
+every comparison here is otherwise an impression rather than a number, which is
+how the current prompt came to be confidently wrong in a few places. What writes
+and scores it has shipped: [INFERENCE.md](../INFERENCE.md) is the corpus, the
+ground truth and one directory of code per experiment.
 
 ### What a description should contain
 
@@ -376,19 +379,20 @@ solved. What's new is the index, and it's the cheap part: embeddings and
 attributes for tens of thousands of images are a few hundred megabytes at most
 and search over them is in-memory top-k in milliseconds — no vector database.
 
-That leaves the distribution split:
+The distribution split is built, in its first form:
 
 - **Portable pack.** Self-contained, unpacked into browser storage, works on a
   hosted build. This is [goonpacks](../GOONPACKS.md) as shipped.
-- **Local library.** The user's own folder, served by their own local dev server
-  from a configured directory, indexed offline, fetched by URL, never
-  distributed.
+- **Local library.** The user's own directory under `goonpacks/`, served by
+  their own dev server and fetched by URL, never distributed
+  (`src/lib/goonpacks/disk-source.ts`).
 
-So a companion is either _packaged_ or _local-backed_ — the same system with two
-backends, chosen by whether you're running a public build or your own copy.
-Naming for the eventual big-library format is unsettled; "supergoonpack" is a
-placeholder, and it is where everything in this file lands rather than something
-to design up front.
+So a companion is already either _packaged_ or _local-backed_, chosen by whether
+you're running a public build or your own copy. What a big library adds is the
+offline index, and a directory that need not sit under `goonpacks/`. Naming for
+the eventual big-library format is unsettled; "supergoonpack" is a placeholder,
+and it is where everything in this file lands rather than something to design up
+front.
 
 ## Open questions
 

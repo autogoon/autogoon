@@ -1,5 +1,5 @@
-// One reviewer's answer, written to an item's ground truth. PUT always stamps
-// `human`, and always wins over whatever an experiment put there — confirming a
+// One reviewer's answer, written to an item's ground truth. PUT always wins
+// over whatever an experiment put there — confirming a
 // seeded value and disagreeing with one go down the same path. DELETE takes an
 // answer back, returning the field to absent.
 //

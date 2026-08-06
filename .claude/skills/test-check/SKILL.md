@@ -31,7 +31,7 @@ it reads as coverage in exactly the place you would stop looking.
 ## What to check
 
 **Every rule in [CLAUDE.md](../../../CLAUDE.md) → Verifying changes → What a
-test is for is a check.** Read them there. They are not repeated here, so a rule
+test is for is a check.** Read them there. They are not repeated here. A rule
 added there is checked without this file changing. The rest of § Verifying
 changes — the commands, the zero-warning gate, the pre-commit run — is procedure
 for the author, not something to review a branch against.
@@ -64,8 +64,8 @@ the rules would not tell you:
    `it` string alone, as a CI failure list shows it, not in file order where the
    surrounding tests supply the missing context.
 3. **A comment asserting behaviour the code does not have.** Verify each against
-   the source and quote `file:line`. These read confidently, which is why
-   reading past them is easy.
+   the source and quote `file:line`. These read confidently. Reading past them
+   is easy.
 4. **A skip is not a pass.** Where a capability probe can skip a whole suite
    (`tests/e2e/opfs.ts`), say what a green run did not cover.
 

@@ -16,7 +16,7 @@ Two widenings:
   transport.
 - **No device at all** — chat to the companions and use your hand. It is the
   largest widening of who can use the app, and it needs no hardware to try. It
-  is also the case that most tests whether the persona format is device-neutral.
+  also tests hardest whether the persona format is device-neutral.
 
 Open questions:
 
@@ -32,16 +32,15 @@ Open questions:
   per-device clients in the shape of the current one.
 - **One control prompt per device.** The mechanism already exists.
   `CONTROL_SECTION` is app-owned and pulled into a persona by a `{{…}}` token
-  (see [GOONPACKS.md](../GOONPACKS.md)), so a per-device variant swaps in at no
+  (see [GOONPACKS.md](../GOONPACKS.md)). A per-device variant swaps in at no
   cost to packs. The hand needs no control section at all. There is nothing to
   start, stop or set.
 - **The tools change shape, or disappear entirely.** The companion tools are cut
-  to this device (an intensity percent, a variety level), so another device
-  means another set. With no device there are no control tools and no TOY STATUS
-  line. That line is currently the companion's ground truth about the device. A
-  companion whose whole appetite is driving the toy then has to work by
-  instruction and trust instead. That is a different disposition, not a missing
-  section.
+  to this device. Another device means another set. With no device there are no
+  control tools and no TOY STATUS line. That line is currently the companion's
+  ground truth about the device. A companion whose whole appetite is driving the
+  toy then has to work by instruction and trust instead. That is a different
+  disposition, not a missing section.
 - **Can one persona be device-neutral, or is it a version per device?** The
   crux, and the reason this is a roadmap item rather than a task. The shared
   sections swap cleanly. A pack's _own_ disposition bullets are the problem,
@@ -71,10 +70,10 @@ Open questions:
 
 - **The play modes without a device.** Goon, Groove and Autopilot exist to
   generate a program for hardware. Autopilot is a faithful recreation of
-  Autoblow's Autopilot, so it can't travel to another device either. With no
-  device there is nothing to play at all, which suggests hand mode is
-  Companions-only. Navigation, the play-mode registry and the global voice words
-  would then all have to say so, rather than offering modes that can't run.
+  Autoblow's Autopilot. It can't travel to another device either. With no device
+  there is nothing to play at all. That suggests hand mode is Companions-only.
+  Navigation, the play-mode registry and the global voice words would then all
+  have to say so, rather than offering modes that can't run.
 - **What the Player is for** when there's no device to send to. It owns the
   clock, the tick loop and transport. With nothing on the other end, either it
   isn't in the picture or hand mode is a different path through the app.
@@ -83,5 +82,5 @@ Open questions:
   to refer to what the user is using without the app having told them something
   untrue about it.
 - **The safe word** is always on, but with no program running it has nothing to
-  stop. The safeword-as-hard-stop item in [TODO.md](../TODO.md) is the same gap,
-  reached from a different direction.
+  stop. [The safe word](./SAFE-WORD.md) is the same gap, reached from a
+  different direction.

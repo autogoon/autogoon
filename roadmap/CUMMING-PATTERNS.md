@@ -13,7 +13,8 @@ cumming.
 three things without turning into a programming language nobody wants to write
 in:
 
-- a ruin (a valve held open for a fixed time);
+- a ruin (a burst at a fixed speed with the stroke+ valve open, or a dead stop
+  with both valves closed);
 - torture (a hold with no end);
 - shaped curves.
 
