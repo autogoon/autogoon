@@ -50,7 +50,7 @@ const RAMP_GAMMA = 2;
 const PEAK_SPEED = 100;
 const CUMMING_START_SPEED = 30;
 const CUMMING_MID_SPEED = 20;
-const CUMMING_END_SPEED = 5;
+const CUMMING_END_SPEED = 0;
 const CUMMING_STEP_MS = 500;
 // One-shot stroke-minus tease held for this long at session start. A teasing
 // lead-in, independent of the dip

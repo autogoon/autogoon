@@ -34,7 +34,7 @@ the device already is, rather than snapping back to the top first.
 ## Cumming
 
 Say `cumming` for the wind-down: the device eases down from a moderate pace to a
-standstill over about ten seconds — the strokes shortening as it goes — then
+standstill over about fifteen seconds — the strokes shortening as it goes — then
 rests.
 
 ## Voice control

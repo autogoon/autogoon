@@ -70,7 +70,7 @@ const STROKE_MINUS_APPLY_MS = 10_000;
 // cumming()'s wind-down ramp.
 const CUMMING_START_SPEED = 30;
 const CUMMING_MID_SPEED = 20;
-const CUMMING_END_SPEED = 5;
+const CUMMING_END_SPEED = 0;
 const CUMMING_STEP_MS = 400;
 
 // After-play: what `cumming` splices in, picked at random from the options
