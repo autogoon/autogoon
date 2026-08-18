@@ -28,7 +28,7 @@ describe('captionWarning', () => {
 });
 
 describe('strayWarning', () => {
-  it('reports nothing when every basename under media/ carries media', () => {
+  it('reports nothing when every basename under media/ has a media file', () => {
     expect(strayWarning([])).toBeNull();
   });
 

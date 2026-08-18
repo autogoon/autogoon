@@ -94,7 +94,7 @@ export type ParsedPack = {
   systemPrompt?: string;
   media: ParsedMedia[];
   // What is under media/ but isn't playable media, reported rather than
-  // refused: `strays` are basenames no media file carries, `undescribed` are
+  // refused: `strays` are basenames no media file matches, `undescribed` are
   // media files with no sidecar yet. Neither stops a pack, because media/ is a
   // working directory as often as it is a finished set — a describing pass
   // half done, or another tool keeping its own files beside the pictures.
@@ -190,7 +190,7 @@ export async function parsePack(
   const media: ParsedMedia[] = [];
   const sidecarPaths: string[] = [];
   const sidecars = new Map<string, Sidecar>();
-  // Basenames under media/ that no playable file turned out to carry. Collected
+  // Basenames under media/ that no playable file turned out to match. Collected
   // as they are met and filtered against the media set below, since a name is
   // only stray once nothing has claimed it.
   const strays = new Set<string>();
@@ -291,7 +291,7 @@ export async function parsePack(
   for (const stem of sidecarStems) {
     if (!stems.has(stem)) strays.add(baseName(stem));
   }
-  // A basename is sound the moment any playable file carries it, whatever else
+  // A basename is sound the moment any playable file matches it, whatever else
   // sits alongside: `a.jpg` beside `a.labels.json` and `a.baseline.raw.txt` is
   // one described picture, not a picture and two complaints.
   for (const m of media) strays.delete(baseName(m.file));
