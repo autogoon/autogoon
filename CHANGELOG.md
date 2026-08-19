@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-19
+
+- internal: **Remove the documentation sweep** — `npm run docs:sweep` and the
+  briefs it ran are gone. Rewriting whole documents to a rule flattened the
+  register the mode docs are written in, and reviewing the result cost more
+  than writing it would have. The `/md-check` skill still walks the set a file
+  at a time.
+
 ## 2026-08-05
 
 - feature: **Documentation sweep** — `npm run docs:sweep` reviews every tracked

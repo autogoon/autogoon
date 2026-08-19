@@ -13,12 +13,11 @@
     "experiment:run:outdated": "tsx --env-file-if-exists=.env scripts/experiment-run.ts --outdated",
     "llm:benchmark": "tsx --env-file-if-exists=.env scripts/llm-benchmark.ts",
     "llm:benchmark:wipe": "tsx scripts/llm-benchmark.ts --wipe",
-    "docs:sweep": "tsx scripts/md-sweep.ts",
     "dev": "next dev -H 0.0.0.0 --port 8931",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\" \"scripts/md-sweep-briefs/*.md\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\" \"tests/**/*.ts\" \"scripts/**/*.ts\" \"goonpacks/**/*.{md,json}\" \"*.{ts,js,mjs,json,md}\" \"docs/**/*.md\" \"roadmap/**/*.md\" \"modes/**/*.md\" \".claude/**/*.md\"",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:e2e": "playwright test"
