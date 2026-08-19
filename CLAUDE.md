@@ -15,17 +15,9 @@ sentence written here. Two things on top of it:
   line, a command's output, a measurement. Cut anything that is not information
   — flourish, a sentence restating the one before it, a summary of something
   short enough to quote.
-- **Anything proposed comes in four parts**, in this order:
-
-  - the problem;
-  - the current situation, with the evidence for it;
-  - the proposed change, or the options with what each costs;
-  - the resulting text, where it is short enough to read.
-
-  Quote verbatim in the reply itself. A description of a change cannot be judged
-  against the change, and `sed` or `cat` output in a tool call is not reliably
-  shown to you. A sentence, a comment or a small function goes in full; anything
-  larger is named rather than pasted, and quoted on request.
+- Quote verbatim in the reply itself. A sentence, comment, or small function
+  goes in full; name larger changes rather than pasting them, and quote on
+  request.
 
 ## Commands
 
@@ -47,18 +39,15 @@ Change files with **Edit and Write, never a shell rewrite**. None of these:
 - a redirect into a tracked path;
 - `git checkout --` over uncommitted work.
 
-Those render no diff, so the change can't be reviewed and has to be taken on
-trust from a summary. Batching several of them into one script is what makes a
-bad edit hard to catch. Several small Edit calls beat one clever script. Shell
-that only reads — greps, tests, mutation runs against a scratchpad copy — is
+Shell rewrites render no diff and obscure changes. Use multiple small Edit calls
+instead of one script. Shell commands that only read (greps, tests, etc.) are
 unaffected.
 
 **Never put a control character in a source file.** Write a terminal escape as
-`\x1b` and a separator as text. The byte itself is invisible in a diff, and one
-of them makes the file binary to `grep`, which then reports no match for every
-search over it. Colour comes from
-[`scripts/lib/colour.ts`](./scripts/lib/colour.ts). The only other escape in the
-repo is the iTerm2 inline-image sequence in `scripts/describe-image.ts`.
+`\x1b` and a separator as text. Invisible bytes make files binary to `grep`.
+Colour comes from [`scripts/lib/colour.ts`](./scripts/lib/colour.ts). The only
+other escape in the repo is the iTerm2 inline-image sequence in
+`scripts/describe-image.ts`.
 
 ## Secrets / environment
 
@@ -92,66 +81,48 @@ session links. When a doc or plan needs a concrete path, genericize it
   seeded listen-on-load preference are all required, and the test fails in ways
   that don't name them if any goes.
 
-Tests are a floor, not the whole gate. The app drives physical hardware, so a
-behaviour change also needs `npm run typecheck` + `npm run build`, and driving
-the app in the browser and watching what it does.
+A behaviour change requires `npm run typecheck` + `npm run build`, and manual
+browser testing.
 
 The repo is kept at **zero warnings**. Fix every lint and typecheck warning or
-error before you finish, including ones your direct changes didn't cause. Never
-treat one as "pre-existing, not mine." Both `npm run lint` and
-`npm run typecheck` produce no output when they pass.
+error, including pre-existing ones.
 
-Before committing — or at the latest before a finished PR is reviewed — run
-`npm run typecheck`, `npm run lint`, and `npm run format`. If `format` changes
-files, commit those changes as part of the work; don't leave them or revert
-them.
+Before committing, run `npm run typecheck`, `npm run lint`, and
+`npm run format`. Commit any formatting changes.
 
 ## Changelog
 
 Keep [CHANGELOG.md](./CHANGELOG.md) current. **It is there to be skimmed.**
-Someone opening it wants to see what the app gained since they last looked, so
-features and enhancements are what carry it. Bugs and internal entries are the
-record behind them. Update it **after each logical set of changes** as part of
-the work itself. The timing follows the work, not a commit or a PR, since a
-change can span several commits. The entry still carries its PR link, and that
-can only go in once the PR exists, usually mid-branch rather than at the end. If
-you finished something a user would notice, it gets an entry before you consider
-the work done.
+Features and enhancements lead; bugs and internal entries follow. Update it
+**after each logical set of changes** as part of the work itself. The timing
+follows the work, not a commit or a PR, since a change can span several commits.
+The entry still carries its PR link, and that can only go in once the PR exists,
+usually mid-branch rather than at the end. If you finished something a user
+would notice, it gets an entry before you consider the work done.
 
-- **Format:** one bullet per change — wrapped over indented lines and separated
-  by blank lines for readability — newest first, grouped under the date it
-  landed (`## YYYY-MM-DD`). Tag each entry `feature`, `enhancement`, `bug`, or
-  `internal`, and within a day order the entries in exactly that sequence —
-  features, then enhancements, then bugs, then internal (bottom priority). Open
-  each entry with a bold, few-word, commit-style summary, then the description
-  as a sentence (capital first word, unless it opens with `code`):
+- **Format:** One bullet per change, wrapped over indented lines and separated
+  by blank lines. Group newest first under the date (`## YYYY-MM-DD`). Order
+  daily entries: `feature`, `enhancement`, `bug`, `internal`. Open each entry
+  with a bold, short summary, then a sentence description:
   `- tag: **Add safe word** — Description…`. Link the PR:
   `([#N](https://github.com/autogoon/autogoon/pull/N))`. Inline markup is
-  limited to `` `code` `` and `[links](url)` — the in-app Changelog screen
-  parses exactly this format (src/lib/changelog.ts).
-- **Every notable change gets an entry, described for whoever cares about it.**
-  A user-facing change gets a user-friendly description — _what the app does,
-  not how it's built_. A developer-facing change (an internal refactor and the
-  like) gets a developer-friendly description of _what changed_. That is not the
-  same as being tagged `internal`: a feature, an enhancement or a bug can each
-  be something only a developer would notice. Don't force a user angle onto a
-  pure refactor, and don't drop a change just because users won't notice it.
-- **One entry for the branch's feature, not one per piece of it.** The work a
-  feature needed to exist — the format it stores, the validation, the script
-  that writes it — is the feature, and goes in its entry. Something that stands
-  on its own still earns its own entry on the same branch. The test is whether
-  it means anything to someone who doesn't care about the feature.
+  limited to `` `code` `` and `[links](url)`.
+- **Every notable change gets an entry, described for its audience.**
+  User-facing changes explain what the app does; developer-facing changes
+  explain what changed. Any tag can apply to developer-facing changes.
+- **One entry for the branch's feature, not one per piece of it.** Supporting
+  work (formats, validation, scripts) belongs in the feature's entry.
+  Independent changes get separate entries.
 - **The entry says what changed; the PR it links carries the detail.** Don't
-  explain the mechanism, list the parts, or narrate how the branch arrived at
-  it. If a sentence would only matter to someone reading the diff, cut it.
+  explain the mechanism, list the parts, or narrate the branch history. Cut
+  sentences that only matter to diff readers.
 - **Lead with what you get, not what we did.** The summary and first sentence
   are the benefit; the cause is a clause at the end if it earns a mention.
   "Companions are off the MiniMax models" is a decision — what the reader
   noticed is a companion reading their own thinking out loud.
-- **Name it what the app names it, and say where it is.** If there is a word on
-  screen for the thing — an intro, a pack, a play mode — use it, and say where
-  it appears. An entry describing the concept, or naming it with no way to find
-  it, is unmappable — including by whoever wrote it.
+- **Name it what the app names it, and say where it is.** Use the on-screen term
+  (intro, pack, play mode) and state where it appears. Conceptual descriptions
+  without UI locations are unmappable.
 - **The summary alone says what the change is.** Read it with the description
   covered — if it doesn't identify the change, rewrite it. "A companion finds a
   picture whatever you call it" names nothing; "Synonyms added to media search"
@@ -164,9 +135,8 @@ the work done.
 - **One concrete example beats the options it stands for.** "No 'good morning'
   at your midnight" does the work of a sentence enumerating what a pack author
   can turn off.
-- **Point rather than describe.** Documentation for anything user-facing, the
-  source file for anything only a developer would notice — by who reads it, not
-  which tag it wears.
+- **Point rather than describe.** Point to documentation for user-facing
+  changes, and source files for developer-facing ones.
 - **Tag by who notices, not by what changed.** A build that ships different
   files is an `enhancement` to whoever builds packs, not `internal`.
 - **Only tag a `bug` if it shipped on `main`.** A regression introduced _and_
@@ -192,15 +162,11 @@ the work done.
 
 ## Git workflow
 
-- **Branch and PR what earns a changelog entry.** Anything a user or another
-  developer would want recorded — behaviour, features, fixes, refactors — goes
-  on a branch off `main`, one branch/PR per piece of work. Work that earns no
-  entry doesn't earn the ceremony either: **never create a branch or PR just
-  for** docs, comments, working-practice notes and the like. With no branch in
-  flight they go straight to `main` once the gates pass. This is about not
-  raising ceremony, not about where they land: when a branch already exists,
-  they belong on it like any other commit. Never carve a doc change out of the
-  branch you are working on to put it on `main`.
+- **Branch and PR what earns a changelog entry.** Put recorded changes
+  (behaviour, features, fixes, refactors) on a branch off `main`. **Never create
+  a branch or PR just for** docs or comments; commit them to `main` directly. If
+  a branch already exists, add them there. Never carve doc changes out of an
+  active branch.
 - **Process and working-practice rules aren't changelog entries.** How the work
   gets done isn't a change to the app; only code, docs and behaviour are.
 - The flow is **branch → do the work → gates → commit → push → open a PR →
@@ -215,76 +181,50 @@ the work done.
   - the five checks, **in this order**: `/code-check`, `/test-check`,
     `/doc-check`, `/style-check`, `/personal-check`.
 
-  All five run on every branch. A check that only runs when someone judges it
-  relevant is a check that never runs, and each one reports "nothing found"
-  cheaply when a branch didn't go near its subject.
+  Run all five on every branch. They report "nothing found" cheaply when a
+  branch didn't touch their subject.
 
 - **Never discard a valid finding for being outside the check's remit.** Report
   it. A duplicate line costs nothing; a finding dropped because another check
   owns it is lost.
-- **The order matters**, because each check changes what the next one reads.
-  `/code-check` settles what the code does, so the tests and docs are judged
-  against code that is finished rather than code still moving. `/test-check`
-  comes next because a test it rewrites is itself something the docs may
-  describe. `/doc-check` then reads every doc against a settled branch,
-  establishing that they are true. Comments divide: `/code-check` takes each one
-  the diff touched against the code beneath it, `/test-check` those in test
-  files, and `/doc-check` whether a comment still describes the repo around it.
-  `/style-check` follows, because the three before it all write new sentences
-  while fixing what they find, and nothing else reads those. `/personal-check`
-  is last so it reads the final text of everything the other four wrote. It is
-  the only check whose miss can't be fixed after a push.
-- **Before merging**, run all five again, in the same order. The branch has
-  usually gained commits since the PR opened, and the PR's own title, body and
-  comments didn't exist for the first run, so this is the only pass that ever
-  reads them. Run them even on a branch that hasn't moved, for the same reason.
-  Treat `gh pr merge` as blocked until all five have run against the final diff.
-- **A check's report asks one thing at a time.** Never close a report with a
-  blanket "shall I do these?". Take the recommendations in order and, for each,
-  ask a question naming that one change and what it would assert — then stop and
-  wait. Someone who has just read a page of findings cannot hold five decisions
-  at once, and a digest followed by one open question is unanswerable. If the
-  report ran long, restate the single change in the question rather than
-  pointing back at it.
-- **One finding is carried to a commit before the next is named.** The cycle is
-  propose, wait for a yes or no, fix, then commit on a second yes. Only then
-  does the next finding get mentioned. An edit made ahead of its yes, or a
-  commit question carrying the next proposal, puts two findings in flight at
-  once. Every answer then has to say which one it meant, and a change that needs
-  re-doing can't be backed out cleanly.
-- **Check `main` hasn't moved** before pushing and again before merging:
+- **The order matters**: each check modifies what the next reads. `/code-check`
+  settles the code. `/test-check` follows, rewriting tests. `/doc-check` reads
+  docs against settled code. `/style-check` edits new sentences from the first
+  three. `/personal-check` scans final text; its misses can't be fixed after a
+  push.
+- **Before merging**, run all five again to catch new commits, PR titles, and
+  comments. Treat `gh pr merge` as blocked until all five run against the final
+  diff.
+- **A check's report asks one thing at a time.** Propose one recommendation, ask
+  a specific question, and wait. Never ask blanket questions ("shall I do
+  these?").
+- **One finding is carried to a commit before the next is named.** The cycle:
+  propose, wait, fix, ask to commit, commit. Only then mention the next finding.
+- **Check `main` hasn't moved** before pushing and before merging:
   `git fetch origin && git log --oneline HEAD..origin/main` should be empty. If
   it isn't, merge `origin/main` into the branch and **verify nothing was lost**.
-  Don't trust a clean auto-merge. Git resolved a repo-wide reformat against a PR
-  that landed mid-branch without reporting a single conflict on one file, and
-  silently dropped a CSS utility the other PR had added. The feature using it
-  would have shipped broken. Where a branch's own changes to a path are
-  mechanical (formatting, renames), the reliable resolution is to take that path
-  wholesale from `origin/main` and re-apply the mechanical change, then diff
-  against `origin/main` to confirm only the intended difference remains.
+  Don't trust a clean auto-merge. For mechanical changes (formatting, renames),
+  take the path wholesale from `origin/main`, re-apply the change, and diff to
+  confirm.
 - Merge PRs with a **merge commit** (not squash or rebase) and **delete the
   branch, local and remote** — `gh pr merge <n> --merge --delete-branch`.
 - Committing, pushing and merging are separate actions. Only do each when asked.
 
 ## Voice-first in play
 
-Play is operated hands-free, so nearly every control on a play mode's screens —
-and the navigation that reaches them — should also be a voice command. When
-adding one, give it a word (and the on-screen voice-command chip that comes with
-it) by default.
+Play is hands-free. Nearly every screen control and navigation should be a voice
+command. When adding one, provide a word and on-screen voice-command chip by
+default.
 
-**Settings are not play.** A preference is set once, with a free hand, and every
-word in the grammar is another the recognizer can mishear mid-session. The other
-exceptions are free-text input (the safe word field) and continuous input better
-served by discrete step words (a slider gets `more`/`less`-style steps, not a
-spoken value).
+**Settings are not play.** Preferences are set once with a free hand; adding
+them to the grammar risks misrecognition. Other exceptions are free-text input
+(the safe word) and continuous input better served by step words (sliders get
+`more`/`less`, not spoken values).
 
 ## Scope of a change
 
 - **Engines are intentionally self-contained**: don't refactor them into a
   shared module without asking.
-- **Nothing is built before it's needed** (YAGNI): a field, hook, option or
-  abstraction for a feature that does not exist yet doesn't land. Where data has
-  to be captured early because backfilling it later is impractical —
-  `contextWindow`, which every pack would otherwise need revisiting to supply —
-  the definition site says why.
+- **Nothing is built before it's needed** (YAGNI): unneeded fields, hooks, or
+  abstractions don't land. If data must be captured early to avoid impractical
+  backfilling, the definition site must explain why.
