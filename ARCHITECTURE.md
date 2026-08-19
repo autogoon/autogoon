@@ -6,6 +6,19 @@ screen. Hidden screens stay mounted, changing only their visibility. The
 navigation hierarchy those screens form is under
 [Shared device, one Player, mutual exclusion](#shared-device-one-player-mutual-exclusion).
 
+## One path for every browser
+
+The app targets Chromium, Firefox and WebKit. A browser-specific branch is a
+last resort, not a first fix: it doubles the paths, and Playwright can't always
+reach the one that needs it — its WebKit has no working OPFS, so nothing
+Safari-only is tested by anything but a human.
+
+When an API fails in one engine, the shape that works everywhere comes before a
+fallback. Extraction sends the worker a pack key rather than a directory handle
+because WebKit won't structured-clone the handle, and that costs the other
+engines nothing. Take the branch only once no common path exists, and say in a
+comment which engine forced it.
+
 ## The program / player model
 
 Everything device-facing splits into **generating** a program and **playing**
@@ -90,7 +103,8 @@ Each device-driving play mode is an **engine** and a **panel**:
   only _generates_ events and _scales_ them. Engines are self-contained and
   never import from one another. Where two play modes share a pattern (Goon
   reuses Groove's dip), the helpers are **duplicated**, not shared — a chosen
-  boundary.
+  boundary. The boundary covers _generation_ code only; shared infrastructure
+  like the Player sits outside it.
 - the **panel** — the React surface in `src/components/play-modes/` (a single
   `*-panel.tsx`, or a `*-panel/` directory with the panel in `index.tsx` once it
   splits out per-concern pieces, as Goon and Companions do). It **owns** its
@@ -199,7 +213,10 @@ is a play mode word, owned by the active panel.
 
 **The safe word.** A hard stop (`src/lib/safe-word.ts`) wired at the page level,
 so no play mode can gate it. It is in the grammar the whole time something is
-playing, including where Stop is deliberately ignored.
+playing, including where Stop is deliberately ignored. Anything touching the
+grammar, the recognizer's lifetime, or the screens a word has to survive keeps
+that true. The one case outside it is the microphone being off. No word reaches
+the app at all then.
 
 ## Controls
 
@@ -313,6 +330,14 @@ is never closed on idle**:
 Server error messages and any close the app didn't initiate are surfaced to the
 panel's event log rather than swallowed. The ElevenLabs idle close is how the
 rule was found.
+
+**The prompt prefix stays reusable.** A turn re-sends the whole conversation,
+and prefix caching matches from the first message to the first difference.
+Anything that changes per turn rides a trailing system message after the
+conversation (`liveStateMessage`), never the persona prompt. One volatile value
+there makes every token behind it uncacheable. Assembled prompts are filled
+once, at load (`fillSharedSections`). Nothing fails when this breaks. The
+Companions debug tab's "Prompt cached" row is the only symptom.
 
 **Ambient chat re-arms itself; nothing polls.** Each companion turn arms the
 next as it ends. The scheduler (`src/lib/companions/ambient-scheduler.ts`) holds

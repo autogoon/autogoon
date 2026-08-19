@@ -10,9 +10,9 @@ see [The safe word](./SAFE-WORD.md).
 Open questions:
 
 - **Which words step the speed.** Voice-first in play
-  ([CLAUDE.md](../CLAUDE.md#architecture)) rules out a spoken value, and the
-  pair a magnitude knob steps on today is `more`/`less`. `faster`/`slower` are
-  taken — they step the Player's playback rate. The stroke valves need no
+  ([CLAUDE.md](../CLAUDE.md#voice-first-in-play)) rules out a spoken value, and
+  the pair a magnitude knob steps on today is `more`/`less`. `faster`/`slower`
+  are taken — they step the Player's playback rate. The stroke valves need no
   answer: `up` and `down` in `use-stroke-controls.ts` are already shared by
   every panel, though they are gated on `player.isPlaying`.
 - **Does it use the Player at all?** Driving `VacuglideDevice`
