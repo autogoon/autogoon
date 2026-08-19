@@ -1,6 +1,6 @@
 # BUG
 
-Known defects in behaviour that is already implemented. Severity decides when
+Known defects in behaviour that is already implemented. Severity determines when
 one gets fixed, not whether it belongs here. What belongs here rather than in
 the other files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
@@ -50,8 +50,8 @@ the other files is in [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
 ## Bug braindump
 
-Noticed in use, unsorted and unverified. An entry earns a section of its own
-once someone has read the code under it.
+Noticed in use, unsorted and unverified. An entry receives a section of its own
+once someone has read the code for it.
 
 - The UI for Companions is poor.
 

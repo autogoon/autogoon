@@ -37,9 +37,9 @@
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 - internal: **Companion prompts say each thing once** — The persona prompts
-  carried trailing clauses that restated the instruction above them, or gave a
+  carried trailing clauses that restated the instruction preceding them, or gave a
   reason the model can't act on; those are cut. Each prompt is now structured as
-  markdown, so reflowing one can't merge a heading into the text below it.
+  markdown, so reflowing one can't merge a heading into the text following it.
   ([#30](https://github.com/autogoon/autogoon/pull/30))
 
 ## 2026-08-03
@@ -576,7 +576,7 @@
 - bug: **Long messages aren't cut off** — The message box was a fixed height, so
   a long message — dictated or typed — ran on below the bottom of it out of
   sight. It now grows to fit what's in it, up to a limit past which it scrolls
-  rather than crowding out the conversation above.
+  rather than crowding out the preceding messages.
   ([#22](https://github.com/autogoon/autogoon/pull/22))
 
 - bug: **Your words reach the message box** — What you were saying often failed

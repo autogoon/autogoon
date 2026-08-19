@@ -12,11 +12,12 @@ above that assumes the same device's controls:
 
 Two widenings:
 
-- **Other strokers.** There are plenty. They don't share a control surface or a
-  transport.
-- **No device at all** — chat to the companions and use your hand. It is the
-  largest widening of who can use the app, and it needs no hardware to try. It
-  also tests hardest whether the persona format is device-neutral.
+**Other strokers.** There are plenty. They don't share a control surface or a
+transport.
+
+**No device at all** — chat to the companions and use your hand. It is the
+largest widening of who can use the app, and it needs no hardware to try. It
+also tests hardest whether the persona format is device-neutral.
 
 Open questions:
 

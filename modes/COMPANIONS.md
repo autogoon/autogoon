@@ -1,8 +1,8 @@
 # Companions
 
-Each companion is a distinct persona, run over the LLM backend. This doc carries
-the design rationale. The configuration is one `Companion` object per companion
-in `src/lib/companions/companions.ts`, where every field is commented.
+Each companion is a distinct persona, run over the LLM backend. The
+configuration is one `Companion` object per companion in
+`src/lib/companions/companions.ts`, where every field is commented.
 
 ## The model
 

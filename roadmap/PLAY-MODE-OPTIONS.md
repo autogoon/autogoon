@@ -12,20 +12,20 @@ none of these options enabled it stays one.
 
 ## Mid-play
 
-- **Edge** — say **"edge"** → short cool-down → wait → build back up.
-  - **Edge length** — how long the pause lasts before it ramps back: short
-    teases vs. long denials.
-    - User adjustable, with some randomisation? Danger of restarting too soon
-      and causing an orgasm.
-    - Maybe a voice command to resume, but then it's the same as Stop/Start.
-    - [nogasm](https://github.com/nogasm/nogasm) is prior art on timing the
-      pause — worth reading before settling this.
-  - A % chance **"edge" does nothing**
-    - **Does the chance grow?** Maybe it climbs the longer the session runs, it
-      climbs with each "edge" you survive, or it's just a flat chance every
-      time.
-  - **How to best expose the options?** A voice-first panel can only carry so
-    many knobs.
+**Edge** — say **"edge"** → short cool-down → wait → build back up.
+
+- **Edge length** — how long the pause lasts before it ramps back: short teases
+  vs. long denials.
+  - User adjustable, with some randomisation? Danger of restarting too soon and
+    causing an orgasm.
+  - Maybe a voice command to resume, but then it's the same as Stop/Start.
+  - [nogasm](https://github.com/nogasm/nogasm) is prior art on timing the pause
+    — worth reading before settling this.
+- A % chance **"edge" does nothing**
+  - **Does the chance grow?** Maybe it climbs the longer the session runs, it
+    climbs with each "edge" you survive, or it's just a flat chance every time.
+- **How to best expose the options?** A voice-first panel can only carry so many
+  knobs.
 
 ## End-play
 

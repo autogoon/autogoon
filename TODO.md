@@ -12,8 +12,8 @@ A device that drops mid-run leaves the Player's tick loop running. The speed
 send throws. `scheduleNextTick` reports the failure and schedules the next tick
 anyway, and `lastDeviceSpeed` only updates on a send that succeeded. Every tick
 re-sends the same speed and logs the same error, several times a second, until
-the program would have ended. Valve sends report nothing at all: `setValve`
-discards its rejection.
+the program would have ended. Valve sends report nothing at all: rejections from
+`setValve` are ignored.
 
 Stopping belongs in the Player, not in each engine. The Player is the single
 path to the device, so one stop covers every play mode and no engine needs a
@@ -23,7 +23,7 @@ device reference. To settle:
   where it left off);
 - how many consecutive failures mean the device is gone rather than momentarily
   unreachable;
-- what the screen says. A device that has dropped is the one failure the user
+- what the UI displays. A device that has dropped is the one failure the user
   can't otherwise see.
 
 ### Show remaining provider credits in the app
@@ -45,7 +45,7 @@ What doesn't:
 - **torture** and **the ruins**, absolute on purpose;
 - **Autopilot**, which recreates Autoblow's own.
 
-Nothing tells a companion what a number does to you. The only fix today is
+No mechanism informs a companion what a number does. The only fix today is
 saying so in words, every session and every new companion.
 
 ### Put the wind-down on a curve
@@ -61,10 +61,10 @@ Goon, Groove and Companions each carry their own copy of the constants.
 ### Split use-voice-session.ts and companions-panel/index.tsx
 
 `use-voice-session.ts` and `companions-panel/index.tsx` have both grown long
-enough that several unrelated concerns sit in each. The coupling is deliberate.
-The mic and STT callbacks are created once and outlive many renders, so
-everything they read has to be a ref, and anything moved out still needs those
-refs. The work is a structure that carries them, not smaller files.
+enough that several unrelated concerns exist in each. The coupling is
+deliberate. The mic and STT callbacks are created once and outlive many renders,
+so everything they read has to be a ref, and anything moved out still needs
+those refs. The work is a structure that carries them, not smaller files.
 
 `submitText` and its helpers are the bulk of the hook and need most of the refs.
 Extracting the turn runner means inventing an explicit session-context to carry
@@ -82,15 +82,15 @@ which delay curve applies (`ambient.ts`), and `endSession` — leaving Companion
 session left running in an empty room goes on spending on LLM and TTS with the
 device already at rest.
 
-The hard part is the number, not the mechanism. Long silences during play are
-normal: the device is working and there is nothing to say. A cutoff tuned for an
-empty room must not fire on someone who is simply quiet.
+Long silences during play are normal: the device is working and there is nothing
+to say. A cutoff tuned for an empty room must not fire on someone who is simply
+quiet.
 
-Worth warning before it stops.
+Warn before stopping.
 
 ### Reply length belongs to the companion
 
-`SHARED_STYLE_BULLETS` in `shared-prompt.ts` tells every companion to keep
+`SHARED_STYLE_BULLETS` in `shared-prompt.ts` instructs every companion to keep
 replies short, "two or three sentences". So a terse persona and a verbose one
 get the same instruction, and an author who wants a talker has to contradict the
 shared block rather than write their own rule.
@@ -137,8 +137,8 @@ Nothing breaks today. `contextWindow` is recorded and nothing reads it
 The window is the one that will matter, once something reads it.
 
 **Set all three or none.** [GOONPACKS.md](./GOONPACKS.md#setting-the-llm-model)
-says so, for a complete pack and an overlay alike, and nothing enforces it.
-Rejecting a manifest that sets `contextWindow` or `passesReasoning` without
+specifies this, for a complete pack and an overlay alike, and no code enforces
+it. Rejecting a manifest that sets `contextWindow` or `passesReasoning` without
 `model` is the cheap version. Resetting both to the app defaults whenever
 `model` changes is the version that catches inheritance as well.
 
@@ -225,8 +225,8 @@ Its only job was protecting them.
 
 ### The user's own time zone
 
-The THEIR TIME line comes from the browser's zone, so it says wherever the
-machine is. There is no way to say otherwise, and there are reasons to want to:
+The THEIR TIME line comes from the browser's zone, so it displays the machine's
+local time. There is no way to say otherwise, and there are reasons to want to:
 
 - a scene set somewhere the user isn't;
 - being away from home, and wanting the companion to carry on as though you
@@ -241,8 +241,8 @@ the setting has one call site to replace.
 
 ### One picture per turn
 
-The shared prompt's media section says "Only send one picture or video per
-turn". Nothing enforces it. `use-voice-session.ts` runs up to `MAX_TOOL_ROUNDS`
+The shared prompt's media section specifies "Only send one picture or video per
+turn". No code enforces it. `use-voice-session.ts` runs up to `MAX_TOOL_ROUNDS`
 rounds per turn and dispatches every call in each round's `toolCalls`, so a turn
 can carry any number of `send_media` calls.
 
@@ -285,8 +285,8 @@ edit writes the sidecar a pack plays with. That is the kit's first piece, on the
 screen that already exists.
 
 To settle: whether a hand-written caption still counts as ground truth for
-scoring, and what happens when an experiment later answers an item somebody has
-already edited by hand.
+scoring, and what happens when an experiment later generates an answer for an
+item somebody has already edited by hand.
 
 ## Goonpacks
 

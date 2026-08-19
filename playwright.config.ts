@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E tests run against the dev server on all three browser engines. The suite
-// is local-only for now (no CI), so an already-running dev server is reused.
+// is local-only for now (no CI). An already-running dev server is reused.
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,

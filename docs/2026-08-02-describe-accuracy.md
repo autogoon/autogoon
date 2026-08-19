@@ -1,7 +1,7 @@
 # Describing images — observed inaccuracies
 
-What [`scripts/describe-image.ts`](../scripts/describe-image.ts) gets wrong,
-observed against real images.
+Errors in [`scripts/describe-image.ts`](../scripts/describe-image.ts), observed
+against real images.
 
 [roadmap/INFERENCE-LIBRARY.md](../roadmap/INFERENCE-LIBRARY.md) carries the
 ideas for what to do about these —
@@ -27,26 +27,26 @@ observations — the sidecar's `description`. The caption condensed from them is
 
 ## What it never reports
 
-- **Breast size.** Nothing in `PROMPT` asks for it. The baseline experiment does
-  — `breastSize` in [`fields.ts`](../src/inference/fields.ts) — and
-  [its README](../src/inference/experiments/2026-08-02-baseline/README.md)
-  records how that went.
+**Breast size.** Nothing in `PROMPT` asks for it. The baseline experiment does —
+`breastSize` in [`fields.ts`](../src/inference/fields.ts) — and
+[its README](../src/inference/experiments/2026-08-02-baseline/README.md) records
+how that went.
 
 ## What the caption loses
 
-- Detail present in the long description does not always reach the caption.
+Detail present in the long description does not always reach the caption.
 
 ## Video
 
-- A video clip gets no sidecar from anything that writes one.
-  `describe-image.ts` refuses anything `MEDIA_TYPES` does not list as an image,
-  so a clip's caption and description are written by hand.
+A video clip gets no sidecar from anything that writes one. `describe-image.ts`
+rejects anything `MEDIA_TYPES` does not list as an image, so a clip's caption
+and description are written by hand.
 
 ## What produced these
 
-- `describe-image.ts` as it stood on 2026-08-02: its `PROMPT`, and
-  `qwen/qwen3-vl-235b-a22b-instruct`, its default model then.
-- Images downscaled to a long edge of `MAX_EDGE` before sending.
+**`describe-image.ts` as it stood on 2026-08-02:** its `PROMPT`, and
+`qwen/qwen3-vl-235b-a22b-instruct`, its default model then. **Images
+downscaled:** to a long edge of `MAX_EDGE` before sending.
 
 ## Measuring a fix
 

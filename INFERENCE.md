@@ -33,10 +33,10 @@ writes is named from the item it belongs to:
       beach.md                               the pack's own sidecar
 
 **A prompt and its reply are stored as a pair, numbered by the call.** An
-experiment may make several. The baseline looks at the picture, then reads its
-own account of it. A reply says little without the question above it. The first
-call carries no number, so an experiment that makes one call writes the names it
-always did.
+experiment may make several. The baseline passes the picture to the model, then
+parses the resulting account. A reply says little without its question. The
+first call carries no number, so an experiment that makes one call writes the
+names it always did.
 
 Everything an experiment writes there is the latest run's, overwritten by the
 next. Each is written a second time under a name carrying when the run happened
@@ -102,10 +102,10 @@ and the experiment. Both are stored, so the tab opens where it was left, and
 both are in the address. The grammar is in
 [`route.ts`](./src/inference/route.ts).
 
-Under them the screen reports on that corpus for that experiment: how many items
-there are, how many a person has answered every field for, how many still hold
-an experiment's answer, and how far the selected experiment has run. The spread
-of the ground truth's own answers across each field's options is counted beside
+The screen reports on that corpus for that experiment: how many items there are,
+how many a person has answered every field for, how many still hold an
+experiment's answer, and how far the selected experiment has run. The spread of
+the ground truth's own answers across each field's options is counted beside
 them. It belongs to the corpus rather than to any experiment.
 
 **Review** is a page of its own, not an overlay: the picture, the controls for
@@ -180,7 +180,7 @@ gaps are deliberate and only the stale answers need redoing.
 Both print the whole standing before they start — how many images, how many
 answered, how many outdated, how many never run — and then what the run takes of
 it. The narrow mode leaves a group behind, and a count on its own doesn't say
-so. Each item then prints its caption and, in iTerm, the picture under it.
+so. Each item then prints its caption and, in iTerm, the picture.
 
 A third argument is how many items to have in flight:
 

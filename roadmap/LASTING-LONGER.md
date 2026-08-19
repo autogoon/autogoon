@@ -6,8 +6,7 @@ until the urge fades, then start again, repeating several times before finishing
 (one trial ran five stops, then finished on the sixth [2]).
 
 Groove with variability off, plus the Stop/Start voice commands, already does
-the mechanical part. The open question is whether we can add anything that
-materially helps.
+the mechanical part.
 
 What the research says:
 

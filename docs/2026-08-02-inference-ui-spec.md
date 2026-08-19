@@ -1,9 +1,7 @@
 # Inference UI v1 — labelling a corpus
 
-A dev-only screen for building the ground truth that
-[describe-accuracy](./2026-08-02-describe-accuracy.md) says every later
-experiment has to be scored against. That file records what the current
-descriptions get wrong; this one records what gets built.
+A dev-only screen for building the ground truth that every later experiment is
+scored against.
 
 v1 does one thing: leaf through a corpus of images in the browser, run a
 baseline description of one, and record by hand whether the subject is naked.
@@ -105,10 +103,10 @@ field gets diagnosed. A later experiment whose raw output isn't text writes
 whatever form it has.
 
 **A second call writes `.prompt2.txt` and `.raw2.txt`**, and so on. The pair is
-the unit, because a reply says little without the question above it — and where
-an experiment feeds one call's reply into the next call's prompt, the whole
-chain is on disk rather than only its last link. The first call carries no
-number, so a single-call experiment writes the two names it always did.
+the unit, because a reply says little without its question — and where an
+experiment feeds one call's reply into the next call's prompt, the whole chain
+is on disk rather than only its last link. The first call carries no number, so
+a single-call experiment writes the two names it always did.
 
 **`<item>.<experiment>.sidecar.md`** — the caption and description, in the
 pack's own sidecar format. Writing it here is what makes a labelled pack a
@@ -173,10 +171,10 @@ came back, because an experiment feeding one call's reply into the next call's
 prompt has no static prompt to record. **`parse()`** turns a stored reply into
 the fields and the sidecar, and costs nothing, so a parser that turns out to be
 wrong is fixed by walking the corpus calling `parse()` alone. Both derivations
-come from the one call rather than two, so a broken caption reader stops an item
-being recorded at all rather than leaving it scored and undescribed. A registry
-beside them maps id to module; it grows with each experiment and is not frozen,
-because it holds nothing that changes an output.
+come from the one call rather than two, so failures in the caption reader
+prevent an item being recorded at all rather than leaving it scored and
+undescribed. A registry beside them maps id to module; it grows with each
+experiment and is not frozen, because it holds nothing that changes an output.
 
 **Each experiment carries a `README.md` describing its approach**: what it does,
 what it was derived from, and what it is known to get wrong. A directory of
@@ -247,17 +245,16 @@ A top-level tab, **Inference**, beside Goonpacks in the strip
   is a keyboard-driven desk tool, and the tab strip's grammar is a fixed list
   that Inference stays out of.
 
-Two views:
+**Summary** — how many items, how many the selected experiment has run against,
+and per field how many answers are confirmed against how many still hold an
+experiment's. A labelled count far below the item count is the ordinary state,
+not a backlog.
 
-- **Summary** — how many items, how many the selected experiment has run
-  against, and per field how many answers are confirmed against how many still
-  hold an experiment's. A labelled count far below the item count is the
-  ordinary state, not a backlog.
-- **Review** — one item at a time, large. The picture, the label controls, the
-  raw reply from any run against this item, a **Generate** button, and two ways
-  to move: **next** steps through the corpus in order, **next unlabelled** skips
-  to the next item nobody has answered. Reviewing everything and working through
-  what's unanswered are both real, so neither replaces the other.
+**Review** — one item at a time, large. The picture, the label controls, the raw
+reply from any run against this item, a **Generate** button, and two ways to
+move: **next** steps through the corpus in order, **next unlabelled** skips to
+the next item nobody has answered. Reviewing everything and working through
+what's unanswered are both real, so neither replaces the other.
 
 **Infer** runs the selected experiment for that item and writes what it
 produced, touching no ground truth. A control showing an experiment's answer
@@ -289,17 +286,16 @@ and nothing that costs that should start on a click.
   `run`, so the free path and the paid one cannot be reached by the same request
   with a flag wrong.
 
-Two constraints on all of them:
+**They answer nothing outside `npm run dev`.** The gating is a design question
+rather than a feature flag: the routes must not be reachable in a deployed build
+at all. v1 answers it with a 404 on `NODE_ENV !== 'development'` in every
+handler, and by keeping every path they touch under a pack's `media/`. The
+routes are still present in a deployed bundle; excluding them from the build is
+not attempted here.
 
-- **They answer nothing outside `npm run dev`.** The gating is a design question
-  rather than a feature flag: the routes must not be reachable in a deployed
-  build at all. v1 answers it with a 404 on `NODE_ENV !== 'development'` in
-  every handler, and by keeping every path they touch under a pack's `media/`.
-  The routes are still present in a deployed bundle; excluding them from the
-  build is not attempted here.
-- **No name from the client is ever joined to a path.** A pack is matched
-  against the pack sources and a filename against that pack's listing, each
-  rejected if absent, so no request can name a file outside a pack's `media/`.
+**No name from the client is ever joined to a path.** A pack is matched against
+the pack sources and a filename against that pack's listing, each rejected if
+absent, so no request can name a file outside a pack's `media/`.
 
 ## Not in v1
 

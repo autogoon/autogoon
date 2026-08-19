@@ -6,13 +6,13 @@
 // Scans goonpacks/<dir>/media/ for stills whose sidecar <basename>.md is
 // missing or empty, and describes each one (writing the .md) via the same
 // describeImage() the single-image `npm run goonpack:describe` uses, in random
-// order, so a run stopped part-way through covers a spread of the pack rather
+// order. A run stopped part-way through covers a spread of the pack rather
 // than whatever sorts first. Videos are left alone — their sidecars are
-// hand-written — as are stills that already have one, so it's safe to re-run
+// hand-written — as are stills that already have one. It's safe to re-run
 // after dropping in more. Reads
 // OPENROUTER_API_KEY / LLM_URL from the environment (the npm script loads .env
 // via --env-file-if-exists), and
-// honours MODEL the same as `npm run goonpack:describe`, so you can pick the
+// honours MODEL the same as `npm run goonpack:describe`. You can pick the
 // model for a bulk run:
 //
 //   MODEL=google/gemini-2.5-flash npm run goonpack:describe-missing
@@ -67,7 +67,7 @@ function packDirs(): string[] {
     .map((e) => join(goonpacksDir, e.name));
 }
 
-// Filename order is not a random sample of a pack, so describing in it would
+// Filename order is not a random sample of a pack. Describing in it would
 // leave a run stopped part-way biased toward whatever sorts first. Shuffled
 // per pack directory, which leaves the packs themselves in order.
 const shuffled = (files: string[]): string[] =>
@@ -82,7 +82,7 @@ function missingImages(): string[] {
   for (const packDir of packDirs()) {
     const dir = join(packDir, 'media');
     if (!existsSync(dir)) {
-      // Named on the command line, so say so rather than reporting nothing to
+      // Named on the command line. Say so rather than reporting nothing to
       // do; a pack without media/ among all of them is just skipped.
       if (explicit) {
         console.error(`${named}: no media/ folder`);
@@ -118,7 +118,7 @@ console.log(`Describing ${images.length} image(s) with no sidecar…\n`);
 // output stays readable in order. Each picture is reported exactly as the
 // single-image script reports it — the file in yellow, each step as it starts,
 // what the model observed, the caption in green, then the picture itself to
-// check it against — so a long bulk run can be watched going past.
+// check it against. A long bulk run can be watched going past.
 let done = 0;
 let failed = 0;
 for (const image of images) {

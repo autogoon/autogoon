@@ -31,11 +31,11 @@ another, because a better caption only shows up as a better search result.
 Almost every wrong turn here comes from trying to do both of these with one
 mechanism:
 
-- **Knowing what the set is like.** Small, always in their context, so they
-  reach for plausible things and don't offer what isn't there. This is a
-  **summary**.
-- **Finding one specific item.** On demand, over thousands, and it has no
-  business being in their context at all. This is **retrieval**.
+**Knowing what the set is like.** Small, always in their context, so they reach
+for plausible things and don't offer what isn't there. This is a **summary**.
+
+**Finding one specific item.** On demand, over thousands, and it has no business
+being in their context at all. This is **retrieval**.
 
 Both ship, separately: the summary rides their prompt, and `search_media` does
 the retrieval. One list of every item, picked by number, works at fifty and
@@ -48,15 +48,15 @@ The line that matters isn't a number of images, it's whether a human will ever
 read the output. Past a few hundred, reading every caption stops being something
 anyone would do, and that changes what the pipeline is _for_:
 
-- **Hand-reviewable (up to a few hundred).** Human-in-the-loop is the workflow,
-  not a fallback: use the best, most compliant model, crank the resolution,
-  don't optimise, and fix the few captions the model flubs. Model accuracy is a
-  convenience.
-- **Not hand-reviewable (anything above).** The pipeline's output _is_ the
-  truth, because nobody will ever read most of it. Accuracy has to come from the
-  model and the prompt, review becomes sampling plus tooling, and every quality
-  question in [Producing the descriptions](#producing-the-descriptions) starts
-  to matter.
+**Hand-reviewable (up to a few hundred).** Human-in-the-loop is the workflow,
+not a fallback: use the best, most compliant model, crank the resolution, don't
+optimise, and fix the few captions the model flubs. Model accuracy is a
+convenience.
+
+**Not hand-reviewable (anything above).** The pipeline's output _is_ the truth,
+because nobody will ever read most of it. Accuracy has to come from the model
+and the prompt, review becomes sampling plus tooling, and every quality question
+in [Producing the descriptions](#producing-the-descriptions) starts to matter.
 
 A curated persona set is hand-reviewable. A collected set of a couple of
 thousand is not, so captioning quality starts to matter well before a library
@@ -101,15 +101,16 @@ small and riding as append-only tool results, so the prefix cache is unaffected.
 
 Two texts, two passes:
 
-- **Coarse, over the captions.** Embedding search gets _worse_ on long text: a
-  vector over two hundred words is an average of everything in them, so it
-  matches many things weakly and nothing strongly. A short caption is the
-  searchable projection.
-- **Fine, over the long descriptions.** Hand a cheap LLM the request plus the
-  full descriptions of only the coarse pass's candidates and let it choose.
-  Detail the caption dropped is unfindable in the coarse pass and present here,
-  which is what answers "is there a mirror in it", "does he have a condom on",
-  "is he behind her".
+**Coarse, over the captions.** Embedding search gets _worse_ on long text: a
+vector over two hundred words is an average of everything in them, so it matches
+many things weakly and nothing strongly. A short caption is the searchable
+projection.
+
+**Fine, over the long descriptions.** Hand a cheap LLM the request plus the full
+descriptions of only the coarse pass's candidates and let it choose. Detail the
+caption dropped is unfindable in the coarse pass and present here, which is what
+answers "is there a mirror in it", "does he have a condom on", "is he behind
+her".
 
 Both halves are candidates rather than decisions. The methods worth comparing:
 
@@ -136,14 +137,14 @@ ranks anything.
 
 Stateless search sends the same best match all evening. It needs:
 
-- **What they've already sent**, as an exclusion set, plus near-duplicate
-  collapse so the second-best isn't the same shot from an inch to the left. The
-  exclusion set is what ships. It is rebuilt from the thread, which is never
-  trimmed, so it spans every conversation with that companion rather than one
-  evening.
-- **The last item and the current heat band**, because that's what makes
-  relative requests work — and "something filthier than that" is how escalation
-  is actually spoken.
+**What they've already sent**, as an exclusion set, plus near-duplicate collapse
+so the second-best isn't the same shot from an inch to the left. The exclusion
+set is what ships. It is rebuilt from the thread, which is never trimmed, so it
+spans every conversation with that companion rather than one evening.
+
+**The last item and the current heat band**, because that's what makes relative
+requests work — and "something filthier than that" is how escalation is actually
+spoken.
 
 The sharper version of the same problem: a search returning the top N over a set
 holding hundreds of similar items returns the same N every time. The levers,
@@ -208,11 +209,12 @@ whenever the set changes. Where it lives and when a pack must have one are in
 
 It has two jobs:
 
-- **So they don't offer what isn't there.** Proportions, who's in it, which acts
-  appear, the settings, the range of undress.
-- **So they phrase a request in words the corpus actually uses.** This is what
-  makes the search work. A request built from vocabulary the captions don't
-  contain matches nothing, however good the retrieval is.
+**So they don't offer what isn't there.** Proportions, who's in it, which acts
+appear, the settings, the range of undress.
+
+**So they phrase a request in words the corpus actually uses.** This is what
+makes the search work. A request built from vocabulary the captions don't
+contain matches nothing, however good the retrieval is.
 
 That makes it partly an inventory of terms: the hair colours, garments,
 settings, acts and names present in the set. Its length follows the set rather
@@ -382,11 +384,12 @@ and search over them is in-memory top-k in milliseconds — no vector database.
 
 The distribution split is built, in its first form:
 
-- **Portable pack.** Self-contained, unpacked into browser storage, works on a
-  hosted build. This is [goonpacks](../GOONPACKS.md) as shipped.
-- **Local library.** The user's own directory under `goonpacks/`, served by
-  their own dev server and fetched by URL, never distributed
-  (`src/lib/goonpacks/disk-source.ts`).
+**Portable pack.** Self-contained, unpacked into browser storage, works on a
+hosted build. This is [goonpacks](../GOONPACKS.md) as shipped.
+
+**Local library.** The user's own directory under `goonpacks/`, served by their
+own dev server and fetched by URL, never distributed
+(`src/lib/goonpacks/disk-source.ts`).
 
 So a companion is already either _packaged_ or _local-backed_, chosen by whether
 you're running a public build or your own copy. What a big library adds is the

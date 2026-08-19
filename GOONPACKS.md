@@ -39,9 +39,9 @@ make a complete pack.
 Lay out a directory like this, then zip its **contents** (the manifest sits at
 the zip root, not inside a folder):
 
-    manifest.json       who they are — every field explained below
-    system-prompt.md    their persona (complete packs; optional on overlays)
-    media/              optional. Their pictures and videos, with a .md sidecar each
+- `manifest.json` — who they are, every field explained.
+- `system-prompt.md` — their persona (complete packs; optional on overlays).
+- `media/` — optional. Their pictures and videos, with a .md sidecar each.
 
 [`goonpacks/elise/`](./goonpacks/elise/) is a complete pack you can open: Elise,
 the companion these examples use, with her full manifest and a persona prompt to
@@ -95,8 +95,7 @@ versions and the order comes out right.
 
 #### Describing the pack
 
-Three of a pack's texts are easy to confuse. Each is read at a different moment,
-by someone deciding something different:
+Three of a pack's texts are read at different moments:
 
 - **`aboutThePack`** — what the pack holds or changes, read on the Goonpacks tab
   and in the overlay picker when deciding what to install or choose;
@@ -283,9 +282,9 @@ beside the pictures without breaking anything. Read the warning, though: a
 mistyped extension lands in it looking exactly like another tool's working file.
 
 Beside each one goes a `.md` sidecar with the same name (`beach.jpg` →
-`beach.md`) holding two texts: a one-line caption in the frontmatter at the top,
-and a longer description of the shot as the body under it. You rarely write one
-by hand — see [Writing the sidecars](#writing-the-sidecars).
+`beach.md`) holding two texts: a one-line caption in the frontmatter, and a
+longer description of the shot as the body. You rarely write one by hand — see
+[Writing the sidecars](#writing-the-sidecars).
 
 ```markdown
 ---

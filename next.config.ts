@@ -5,16 +5,16 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   // Reach the dev server from another device on your network (HMR etc.):
   // Next blocks cross-origin dev asset requests unless the origin is listed,
-  // and its wildcards can't span an IP's trailing octets — so the literal
+  // and its wildcards can't span an IP's trailing octets. The literal
   // origin comes from the gitignored .env (see .env.example), keeping
   // machine-specific config out of the repo.
   allowedDevOrigins:
     process.env.DEV_ALLOWED_ORIGINS?.split(',').map((s) => s.trim()) ?? [],
 
-  // Build stamp, so the running app can show what's live (see the Info card in
+  // Build stamp. The running app shows what's live (see the Info card in
   // Settings). On Vercel the VERCEL_GIT_* vars are injected automatically;
   // locally they're absent and fall back to "dev". Vercel has no build-time env
-  // var, so we make one here — this file is evaluated at build time, freezing
+  // var. This file makes one and is evaluated at build time, freezing
   // the value into the bundle.
   images: {
     // next/image refuses a local src carrying a query string unless it is

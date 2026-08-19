@@ -97,20 +97,21 @@ device directly.
 
 ## Play modes
 
-Each device-driving play mode is an **engine** and a **panel**:
+Each device-driving play mode is an **engine** and a **panel**.
 
-- the **engine** — a plain-TS `PlayModeEngine` in `src/lib/play-modes/` that
-  only _generates_ events and _scales_ them. Engines are self-contained and
-  never import from one another. Where two play modes share a pattern (Goon
-  reuses Groove's dip), the helpers are **duplicated**, not shared — a chosen
-  boundary. The boundary covers _generation_ code only; shared infrastructure
-  like the Player sits outside it.
-- the **panel** — the React surface in `src/components/play-modes/` (a single
-  `*-panel.tsx`, or a `*-panel/` directory with the panel in `index.tsx` once it
-  splits out per-concern pieces, as Goon and Companions do). It **owns** its
-  engine instance (a `useRef`), arms/plays the shared Player with it, holds its
-  own knob state (setting the engine's fields directly), and reads the shared
-  Player view for the sparkline, timeline and current state.
+The **engine** is a plain-TS `PlayModeEngine` in `src/lib/play-modes/` that only
+_generates_ events and _scales_ them. Engines are self-contained and never
+import from one another. Where two play modes share a pattern (Goon reuses
+Groove's dip), the helpers are **duplicated**, not shared — a chosen boundary.
+The boundary covers _generation_ code only; shared infrastructure like the
+Player sits outside it.
+
+The **panel** is the React surface in `src/components/play-modes/` (a single
+`*-panel.tsx`, or a `*-panel/` directory with the panel in `index.tsx` once it
+splits out per-concern pieces, as Goon and Companions do). It **owns** its
+engine instance (a `useRef`), arms/plays the shared Player with it, holds its
+own knob state (setting the engine's fields directly), and reads the shared
+Player view for the sparkline, timeline and current state.
 
 There is no per-play-mode _Player_ hook and no central runner; the panel drives
 the Player directly. Companions is the one play mode that is more than the pair:

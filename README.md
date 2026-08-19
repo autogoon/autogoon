@@ -16,7 +16,7 @@ to install and no wearable. Open it and enter your device token.
 - **Hands-free** — every control has a spoken word, shown on screen. Say it any
   time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine.
-  [Privacy](#privacy) says what leaves it.
+  [Privacy](#privacy) documents what leaves it.
 - **Play modes**:
   - **[Goon](./modes/GOON.md)** — an automatic slow build over a session length
     you choose, with an intensity dial and faster/slower time-stretch.

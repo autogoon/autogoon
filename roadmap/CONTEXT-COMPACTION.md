@@ -11,8 +11,8 @@ caption, and it is replayed for the rest of the conversation — which is what
 lets a companion send from an earlier search. A thread with a few dozen searches
 in it is far bigger than its spoken turns suggest.
 
-How many a search returns is [Inference library](INFERENCE-LIBRARY.md)'s to
-settle, not this one's.
+How many a search returns is determined by
+[Inference library](INFERENCE-LIBRARY.md), not this document.
 
 The model's window is not the first limit the thread reaches. The whole thread
 is re-serialised into `localStorage` at every append — the user turn, each tool

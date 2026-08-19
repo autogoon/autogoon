@@ -1,28 +1,28 @@
 // Describe an image with a vision model and write a sidecar <basename>.md — the
 // two texts a goonpack carries beside each picture, the one-line caption in YAML
-// frontmatter and the model's full observations as the body. So the flow is:
+// frontmatter and the model's full observations as the body. The flow is:
 // drop an image in goonpacks/<dir>/media/, run
 // `npm run goonpack:describe <path>`, then `npm run goonpack:build` bundles it
 // into the pack.
 //
 //   npm run goonpack:describe goonpacks/elise/media/whatever.jpg
 //
-// (npm runs the script from the repo root, so the path is relative to there,
+// (npm runs the script from the repo root. The path is relative to there,
 // not to your shell's directory.)
 //
-// This is a .ts run through tsx, like goonpack-build.ts and summarise-pack.ts,
-// so it writes sidecars with the same renderSidecar the app's own format module
+// This is a .ts run through tsx, like goonpack-build.ts and summarise-pack.ts.
+// It writes sidecars with the same renderSidecar the app's own format module
 // owns rather than hand-rolling a second frontmatter writer.
 //
 // Uses Qwen3-VL on OpenRouter by default; override with MODEL. Reads
 // OPENROUTER_API_KEY (and LLM_URL) from the environment — the npm script loads
-// .env via --env-file-if-exists, so the same key the app uses just works. The
+// .env via --env-file-if-exists. The same key the app uses just works. The
 // image is downscaled (long edge 1024px, JPEG q80) with macOS `sips` before
-// sending, so this script is macOS-only.
+// sending. This script is macOS-only.
 //
 // The model is asked to write its observations out before condensing them to
 // the caption line (see PROMPT). Both reach the sidecar, and both scripts print
-// them, so you can see what the caption was based on.
+// them. You can see what the caption was based on.
 //
 // What describe-missing.ts reuses is exported; the CLI in this file runs only
 // when it is the entry point.
@@ -107,11 +107,9 @@ function resizedJpeg(imagePath: string): Buffer {
 //
 // Two-step on purpose: the model writes its observations first, then condenses.
 // Asking for the caption alone leaves no room for the reasoning that settles an
-// ambiguous pose —
-// so the observations are parsed off the CAPTION line and kept as the sidecar's
-// body. The confusable poses get explicit discriminators rather than "take
-// care", because that is the part a model gets wrong by guessing from overall
-// impression instead of looking at the legs.
+// ambiguous pose. The observations are parsed off the CAPTION line and kept as the sidecar's
+// body. The confusable poses get explicit discriminators rather than an instruction to look
+// closely. Guessing from overall impression instead of looking at the legs gets them wrong.
 const PROMPT = `This photo is pose/mood metadata for a companion app: she reads the
 caption to pick a picture that fits the moment, so it has to be accurate about pose
 and state of undress, not just evocative.
@@ -215,10 +213,10 @@ export function sidecarPath(imagePath: string): string {
 // (unsupported type, missing key, API error, unusable reply), so callers can
 // decide how to report it.
 //
-// The stages are slow enough to be worth narrating, so callers pass `onStep` (a
+// The stages are slow enough to be worth narrating. Callers pass `onStep` (a
 // short label as each begins) and `onImage` (the downscaled JPEG as base64, the
-// moment it exists) — the picture the model is about to see, not the original,
-// which is the one worth putting on screen next to what it says about it.
+// moment it exists) — the picture the model is about to see, not the original.
+// The original goes on screen next to what it says about it.
 export async function describeImage(
   imagePath: string,
   {
@@ -356,8 +354,8 @@ async function main(): Promise<void> {
   }
   console.log(yellow(basename(imagePath)));
   try {
-    // Held back rather than printed as it arrives: the picture reads best under
-    // the caption, as the thing you check the words against.
+    // Held back rather than printed as it arrives: checking the caption against
+    // the picture works best when they are printed together.
     let picture = '';
     const described = await describeImage(imagePath, {
       onStep: (s) => console.log(dim(s)),

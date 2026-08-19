@@ -4,7 +4,7 @@ Ideas that still need thinking through and specifying before implementation.
 Some need prototyping first. The divide against the other files is in
 [CLAUDE.md → Documentation](./CLAUDE.md#documentation).
 
-Each idea lives in its own file under [`roadmap/`](./roadmap/).
+Each idea has its own file under [`roadmap/`](./roadmap/).
 
 - [Other devices, and no device](roadmap/OTHER-DEVICES.md) — support strokers
   beyond the Vacuglide, and no device at all: chat to the companions and use

@@ -117,12 +117,13 @@ get long pulses (Light at speed 10: 800 ms) and fast strokes short ones.
 
 ## Manual override
 
-- **Stroke − / Stroke +**: press-and-hold buttons that shorten (−) or lengthen
-  (+) the stroke. Press opens the valve, release closes it, with a **minimum
-  open time of 300 ms** so a quick tap still registers.
-- **Finish**: closes both valves, stops the vacuum-maintenance pulses and pushes
-  to full speed, leaving your other settings as you had them. The original ends
-  the script there. The 30-minute hold is this app's.
+**Stroke − / Stroke +**: press-and-hold buttons that shorten (−) or lengthen (+)
+the stroke. Press opens the valve, release closes it, with a **minimum open time
+of 300 ms** so a quick tap still registers.
+
+**Finish**: closes both valves, stops the vacuum-maintenance pulses and pushes
+to full speed, leaving your other settings as you had them. The original ends
+the script there. The 30-minute hold is this app's.
 
 ## Voice control
 

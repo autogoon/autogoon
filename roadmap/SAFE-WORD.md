@@ -11,15 +11,17 @@ the voice session down is the wrong shape.
 
 Two constraints hold whatever mechanism carries it:
 
-- The word has to be live whenever a companion could be speaking, not only while
-  the Player plays. `page.tsx` puts it in the grammar on `playing`. With the
-  device stopped there is no spoken way to cut them off at all.
-- Their tools stay live throughout. Whatever tells them also has to stop them
-  calling `start` straight after.
+The word has to be live whenever a companion could be speaking, not only while
+the Player plays. `page.tsx` puts it in the grammar on `playing`. With the
+device stopped there is no spoken way to cut them off at all.
+
+Their tools stay live throughout. Whatever tells them also has to stop them
+calling `start` straight after.
 
 To settle:
 
-- **How they are told.** A marked message the app writes onto the thread, the
-  way an ambient turn is cued, or a user turn.
-- **The two concurrent mic captures.** vosk and ElevenLabs STT both receive the
-  word, so it must not also arrive as an ordinary transcribed turn.
+**How they are told.** A marked message the app writes onto the thread, the way
+an ambient turn is cued, or a user turn.
+
+**The two concurrent mic captures.** vosk and ElevenLabs STT both receive the
+word, so it must not also arrive as an ordinary transcribed turn.
