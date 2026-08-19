@@ -99,17 +99,17 @@ Three of a pack's texts are easy to confuse. Each is read at a different moment,
 by someone deciding something different:
 
 - **`aboutThePack`** — what the pack holds or changes, read on the Goonpacks tab
-  when deciding whether to install it;
+  and in the overlay picker when deciding what to install or choose;
 - **`description`** (in the companion section) — what your companion is like,
   read on their card when deciding whether to call them;
 - **`intro`** — the scene, read at the top of the conversation once that choice
   is made.
 
-`aboutThePack` is what the Goonpacks list and the import confirmation show:
-"Beach photo set for Aimee", "Elise, a flirty e-girl streamer". Leave out the
-inventory — how many pictures, how many videos. The app counts those from the
-pack itself and shows them beside your line, and a hand-written count goes
-stale.
+`aboutThePack` is what the Goonpacks list, the import confirmation and the
+overlay picker show: "Beach photo set for Aimee", "Elise, a flirty e-girl
+streamer". Leave out the inventory — how many pictures, how many videos. The app
+counts those from the pack itself and shows them beside your line, and a
+hand-written count goes stale.
 
 `intro` is required on a complete pack. An overlay carries one only where it has
 moved the scene. [Writing the intro](#writing-the-intro) says what belongs in

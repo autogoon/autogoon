@@ -331,7 +331,7 @@ The rules that keep it working:
   would fix a number to something only the conversation can settle: whether
   there is anything left to say. The cost is that a session the user has left
   keeps generating turns until the companion stops on their own.
-  [Activity cutoff](./TODO.md) is where that gets solved.
+  [Activity cutoff](./TODO.md#activity-cutoff) is where that gets solved.
 - **The scheduler is wall-clock and belongs to the session, never the program.**
   Program events are dropped on every regeneration and scale with playback rate,
   and neither should touch the cadence. The Player's state is read for one

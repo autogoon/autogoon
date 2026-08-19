@@ -55,7 +55,8 @@ anyone would do, and that changes what the pipeline is _for_:
 - **Not hand-reviewable (anything above).** The pipeline's output _is_ the
   truth, because nobody will ever read most of it. Accuracy has to come from the
   model and the prompt, review becomes sampling plus tooling, and every quality
-  question below starts to matter.
+  question in [Producing the descriptions](#producing-the-descriptions) starts
+  to matter.
 
 A curated persona set is hand-reviewable. A collected set of a couple of
 thousand is not, so captioning quality starts to matter well before a library

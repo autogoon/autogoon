@@ -147,7 +147,7 @@ export function parseManifest(raw: unknown): PackManifest {
     throw new PackError("manifest.json doesn't contain a JSON object.");
   }
   const m = raw as Record<string, unknown>;
-  // Format problems fail alone: without a format this app knows, the other
+  // Format problems fail alone: without a supported format, the other
   // field rules may not apply, so any further "problems" could be junk.
   if (typeof m.format !== 'number') {
     throw new PackError(

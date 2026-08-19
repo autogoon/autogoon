@@ -333,7 +333,7 @@ export class GoonEngine implements PlayModeEngine {
   }
 
   // The cumming point: pick the after-play at random from the enabled options
-  // and return it, so the panel knows whether the outcome ignores Stop.
+  // and return it, so the panel determines whether the outcome ignores Stop.
   beginCumming(): AfterPlayOption {
     this.cumming = true;
     this.cummingEmitted = false;
