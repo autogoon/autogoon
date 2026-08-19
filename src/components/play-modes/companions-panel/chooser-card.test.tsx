@@ -12,6 +12,19 @@ import type { Companion } from '@/lib/companions/companions';
 import type { LibraryEntry, PackOption } from '@/lib/goonpacks/entries';
 import { ChooserCard } from './chooser-card';
 
+// What jsdom doesn't implement and the overlay picker's listbox uses: Radix
+// tracks the pointer through capture and keeps the highlighted row in view,
+// and its popper measures the trigger.
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+global.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 const companion: Companion = {
   id: 'pub.comp',
   name: 'Testy',
@@ -85,18 +98,28 @@ const card = (
   return onSelectPacks;
 };
 
-const overlayOption = (): HTMLOptionElement =>
-  screen.getByRole('option', { name: /late 1\.0\.0/ });
+// The overlay picker is a listbox, so its options exist only while it is open,
+// and an option is a div rather than an <option> — refusing one shows as
+// aria-disabled, not as the disabled property.
+const overlayTrigger = (): HTMLElement =>
+  screen.getByRole('combobox', { name: /overlay/i });
+
+const overlayOption = (): HTMLElement => {
+  // Opened from the keyboard: jsdom has no PointerEvent, and the pointer path
+  // wants capture APIs it doesn't implement either.
+  fireEvent.keyDown(overlayTrigger(), { key: 'ArrowDown' });
+  return screen.getByRole('option', { name: /late 1\.0\.0/ });
+};
 
 describe('ChooserCard', () => {
   it('disables an overlay that the selected base leaves without a zone', () => {
     card([NO_ZONE, WITH_ZONE], { base: NO_ZONE.key, overlay: null });
-    expect(overlayOption().disabled).toBe(true);
+    expect(overlayOption().getAttribute('aria-disabled')).toBe('true');
   });
 
   it('offers an overlay that turns real time on when the selected base supplies a zone', () => {
     card([NO_ZONE, WITH_ZONE], { base: WITH_ZONE.key, overlay: null });
-    expect(overlayOption().disabled).toBe(false);
+    expect(overlayOption().getAttribute('aria-disabled')).not.toBe('true');
   });
 
   it('ignores a remembered overlay the selected base leaves without a zone', () => {
@@ -104,10 +127,7 @@ describe('ChooserCard', () => {
       base: NO_ZONE.key,
       overlay: NEEDS_ZONE.key,
     });
-    expect(
-      screen.getByRole<HTMLSelectElement>('combobox', { name: /overlay/i })
-        .value,
-    ).toBe('default');
+    expect(overlayTrigger().textContent).toContain('default');
   });
 
   it('drops the selected overlay when the base it switches to leaves it without a zone', () => {

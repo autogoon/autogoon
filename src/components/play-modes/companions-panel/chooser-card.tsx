@@ -17,9 +17,34 @@ import {
   type PackOption,
   type VariantSlot,
 } from '@/lib/goonpacks/entries';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from '@/components/ui/select';
 
 // The remembered per-companion variant selection lives under this key.
 export const SELECTED_VARIANT_PREFIX = 'goonpacks:last-variant:';
+
+// Radix reserves the empty string, so "no overlay" needs a value of its own.
+const DEFAULT = 'default';
+
+// Playing the base with no overlay, as a row in the overlay picker — the one
+// option with no pack behind it, so it carries a description of its own rather
+// than a manifest's.
+const NO_OVERLAY: PackOption = {
+  key: null,
+  label: DEFAULT,
+  aboutThePack: 'The companion as their pack ships them.',
+  media: { images: 0, videos: 0 },
+  changed: [],
+};
+
+// What names an option: the whole id where a pack is behind it, since two
+// overlays from one publisher are told apart by the half `label` drops.
+const optionName = (o: PackOption): string =>
+  `${o.id ?? o.label}${o.version === undefined ? '' : ` ${o.version}`}`;
 
 // A card's remembered picks — base version and overlay, stored together.
 export type PackSel = { base: string | null; overlay: string | null };
@@ -188,34 +213,47 @@ export function ChooserCard({
               onClick={(e) => e.stopPropagation()}
             >
               Overlay:
-              <span className="relative">
-                <select
+              {/* Not a native select: two overlays from one publisher at one
+                  version read identically as <option> text, and what tells them
+                  apart is the description, which an option can't hold. */}
+              <Select
+                value={overlayOpt?.key ?? DEFAULT}
+                onValueChange={(picked) =>
+                  onSelectPacks(c.id, {
+                    base: baseOpt.key,
+                    overlay: picked === DEFAULT ? null : picked,
+                  })
+                }
+              >
+                {/* The id alone, not SelectValue: Radix puts the selected
+                    item's own content in the trigger, and that content is two
+                    lines deep here. */}
+                <SelectTrigger
+                  size="sm"
                   aria-label={`${c.name} overlay`}
-                  value={overlayOpt?.key ?? 'default'}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={(e) =>
-                    onSelectPacks(c.id, {
-                      base: baseOpt.key,
-                      overlay:
-                        e.target.value === 'default' ? null : e.target.value,
-                    })
-                  }
-                  className={`text-foreground border-${accent}-500 bg-background appearance-none rounded-lg border py-1 pr-7 pl-2 text-sm`}
+                  className={`border-${accent}-500 text-foreground`}
                 >
-                  <option value="default">default</option>
-                  {entry.overlays.map((o) => (
-                    <option
-                      key={o.key}
-                      value={o.key ?? 'default'}
+                  {optionName(overlayOpt ?? NO_OVERLAY)}
+                </SelectTrigger>
+                <SelectContent className="max-w-96">
+                  {[NO_OVERLAY, ...entry.overlays].map((o) => (
+                    <SelectItem
+                      key={o.key ?? DEFAULT}
+                      value={o.key ?? DEFAULT}
                       disabled={refused(o)}
                     >
-                      {o.label}
-                      {o.version !== undefined ? ` ${o.version}` : ''}
-                    </option>
+                      <span className="flex min-w-0 flex-col items-start">
+                        <span>{optionName(o)}</span>
+                        {o.aboutThePack !== undefined && (
+                          <span className="text-muted-foreground text-xs whitespace-normal">
+                            {o.aboutThePack}
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
                   ))}
-                </select>
-                <ChevronDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2" />
-              </span>
+                </SelectContent>
+              </Select>
             </label>
           )}
           {diskDir !== undefined && (

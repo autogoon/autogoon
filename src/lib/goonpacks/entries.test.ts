@@ -290,7 +290,9 @@ describe('buildEntries', () => {
       {
         key: 'pub.comp@2.0.0',
         label: 'pub',
+        id: 'pub.comp',
         version: '2.0.0',
+        aboutThePack: 'a test pack',
         description: 'her own line',
         accent: 'violet',
         media: { images: 5, videos: 1 },

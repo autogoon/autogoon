@@ -77,7 +77,15 @@ export type VariantSlot = 'media' | 'prompt' | 'voice' | 'colour' | 'model';
 export type PackOption = {
   key: string | null;
   label: string; // publisher half of the id ("default" for a built-in)
+  // The whole id. The publisher half alone can't tell two overlays apart when
+  // they share one, which is what the overlay picker shows instead. Undefined
+  // for a built-in, which has no pack behind it.
+  id?: string;
   version?: string;
+  // What the pack says it holds or changes — what the picker shows, since
+  // choosing between packs is choosing what each one does. Absent on a
+  // built-in, which is no pack.
+  aboutThePack?: string;
   // What the card shows while this option is selected:
   description?: string; // override; the card falls back down the chain
   accent?: string; // accentColour override
@@ -149,7 +157,9 @@ export function overlayNeedsZone(
 const baseOption = (p: LoadedPack): PackOption => ({
   key: packKey(p.manifest),
   label: publisher(p.manifest.id),
+  id: p.manifest.id,
   version: p.manifest.version,
+  aboutThePack: p.manifest.aboutThePack,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
   media: p.summary.media,
@@ -161,7 +171,9 @@ const baseOption = (p: LoadedPack): PackOption => ({
 const overlayOption = (p: LoadedPack): PackOption => ({
   key: packKey(p.manifest),
   label: publisher(p.manifest.id),
+  id: p.manifest.id,
   version: p.manifest.version,
+  aboutThePack: p.manifest.aboutThePack,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
   media: p.summary.media,
