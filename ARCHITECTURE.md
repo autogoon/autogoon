@@ -350,9 +350,11 @@ The rules that keep it working:
 
 - **Scheduling is decided once, at the end of a turn, from session state** —
   never from what happened inside a generation. That is why `wait_for_user` sets
-  a **latch** rather than skipping one arming. A tool call is followed by a
-  reaction generation, and the arm at the end of _that_ would otherwise undo the
-  suppression `wait_for_user` set. Only a real user turn releases the latch.
+  a **latch** rather than skipping one arming: every turn arms the next as it
+  ends, including the turn the tool was called in, so only a latch makes that
+  arm a no-op. Only a real user turn releases it. The call also ends the turn on
+  the round that made it — the alternative is the companion talking on after
+  asking you to speak.
 - **The companion decides when to stop, so nothing else needs to.** A timeout
   would fix a number to something only the conversation can settle: whether
   there is anything left to say. The cost is that a session the user has left

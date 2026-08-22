@@ -47,7 +47,7 @@ const MODELS = [
   'qwen/qwen3.8-max:nitro',
   'stepfun/step-3.7-flash:nitro',
   'tencent/hy3:nitro',
-  'x-ai/grok-4.3:nitro',
+  'x-ai/grok-4.6',
   'xiaomi/mimo-v2.5:nitro',
   'z-ai/glm-4.7-flash:nitro',
   'z-ai/glm-5.2:nitro',

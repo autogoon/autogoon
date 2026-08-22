@@ -178,22 +178,17 @@ would notice, it gets an entry before you consider the work done.
   - `npm test` and `npm run test:e2e` both run (see Verifying changes for what
     each covers);
   - the CHANGELOG entry written;
-  - the five checks, **in this order**: `/code-check`, `/test-check`,
-    `/doc-check`, `/style-check`, `/personal-check`.
+  - `/personal-check`, run after everything else here so it reads every commit
+    that will be pushed — its misses can't be fixed after a push.
 
-  Run all five on every branch. They report "nothing found" cheaply when a
-  branch didn't touch their subject.
+  Run it on every branch. It reports "nothing found" cheaply when a branch
+  didn't touch its subject.
 
 - **Never discard a valid finding for being outside the check's remit.** Report
-  it. A duplicate line costs nothing; a finding dropped because another check
-  owns it is lost.
-- **The order matters**: each check modifies what the next reads. `/code-check`
-  settles the code. `/test-check` follows, rewriting tests. `/doc-check` reads
-  docs against settled code. `/style-check` edits new sentences from the first
-  three. `/personal-check` scans final text; its misses can't be fixed after a
-  push.
-- **Before merging**, run all five again to catch new commits, PR titles, and
-  comments. Treat `gh pr merge` as blocked until all five run against the final
+  it. A line that turns out not to matter costs nothing; a finding dropped
+  because it looked like someone else's is lost.
+- **Before merging**, run it again to catch new commits, PR titles, and
+  comments. Treat `gh pr merge` as blocked until it has run against the final
   diff.
 - **A check's report asks one thing at a time.** Propose one recommendation, ask
   a specific question, and wait. Never ask blanket questions ("shall I do
