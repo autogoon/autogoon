@@ -457,6 +457,23 @@ describe('useVoiceSession', () => {
     expect(played.map((p) => p.text)).toEqual(['hello']);
   });
 
+  it('stops talking when the companion calls wait_for_user, rather than answering their own tool', async () => {
+    replies = [
+      { content: 'you still there?', toolCalls: [call('wait_for_user')] },
+      { content: 'guess not, then' },
+    ];
+    const result = await session([]);
+
+    act(() => {
+      result.current.submitText('hi', { speak: true });
+    });
+    await settle();
+
+    expect(played.map((p) => p.text)).toEqual(['you still there?']);
+    expect(result.current.status.ambientHolding).toBe(true);
+    expect(result.current.status.ambientDueAt).toBeNull();
+  });
+
   it("renders the companion's clock in their own zone and the user's in the browser's", async () => {
     jest.spyOn(Date, 'now').mockReturnValue(TURN_AT);
     const result = await session([], { ...COMPANION, timezone: ELSEWHERE });

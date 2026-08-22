@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-22
+
+- bug: **A companion who says they'll wait actually waits** — Going quiet until
+  you speak only stopped the next silence being filled, so a companion could ask
+  whether you were still there and then talk over the answer for several more
+  lines.
+
 ## 2026-08-19
 
 - internal: **Remove the documentation sweep** — `npm run docs:sweep` and the

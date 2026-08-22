@@ -185,9 +185,11 @@ const UTTERANCE_SILENT_TIMEOUT_MS = 2000;
 // because a tool call can never be spoken aloud — a marker that escaped the
 // stripping would be read out in the companion's voice mid-scene.
 //
-// It sets a latch rather than skipping one scheduling. A tool call is followed
-// by a reaction generation, and the arm at the end of that reaction would
-// otherwise undo what the tool just asked for.
+// It does two things where the tool loop dispatches it. It ends the turn on
+// that round: a further round would be the companion talking on after asking
+// you to speak. And it sets a latch rather than skipping one scheduling — every
+// turn arms the next as it ends, this one included, so only a latch makes that
+// arm a no-op. Nothing but a real user turn releases it.
 const WAIT_FOR_USER_TOOL: CompanionTool = {
   name: 'wait_for_user',
   description:
@@ -683,6 +685,9 @@ export function useVoiceSession(opts: {
               r.toolCalls,
               Date.now(),
             );
+            // Set by wait_for_user below: the companion asked for the next move
+            // to be yours, so this round is the turn's last.
+            let waiting = false;
             for (const call of r.toolCalls) {
               // wait_for_user is the session's own, not the panel's: it acts on
               // the scheduler rather than the device, so it's dispatched here
@@ -694,6 +699,7 @@ export function useVoiceSession(opts: {
                       run: () => {
                         ambientRef.current?.hold();
                         syncAmbient();
+                        waiting = true;
                         return 'waiting for him';
                       },
                     }
@@ -740,6 +746,15 @@ export function useVoiceSession(opts: {
             setStatus((s) => ({ ...s, replyText: '' }));
             if (controller.signal.aborted || turnRef.current !== controller) {
               return;
+            }
+
+            // wait_for_user ends the turn, not just the next arming. The line
+            // that came with the call has been spoken and stored, so `reply`
+            // is cleared rather than committed again; another round would be
+            // the companion talking on after asking you to speak.
+            if (waiting) {
+              reply = '';
+              break;
             }
 
             // Feed the results back by rebuilding from the just-persisted
