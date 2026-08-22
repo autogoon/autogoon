@@ -107,7 +107,9 @@ export const companionClockZone = (companion: Companion): string | undefined =>
 //
 // Which models have been measured, how they timed, and which are ruled out and
 // why, are in scripts/llm-benchmark.ts — `npm run llm:benchmark` prints them.
-export const DEFAULT_MODEL = 'nex-agi/nex-n2-mini:nitro';
+
+// export const DEFAULT_MODEL = 'nex-agi/nex-n2-mini:nitro';
+export const DEFAULT_MODEL = 'x-ai/grok-4.6';
 export const DEFAULT_CONTEXT_WINDOW = 262_000;
 export const DEFAULT_PASSES_REASONING = false;
 // Middling on both counts: a companion who fills a silence without talking over
