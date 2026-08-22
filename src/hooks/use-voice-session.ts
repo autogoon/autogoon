@@ -831,8 +831,24 @@ export function useVoiceSession(opts: {
             // barged in on, or replaced by a newer one — must not arm, or a
             // cut-off reply would leave a poke behind it. The scheduler ignores
             // this if the companion has asked to be left alone.
-            ambientRef.current?.arm(companion, isPlayingRef.current());
+            const playing = isPlayingRef.current();
+            ambientRef.current?.arm(companion, playing);
             syncAmbient();
+            // Logged as well as mirrored, because the debug row only shows the
+            // deadline while it is counting — a few seconds of a cycle lasting
+            // tens, and gone again by the time you look. In the log it keeps
+            // its timestamp, so the cadence can be read off afterwards: what
+            // was chosen, against which trait, and when the turn it started
+            // arrived.
+            const due = ambientRef.current?.dueAt() ?? null;
+            onLogRef.current?.(
+              due === null
+                ? 'ambient: holding until you speak'
+                : `ambient: in ${((due - Date.now()) / 1000).toFixed(1)}s (${
+                    playing ? 'playing' : 'idle'
+                  })`,
+              'info',
+            );
             // Catch-all: if TTS resolved without first audio (error/abort) the
             // "waiting for speech" flag would otherwise stick — likewise
             // "speaking" if the audio was cut rather than finishing.
