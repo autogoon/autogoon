@@ -5,7 +5,7 @@
 - bug: **A companion who says they'll wait actually waits** — Going quiet until
   you speak only stopped the next silence being filled, so a companion could ask
   whether you were still there and then talk over the answer for several more
-  lines.
+  lines. ([#32](https://github.com/autogoon/autogoon/pull/32))
 
 ## 2026-08-19
 
