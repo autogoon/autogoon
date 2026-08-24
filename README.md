@@ -13,8 +13,8 @@ stroker from your browser, **entirely by voice**.
 **▶ Try it now: [autogoon.vercel.app](https://autogoon.vercel.app/)** — nothing
 to install and no wearable. Open it and enter your device token.
 
-- **Hands-free** — every control has a spoken word, shown on screen. Say it any
-  time. Tap **Listen** once.
+- **Hands-free** — apart from settings, most controls have a spoken word, shown
+  on screen. Say it any time. Tap **Listen** once.
 - **Private by default** — speech recognition runs entirely on your machine.
   [Privacy](#privacy) documents what leaves it.
 - **Play modes**:
@@ -26,8 +26,6 @@ to install and no wearable. Open it and enter your device token.
     own Vacuglide autopilot.
   - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
     drives the toy themselves. Runs on API keys you supply.
-- **Voice-first control** — apart from settings, most controls are worked by
-  voice while you play.
 
 ### Companions — someone to talk to
 

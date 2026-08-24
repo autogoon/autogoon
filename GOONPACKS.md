@@ -22,8 +22,9 @@ The app only imports packs. It never ships, hosts or points at them (see the
 - [5. Write the persona](#5-write-the-persona)
 - [6. Add pictures and videos](#6-add-pictures-and-videos)
 - [7. Build the zip](#7-build-the-zip)
-- [8. Import it](#8-import-it)
-- [9. Release a new version](#9-release-a-new-version)
+- [8. Test it](#8-test-it)
+- [9. Troubleshooting](#9-troubleshooting)
+- [10. Releasing a new version](#10-releasing-a-new-version)
 
 ### 1. Decide what you're making
 
@@ -135,17 +136,15 @@ Inside `companion`:
 - **`knowsUserTime`** — `true` if omitted.
 
 `chattiness` and `playfulness` are how readily they speak when you haven't:
-chattiness while the toy is idle, playfulness while it's running. Someone of few
-words can still keep up a filthy commentary once things are underway. Each sets
-the pause after they finish speaking — a higher number is a shorter pause,
-halved again in play, and varied a little each time. The figure for every value
-is in
+chattiness while the toy is idle, playfulness while it's running. Each sets the
+pause after they finish speaking — a higher number is a shorter pause, halved
+again in play, and varied a little each time. The figure for every value is in
 [ambient.ts](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/ambient.ts).
 
 `timezone` is where they are today, not where they're from. They're told the
 date and time there, refreshed every turn and following daylight saving, and
-told it is theirs and not yours. The place itself is never named, so a companion
-whose persona keeps their whereabouts vague stays vague.
+told it is theirs and not yours. The place is never named, so a persona that
+keeps their whereabouts vague stays vague.
 
 `usesRealTime` is `false` when the persona fixes the hour itself. A prompt
 opening "it's evening and you've just finished filming", against a companion
@@ -178,10 +177,9 @@ fields are the overlay's own:
 - **`base`** — the `id` of the companion this changes. Its presence is what
   makes a pack an overlay. It must be a complete pack's id, and can't be the
   overlay's own.
-- **`noMedia`** — `true` strips the base's pictures and videos, for when "none"
-  is the point. Overlay only; a complete pack setting it is refused, as is
-  `noMedia` alongside a `media/` folder. Leaving `media/` out keeps the base's
-  set.
+- **`noMedia`** — `true` strips the base's pictures and videos. Overlay only; a
+  complete pack setting it is refused, as is `noMedia` alongside a `media/`
+  folder. Leaving `media/` out keeps the base's set.
 
 Everything else is **only what changes**: any `companion` field except `name`
 and `gender`, `intro`, `recommendedModel`, `system-prompt.md`, and `media/` with
@@ -202,10 +200,9 @@ The intro introduces your companion and sets the scene. It is shown at the top
 of the conversation and never spoken, and it never reaches the model, so nothing
 in it instructs your companion.
 
-Write only what the player already knows. A partner is someone they know well:
-warm, shy, quick to please all belong. A stranger they have just paid to call is
-a name, an age and what the call is for — manner is the companion's own to show
-once they speak.
+Write only what the player already knows. A partner is someone they know well. A
+stranger they have just paid to call is a name, an age and what the call is for;
+manner is the companion's own to show once they speak.
 
 Leave out anything only your companion can see: what they're wearing, what their
 room looks like, the weather where they are. Leave out that neither can see the
@@ -236,10 +233,10 @@ persona that names hardware reads wrong the day it's different hardware.
 
 **Don't set who controls it.** The app settles that for everyone: never started
 without the player's say-so, your companion's to steer once it is running.
-Contradicting it in a persona doesn't override it — both texts reach the model
-together, so all you have done is make it choose, and the rule it might drop is
-the one about consent. What is yours is how forward your companion is about it:
-one asks before he offers, another hangs back and wants telling.
+Contradicting it in a persona doesn't override it: both reach the model
+together, so you have only made it choose — and the rule it might drop is
+consent. What is yours is how forward your companion is about it: one asks for
+it before the player does, another hangs back and wants telling.
 
 The app owns the mechanical rules as ready-made sections. Put a token on its own
 line where that section should land:
@@ -256,7 +253,7 @@ line where that section should land:
 
 Omit a token and that section is absent — a persona with no `{{MEDIA_SECTION}}`
 never gets the instructions for sending. Misspell one and it stays in your
-prompt as you typed it, which is how you'll spot it.
+prompt as you typed it.
 
 Three sections need no token, because they are added for you: how a turn arrives
 and when to let a silence stand; your companion's clock, where they have a time
@@ -269,8 +266,7 @@ Optional. Files go directly in `media/`, with no subfolders.
 - **Pictures:** `.jpg`, `.jpeg`, `.png`, `.webp`.
 - **Videos:** `.mp4`, `.webm`.
 
-`.mov` is rejected by name: it plays in Safari and unreliably everywhere else,
-so a `.mov` pack would work on your machine and not on someone else's. Re-encode
+`.mov` is rejected: it plays in Safari and unreliably everywhere else. Re-encode
 it as MP4.
 
 Each file needs a `.md` sidecar of the same name (`beach.jpg` → `beach.md`): a
@@ -291,22 +287,12 @@ A search matches the request's words against the caption and the description
 together, and each hit comes back with its caption for your companion to choose
 from. A word that appears only in the description still finds the item.
 
-**A file with no sidecar never reaches your companion.** The build leaves it out
-of the zip, and a pack loaded straight from disk leaves it out of the set. Your
-companion can't search for it or send it, and it isn't in the count on their
-card.
+**A file with no sidecar never reaches your companion.** It isn't in the zip, a
+pack read off disk leaves it out too, and it isn't in the count on their card.
 
-Three more rules:
-
-- A sidecar that is there but won't read — no frontmatter, no caption, an empty
-  body — refuses the whole pack, naming the file. That is a description that
-  went wrong, not one not written yet.
-- A sidecar whose picture has been renamed away is counted in a warning when the
-  pack builds, as is a file whose extension is none of those above. `media/` is
-  a working folder as often as a finished set, and another tool's files can sit
-  there. Read the warning, though: a mistyped extension looks exactly the same.
-- Two files can't share a name across types (`beach.jpg` and `beach.mp4`). The
-  conversation refers to them by name, so one name means one thing.
+Two names to keep straight: a sidecar must match its file exactly, and two files
+can't share a name across types (`beach.jpg` and `beach.mp4`), because the
+conversation refers to them by name.
 
 #### Writing the sidecars
 
@@ -371,7 +357,7 @@ media with no sidecar, and files that aren't media at all. The zip is
 folders can hold two versions of one pack. Name no folder and it builds every
 pack under `goonpacks/`.
 
-### 8. Import it
+### 8. Test it
 
 Open Autogoon — the hosted app at
 [autogoon.vercel.app](https://autogoon.vercel.app/), or your own checkout — and
@@ -383,29 +369,46 @@ is in.
 On the Companions screen, the companion's card carries the pickers: **Base**,
 the pack version, newest first, shown when there is more than one; and
 **Overlay**, which is `default` or any overlay installed for them. The card's
-description, colour and feature line follow what you pick. An overlay the
-selected base leaves without a time zone is greyed out.
+description, colour and feature line follow what you pick.
 
 Picking an overlay continues the conversation you were already having. Threads
 belong to the companion, not to the pack you are playing them with.
 
-### 9. Release a new version
+### 9. Troubleshooting
 
-Change what you want, give `manifest.json` a new `version`, keep the `id`, then
-build and import again.
+- **The count on the card is lower than what's in `media/`.** The commonest one:
+  a file with no sidecar, or a sidecar whose name no longer matches its picture.
+  Renaming one and not the other leaves both out.
+- **The pack won't import.** Every problem is listed with the file or field it
+  is in. Usually the zip has everything inside one folder, or the pack carries a
+  stray file, or media with no `mediaSummary`, or a sidecar with no caption, or
+  a `.mov`.
+- **It imported, but isn't offered on the Companions screen.** It is on the
+  Goonpacks tab marked incompatible, with the reason. An overlay whose base
+  isn't installed is the usual one. Fix the cause and it comes back — every
+  session re-checks the installed packs.
+- **The overlay is greyed out.** It turns `usesRealTime` on and the base version
+  it is paired with has no time zone. Give the overlay its own.
+- **A `{{TOKEN}}` appears in what they say.** You misspelled it — only the four
+  in [step 5](#5-write-the-persona) are recognised, and anything else is left in
+  the prompt as written.
+- **They never send pictures.** The persona has no `{{MEDIA_SECTION}}`, so they
+  were never told how.
+- **A picture in an older conversation shows a placeholder.** You are playing a
+  different pack from the one that sent it. Media is a reference, not a copy;
+  select that pack again and it's back.
 
-Versions install side by side, each with its own row on the Goonpacks tab. Only
-re-importing the same id _and_ version replaces one, and the confirmation says
-so before it does. Conversation threads always stay.
+### 10. Releasing a new version
 
-**Remove** takes out one version. It never cascades: overlays of a base you
-removed stay installed and list as incompatible until it's back.
+If you want to change a pack you have given out, give `manifest.json` a new
+`version`, keep the `id`, and build again.
 
-Every session re-checks every installed pack the first time you open Companions
-or Goonpacks. One that fails — its base is gone, or the pack format has moved on
-— stays on the Goonpacks tab marked incompatible with the reasons, and isn't
-offered on the Companions screen. Fix the cause, or import a corrected zip, and
-it comes back.
+Versions install side by side, each with its own row on the Goonpacks tab, and
+the card's **Base** picker offers them newest first. Only re-importing the same
+id _and_ version replaces one, and the confirmation says so before it does.
+
+Removing a version leaves overlays built on it installed. They list as
+incompatible until a base they can sit on is back.
 
 A picture or video already sent stays in the conversation as a reference, not a
 copy, and resolves against whichever pack is selected. Switch away from the pack
