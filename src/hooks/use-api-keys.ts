@@ -26,10 +26,6 @@ import {
 } from '@/lib/companions/keys';
 import { type KeyCheck, validateKeys } from '@/lib/companions/validate-keys';
 
-// The route only exists under `npm run dev`, so a build skips the request
-// rather than making one that is always a 404.
-const IS_DEV = process.env.NODE_ENV === 'development';
-
 export type ApiKeysState = {
   // Has the source been settled? Guards against offering Companions — or
   // bouncing away from it — before we know which keys are in force.
@@ -40,25 +36,38 @@ export type ApiKeysState = {
   // The keys came from the dev server's `.env`. Settings then shows them and
   // nothing else: there is nothing to save, and nothing stored to forget.
   fromEnv: boolean;
+  // Why the `.env` keys were not read, when the dev server was asked and did
+  // not answer. Null when there was nothing to read, which is not a failure.
+  envFailure: string | null;
   // Validate, then store when both providers accept. Returns what each said, so
   // the one that failed can be named. Never called in `.env` mode.
   save: (keys: ApiKeys) => Promise<KeyCheck>;
   forget: () => void;
 };
 
-// What the dev server's `.env` holds, or null when there is no dev server, no
-// `.env` behind it, or nothing in it. A failed request is not an error worth
-// showing: it means "no .env", which is the ordinary case in a build.
-async function envKeys(): Promise<ApiKeys | null> {
-  if (!IS_DEV) return null;
+// What the dev server's `.env` holds. `keys` is null when there is no dev
+// server, no `.env` behind it, or nothing in it — the ordinary case, and not an
+// error. `failed` is the other thing: the route was there and did not answer,
+// which is worth saying, because the alternative is empty fields that look
+// exactly like having no `.env`.
+type EnvRead = { keys: ApiKeys | null; failed: string | null };
+
+async function envKeys(): Promise<EnvRead> {
+  // The route only exists under `npm run dev`, so a build skips the request
+  // rather than making one that is always a 404. Read here rather than at module
+  // load: the bundler inlines it either way, and a constant would fix the answer
+  // to whenever this module first happened to be imported.
+  if (process.env.NODE_ENV !== 'development')
+    return { keys: null, failed: null };
   try {
     const res = await fetch('/api/dev/keys');
-    if (!res.ok) return null;
+    if (res.status === 404) return { keys: null, failed: null };
+    if (!res.ok) return { keys: null, failed: `/api/dev/keys — ${res.status}` };
     const keys = (await res.json()) as ApiKeys;
     const supplied = keys.openRouterKey !== '' || keys.elevenLabsKey !== '';
-    return supplied ? keys : null;
-  } catch {
-    return null;
+    return { keys: supplied ? keys : null, failed: null };
+  } catch (e: unknown) {
+    return { keys: null, failed: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -69,20 +78,27 @@ export function useApiKeys(): ApiKeysState {
     checked: boolean;
     keys: ApiKeys;
     fromEnv: boolean;
+    envFailure: string | null;
   }>({
     checked: false,
     keys: { openRouterKey: '', elevenLabsKey: '', llmUrl: DEFAULT_LLM_URL },
     fromEnv: false,
+    envFailure: null,
   });
 
   useEffect(() => {
     let alive = true;
-    void envKeys().then((fromEnv) => {
+    void envKeys().then(({ keys, failed }) => {
       if (!alive) return;
       // Told before read: readKeys() is what every call site uses, and it has
       // to answer with the `.env` keys from here on.
-      setEnvKeys(fromEnv);
-      setState({ checked: true, keys: readKeys(), fromEnv: fromEnv !== null });
+      setEnvKeys(keys);
+      setState({
+        checked: true,
+        keys: readKeys(),
+        fromEnv: keys !== null,
+        envFailure: failed,
+      });
     });
     return () => {
       alive = false;
@@ -93,14 +109,23 @@ export function useApiKeys(): ApiKeysState {
     const check = await validateKeys(keys);
     if (check.openRouter && check.elevenLabs) {
       writeKeys(keys);
-      setState({ checked: true, keys, fromEnv: false });
+      // A `.env` that wouldn't read no longer explains anything: these keys are
+      // the ones in force, and they were pasted.
+      setState({ checked: true, keys, fromEnv: false, envFailure: null });
     }
     return check;
   }, []);
 
   const forget = useCallback((): void => {
     clearKeys();
-    setState({ checked: true, keys: readKeys(), fromEnv: false });
+    // The `.env` failure is kept: it is still why no `.env` keys are in force,
+    // and forgetting doesn't ask the route again.
+    setState((s) => ({
+      ...s,
+      checked: true,
+      keys: readKeys(),
+      fromEnv: false,
+    }));
   }, []);
 
   return {

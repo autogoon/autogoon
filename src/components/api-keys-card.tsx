@@ -97,6 +97,14 @@ export function ApiKeysCard({ apiKeys }: { apiKeys: ApiKeysState }) {
           : 'Companions runs on your own OpenRouter and ElevenLabs keys. Enter both to turn it on — they stay on this device.'}
       </p>
 
+      {/* Empty fields on a dev server with a `.env` behind it look exactly like
+          a dev server without one. Say which it was. */}
+      {apiKeys.envFailure !== null && (
+        <p className="text-destructive text-sm">
+          {`Couldn't read .env (${apiKeys.envFailure}). Paste your keys below instead.`}
+        </p>
+      )}
+
       {field('OpenRouter key', fields.openRouterKey, 'sk-or-…', (v) =>
         set({ openRouterKey: v }),
       )}
