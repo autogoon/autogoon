@@ -56,6 +56,11 @@ want. They search their own set, send one that fits, and never send the same one
 twice in a conversation. The search reads text written when the pack was built.
 Nothing is sent to a vision model mid-play.
 
+**No pictures or videos are distributed with Autogoon.** The built-in companions
+ship without media, the app hosts and links to none, and the repository's
+reference pack is media-free. A companion has pictures only when you import a
+pack holding your own. See the [content policy](./DEVELOPERS.md#content-policy).
+
 Assembling a pack is plain-text work, no coding required.
 [GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in the repo.
 
