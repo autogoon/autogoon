@@ -46,15 +46,15 @@ A [goonpack](./GOONPACKS.md) is imported straight into the app. A pack carries:
 
 - their persona;
 - their voice;
-- their own pictures and videos.
+- optionally, their own pictures and videos.
 
 A pack is either a complete new companion or an overlay on one you already have,
 adding media or swapping a voice or persona.
 
-**A companion with a pack will send you pictures and videos.** Ask for what you
-want. They search their own set, send one that fits, and never send the same one
-twice in a conversation. The search reads text written when the pack was built.
-Nothing is sent to a vision model mid-play.
+**A companion whose pack carries media can send you pictures and videos.** Ask
+for something you'd like. They search their own set, send one that fits, and
+never send the same one twice in a conversation. The search reads text written
+when the pack was built. Nothing is sent to a vision model mid-play.
 
 **No pictures or videos are distributed with Autogoon.** The built-in companions
 ship without media, the app hosts and links to none, and the repository's
