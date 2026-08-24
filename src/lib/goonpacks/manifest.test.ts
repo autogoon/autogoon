@@ -118,27 +118,23 @@ describe('parseManifest', () => {
       'The intro field is empty — give it a value or remove it.',
     );
   });
-  it('reads model, contextWindow and passesReasoning from the top level', () => {
+  it('reads recommendedModel from the top level', () => {
     const m = parseManifest({
       ...good,
-      model: 'openrouter/thing-13b',
-      contextWindow: 200_000,
-      passesReasoning: true,
+      recommendedModel: 'openrouter/thing-13b',
     });
-    expect([m.model, m.contextWindow, m.passesReasoning]).toEqual([
-      'openrouter/thing-13b',
-      200_000,
-      true,
-    ]);
+    expect(m.recommendedModel).toBe('openrouter/thing-13b');
   });
   it('rejects model in the companion section, where it used to sit', () => {
     expect(() =>
       parseManifest({ ...good, companion: { model: 'openrouter/thing-13b' } }),
     ).toThrow('Unknown field in the companion section: model.');
   });
-  it('reports a contextWindow written as a string in quotes', () => {
-    expect(() => parseManifest({ ...good, contextWindow: '200000' })).toThrow(
-      'The contextWindow field must be a number (no quotes).',
+  it('refuses the model fields packs used to carry', () => {
+    // The model is one app-wide choice now (companions/model-settings.ts), so a
+    // pack setting one is told, rather than having it silently ignored.
+    expect(() => parseManifest({ ...good, contextWindow: 200_000 })).toThrow(
+      'Unknown field at the top level of manifest.json: contextWindow.',
     );
   });
   it('carries a media summary through as written', () => {

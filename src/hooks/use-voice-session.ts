@@ -25,11 +25,20 @@ import {
   type AmbientScheduler,
 } from '@/lib/companions/ambient-scheduler';
 import {
+  type ModelSettings,
+  readModelSettings,
+} from '@/lib/companions/model-settings';
+import {
   createLlmClient,
   type LlmClient,
   type LlmMessage,
   type ToolCall,
 } from '@/lib/llm/client';
+
+// Whether a turn replays the model's own reasoning back to it, read fresh from
+// Settings: the switch is app-wide, and a thread assembled this turn should use
+// what it says now rather than what it said when the session opened.
+const passesReasoning = (): boolean => readModelSettings().passesReasoning;
 import { startMic, VAD_HANGOVER_MS, type MicHandle } from '@/lib/voice/mic';
 import { createStt, type Stt } from '@/lib/voice/stt';
 import { createTtsPlayer, type TtsPlayer } from '@/lib/voice/tts';
@@ -292,9 +301,9 @@ export function useVoiceSession(opts: {
   const sttRef = useRef<Stt | null>(null);
   const ttsRef = useRef<TtsPlayer | null>(null);
   const llmRef = useRef<LlmClient | null>(null);
-  // The model the cached llmRef was built with, so ensureClients can tell when
-  // a companion switch means the client must be rebuilt.
-  const llmModelRef = useRef<string | null>(null);
+  // The settings the cached llmRef was built from, so ensureClients can tell
+  // when a change in Settings means the client must be rebuilt.
+  const llmSettingsRef = useRef<ModelSettings | null>(null);
   const turnRef = useRef<AbortController | null>(null);
   const replyPlayingRef = useRef(false);
   const vadSpeakingRef = useRef(false);
@@ -411,7 +420,7 @@ export function useVoiceSession(opts: {
       ...toLlmMessages(
         threadRef.current,
         companion.systemPrompt,
-        companion.passesReasoning,
+        passesReasoning(),
       ),
       liveState(companion, deviceState),
     ];
@@ -429,13 +438,19 @@ export function useVoiceSession(opts: {
     ttsRef.current ??= createTtsPlayer(audioEl, (message) => {
       onLogRef.current?.(message, 'error');
     });
-    // The LLM client is bound to a model; rebuild it if the companion (hence
-    // the model) has changed since it was made. The TTS player is model-free
-    // (the voice id is passed per utterance), so it's reused as-is.
-    const model = companionRef.current.model;
-    if (llmRef.current === null || llmModelRef.current !== model) {
-      llmRef.current = createLlmClient(model);
-      llmModelRef.current = model;
+    // The LLM client is bound to a model and to whether replies stream; rebuild
+    // it if either changed in Settings since it was made. The TTS player is
+    // model-free (the voice id is passed per utterance), so it's reused as-is.
+    const settings = readModelSettings();
+    const cached = llmSettingsRef.current;
+    if (
+      llmRef.current === null ||
+      cached === null ||
+      cached.model !== settings.model ||
+      cached.stream !== settings.stream
+    ) {
+      llmRef.current = createLlmClient(settings);
+      llmSettingsRef.current = settings;
     }
     return { tts: ttsRef.current, llm: llmRef.current };
   }, []);
@@ -628,7 +643,7 @@ export function useVoiceSession(opts: {
           const baseMessages = toLlmMessages(
             threadRef.current,
             companion.systemPrompt,
-            companion.passesReasoning,
+            passesReasoning(),
           );
           // The clock and the toy, last: everything above is identical to last
           // turn's request, which is the whole point (see liveState).
@@ -681,7 +696,7 @@ export function useVoiceSession(opts: {
             let next = appendAssistant(
               threadRef.current,
               r.content,
-              companion.passesReasoning ? r.reasoning : undefined,
+              passesReasoning() ? r.reasoning : undefined,
               r.toolCalls,
               Date.now(),
             );
@@ -766,7 +781,7 @@ export function useVoiceSession(opts: {
             messages = toLlmMessages(
               threadRef.current,
               companion.systemPrompt,
-              companion.passesReasoning,
+              passesReasoning(),
             );
             messages.push(liveState(companion, getDeviceStateRef.current()));
 
@@ -794,7 +809,7 @@ export function useVoiceSession(opts: {
               appendAssistant(
                 threadRef.current,
                 reply,
-                companion.passesReasoning ? reasoning : undefined,
+                passesReasoning() ? reasoning : undefined,
                 undefined,
                 Date.now(),
               ),

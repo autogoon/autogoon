@@ -4,9 +4,11 @@
 
 import { useEffect, useState } from 'react';
 import type { ApiKeysState } from '@/hooks/use-api-keys';
+import type { ModelSettingsState } from '@/hooks/use-model-settings';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
 import { ApiKeysCard } from '@/components/api-keys-card';
+import { ModelCard } from '@/components/model-card';
 import { ListenOnLoadField } from '@/components/listen-on-load-field';
 import { SafeWordField } from '@/components/safe-word-field';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -25,11 +27,13 @@ export function SettingsPanel({
   sanitizeSafeWord,
   onSaveSafeWord,
   apiKeys,
+  modelSettings,
 }: {
   safeWord: string;
   sanitizeSafeWord: (input: string) => string | null;
   onSaveSafeWord: (word: string) => void;
   apiKeys: ApiKeysState;
+  modelSettings: ModelSettingsState;
 }) {
   // Local-time build stamp, resolved after mount (see the note above).
   const [builtAt, setBuiltAt] = useState<string | null>(null);
@@ -65,6 +69,8 @@ export function SettingsPanel({
       </Card>
 
       <ApiKeysCard apiKeys={apiKeys} />
+
+      <ModelCard modelSettings={modelSettings} apiKeys={apiKeys} />
 
       <Card title="Info">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 tabular-nums">

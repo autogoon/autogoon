@@ -50,13 +50,13 @@ export type Companion = {
   accentColour: string; // their signature colour name, e.g. "pink" or "emerald"
   voiceId: string; // ElevenLabs voice id — not a secret; safe in code.
   systemPrompt: string; // persona; sent as the LLM system message (no model card)
-  model: string; // OpenRouter model slug the client requests for this companion
-  // The chosen model's context window, in tokens. Nothing reads it yet —
-  // deliberately captured anyway, because it belongs to whoever picked `model`,
-  // and a pack authored without it would have to be revisited to supply a number
-  // its author knew all along.
-  contextWindow: number;
-  passesReasoning: boolean; // replay reasoning_details in history (reasoning models)
+  // The model this companion was written against, named by whoever wrote them.
+  // Advisory only: the model every companion actually runs on is the one chosen
+  // in Settings (model-settings.ts). This is shown on their card so a pack can
+  // say what it was tuned for, and nothing reads it into a request. Absent
+  // rather than defaulted, like `timezone`: no recommendation is a fact about
+  // the pack, not a value waiting to be filled in.
+  recommendedModel?: string;
   // How readily this companion fills a silence, 1–5, as two separate appetites:
   // the conversational one and the one for talking over a running program. They
   // are deliberately independent — a laconic persona can still narrate play
@@ -99,19 +99,10 @@ export type Companion = {
 export const companionClockZone = (companion: Companion): string | undefined =>
   companion.usesRealTime ? companion.timezone : undefined;
 
-// App defaults a pack manifest may omit (spec: model/contextWindow/
-// passesReasoning "default to the app's current defaults").
-// `:nitro` sorts OpenRouter's providers by throughput instead of its default
-// price-weighted load balancing — a companion's reply is spoken, so time to
-// first token is the pause before they answer.
+// App defaults a pack manifest may omit. The model is not among them: it is one
+// app-wide choice made in Settings (companions/model-settings.ts), not a
+// property of a persona.
 //
-// Which models have been measured, how they timed, and which are ruled out and
-// why, are in scripts/llm-benchmark.ts — `npm run llm:benchmark` prints them.
-
-// export const DEFAULT_MODEL = 'nex-agi/nex-n2-mini:nitro';
-export const DEFAULT_MODEL = 'x-ai/grok-4.6';
-export const DEFAULT_CONTEXT_WINDOW = 262_000;
-export const DEFAULT_PASSES_REASONING = false;
 // Middling on both counts: a companion who fills a silence without talking over
 // you. A pack says otherwise by setting them.
 export const DEFAULT_CHATTINESS = 3;
@@ -131,9 +122,6 @@ export const COMPANIONS: Record<string, Companion> = {
     accentColour: 'emerald',
     voiceId: 'WLWvwOJfGYaBppWieVa7',
     systemPrompt: AIMEE_SYSTEM_PROMPT,
-    model: DEFAULT_MODEL,
-    contextWindow: DEFAULT_CONTEXT_WINDOW,
-    passesReasoning: DEFAULT_PASSES_REASONING,
     chattiness: DEFAULT_CHATTINESS,
     playfulness: DEFAULT_PLAYFULNESS,
     timezone: 'Europe/London',
@@ -151,9 +139,6 @@ export const COMPANIONS: Record<string, Companion> = {
     accentColour: 'violet',
     voiceId: 'TsdN21EAs7m8pjYUDEQ1',
     systemPrompt: MILEY_SYSTEM_PROMPT,
-    model: DEFAULT_MODEL,
-    contextWindow: DEFAULT_CONTEXT_WINDOW,
-    passesReasoning: DEFAULT_PASSES_REASONING,
     // She's working, and dead air is bad service — but her deadpan needs a beat,
     // so she's short of the top out of play and at it once things are running.
     chattiness: 4,

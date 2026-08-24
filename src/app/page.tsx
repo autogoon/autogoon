@@ -37,6 +37,7 @@ import {
   useKeywordSpotter,
 } from '@/components/keyword-spotter';
 import { useApiKeys } from '@/hooks/use-api-keys';
+import { useModelSettings } from '@/hooks/use-model-settings';
 import { usePlayer } from '@/hooks/use-player';
 import { useVacuglideDevice } from '@/hooks/use-vacuglide-device';
 import { ROUTED_WORDS } from '@/hooks/use-voice-commands';
@@ -166,6 +167,7 @@ function App() {
   const vacuglide = useVacuglideDevice();
   const player = usePlayer(vacuglide.player);
   const apiKeys = useApiKeys();
+  const modelSettings = useModelSettings();
   const spotter = useKeywordSpotter();
   // Only the spotter's stable functions may be used in effect deps — the context
   // object's identity changes with grammar/flash state (see useVoiceCommands).
@@ -495,6 +497,7 @@ function App() {
               sanitizeSafeWord={sanitizeCandidate}
               onSaveSafeWord={saveSafeWord}
               apiKeys={apiKeys}
+              modelSettings={modelSettings}
             />
           </div>
         </main>

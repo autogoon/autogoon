@@ -122,54 +122,6 @@ server-only (its modules import node's filesystem to run a model), so a scoring
 _function_ can't cross into the browser without splitting the parser out, while
 a scoring _config_ is data and travels the same route as the pack.
 
-### The model settings, together or app-wide
-
-`model`, `contextWindow` and `passesReasoning` describe one model. `resolve.ts`
-resolves each on its own `??`, so they can arrive from different places. A
-complete pack that sets `model` alone gets `DEFAULT_CONTEXT_WINDOW` and
-`DEFAULT_PASSES_REASONING`, which are the default model's properties. An overlay
-that switches `model` inherits the base pack's `contextWindow` and
-`passesReasoning`.
-
-Nothing breaks today. `contextWindow` is recorded and nothing reads it
-([Context compaction](./roadmap/CONTEXT-COMPACTION.md)), and an inherited
-`passesReasoning: true` replays nothing when those turns never stored reasoning.
-The window is the one that will matter, once something reads it.
-
-**Set all three or none.** [GOONPACKS.md](./GOONPACKS.md#setting-the-llm-model)
-specifies this, for a complete pack and an overlay alike, and no code enforces
-it. Rejecting a manifest that sets `contextWindow` or `passesReasoning` without
-`model` is the cheap version. Resetting both to the app defaults whenever
-`model` changes is the version that catches inheritance as well.
-
-**Then: whether these belong to a companion at all.** The longer the app is
-used, the more they read as one app-wide choice rather than a field every pack
-author needs a view on. Not thought through yet. It conflicts with
-[Streaming per companion](#streaming-per-companion), which proposes another
-per-companion field. Settle this first.
-
-### Streaming per companion
-
-`stream: true` is hardcoded for every request, and on a spoken turn it gains
-nothing: the reply is buffered in full and handed to TTS complete (the
-`submitText` comment in `use-voice-session.ts` says so). All streaming does is
-fill the transcript word by word, worth having on a typed turn.
-
-So make it a per-companion field like `model` and `passesReasoning`, and a
-manifest field packs can set. That is the shape
-[The model settings, together or app-wide](#the-model-settings-together-or-app-wide)
-puts in question. Settle that one first.
-
-**Where this came from:** a streamed MiniMax reply whose reasoning sometimes
-leaked into what the companion said, because OpenRouter didn't cleanly separate
-the two when streaming the reply. MiniMax models also hoist every system message
-in a thread to the top, which put clocks, ambient cues and toy status at the top
-of the conversation and broke prompt caching. That rules the models out, and
-they are the only reason this field was wanted.
-
-To settle: what the transcript shows while a non-streaming turn generates, since
-no text arrives until it's done.
-
 ### Pin a provider
 
 A companion's model is a slug, and OpenRouter can route each turn to any

@@ -3,6 +3,9 @@
 // calls, usage). The dialect of a tool call written out as text is decided in
 // textual-tool-calls.test.ts; here only the wiring to it is pinned.
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+// Type-only, so it is erased: the client itself is imported dynamically in each
+// test, after the openai mock is in place.
+import type { LlmUsage, ToolCall } from './client';
 
 type ReasoningDelta = { index?: number; type?: string; text?: string };
 type ToolCallDelta = {
@@ -43,6 +46,14 @@ const stored: Record<string, string> = {};
 globalThis.localStorage = {
   getItem: (name: string) => stored[name] ?? null,
 } as unknown as Storage;
+
+// The model settings a client is built from. Streaming is the default; the
+// non-streaming path names its own.
+const SETTINGS = {
+  model: 'test-model',
+  stream: true,
+  passesReasoning: false,
+};
 
 // A fake of the SDK's streamed response: an async iterable of chat-completion
 // chunks. An `undefined` entry is emitted as a delta with no content key at all,
@@ -94,7 +105,7 @@ describe('createLlmClient', () => {
   it('yields each content delta as its own token', async () => {
     createMock.mockResolvedValue(fakeStream(['Hi', ' there', '!']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -106,7 +117,7 @@ describe('createLlmClient', () => {
   it('skips chunks whose delta carries no content', async () => {
     createMock.mockResolvedValue(fakeStream(['Hi', undefined, ' there']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -118,7 +129,7 @@ describe('createLlmClient', () => {
   it('skips a delta whose content is the empty string', async () => {
     createMock.mockResolvedValue(fakeStream(['Hi', '', ' there']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -130,7 +141,7 @@ describe('createLlmClient', () => {
   it('sends the conversation as the request messages', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -146,7 +157,7 @@ describe('createLlmClient', () => {
   it('sends the model it was created with', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -159,7 +170,7 @@ describe('createLlmClient', () => {
   it("passes the caller's AbortSignal to the SDK request", async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const signal = new AbortController().signal;
     await collect(client.stream([{ role: 'user', content: 'hi' }], { signal }));
     const [, options] = createMock.mock.calls[0] as [
@@ -173,7 +184,7 @@ describe('createLlmClient', () => {
     stored['companions:openrouter-key'] = 'sk-or-mine';
     stored['companions:llm-url'] = 'https://elsewhere.test/v1';
     const { createLlmClient } = await import('./client');
-    createLlmClient('test-model');
+    createLlmClient(SETTINGS);
     expect(constructedWith.apiKey).toBe('sk-or-mine');
     expect(constructedWith.baseURL).toBe('https://elsewhere.test/v1');
   });
@@ -184,7 +195,7 @@ describe('createLlmClient', () => {
       Object.assign(new Error('401 Unauthorized: sk-or-mine'), { status: 401 }),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await expect(
       collect(
         client.stream([{ role: 'user', content: 'hi' }], {
@@ -198,13 +209,53 @@ describe('createLlmClient', () => {
     );
   });
 
+  it('asks for the whole reply at once when streaming is off', async () => {
+    createMock.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'all of it',
+            tool_calls: [
+              { id: 'c1', function: { name: 'stop', arguments: '{}' } },
+            ],
+          },
+        },
+      ],
+      usage: { completion_tokens: 5, prompt_tokens: 9 },
+    } as never);
+    const { createLlmClient } = await import('./client');
+    const client = createLlmClient({ ...SETTINGS, stream: false });
+    const calls: ToolCall[] = [];
+    let usage: LlmUsage | null = null;
+    const tokens = await collect(
+      client.stream([{ role: 'user', content: 'hi' }], {
+        signal: new AbortController().signal,
+        onToolCalls: (c) => calls.push(...c),
+        onUsage: (u) => {
+          usage = u;
+        },
+      }),
+    );
+    const [params] = createMock.mock.calls[0] as [{ stream: boolean }];
+    expect(params.stream).toBe(false);
+    // The reply arrives whole, so the transcript fills in one go — and
+    // everything a streamed turn surfaces still surfaces.
+    expect(tokens).toEqual(['all of it']);
+    expect(calls).toEqual([{ id: 'c1', name: 'stop', arguments: '{}' }]);
+    expect(usage).toEqual({
+      completionTokens: 5,
+      promptTokens: 9,
+      cachedTokens: 0,
+    });
+  });
+
   it('lets an aborted turn fail as itself', async () => {
     const controller = new AbortController();
     controller.abort();
     const aborted = new Error('Request was aborted.');
     createMock.mockRejectedValue(aborted);
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await expect(
       collect(
         client.stream([{ role: 'user', content: 'hi' }], {
@@ -217,7 +268,7 @@ describe('createLlmClient', () => {
   it('asks for the final usage chunk with stream_options.include_usage', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,
@@ -236,7 +287,7 @@ describe('createLlmClient', () => {
       }),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[] = [];
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -255,7 +306,7 @@ describe('createLlmClient', () => {
   it('never fires onUsage for a stream that ends without a usage chunk', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const onUsage = jest.fn();
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -281,7 +332,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -306,7 +357,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -323,7 +374,7 @@ describe('createLlmClient', () => {
   it('never fires onReasoning for a content-only stream', async () => {
     createMock.mockResolvedValue(fakeStream(['Hi', ' there']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const onReasoning = jest.fn();
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -343,7 +394,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const onReasoning = jest.fn();
     for await (const token of client.stream([{ role: 'user', content: 'hi' }], {
       signal: new AbortController().signal,
@@ -358,7 +409,7 @@ describe('createLlmClient', () => {
   it("maps a message's reasoningDetails to reasoning_details on the wire", async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream(
         [
@@ -386,7 +437,7 @@ describe('createLlmClient', () => {
   it("maps an assistant message's toolCalls to tool_calls with type function", async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream(
         [
@@ -420,7 +471,7 @@ describe('createLlmClient', () => {
   it('omits tool_calls for an assistant message whose toolCalls array is empty', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream([{ role: 'assistant', content: 'said', toolCalls: [] }], {
         signal: new AbortController().signal,
@@ -433,7 +484,7 @@ describe('createLlmClient', () => {
   it("maps a tool message's toolCallId to tool_call_id", async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream(
         [{ role: 'tool', content: 'started', toolCallId: 'call_1' }],
@@ -470,7 +521,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -507,7 +558,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -524,7 +575,7 @@ describe('createLlmClient', () => {
   it('never fires onToolCalls for a stream with no tool calls', async () => {
     createMock.mockResolvedValue(fakeStream(['Hi', ' there']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const onToolCalls = jest.fn();
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
@@ -552,7 +603,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const onToolCalls = jest.fn();
     for await (const token of client.stream([{ role: 'user', content: 'hi' }], {
       signal: new AbortController().signal,
@@ -571,7 +622,7 @@ describe('createLlmClient', () => {
     ];
     createMock.mockResolvedValue(fakeStream(deltas));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     const tokens = await collect(
       client.stream([{ role: 'user', content: 'show me' }], {
@@ -609,7 +660,7 @@ describe('createLlmClient', () => {
       ]),
     );
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const seen: unknown[][] = [];
     await collect(
       client.stream([{ role: 'user', content: 'start and show me' }], {
@@ -630,7 +681,7 @@ describe('createLlmClient', () => {
   it('forwards the given tools on the request', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     const tools = [
       {
         type: 'function' as const,
@@ -654,7 +705,7 @@ describe('createLlmClient', () => {
   it('omits the tools field entirely for an empty tools array', async () => {
     createMock.mockResolvedValue(fakeStream(['ok']));
     const { createLlmClient } = await import('./client');
-    const client = createLlmClient('test-model');
+    const client = createLlmClient(SETTINGS);
     await collect(
       client.stream([{ role: 'user', content: 'hi' }], {
         signal: new AbortController().signal,

@@ -5,6 +5,7 @@
 import OpenAI from 'openai';
 import { parseTextualToolCalls } from './textual-tool-calls';
 import { readKeys } from '@/lib/companions/keys';
+import type { ModelSettings } from '@/lib/companions/model-settings';
 import { llmErrorMessage } from '@/lib/companions/provider-error';
 
 export type LlmMessage = {
@@ -163,7 +164,8 @@ function mergeToolCalls(acc: AssembledCall[], deltas: ToolCallDelta[]): void {
   }
 }
 
-export function createLlmClient(model: string): LlmClient {
+export function createLlmClient(settings: ModelSettings): LlmClient {
+  const { model, stream: streaming } = settings;
   // Read once, here: a client is made per session (use-voice-session.ts), and
   // Companions is hidden until both keys are stored, so there is no case of a
   // key arriving mid-session for a request to pick up.
@@ -185,31 +187,51 @@ export function createLlmClient(model: string): LlmClient {
     },
   ): AsyncIterable<string> {
     const outgoing: OutgoingMessage[] = messages.map(toOutgoing);
-    const completion = await client.chat.completions
-      .create(
-        {
-          model,
-          messages:
-            outgoing as unknown as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-          stream: true,
-          // Ask for a final usage chunk (empty choices + usage) so we can report
-          // output tok/s. Providers that don't send it simply never fire onUsage.
-          stream_options: { include_usage: true },
-          ...(opts.tools !== undefined && opts.tools.length > 0
-            ? { tools: opts.tools }
-            : {}),
-        },
-        { signal: opts.signal },
-      )
-      // The request that fails is this one — a streaming call learns its status
-      // before the first chunk — so the provider's refusal is explained here
-      // rather than arriving at the UI as a bare number. An abort is not a
-      // failure: it's how barge-in and Stop end a turn, and the caller tells
-      // them apart by the signal, not by the message.
-      .catch((e: unknown): never => {
-        if (opts.signal.aborted) throw e;
-        throw new Error(llmErrorMessage(e, llmUrl));
-      });
+    const request = {
+      model,
+      messages:
+        outgoing as unknown as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+      ...(opts.tools !== undefined && opts.tools.length > 0
+        ? { tools: opts.tools }
+        : {}),
+    };
+    // The request that fails is this one — a streaming call learns its status
+    // before the first chunk — so the provider's refusal is explained here
+    // rather than arriving at the UI as a bare number. An abort is not a
+    // failure: it's how barge-in and Stop end a turn, and the caller tells them
+    // apart by the signal, not by the message.
+    const explain = (e: unknown): never => {
+      if (opts.signal.aborted) throw e;
+      throw new Error(llmErrorMessage(e, llmUrl));
+    };
+    const completion = streaming
+      ? await client.chat.completions
+          .create(
+            {
+              ...request,
+              stream: true,
+              // Ask for a final usage chunk (empty choices + usage) so we can
+              // report output tok/s. Providers that don't send it simply never
+              // fire onUsage.
+              stream_options: { include_usage: true },
+            },
+            { signal: opts.signal },
+          )
+          .catch(explain)
+      : // Not streaming: one reply, arriving whole. It is turned into a
+        // single chunk of the streamed shape so everything below — reasoning,
+        // tool calls, usage, the textual-call recovery — reads one way only.
+        // A message's tool_calls carry no index; mergeToolCalls numbers them by
+        // arrival, which is the order they came in.
+        [
+          await client.chat.completions
+            .create({ ...request, stream: false }, { signal: opts.signal })
+            .then((whole) => ({
+              choices: [{ delta: whole.choices[0]?.message }],
+              usage: whole.usage,
+            }))
+            .catch(explain),
+        ];
     const reasoning: ReasoningEntry[] = [];
     const toolCalls: AssembledCall[] = [];
     // Kept so the finished text can be checked for calls the model wrote out

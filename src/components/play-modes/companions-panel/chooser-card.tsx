@@ -147,6 +147,13 @@ export function ChooserCard({
   const accent = overlayOpt?.accent ?? baseOpt.accent ?? c.accentColour;
   const description =
     overlayOpt?.description ?? baseOpt.description ?? c.description;
+  // What this pairing was written against, if its author said. Advisory: the
+  // model every companion runs on is the one in Settings, so this is shown and
+  // never applied.
+  const recommendedModel =
+    overlayOpt?.recommendedModel ??
+    baseOpt.recommendedModel ??
+    c.recommendedModel;
   const features = variantFeatures({
     media: effectiveMedia(overlayOpt, baseOpt),
     changed: overlayOpt?.changed ?? [],
@@ -312,6 +319,11 @@ export function ChooserCard({
               )}
             </Fragment>
           ))}
+        </span>
+      )}
+      {recommendedModel !== undefined && (
+        <span className="text-muted-foreground mt-1 block text-sm">
+          Written for <span className="font-mono">{recommendedModel}</span>
         </span>
       )}
       {/* Disposition, kept off the feature line above: that line says what the

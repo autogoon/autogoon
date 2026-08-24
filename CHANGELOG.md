@@ -9,6 +9,19 @@
   its own, so what a companion costs is yours and only yours. See
   [modes/COMPANIONS.md](./modes/COMPANIONS.md#configuration).
 
+- feature: **Pick the model in Settings** — Settings → Companion model lists
+  every OpenRouter model that can call tools, with what it costs per million
+  tokens, its context window and how fast its quickest provider is answering
+  right now. One model runs every companion; packs no longer set one, and a
+  pack can name what it was written against instead, shown on the companion's
+  card.
+
+- feature: **Streaming and passed-back reasoning are switches** — Both sit under
+  Settings → Companion model. Turn streaming off and the reply arrives whole,
+  which keeps a model that mixes its thinking into a streamed reply from
+  speaking it aloud; pass reasoning back and a reasoning model sees its own
+  thinking in the history, which it answers better for.
+
 - enhancement: **A companion that stops says why** — Running out of credit,
   being rate limited and naming a model that doesn't exist now read as three
   different things on screen instead of one failure.
