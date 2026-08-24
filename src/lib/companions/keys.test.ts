@@ -6,6 +6,8 @@ import {
   clearKeys,
   hasKeys,
   readKeys,
+  setEnvKeys,
+  usingEnvKeys,
   writeKeys,
 } from './keys';
 
@@ -23,6 +25,7 @@ globalThis.localStorage = {
 describe('keys', () => {
   beforeEach(() => {
     for (const name of Object.keys(store)) delete store[name];
+    setEnvKeys(null);
   });
 
   it('reports no keys and the default endpoint when nothing is stored', () => {
@@ -45,6 +48,43 @@ describe('keys', () => {
     expect(readKeys().openRouterKey).toBe('');
     expect(readKeys().elevenLabsKey).toBe('');
     expect(readKeys().llmUrl).toBe(DEFAULT_LLM_URL);
+  });
+
+  it('never writes the .env keys into this browser', () => {
+    // The whole point of the .env path: the server's keys are used and not
+    // kept. A browser that has never had a key pasted into it must still have
+    // nothing in storage after running on .env keys.
+    setEnvKeys({
+      openRouterKey: 'env-or',
+      elevenLabsKey: 'env-el',
+      llmUrl: 'https://env.test/v1',
+    });
+    expect(readKeys().openRouterKey).toBe('env-or');
+    expect(Object.keys(store)).toEqual([]);
+  });
+
+  it("uses the server's .env over anything stored, and stores nothing", () => {
+    // It is one source or the other: a browser that had keys pasted into it
+    // before a .env appeared must run on the .env, not on its own copy.
+    writeKeys({
+      openRouterKey: 'pasted-or',
+      elevenLabsKey: 'pasted-el',
+      llmUrl: 'https://pasted.test/v1',
+    });
+    const fromEnv = {
+      openRouterKey: 'env-or',
+      elevenLabsKey: 'env-el',
+      llmUrl: 'https://env.test/v1',
+    };
+    setEnvKeys(fromEnv);
+    expect(readKeys()).toEqual(fromEnv);
+    expect(usingEnvKeys()).toBe(true);
+    expect(store['companions:openrouter-key']).toBe('pasted-or');
+
+    // Dropping back is what a build does: no route, no .env, storage again.
+    setEnvKeys(null);
+    expect(readKeys().openRouterKey).toBe('pasted-or');
+    expect(usingEnvKeys()).toBe(false);
   });
 
   it('needs both keys: one alone runs nothing', () => {

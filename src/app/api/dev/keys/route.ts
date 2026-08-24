@@ -4,12 +4,16 @@
 // pasted key goes — after which every call site has one path, and no key of the
 // server's is involved again.
 //
-// Two gates, because this route gives a key away rather than spending one:
+// One gate: it exists under `npm run dev` and nowhere else (IS_DEV — the same
+// gate the inference routes use, for the same reason). No build serves it, so
+// no deploy can hand a key out.
 //
-//   - It exists under `npm run dev` and nowhere else (IS_DEV — the same gate the
-//     inference routes use, for the same reason).
-//   - It answers loopback only. The dev server binds 0.0.0.0, so without this
-//     anyone on the network could take the key rather than merely spend it.
+// It does NOT check where the request came from. The dev server binds 0.0.0.0,
+// so anything on the network that can reach it can read these keys while it
+// runs — a deliberate choice, because the only signal available here is the
+// Host header, which the caller sets, and a check the caller can satisfy is
+// worse than none: it reads as protection while refusing the phone you are
+// actually testing on.
 //
 // A NEXT_PUBLIC_ variable would do the same job by inlining the keys into the
 // build output, which is the one place they must never be.
@@ -18,20 +22,8 @@ import { DEFAULT_LLM_URL } from '@/lib/companions/keys';
 
 export const runtime = 'nodejs';
 
-const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-
-export async function GET(request: Request): Promise<Response> {
+export async function GET(): Promise<Response> {
   if (!IS_DEV) return notFound();
-  // The host the request was addressed to: a LAN request names the machine's
-  // address, a local one names loopback. Unparseable is refused with the rest.
-  let hostname: string;
-  try {
-    hostname = new URL(request.url).hostname;
-  } catch {
-    return notFound();
-  }
-  if (!LOOPBACK.has(hostname)) return notFound();
-
   return Response.json({
     openRouterKey: process.env.OPENROUTER_API_KEY ?? '',
     elevenLabsKey: process.env.ELEVENLABS_API_KEY ?? '',

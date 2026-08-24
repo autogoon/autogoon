@@ -1,11 +1,19 @@
-// React state for the user's provider keys. Whether Companions appears at all
-// hangs off this: the mode is offered when both keys are stored and hidden when
-// they aren't, and there is no server-side gate behind it any more — the keys
-// are the user's, and the only thing they unlock is the user's own spending.
+// React state for the provider keys Companions runs on. Whether the mode
+// appears at all hangs off this: it is offered when both keys are in force and
+// hidden when they aren't, and there is no server-side gate behind it — the
+// keys are the user's, and the only thing they unlock is the user's own
+// spending.
 //
-// The initial read happens in an effect rather than at render: localStorage
-// doesn't exist during the server render, and a render-time read would disagree
-// with it.
+// The keys come from one of two places, never both:
+//
+//   - the dev server's `.env`, read once at load through /api/dev/keys. Nothing
+//     is written to this browser, and Settings shows the fields locked.
+//   - what was pasted into Settings, in localStorage. This is the only way a
+//     build works, since no build serves that route.
+//
+// Both reads happen in an effect rather than at render: one is a fetch, and
+// localStorage doesn't exist during the server render, so a render-time read
+// would disagree with the client's.
 import { useCallback, useEffect, useState } from 'react';
 import {
   type ApiKeys,
@@ -13,47 +21,86 @@ import {
   clearKeys,
   hasKeys,
   readKeys,
+  setEnvKeys,
   writeKeys,
 } from '@/lib/companions/keys';
 import { type KeyCheck, validateKeys } from '@/lib/companions/validate-keys';
 
+// The route only exists under `npm run dev`, so a build skips the request
+// rather than making one that is always a 404.
+const IS_DEV = process.env.NODE_ENV === 'development';
+
 export type ApiKeysState = {
-  // Has the stored value been read? Guards against offering Companions — or
-  // bouncing away from it — before we know what this browser holds.
+  // Has the source been settled? Guards against offering Companions — or
+  // bouncing away from it — before we know which keys are in force.
   checked: boolean;
   keys: ApiKeys;
   // Both keys present, which is what Companions needs to run at all.
   available: boolean;
+  // The keys came from the dev server's `.env`. Settings then shows them and
+  // nothing else: there is nothing to save, and nothing stored to forget.
+  fromEnv: boolean;
   // Validate, then store when both providers accept. Returns what each said, so
-  // the one that failed can be named.
+  // the one that failed can be named. Never called in `.env` mode.
   save: (keys: ApiKeys) => Promise<KeyCheck>;
   forget: () => void;
 };
 
+// What the dev server's `.env` holds, or null when there is no dev server, no
+// `.env` behind it, or nothing in it. A failed request is not an error worth
+// showing: it means "no .env", which is the ordinary case in a build.
+async function envKeys(): Promise<ApiKeys | null> {
+  if (!IS_DEV) return null;
+  try {
+    const res = await fetch('/api/dev/keys');
+    if (!res.ok) return null;
+    const keys = (await res.json()) as ApiKeys;
+    const supplied = keys.openRouterKey !== '' || keys.elevenLabsKey !== '';
+    return supplied ? keys : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useApiKeys(): ApiKeysState {
   // Defaults until the effect below runs — never storage, which the server
   // render doesn't have.
-  const [state, setState] = useState<{ checked: boolean; keys: ApiKeys }>({
+  const [state, setState] = useState<{
+    checked: boolean;
+    keys: ApiKeys;
+    fromEnv: boolean;
+  }>({
     checked: false,
     keys: { openRouterKey: '', elevenLabsKey: '', llmUrl: DEFAULT_LLM_URL },
+    fromEnv: false,
   });
 
   useEffect(() => {
-    setState({ checked: true, keys: readKeys() });
+    let alive = true;
+    void envKeys().then((fromEnv) => {
+      if (!alive) return;
+      // Told before read: readKeys() is what every call site uses, and it has
+      // to answer with the `.env` keys from here on.
+      setEnvKeys(fromEnv);
+      setState({ checked: true, keys: readKeys(), fromEnv: fromEnv !== null });
+    });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const save = useCallback(async (keys: ApiKeys): Promise<KeyCheck> => {
     const check = await validateKeys(keys);
     if (check.openRouter && check.elevenLabs) {
       writeKeys(keys);
-      setState({ checked: true, keys });
+      setState({ checked: true, keys, fromEnv: false });
     }
     return check;
   }, []);
 
   const forget = useCallback((): void => {
     clearKeys();
-    setState({ checked: true, keys: readKeys() });
+    setState({ checked: true, keys: readKeys(), fromEnv: false });
   }, []);
 
   return {

@@ -31,8 +31,23 @@ const EMPTY: ApiKeys = {
   llmUrl: DEFAULT_LLM_URL,
 };
 
-// What this browser has stored (defaults when unset or unavailable).
+// Keys the dev server supplied from its `.env`, held for the life of the page
+// and never written to storage. It is one source or the other: with a `.env`
+// behind the dev server these are the keys, the Settings fields are locked, and
+// nothing of yours is kept in this browser; without one, you paste your own and
+// they are stored here. Set once, on load, by useApiKeys.
+let envKeys: ApiKeys | null = null;
+
+export function setEnvKeys(keys: ApiKeys | null): void {
+  envKeys = keys;
+}
+
+export const usingEnvKeys = (): boolean => envKeys !== null;
+
+// The keys in force: the dev server's `.env` when there is one, else what this
+// browser has stored (defaults when unset or unavailable).
 export function readKeys(): ApiKeys {
+  if (envKeys !== null) return envKeys;
   try {
     return {
       openRouterKey: localStorage.getItem(OPENROUTER_STORAGE_KEY) ?? '',

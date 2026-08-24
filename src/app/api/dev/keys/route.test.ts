@@ -1,6 +1,6 @@
-// The two gates on the route that gives a key away. Both are answered with a
-// 404 rather than a refusal, so a build and a LAN request are indistinguishable
-// from a route that was never built.
+// The one gate on the route that gives a key away: it exists under `npm run
+// dev` and nowhere else, answered with a 404 rather than a refusal so a build
+// is indistinguishable from a route that was never written.
 //
 // IS_DEV is read when dev-only.ts loads, so each case sets NODE_ENV and then
 // imports the route fresh.
@@ -19,11 +19,11 @@ function setNodeEnv(value: string): void {
   (process.env as Record<string, string | undefined>).NODE_ENV = value;
 }
 
-async function get(url: string, nodeEnv: string): Promise<Response> {
+async function get(nodeEnv: string): Promise<Response> {
   setNodeEnv(nodeEnv);
   jest.resetModules();
   const { GET } = await import('./route');
-  return GET(new Request(url));
+  return GET();
 }
 
 describe('GET /api/dev/keys', () => {
@@ -42,8 +42,8 @@ describe('GET /api/dev/keys', () => {
     delete process.env.LLM_URL;
   });
 
-  it("hands over the server's keys on the dev server, over loopback", async () => {
-    const res = await get('http://localhost:8931/api/dev/keys', 'development');
+  it("hands over the server's keys on the dev server", async () => {
+    const res = await get('development');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       openRouterKey: 'sk-or-dev',
@@ -52,16 +52,8 @@ describe('GET /api/dev/keys', () => {
     });
   });
 
-  it('404s a LAN request, which dev binding 0.0.0.0 makes reachable', async () => {
-    const res = await get(
-      'http://192.168.1.100:8931/api/dev/keys',
-      'development',
-    );
-    expect(res.status).toBe(404);
-  });
-
   it('404s in a build, where there are no server keys to give', async () => {
-    const res = await get('http://localhost:8931/api/dev/keys', 'production');
+    const res = await get('production');
     expect(res.status).toBe(404);
   });
 });

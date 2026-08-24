@@ -12,9 +12,11 @@ here. OpenRouter fronts a wide range of hosted models. A companion's model is
 chosen per persona and can be changed later, with no infrastructure to stand up.
 
 Explicit-content suitability is a property of the **chosen model**, not of
-OpenRouter itself. A companion's model (their `model` field in `companions.ts`)
-is picked because it doesn't restrict the kind of roleplay their persona calls
-for, and because it calls the device tools reliably.
+OpenRouter itself. One model runs every companion, picked under Settings →
+Companion model from the models that can call tools — a companion who can't call
+tools can talk about the toy but never drive it. Whether a model restricts the
+roleplay a persona calls for is worth trying before settling on it; a pack can
+name what it was written against (`recommendedModel`), and the card shows it.
 
 The browser calls the provider **directly**, with the key the user entered in
 Settings — OpenRouter allows any origin and every header the SDK sends, so no
@@ -51,12 +53,12 @@ mid-sentence. Conversations saved before timestamps existed have none. Those
 turns show no times and never trigger a marker. The threshold and the marker
 shape are commented in `conversation.ts`.
 
-`passesReasoning` marks a **reasoning model**. Such a model returns a private
-thinking block (`reasoning_details`) alongside its reply, and was trained with
-that reasoning present in history. The app captures it from the stream and
-replays it verbatim on that companion's stored turns; the mechanics are in
-`conversation.ts`. A non-reasoning companion sets it `false`, and the field is
-never sent.
+**Pass reasoning back** (Settings → Companion model) is for a **reasoning
+model**. Such a model returns a private thinking block (`reasoning_details`)
+alongside its reply, and answers better for seeing it again in history. The app
+captures it and replays it verbatim on stored turns; the mechanics are in
+`conversation.ts`. The switch is off for a model with no reasoning to replay,
+and the field is then never sent.
 
 ### Shared prompt sections
 
@@ -202,11 +204,12 @@ and the chat endpoint (`https://openrouter.ai/api/v1` unless you point it
 elsewhere). They are kept in this browser's localStorage and sent to nothing but
 the two providers — there is no account, and no server of ours holds a key.
 
-Both keys stored is the whole availability rule: with them, Companions is on the
-home screen and the Goonpacks tab shows; without, neither does. A key is checked
-when it is saved, so a bad paste fails there rather than mid-session.
+Both keys in force is the whole availability rule: with them, Companions is on
+the home screen and the Goonpacks tab shows; without, neither does. A pasted key
+is checked when it is saved, so a bad paste fails there rather than mid-session.
 
 Running locally, put the keys in `.env` (see [`.env.example`](../.env.example))
-and press **Load from .env** in Settings — a dev-server-only route
-(`src/app/api/dev/keys`, loopback only) hands them over, and Save stores them
-like any other. After that the app behaves exactly as a build does.
+and they are used as they are: a dev-server-only route (`src/app/api/dev/keys`)
+hands them to the browser at load, the Settings fields show them locked, and
+nothing is written to the browser. That route does not exist in a build, so a
+build is always the pasted-key path.
