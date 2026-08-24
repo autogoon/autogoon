@@ -409,8 +409,3 @@ id _and_ version replaces one, and the confirmation says so before it does.
 
 Removing a version leaves overlays built on it installed. They list as
 incompatible until a base they can sit on is back.
-
-A picture or video already sent stays in the conversation as a reference, not a
-copy, and resolves against whichever pack is selected. Switch away from the pack
-it came from and it shows a placeholder rather than someone else's; select that
-pack again and it's back.
