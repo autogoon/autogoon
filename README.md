@@ -25,7 +25,7 @@ to install and no wearable. Open it and enter your device token.
   - **[Autopilot](./modes/AUTOPILOT.md)** — a faithful recreation of Autoblow's
     own Vacuglide autopilot.
   - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
-    drives the toy themselves. Needs your own keys today.
+    drives the toy themselves. Runs on API keys you supply.
 - **Switch by voice** — from home, say a mode's name to enter it; say exit to
   come back and choose another, once you've stopped.
 
@@ -46,7 +46,6 @@ A [goonpack](./GOONPACKS.md) is imported straight into the app. A pack carries:
 
 - their persona;
 - their voice;
-- their colour;
 - their own pictures and videos.
 
 A pack is either a complete new companion or an overlay on one you already have,
@@ -57,8 +56,8 @@ want. They search their own set, send one that fits, and never send the same one
 twice in a conversation. The search reads text written when the pack was built.
 Nothing is sent to a vision model mid-play.
 
-Assembling a pack is plain-text work, no coding. [GOONPACKS.md](./GOONPACKS.md)
-is the guide, with a worked example in the repo.
+Assembling a pack is plain-text work, no coding required.
+[GOONPACKS.md](./GOONPACKS.md) is the guide, with a worked example in the repo.
 
 ### Privacy
 

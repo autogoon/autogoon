@@ -6,7 +6,6 @@ A **goonpack** is one companion in a zip file:
 
 - who they are, and how they talk;
 - their voice;
-- their colour;
 - optionally, their pictures and videos.
 
 You import a pack on the app's Goonpacks tab, and they appear on the Companions
