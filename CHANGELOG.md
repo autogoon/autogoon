@@ -2,30 +2,20 @@
 
 ## 2026-08-24
 
-- feature: **Companions runs on your own API keys** — Enter an OpenRouter and an
-  ElevenLabs key under Settings → API keys and Companions appears on the home
-  screen; they are checked when you save them, kept on your device, and sent to
-  nobody but those two. The app no longer holds a key or a shared access ID of
-  its own, so what a companion costs is yours and only yours. See
+- feature: **API keys are entered in the UI** — Put your own OpenRouter and
+  ElevenLabs keys in under Settings → API keys, and Companions works on
+  [autogoon.vercel.app](https://autogoon.vercel.app/) rather than only on a
+  local checkout. See
   [modes/COMPANIONS.md](./modes/COMPANIONS.md#configuration).
 
-- feature: **Pick the model in Settings** — Settings → Companion model lists
-  every OpenRouter model that can call tools, with what it costs per million
-  tokens, its context window and how fast its quickest provider is answering
-  right now. One model runs every companion; packs no longer set one, and a
-  pack can name what it was written against instead, shown on the companion's
-  card.
-
-- feature: **Choose the provider** — Settings → Companion model routes the model
-  by throughput, by price or by tool-calling reliability, or pins it to one
-  provider. The card lists every endpoint with its own price, context and
-  timings: Grok 4.6 has four, at $2 and $4 a million prompt tokens.
-
-- feature: **Streaming and passed-back reasoning are switches** — Both sit under
-  Settings → Companion model. Turn streaming off and the reply arrives whole,
-  which keeps a model that mixes its thinking into a streamed reply from
-  speaking it aloud; pass reasoning back and a reasoning model sees its own
-  thinking in the history, which it answers better for.
+- feature: **Model choice is exposed in the UI** — Settings → Companion model
+  picks from the OpenRouter models that can call tools, listed with price,
+  context window and current speed, and sets what was hardcoded or written into
+  a pack before: which provider serves it, whether replies stream, and whether
+  reasoning is passed back. Providers serving one model charge differently —
+  Grok 4.6 has four endpoints, at $2 and $4 a million prompt tokens — so the
+  card lists them. A pack now names only the model it was written against, shown
+  on the companion's card.
 
 - enhancement: **A companion that stops says why** — Running out of credit,
   being rate limited and naming a model that doesn't exist now read as three
