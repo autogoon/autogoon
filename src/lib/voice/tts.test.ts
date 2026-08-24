@@ -30,7 +30,25 @@ describe('createTtsPlayer', () => {
 
     await tts.play('hello', 'voice-id', new AbortController().signal);
 
-    expect(errors).toEqual(['TTS 503']);
+    expect(errors).toEqual(['ElevenLabs 503: upstream refused']);
+  });
+
+  it('names the fix for a rejected key without quoting the response back', async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve(
+        new Response('{"detail":{"message":"Invalid API key sk_el-1"}}', {
+          status: 401,
+        }),
+      ),
+    ) as unknown as typeof fetch;
+    const errors: string[] = [];
+    const tts = createTtsPlayer(stubAudio(), (m) => errors.push(m));
+
+    await tts.play('hello', 'voice-id', new AbortController().signal);
+
+    expect(errors).toEqual([
+      'ElevenLabs rejected your API key — check it in Settings.',
+    ]);
   });
 
   it('says nothing when a barge-in aborts the request', async () => {

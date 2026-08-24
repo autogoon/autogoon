@@ -153,8 +153,9 @@ export function HomePanel({
           </p>
         ) : (
           <p>
-            <span className="text-foreground font-medium">Companions</span>{' '}
-            needs an access ID — enter it under Settings to reveal it.
+            <span className="text-foreground font-medium">Companions</span> runs
+            on your own OpenRouter and ElevenLabs keys — add them under Settings
+            to reveal it.
           </p>
         )}
         <p>

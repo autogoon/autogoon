@@ -188,9 +188,9 @@ live.
 
 **Navigation.** The top-level tabs and the play mode screens form a strict
 hierarchy with no sideways moves below the top level. The Goonpacks tab is in
-the strip only when Companions is available — an access ID, or the dev server.
-The Inference tab is in it only under `npm run dev`, and has no voice word;
-[INFERENCE.md](./INFERENCE.md) covers what it is.
+the strip only when Companions is available — that is, when both API keys are
+stored. The Inference tab is in it only under `npm run dev`, and has no voice
+word; [INFERENCE.md](./INFERENCE.md) covers what it is.
 
 `exit` (the word, or a breadcrumb link) goes **up one level**. It is locked
 until the Player is back to `armed`, so switching play modes takes Reset, not
@@ -277,8 +277,8 @@ listener logs every recognised word and handles the global words; each active
 panel's listener runs its own commands.
 
 Switch words are the play mode names. Say one on home to enter that play mode's
-screen. The Companions switch word is in the grammar only once its access ID has
-unlocked it, and always on the dev server.
+screen. The Companions switch word is in the grammar only once its API keys are
+stored.
 
 The tab words (`home`/`changes`/`settings`) move sideways between the top-level
 tabs, joined by `packs` whenever the Goonpacks tab shows. That tab's word is
@@ -295,10 +295,10 @@ Companions is the one play mode with a cloud pipeline behind it:
 - streamed text-to-speech.
 
 `src/hooks/use-voice-session.ts` orchestrates them over `src/lib/voice/`,
-`src/lib/llm/` and `src/lib/companions/`. The paid server routes under
-`src/app/api/` are gated by the Companions access ID, fail-closed in
-builds/deploys and open on the dev server; `api/inference` is the exception, and
-is 404 outside `npm run dev`. The design and rationale live in
+`src/lib/llm/` and `src/lib/companions/`. Nothing paid goes through a route of
+ours: the browser calls OpenRouter and ElevenLabs itself, on the user's own keys
+(`src/lib/companions/keys.ts`). Everything under `src/app/api/` is dev-server
+only and 404s outside `npm run dev`. The design and rationale live in
 [modes/COMPANIONS.md](./modes/COMPANIONS.md).
 
 **Audio is streamed only while an utterance is in flight**, and **the STT socket

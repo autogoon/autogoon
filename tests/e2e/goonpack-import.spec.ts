@@ -1,7 +1,14 @@
 import { expect, test } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
+import { seedApiKeys } from './keys';
 import { skipWithoutOpfs } from './opfs';
 import { packsListed } from './packs';
+
+// The Goonpacks tab and the Companions chooser card are both gated on
+// Companions' keys being stored (see keys.ts).
+test.beforeEach(async ({ context }) => {
+  await seedApiKeys(context);
+});
 
 // 1x1 transparent PNG.
 const TINY_PNG = Buffer.from(

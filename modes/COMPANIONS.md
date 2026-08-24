@@ -16,10 +16,9 @@ OpenRouter itself. A companion's model (their `model` field in `companions.ts`)
 is picked because it doesn't restrict the kind of roleplay their persona calls
 for, and because it calls the device tools reliably.
 
-Calls go through the app's same-origin **`/api/llm` proxy route**. It forwards
-to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header.
-Requests stay same-origin, so there is no CORS handling. Streaming passes
-straight through.
+The browser calls the provider **directly**, with the key the user entered in
+Settings — OpenRouter allows any origin and every header the SDK sends, so no
+server of ours sits in between and streaming is the provider's own response.
 
 ## One config object per companion
 
@@ -197,17 +196,17 @@ a pack.
 
 ## Configuration
 
-Everything is wired through env vars documented in
-[`.env.example`](../.env.example): `LLM_URL`, `OPENROUTER_API_KEY` and
-`ELEVENLABS_API_KEY`. All are read server-side only, so no key ever reaches the
-client.
+Companions runs on **the user's own keys**, entered under Settings → API keys:
+an OpenRouter key for the replies, an ElevenLabs key for hearing and speaking,
+and the chat endpoint (`https://openrouter.ai/api/v1` unless you point it
+elsewhere). They are kept in this browser's localStorage and sent to nothing but
+the two providers — there is no account, and no server of ours holds a key.
 
-**`COMPANIONS_ACCESS_IDS`** is the access gate. The Companions routes spend real
-money (LLM, TTS, STT) behind a shared URL, so on a deploy they are
-**fail-closed** (`access-check.ts`). With no IDs configured, the mode is hidden
-and every paid route rejects everything. Set at least one ID and enter it under
-Settings to unlock. Hand out different IDs to different people, and revoke one
-by deleting it.
+Both keys stored is the whole availability rule: with them, Companions is on the
+home screen and the Goonpacks tab shows; without, neither does. A key is checked
+when it is saved, so a bad paste fails there rather than mid-session.
 
-Running locally (`npm run dev`) needs none of that. The gate is open in dev, and
-Companions appears as soon as your keys are in `.env`.
+Running locally, put the keys in `.env` (see [`.env.example`](../.env.example))
+and press **Load from .env** in Settings — a dev-server-only route
+(`src/app/api/dev/keys`, loopback only) hands them over, and Save stores them
+like any other. After that the app behaves exactly as a build does.

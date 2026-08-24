@@ -9,7 +9,8 @@
 // stt.test.ts covers only what needs a faked transport to reach.
 import { pcm16ToBase64 } from './audio-encoding';
 import { type SttPhase, shouldOpenSocket } from './session-policy';
-import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
+import { readKeys } from '@/lib/companions/keys';
+import { elevenLabsMessage } from '@/lib/companions/provider-error';
 
 export type SttEvents = {
   onPartial: (text: string) => void;
@@ -134,11 +135,12 @@ export function createStt(events: SttEvents): Stt {
 
     let token: string;
     try {
-      const res = await fetch('/api/stt-token', {
-        method: 'POST',
-        headers: { [ACCESS_HEADER]: getAccessId() },
-      });
-      if (!res.ok) throw new Error(`stt-token ${res.status}`);
+      const res = await fetch(
+        'https://api.elevenlabs.io/v1/single-use-token/realtime_scribe',
+        { method: 'POST', headers: { 'xi-api-key': readKeys().elevenLabsKey } },
+      );
+      if (!res.ok)
+        throw new Error(elevenLabsMessage(res.status, await res.text()));
       ({ token } = (await res.json()) as { token: string });
     } catch (err) {
       // No socket was created, so no close event will clear the utterance

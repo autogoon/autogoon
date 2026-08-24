@@ -3,10 +3,10 @@
 // in that play mode's setup view instead.
 
 import { useEffect, useState } from 'react';
-import type { CompanionsAccess } from '@/hooks/use-companions-access';
+import type { ApiKeysState } from '@/hooks/use-api-keys';
 import { Card } from '@/components/card';
 import { Panel } from '@/components/panel';
-import { CompanionAccessCard } from '@/components/companion-access-card';
+import { ApiKeysCard } from '@/components/api-keys-card';
 import { ListenOnLoadField } from '@/components/listen-on-load-field';
 import { SafeWordField } from '@/components/safe-word-field';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -24,12 +24,12 @@ export function SettingsPanel({
   safeWord,
   sanitizeSafeWord,
   onSaveSafeWord,
-  access,
+  apiKeys,
 }: {
   safeWord: string;
   sanitizeSafeWord: (input: string) => string | null;
   onSaveSafeWord: (word: string) => void;
-  access: CompanionsAccess;
+  apiKeys: ApiKeysState;
 }) {
   // Local-time build stamp, resolved after mount (see the note above).
   const [builtAt, setBuiltAt] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export function SettingsPanel({
         />
       </Card>
 
-      <CompanionAccessCard access={access} />
+      <ApiKeysCard apiKeys={apiKeys} />
 
       <Card title="Info">
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 tabular-nums">

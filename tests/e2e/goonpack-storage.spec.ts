@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { seedApiKeys } from './keys';
 import { skipWithoutOpfs } from './opfs';
 import { packsListed } from './packs';
+
+// Every test here opens the Goonpacks tab, which is there only when Companions'
+// keys are (see keys.ts). Seeded on the context, since some open a second tab.
+test.beforeEach(async ({ context }) => {
+  await seedApiKeys(context);
+});
 
 declare global {
   interface Window {

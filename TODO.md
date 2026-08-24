@@ -201,28 +201,6 @@ Worth deciding deliberately rather than by default. The options:
 Neutral pronouns in prompt copy cost clarity. "He" and "she" in the same block
 disambiguate who is being talked about in a way "they" twice over does not.
 
-### Bring-your-own API keys
-
-Move the paid services (LLM, TTS, STT) onto keys the **user supplies in the
-app** instead of the server's `.env`:
-
-- entered once;
-- stored client-side;
-- never on the server.
-
-A **hosted public build** becomes viable this way. Every user funds their own
-usage, so there's nothing for accounts or per-user rate limiting to protect.
-[Goonpacks](#goonpacks) are unaffected: an imported pack runs on whatever keys
-the build has, the same way companions do today. Locally that is the server's
-`.env`; on a hosted build, the user's own.
-
-To settle: whether the browser calls providers directly or the proxy routes
-accept the user's key per-request, and what `.env` keys remain as a local-dev
-convenience.
-
-The demo access gate (`COMPANIONS_ACCESS_IDS`) **goes when the server keys go**.
-Its only job was protecting them.
-
 ### The user's own time zone
 
 The THEIR TIME line comes from the browser's zone, so it displays the machine's

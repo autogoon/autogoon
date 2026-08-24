@@ -1,9 +1,8 @@
-// What createLlmClient puts on the wire (messages, model, tools, access header)
-// and what it hands back from a stream (tokens, reasoning, tool calls, usage).
-// The dialect of a tool call written out as text is decided in
+// What createLlmClient puts on the wire (the user's key and endpoint, messages,
+// model, tools) and what it hands back from a stream (tokens, reasoning, tool
+// calls, usage). The dialect of a tool call written out as text is decided in
 // textual-tool-calls.test.ts; here only the wiring to it is pinned.
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { ACCESS_HEADER } from '@/lib/companions/access';
 
 type ReasoningDelta = { index?: number; type?: string; text?: string };
 type ToolCallDelta = {
@@ -23,19 +22,26 @@ type Chunk = {
 const createMock =
   jest.fn<(...args: unknown[]) => Promise<AsyncIterable<Chunk>>>();
 
+// The options the SDK was constructed with — where the user's key and endpoint
+// land, since they are set once per client rather than per request.
+let constructedWith: { baseURL?: string; apiKey?: string } = {};
+
 jest.mock('openai', () => ({
   __esModule: true,
   default: class {
     chat = { completions: { create: createMock } };
+    constructor(options: { baseURL?: string; apiKey?: string }) {
+      constructedWith = options;
+    }
   },
 }));
 
-// getAccessId (companions/access.ts) reads localStorage, which the node test
-// environment does not have, so without a stand-in the access header can only
-// ever carry ''. Only getItem is called; the cast supplies the rest of Storage.
-let storedAccessId = '';
+// readKeys (companions/keys.ts) reads localStorage, which the node test
+// environment does not have. Only getItem is called; the cast supplies the rest
+// of Storage.
+const stored: Record<string, string> = {};
 globalThis.localStorage = {
-  getItem: () => storedAccessId,
+  getItem: (name: string) => stored[name] ?? null,
 } as unknown as Storage;
 
 // A fake of the SDK's streamed response: an async iterable of chat-completion
@@ -81,7 +87,8 @@ async function collect(it: AsyncIterable<string>): Promise<string[]> {
 describe('createLlmClient', () => {
   beforeEach(() => {
     createMock.mockReset();
-    storedAccessId = '';
+    for (const name of Object.keys(stored)) delete stored[name];
+    constructedWith = {};
   });
 
   it('yields each content delta as its own token', async () => {
@@ -162,21 +169,49 @@ describe('createLlmClient', () => {
     expect(options.signal).toBe(signal);
   });
 
-  it('sends the saved Companion access ID in the ACCESS_HEADER', async () => {
-    storedAccessId = 'let-me-in';
-    createMock.mockResolvedValue(fakeStream(['ok']));
+  it("builds the SDK client on the user's stored key and endpoint", async () => {
+    stored['companions:openrouter-key'] = 'sk-or-mine';
+    stored['companions:llm-url'] = 'https://elsewhere.test/v1';
+    const { createLlmClient } = await import('./client');
+    createLlmClient('test-model');
+    expect(constructedWith.apiKey).toBe('sk-or-mine');
+    expect(constructedWith.baseURL).toBe('https://elsewhere.test/v1');
+  });
+
+  it('explains a rejected key rather than surfacing the provider raw', async () => {
+    stored['companions:llm-url'] = 'https://openrouter.ai/api/v1';
+    createMock.mockRejectedValue(
+      Object.assign(new Error('401 Unauthorized: sk-or-mine'), { status: 401 }),
+    );
     const { createLlmClient } = await import('./client');
     const client = createLlmClient('test-model');
-    await collect(
-      client.stream([{ role: 'user', content: 'hi' }], {
-        signal: new AbortController().signal,
-      }),
+    await expect(
+      collect(
+        client.stream([{ role: 'user', content: 'hi' }], {
+          signal: new AbortController().signal,
+        }),
+      ),
+      // The provider quotes the key back in an auth failure, so the message is
+      // ours and the body is dropped.
+    ).rejects.toThrow(
+      'OpenRouter rejected your API key — check it in Settings.',
     );
-    const [, options] = createMock.mock.calls[0] as [
-      unknown,
-      { headers: Record<string, string> },
-    ];
-    expect(options.headers).toEqual({ [ACCESS_HEADER]: 'let-me-in' });
+  });
+
+  it('lets an aborted turn fail as itself', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const aborted = new Error('Request was aborted.');
+    createMock.mockRejectedValue(aborted);
+    const { createLlmClient } = await import('./client');
+    const client = createLlmClient('test-model');
+    await expect(
+      collect(
+        client.stream([{ role: 'user', content: 'hi' }], {
+          signal: controller.signal,
+        }),
+      ),
+    ).rejects.toBe(aborted);
   });
 
   it('asks for the final usage chunk with stream_options.include_usage', async () => {

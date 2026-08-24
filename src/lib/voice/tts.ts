@@ -1,5 +1,7 @@
-// TTS playback for Companions: POST the reply text to the /api/tts proxy, which
-// streams back mp3, and play it through a shared <audio> element. Barge-in is
+// TTS playback for Companions: POST the reply text to ElevenLabs with the
+// user's own key, and play the mp3 it streams back through a shared <audio>
+// element. The call is direct from the browser — ElevenLabs allows any origin
+// — so no server of ours sees the text or carries the audio. Barge-in is
 // the point here — stop() must cut mid-sentence with no audible tail — so the
 // abort signal pauses and resets the element instantly and cancels the fetch.
 // Where the browser supports mp3 in Media Source Extensions we feed chunks into
@@ -7,7 +9,13 @@
 // (short, fixed) reply into a Blob URL, which still stops instantly on pause().
 // Integration code: playback itself needs a real element and is exercised in
 // tests/e2e; tts.test.ts covers only what a faked transport can reach.
-import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
+import { readKeys } from '@/lib/companions/keys';
+import { elevenLabsMessage } from '@/lib/companions/provider-error';
+
+// v3 is the model the companions' voices are designed for; the format is the
+// one the <audio> element and the MediaSource path below both take.
+const TTS_MODEL = 'eleven_v3';
+const TTS_FORMAT = 'mp3_44100_128';
 
 export type TtsPlayer = {
   // Resolves when playback ends naturally OR is aborted/stopped. onFirstByte
@@ -122,21 +130,26 @@ export function createTtsPlayer(
 
       void (async (): Promise<void> => {
         try {
-          const res = await fetch('/api/tts', {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              [ACCESS_HEADER]: getAccessId(),
+          const res = await fetch(
+            `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream?output_format=${TTS_FORMAT}`,
+            {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'xi-api-key': readKeys().elevenLabsKey,
+              },
+              body: JSON.stringify({ text, model_id: TTS_MODEL }),
+              signal,
             },
-            body: JSON.stringify({ text, voiceId }),
-            signal,
-          });
+          );
           if (done) return;
           if (!res.ok || res.body === null) {
             // Resolving play() here is the same signal as playback ending, so
             // without this the turn just carries on as if the reply was spoken.
             onError(
-              `TTS ${res.status}${res.body === null ? ' (no body)' : ''}`,
+              res.ok
+                ? 'ElevenLabs sent no audio.'
+                : elevenLabsMessage(res.status, await res.text()),
             );
             stop();
             return;

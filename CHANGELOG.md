@@ -1,6 +1,17 @@
 # Changelog
 
-## 2026-08-22
+## 2026-08-24
+
+- feature: **Companions runs on your own API keys** — Enter an OpenRouter and an
+  ElevenLabs key under Settings → API keys and Companions appears on the home
+  screen; they are checked when you save them, kept on your device, and sent to
+  nobody but those two. The app no longer holds a key or a shared access ID of
+  its own, so what a companion costs is yours and only yours. See
+  [modes/COMPANIONS.md](./modes/COMPANIONS.md#configuration).
+
+- enhancement: **A companion that stops says why** — Running out of credit,
+  being rate limited and naming a model that doesn't exist now read as three
+  different things on screen instead of one failure.
 
 - bug: **A companion who says they'll wait actually waits** — Going quiet until
   you speak only stopped the next silence being filled, so a companion could ask
