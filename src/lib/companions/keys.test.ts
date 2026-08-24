@@ -7,7 +7,6 @@ import {
   hasKeys,
   readKeys,
   setEnvKeys,
-  usingEnvKeys,
   writeKeys,
 } from './keys';
 
@@ -78,13 +77,11 @@ describe('keys', () => {
     };
     setEnvKeys(fromEnv);
     expect(readKeys()).toEqual(fromEnv);
-    expect(usingEnvKeys()).toBe(true);
     expect(store['companions:openrouter-key']).toBe('pasted-or');
 
     // Dropping back is what a build does: no route, no .env, storage again.
     setEnvKeys(null);
     expect(readKeys().openRouterKey).toBe('pasted-or');
-    expect(usingEnvKeys()).toBe(false);
   });
 
   it('needs both keys: one alone runs nothing', () => {

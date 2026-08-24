@@ -42,8 +42,6 @@ export function setEnvKeys(keys: ApiKeys | null): void {
   envKeys = keys;
 }
 
-export const usingEnvKeys = (): boolean => envKeys !== null;
-
 // The keys in force: the dev server's `.env` when there is one, else what this
 // browser has stored (defaults when unset or unavailable).
 export function readKeys(): ApiKeys {
