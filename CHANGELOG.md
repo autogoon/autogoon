@@ -7,6 +7,7 @@
   [autogoon.vercel.app](https://autogoon.vercel.app/) rather than only on a
   local checkout. See
   [modes/COMPANIONS.md](./modes/COMPANIONS.md#configuration).
+  ([#33](https://github.com/autogoon/autogoon/pull/33))
 
 - feature: **Model choice is exposed in the UI** — Settings → Companion model
   picks from the OpenRouter models that can call tools, listed with price,
@@ -16,10 +17,12 @@
   Grok 4.6 has four endpoints, at $2 and $4 a million prompt tokens — so the
   card lists them. A pack now names only the model it was written against, shown
   on the companion's card.
+  ([#33](https://github.com/autogoon/autogoon/pull/33))
 
 - enhancement: **A companion that stops says why** — Running out of credit,
   being rate limited and naming a model that doesn't exist now read as three
   different things on screen instead of one failure.
+  ([#33](https://github.com/autogoon/autogoon/pull/33))
 
 - bug: **A companion who says they'll wait actually waits** — Going quiet until
   you speak only stopped the next silence being filled, so a companion could ask
