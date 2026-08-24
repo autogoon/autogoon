@@ -1,8 +1,8 @@
 // The dev server's convenience: hand `.env`'s provider keys to the browser, so
-// working locally doesn't mean pasting your own keys into your own app. Settings
-// reads this once, on a button, and stores what comes back exactly where a
-// pasted key goes — after which every call site has one path, and no key of the
-// server's is involved again.
+// working locally doesn't mean pasting your own keys into your own app. The
+// page reads this once at load and holds them for its lifetime — nothing is
+// written to the browser, and readKeys() answers with them from then on
+// (companions/keys.ts).
 //
 // One gate: it exists under `npm run dev` and nowhere else (IS_DEV — the same
 // gate the inference routes use, for the same reason). No build serves it, so

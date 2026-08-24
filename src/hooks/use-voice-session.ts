@@ -35,10 +35,6 @@ import {
   type ToolCall,
 } from '@/lib/llm/client';
 
-// Whether a turn replays the model's own reasoning back to it, read fresh from
-// Settings: the switch is app-wide, and a thread assembled this turn should use
-// what it says now rather than what it said when the session opened.
-const passesReasoning = (): boolean => readModelSettings().passesReasoning;
 import { startMic, VAD_HANGOVER_MS, type MicHandle } from '@/lib/voice/mic';
 import { createStt, type Stt } from '@/lib/voice/stt';
 import { createTtsPlayer, type TtsPlayer } from '@/lib/voice/tts';
@@ -60,6 +56,13 @@ import {
   type Thread,
   type ThreadTurn,
 } from '@/lib/companions/conversation';
+
+// Whether a turn replays the model's own reasoning back to it. Read per turn,
+// since the switch is app-wide and can move mid-session. It gates both ends —
+// stored only on turns taken while on, sent only while on — so turning it on is
+// not retroactive. Storing regardless would make it so, at the cost of thinking
+// blocks in localStorage that nothing sends.
+const passesReasoning = (): boolean => readModelSettings().passesReasoning;
 
 export type TurnMetrics = {
   llm: {
