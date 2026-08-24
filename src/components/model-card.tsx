@@ -1,9 +1,9 @@
-// Choosing the model every companion runs on, by what it costs and how fast it
-// answers rather than by pasting a slug.
+// Choosing the model every companion runs on, and the provider it routes to, by
+// what each costs and how fast each answers rather than by pasting a slug.
 //
 // The catalogue is ~650 KB, so it is fetched when the picker is opened and not
-// before; the chosen model's own detail is ~4 KB and is fetched whenever the
-// choice changes. Latency needs the OpenRouter key, so a browser with no key
+// before; the chosen model's own providers are ~4 KB and are fetched whenever
+// the choice changes. Latency needs the OpenRouter key, so a browser with no key
 // stored gets the rest of the card and no speed line.
 //
 // Settings, not play: set once with a free hand, so nothing here has a voice
@@ -16,12 +16,16 @@ import type { ApiKeysState } from '@/hooks/use-api-keys';
 import {
   type CatalogueModel,
   type ModelDetail,
+  type ModelEndpoint,
+  type Span,
   OPENROUTER_API,
+  candidates,
   fetchCatalogue,
   fetchModelDetail,
   pricePerMillion,
+  terms,
 } from '@/lib/companions/model-catalogue';
-import { catalogueId } from '@/lib/companions/model-settings';
+import { type Routing } from '@/lib/companions/model-settings';
 import { Button } from '@/components/button';
 import { Card } from '@/components/card';
 import { Segmented } from '@/components/segmented';
@@ -41,6 +45,29 @@ const REASONING_OPTIONS = [
   { value: 'drop', label: 'Leave it out' },
 ] as const;
 
+// Default, Nitro, Floor and Exacto are OpenRouter's names, matching its
+// documentation and the slug suffixes. Pinned is `provider.only`, which has no
+// name of its own. All five are built in model-settings.ts.
+const ROUTING_OPTIONS = [
+  // One word each: five segments share a row, and a label that wraps makes the
+  // whole control two lines tall on a phone.
+  { value: 'provider', label: 'Pinned' },
+  { value: 'normal', label: 'Default' },
+  { value: 'nitro', label: 'Nitro' },
+  { value: 'floor', label: 'Floor' },
+  { value: 'exacto', label: 'Exacto' },
+] as const satisfies ReadonlyArray<{ value: Routing; label: string }>;
+
+// What each sorts on: nothing in the names says.
+const ROUTING_BLURB: Record<Routing, string> = {
+  provider:
+    'Routes to the one endpoint below and no other. Busy or down, the request fails rather than moving to another provider.',
+  normal: "OpenRouter's default: price-weighted load balancing.",
+  nitro: 'Sorted by throughput.',
+  floor: 'Sorted by price.',
+  exacto: 'Sorted by tool-calling reliability.',
+};
+
 // Per million tokens, and never rounded to $0.00: the cheap models are the
 // interesting end of the list, and three places is what separates them.
 const money = (perToken: number): string => {
@@ -56,6 +83,28 @@ const tokens = (n: number): string =>
 
 const seconds = (ms: number): string =>
   ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+
+// One number when the ends agree, low–high when they don't. Never an average:
+// that is a price no provider charges.
+const spread = (s: Span, fmt: (n: number) => string): string =>
+  s.low === s.high ? fmt(s.low) : `${fmt(s.low)}–${fmt(s.high)}`;
+
+// One endpoint's figures, as a row in the pinning list. Price first: it is the
+// reason to read the list.
+function endpointLine(endpoint: ModelEndpoint): string {
+  const parts = [
+    `${money(endpoint.promptPrice)} / ${money(endpoint.completionPrice)}`,
+    `${tokens(endpoint.contextLength)} context`,
+  ];
+  if (endpoint.speed !== null) {
+    parts.push(
+      `${seconds(endpoint.speed.latencyMs)} to first token`,
+      `${Math.round(endpoint.speed.tps)} tok/s`,
+    );
+  }
+  if (endpoint.down) parts.push('down');
+  return parts.join(' · ');
+}
 
 export function ModelCard({
   modelSettings,
@@ -75,14 +124,19 @@ export function ModelCard({
 
   const key = apiKeys.keys.openRouterKey;
   // The catalogue is OpenRouter's own, in its own shapes. Pointed at another
-  // OpenAI-compatible endpoint, the picker has nothing to offer and the slug is
-  // typed instead.
+  // OpenAI-compatible endpoint, the picker has nothing to offer, routing means
+  // nothing, and the slug is typed instead.
   const onOpenRouter = apiKeys.keys.llmUrl.startsWith(OPENROUTER_API);
 
-  // What the chosen model is and does. Re-run on every change of choice, so the
-  // line under the name always describes what is actually selected.
+  // The chosen model's endpoints. Re-run on every change of choice, so the
+  // lines under the name always describe what is actually selected.
   useEffect(() => {
-    if (!checked || key === '' || !onOpenRouter) return;
+    if (!checked || key === '' || !onOpenRouter) {
+      // Not "unknown model" — nothing was asked. Leaving the last model's
+      // providers on screen would attribute them to this one.
+      setDetail(undefined);
+      return;
+    }
     const abort = new AbortController();
     setDetail(undefined);
     fetchModelDetail(settings.model, key, abort.signal)
@@ -113,8 +167,11 @@ export function ModelCard({
 
   const choose = (model: CatalogueModel): void => {
     save({
+      ...settings,
       model: model.id,
-      stream: settings.stream,
+      // A pin belongs to the model it was chosen on: the same provider may not
+      // serve the new one, and an unknown tag routes nowhere.
+      provider: '',
       // A model that doesn't reason has no reasoning to pass back, so the
       // switch goes off with the choice rather than sitting on and doing
       // nothing.
@@ -123,6 +180,13 @@ export function ModelCard({
     setPicking(false);
     setFilter('');
   };
+
+  // The endpoints a request could reach — the pinned one, or all that are up —
+  // and their terms as a range.
+  const pinned = settings.routing === 'provider' ? settings.provider : '';
+  const reachable = detail == null ? [] : candidates(detail, pinned);
+  const spans = terms(reachable);
+  const reasons = spans?.hasReasoning;
 
   const needle = filter.trim().toLowerCase();
   const shown =
@@ -165,26 +229,45 @@ export function ModelCard({
               OpenRouter doesn&apos;t know this model.
             </p>
           )}
-          {detail != null && (
+          {spans !== null && (
             <dl className="text-muted-foreground grid grid-cols-[auto_1fr] gap-x-4 text-sm tabular-nums">
               <dt>Context</dt>
-              <dd>{tokens(detail.contextLength)} tokens</dd>
+              <dd>{spread(spans.contextLength, tokens)} tokens</dd>
               <dt>Price</dt>
               <dd>
-                {money(detail.promptPrice)} in / {money(detail.completionPrice)}{' '}
-                out, per million tokens
+                {spread(spans.promptPrice, money)} in /{' '}
+                {spread(spans.completionPrice, money)} out, per million tokens
               </dd>
-              {detail.speed !== null && (
+              {spans.latencyMs !== null && spans.tps !== null && (
                 <>
                   <dt>Speed</dt>
                   <dd>
-                    {seconds(detail.speed.latencyMs)} to first token,{' '}
-                    {Math.round(detail.speed.tps)} tok/s (
-                    {detail.speed.provider})
+                    {spread(spans.latencyMs, seconds)} to first token,{' '}
+                    {spread(spans.tps, (n) => String(Math.round(n)))} tok/s
                   </dd>
                 </>
               )}
+              {/* Unpinned, OpenRouter chooses at request time: there is no name
+                  to give, so the count says how many the figures span. */}
+              <dt>Endpoints</dt>
+              <dd>
+                {pinned === '' ? (
+                  `any of ${spans.providers}`
+                ) : (
+                  <>
+                    {reachable[0]?.provider}{' '}
+                    <span className="font-mono">{pinned}</span>
+                  </>
+                )}
+              </dd>
             </dl>
+          )}
+          {detail !== null && detail !== undefined && spans === null && (
+            <p className="text-destructive text-sm">
+              {pinned === ''
+                ? 'OpenRouter lists no providers for this model.'
+                : `No provider ${pinned} serves this model any more. Pick another below.`}
+            </p>
           )}
           {key === '' && (
             <p className="text-muted-foreground text-sm">
@@ -194,7 +277,7 @@ export function ModelCard({
           {/* Everything this card can't show — what the model is for, who
               serves it, what it refuses — is on its OpenRouter page. */}
           <a
-            href={`https://openrouter.ai/${catalogueId(settings.model)}`}
+            href={`https://openrouter.ai/${settings.model}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground text-sm underline underline-offset-2 hover:no-underline"
@@ -231,7 +314,7 @@ export function ModelCard({
                         <span className="text-muted-foreground block truncate text-sm tabular-nums">
                           {money(m.promptPrice)} / {money(m.completionPrice)} ·{' '}
                           {tokens(m.contextLength)}
-                          {m.hasReasoning ? ' · reasons' : ''}
+                          {m.hasReasoning ? ' · thinks before answering' : ''}
                         </span>
                       </Button>
                     </li>
@@ -240,6 +323,87 @@ export function ModelCard({
                     <li className="text-muted-foreground p-2 text-sm">
                       Nothing matches. The list only holds models that can call
                       tools, which a companion needs to work the toy.
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
+          )}
+
+          <div className="mt-2">
+            <p className="text-foreground">Provider</p>
+            <p className="text-muted-foreground mb-2 text-sm">
+              Several providers serve the same model, at their own price and
+              context length. {ROUTING_BLURB[settings.routing]}
+            </p>
+            <Segmented
+              options={ROUTING_OPTIONS}
+              value={settings.routing}
+              onChange={(routing) =>
+                save({
+                  ...settings,
+                  routing,
+                  // Held, it would reapply itself the next time 'provider' was
+                  // chosen (model-settings.ts).
+                  provider: routing === 'provider' ? settings.provider : '',
+                })
+              }
+              disabled={false}
+            />
+          </div>
+
+          {settings.routing === 'provider' && (
+            <div className={`rounded-lg border ${CONTROL_BORDER} p-2`}>
+              {detail == null ? (
+                <p className="text-muted-foreground p-2 text-sm">
+                  {key === ''
+                    ? 'Add your OpenRouter key above to list the providers.'
+                    : 'Loading the providers…'}
+                </p>
+              ) : (
+                <ul>
+                  {/* Pinned with nobody named routes exactly as Normal does
+                      (model-settings.ts sends no provider field), so the card
+                      has to say so rather than let the segment imply a pin. */}
+                  {settings.provider === '' && (
+                    <li className="text-muted-foreground p-2 text-sm">
+                      Nothing pinned yet — until you choose one, this routes the
+                      normal way.
+                    </li>
+                  )}
+                  {detail.endpoints.map((e) => (
+                    <li key={e.tag}>
+                      <Button
+                        onClick={() => save({ ...settings, provider: e.tag })}
+                        // Unselected is transparent, as in Segmented: the
+                        // button's own fill is close enough to the selected one
+                        // that a list of them reads as all-selected.
+                        className={`w-full rounded-md px-2 py-1.5 text-left ${
+                          e.tag === settings.provider
+                            ? 'bg-secondary text-secondary-foreground'
+                            : 'hover:bg-secondary/50 bg-transparent'
+                        }`}
+                      >
+                        {/* The tag, not just the name: one provider often
+                            serves the same model several ways — a priority
+                            tier, a zero-retention region — under one name and
+                            at different prices, and the tag is the only thing
+                            that tells them apart or pins one of them. */}
+                        <span className="text-foreground block truncate">
+                          {e.provider}{' '}
+                          <span className="text-muted-foreground font-mono text-sm">
+                            {e.tag}
+                          </span>
+                        </span>
+                        <span className="text-muted-foreground block text-sm tabular-nums">
+                          {endpointLine(e)}
+                        </span>
+                      </Button>
+                    </li>
+                  ))}
+                  {detail.endpoints.length === 0 && (
+                    <li className="text-muted-foreground p-2 text-sm">
+                      OpenRouter lists no providers for this model.
                     </li>
                   )}
                 </ul>
@@ -260,7 +424,8 @@ export function ModelCard({
           />
           <span className="text-muted-foreground text-sm">
             Your chat endpoint isn&apos;t OpenRouter, so there is no list to
-            pick from. Type the name the endpoint knows this model by.
+            pick from, and no provider routing either. Type the name the
+            endpoint knows this model by.
           </span>
         </label>
       )}
@@ -270,7 +435,7 @@ export function ModelCard({
       )}
 
       <div className="mt-2">
-        <p className="text-foreground">How the reply arrives</p>
+        <p className="text-foreground">Streaming</p>
         <p className="text-muted-foreground mb-2 text-sm">
           Spoken replies sound the same either way — this only changes the
           transcript. Choose all at once if the companion says its own thinking
@@ -285,11 +450,15 @@ export function ModelCard({
       </div>
 
       <div className="mt-2">
-        <p className="text-foreground">The model&apos;s own thinking</p>
+        <p className="text-foreground">Reasoning</p>
+        {/* Advertising `reasoning` says the model returns its thinking. It does
+            not say the model was trained to read that thinking replayed to it,
+            and OpenRouter publishes nothing that does — so the copy points at
+            the model's own page rather than recommending a setting. */}
         <p className="text-muted-foreground mb-2 text-sm">
-          {detail?.hasReasoning === false
-            ? "This model doesn't think before it answers, so there is nothing to send."
-            : 'Models that think before answering can be sent that thinking back with the conversation. It helps them keep the thread, and makes every reply cost a little more. Try it on if a companion starts contradicting themselves.'}
+          {reasons === false
+            ? 'This model returns no reasoning, so there is nothing to send.'
+            : 'Sends the reasoning a model returned back with the next request, as part of the conversation. Few models are trained to read it; the rest answer no better for it and charge for the tokens anyway. Read this model’s OpenRouter page, linked above, before turning it on.'}
         </p>
         <Segmented
           options={REASONING_OPTIONS}
@@ -298,7 +467,7 @@ export function ModelCard({
             save({ ...settings, passesReasoning: next === 'pass' })
           }
           // Nothing to send, so the switch would claim something untrue.
-          disabled={detail?.hasReasoning === false}
+          disabled={reasons === false}
         />
       </div>
     </Card>

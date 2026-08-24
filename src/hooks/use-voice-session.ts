@@ -438,15 +438,20 @@ export function useVoiceSession(opts: {
     ttsRef.current ??= createTtsPlayer(audioEl, (message) => {
       onLogRef.current?.(message, 'error');
     });
-    // The LLM client is bound to a model and to whether replies stream; rebuild
-    // it if either changed in Settings since it was made. The TTS player is
-    // model-free (the voice id is passed per utterance), so it's reused as-is.
+    // The LLM client is bound to everything a request says about the model —
+    // which one, who serves it, and whether the reply streams; rebuild it if any
+    // of that changed in Settings since it was made. `passesReasoning` is not
+    // among them: it shapes the messages, not the client, and is read per turn.
+    // The TTS player is model-free (the voice id is passed per utterance), so
+    // it's reused as-is.
     const settings = readModelSettings();
     const cached = llmSettingsRef.current;
     if (
       llmRef.current === null ||
       cached === null ||
       cached.model !== settings.model ||
+      cached.routing !== settings.routing ||
+      cached.provider !== settings.provider ||
       cached.stream !== settings.stream
     ) {
       llmRef.current = createLlmClient(settings);

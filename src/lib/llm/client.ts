@@ -5,7 +5,10 @@
 import OpenAI from 'openai';
 import { parseTextualToolCalls } from './textual-tool-calls';
 import { readKeys } from '@/lib/companions/keys';
-import type { ModelSettings } from '@/lib/companions/model-settings';
+import {
+  type ModelSettings,
+  routingRequest,
+} from '@/lib/companions/model-settings';
 import { llmErrorMessage } from '@/lib/companions/provider-error';
 
 export type LlmMessage = {
@@ -165,7 +168,11 @@ function mergeToolCalls(acc: AssembledCall[], deltas: ToolCallDelta[]): void {
 }
 
 export function createLlmClient(settings: ModelSettings): LlmClient {
-  const { model, stream: streaming } = settings;
+  const { stream: streaming } = settings;
+  // The model to name and, when Settings pins one, the provider to insist on.
+  // `provider` is OpenRouter's own field rather than an OpenAI one, which is why
+  // it is spread in rather than typed by the SDK.
+  const routing = routingRequest(settings);
   // Read once, here: a client is made per session (use-voice-session.ts), and
   // Companions is hidden until both keys are stored, so there is no case of a
   // key arriving mid-session for a request to pick up.
@@ -188,7 +195,7 @@ export function createLlmClient(settings: ModelSettings): LlmClient {
   ): AsyncIterable<string> {
     const outgoing: OutgoingMessage[] = messages.map(toOutgoing);
     const request = {
-      model,
+      ...routing,
       messages:
         outgoing as unknown as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
       ...(opts.tools !== undefined && opts.tools.length > 0

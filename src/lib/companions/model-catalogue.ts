@@ -12,7 +12,6 @@
 // Pinned to OpenRouter rather than to the configured chat endpoint: the pricing
 // and endpoint shapes here are OpenRouter's own, and another OpenAI-compatible
 // server answering /models says nothing about either.
-import { catalogueId } from './model-settings';
 
 export const OPENROUTER_API = 'https://openrouter.ai/api/v1';
 
@@ -29,16 +28,39 @@ export type CatalogueModel = {
   hasReasoning: boolean;
 };
 
-// How the fastest healthy provider for a model is currently answering. Null
-// when OpenRouter reported no figures — an unauthenticated request, or a model
-// nobody has called recently.
+// How a provider is currently answering. Null when OpenRouter reported no
+// figures — an unauthenticated request, or a provider nobody has called
+// recently.
 export type ModelSpeed = {
-  provider: string;
   latencyMs: number; // median time to first token
   tps: number; // median tokens per second
 };
 
-export type ModelDetail = CatalogueModel & { speed: ModelSpeed | null };
+// One provider serving one model. Price, context and reasoning support are
+// theirs rather than the model's: the same model behind two providers can cost
+// twice as much, and can be worth pinning for it (see model-settings.ts).
+export type ModelEndpoint = {
+  provider: string; // the name to show, e.g. "Azure"
+  tag: string; // the slug that pins it, e.g. "azure"
+  contextLength: number;
+  promptPrice: number;
+  completionPrice: number;
+  hasReasoning: boolean;
+  speed: ModelSpeed | null;
+  // OpenRouter has marked this one down. Still listed, because a provider that
+  // is down now is a provider you may still want pinned, but never proposed as
+  // the one answering.
+  down: boolean;
+};
+
+// One model as its providers serve it. The endpoints are the whole of the
+// detail: there is no model-level price or context in this payload, and taking
+// one endpoint's figures for the model's would quote a price nobody is
+// necessarily charging.
+export type ModelDetail = {
+  name: string;
+  endpoints: ModelEndpoint[];
+};
 
 // The fields this app reads out of OpenRouter's payloads. Everything else in
 // them (benchmarks, modality, quantisation) is left alone.
@@ -49,8 +71,9 @@ type ApiModel = {
   pricing?: { prompt?: unknown; completion?: unknown };
   supported_parameters?: unknown;
 };
-type ApiEndpoint = {
+type ApiEndpoint = ApiModel & {
   provider_name?: unknown;
+  tag?: unknown;
   status?: unknown;
   latency_last_30m?: { p50?: unknown } | null;
   throughput_last_30m?: { p50?: unknown } | null;
@@ -97,51 +120,121 @@ export async function fetchCatalogue(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// The fastest provider currently serving a model. Endpoints OpenRouter has
-// marked unhealthy (a negative status) are skipped, and so are ones it has no
-// figures for; the rest are ranked by median time to first token, because what
-// a spoken turn shows is the pause before the companion answers.
-function fastest(endpoints: ApiEndpoint[]): ModelSpeed | null {
-  const usable = endpoints
-    .filter((e) => num(e.status) >= 0)
-    .map((e) => ({
-      provider: typeof e.provider_name === 'string' ? e.provider_name : '?',
-      latencyMs: num(e.latency_last_30m?.p50),
-      tps: num(e.throughput_last_30m?.p50),
-    }))
-    .filter((e) => e.latencyMs > 0);
-  if (usable.length === 0) return null;
-  return usable.reduce((best, e) => (e.latencyMs < best.latencyMs ? e : best));
+// A provider's figures, or null when OpenRouter has none for it. Time to first
+// token is the one that has to be there: it is the pause before the companion
+// answers, and a zero means unmeasured rather than instant.
+function speedOf(endpoint: ApiEndpoint): ModelSpeed | null {
+  const latencyMs = num(endpoint.latency_last_30m?.p50);
+  if (latencyMs <= 0) return null;
+  return { latencyMs, tps: num(endpoint.throughput_last_30m?.p50) };
 }
 
-// One model in full. Returns null when OpenRouter doesn't know the slug, which
-// is what makes this the validation step for a hand-typed one.
+function toEndpoint(endpoint: ApiEndpoint): ModelEndpoint {
+  return {
+    provider:
+      typeof endpoint.provider_name === 'string' ? endpoint.provider_name : '?',
+    tag: typeof endpoint.tag === 'string' ? endpoint.tag : '',
+    contextLength: num(endpoint.context_length),
+    promptPrice: num(endpoint.pricing?.prompt),
+    completionPrice: num(endpoint.pricing?.completion),
+    hasReasoning: params(endpoint).includes('reasoning'),
+    speed: speedOf(endpoint),
+    // OpenRouter reports health as a number, negative for a provider it has
+    // taken out of rotation.
+    down: num(endpoint.status) < 0,
+  };
+}
+
+// Quickest first, on time to first token, which is the order the list is read
+// in. Providers OpenRouter has no figures for follow, and the ones it has
+// marked down come last whatever they were timing.
+function byFirstToken(a: ModelEndpoint, b: ModelEndpoint): number {
+  if (a.down !== b.down) return a.down ? 1 : -1;
+  if (a.speed === null || b.speed === null) {
+    if (a.speed === b.speed) return a.provider.localeCompare(b.provider);
+    return a.speed === null ? 1 : -1;
+  }
+  return a.speed.latencyMs - b.speed.latencyMs;
+}
+
+// One model, as each of its providers serves it. Returns null when OpenRouter
+// doesn't know the slug, which is what makes this the validation step for a
+// hand-typed one.
 export async function fetchModelDetail(
   slug: string,
   apiKey: string,
   signal?: AbortSignal,
 ): Promise<ModelDetail | null> {
-  const res = await fetch(
-    `${OPENROUTER_API}/models/${catalogueId(slug)}/endpoints`,
-    { headers: { authorization: `Bearer ${apiKey}` }, signal },
-  );
+  const res = await fetch(`${OPENROUTER_API}/models/${slug}/endpoints`, {
+    headers: { authorization: `Bearer ${apiKey}` },
+    signal,
+  });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`OpenRouter ${res.status}`);
   const body = (await res.json()) as {
-    data?: ApiModel & { endpoints?: unknown };
+    data?: { name?: unknown; endpoints?: unknown };
   };
   const data = body.data;
   if (data === undefined) return null;
   const endpoints = Array.isArray(data.endpoints)
     ? (data.endpoints as ApiEndpoint[])
     : [];
-  // The list's per-model fields aren't repeated at the top of this payload —
-  // context, pricing and parameters belong to each endpoint — so the fastest
-  // one stands for the model.
-  const first = (endpoints[0] ?? {}) as ApiModel;
   return {
-    ...toCatalogueModel({ ...first, id: slug, name: data.name }),
-    speed: fastest(endpoints),
+    name: typeof data.name === 'string' ? data.name : slug,
+    endpoints: endpoints.map(toEndpoint).sort(byFirstToken),
+  };
+}
+
+// The endpoints a request could land on: the pinned one alone, or every
+// provider that isn't down. Empty when a pinned tag is no longer served, which
+// the caller has to say rather than quietly quoting somebody else.
+export function candidates(
+  detail: ModelDetail,
+  pinned: string,
+): ModelEndpoint[] {
+  if (pinned !== '') return detail.endpoints.filter((e) => e.tag === pinned);
+  const up = detail.endpoints.filter((e) => !e.down);
+  return up.length > 0 ? up : detail.endpoints;
+}
+
+// Low and high of a figure across the candidates; equal when they agree.
+export type Span = { low: number; high: number };
+
+// What a request will cost and how it will perform. Ranges, because only a pin
+// knows which endpoint answers: the sorts hand that choice to OpenRouter at
+// request time.
+export type ModelTerms = {
+  providers: number;
+  contextLength: Span;
+  promptPrice: Span;
+  completionPrice: Span;
+  // Null when OpenRouter timed none of them, which is what an unauthenticated
+  // request gets back.
+  latencyMs: Span | null;
+  tps: Span | null;
+  // Any of them reasons, so passing reasoning back can do something. Every
+  // candidate would have to lack it for the switch to be pointless.
+  hasReasoning: boolean;
+};
+
+const span = (values: number[]): Span => ({
+  low: Math.min(...values),
+  high: Math.max(...values),
+});
+
+export function terms(endpoints: ModelEndpoint[]): ModelTerms | null {
+  if (endpoints.length === 0) return null;
+  const timed = endpoints
+    .map((e) => e.speed)
+    .filter((s): s is ModelSpeed => s !== null);
+  return {
+    providers: endpoints.length,
+    contextLength: span(endpoints.map((e) => e.contextLength)),
+    promptPrice: span(endpoints.map((e) => e.promptPrice)),
+    completionPrice: span(endpoints.map((e) => e.completionPrice)),
+    latencyMs: timed.length > 0 ? span(timed.map((s) => s.latencyMs)) : null,
+    tps: timed.length > 0 ? span(timed.map((s) => s.tps)) : null,
+    hasReasoning: endpoints.some((e) => e.hasReasoning),
   };
 }
 

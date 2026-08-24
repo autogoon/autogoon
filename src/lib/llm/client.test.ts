@@ -48,9 +48,11 @@ globalThis.localStorage = {
 } as unknown as Storage;
 
 // The model settings a client is built from. Streaming is the default; the
-// non-streaming path names its own.
+// non-streaming path and the routing tests name their own.
 const SETTINGS = {
   model: 'test-model',
+  routing: 'normal' as const,
+  provider: '',
   stream: true,
   passesReasoning: false,
 };
@@ -165,6 +167,45 @@ describe('createLlmClient', () => {
     );
     const [params] = createMock.mock.calls[0] as [{ model: string }];
     expect(params.model).toBe('test-model');
+  });
+
+  it('carries the routing chosen in Settings onto every request', async () => {
+    // A sort rides the slug; a pinned provider is a field of its own. Both are
+    // built in model-settings.ts — what is pinned here is that the client sends
+    // whichever one applies, on the request the session actually makes.
+    createMock.mockResolvedValue(fakeStream(['ok']));
+    const { createLlmClient } = await import('./client');
+    const sorted = createLlmClient({ ...SETTINGS, routing: 'exacto' });
+    await collect(
+      sorted.stream([{ role: 'user', content: 'hi' }], {
+        signal: new AbortController().signal,
+      }),
+    );
+    const [bySort] = createMock.mock.calls[0] as [
+      { model: string; provider?: unknown },
+    ];
+    expect(bySort.model).toBe('test-model:exacto');
+    expect(bySort.provider).toBeUndefined();
+
+    createMock.mockClear();
+    const pinned = createLlmClient({
+      ...SETTINGS,
+      routing: 'provider',
+      provider: 'azure',
+    });
+    await collect(
+      pinned.stream([{ role: 'user', content: 'hi' }], {
+        signal: new AbortController().signal,
+      }),
+    );
+    const [byProvider] = createMock.mock.calls[0] as [
+      { model: string; provider?: unknown },
+    ];
+    expect(byProvider.model).toBe('test-model');
+    expect(byProvider.provider).toEqual({
+      only: ['azure'],
+      allow_fallbacks: false,
+    });
   });
 
   it("passes the caller's AbortSignal to the SDK request", async () => {

@@ -16,6 +16,11 @@
   pack can name what it was written against instead, shown on the companion's
   card.
 
+- feature: **Choose the provider** — Settings → Companion model routes the model
+  by throughput, by price or by tool-calling reliability, or pins it to one
+  provider. The card lists every endpoint with its own price, context and
+  timings: Grok 4.6 has four, at $2 and $4 a million prompt tokens.
+
 - feature: **Streaming and passed-back reasoning are switches** — Both sit under
   Settings → Companion model. Turn streaming off and the reply arrives whole,
   which keeps a model that mixes its thinking into a streamed reply from

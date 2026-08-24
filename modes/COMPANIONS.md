@@ -8,8 +8,8 @@ configuration is one `Companion` object per companion in
 
 The app calls **OpenRouter**'s OpenAI-compatible chat-completions endpoint.
 Claude and the OpenAI APIs both restrict explicit content, so neither is viable
-here. OpenRouter fronts a wide range of hosted models. A companion's model is
-chosen per persona and can be changed later, with no infrastructure to stand up.
+here. OpenRouter fronts a wide range of hosted models, with no infrastructure to
+stand up.
 
 Explicit-content suitability is a property of the **chosen model**, not of
 OpenRouter itself. One model runs every companion, picked under Settings →
@@ -17,6 +17,21 @@ Companion model from the models that can call tools — a companion who can't ca
 tools can talk about the toy but never drive it. Whether a model restricts the
 roleplay a persona calls for is worth trying before settling on it; a pack can
 name what it was written against (`recommendedModel`), and the card shows it.
+
+**Provider** routes the model. OpenRouter lists one endpoint per provider per
+model, and often several from one provider — a priority tier, a zero-retention
+region — each with its own price, context length and supported parameters.
+Default is OpenRouter's price-weighted load balancing; Nitro sorts by
+throughput, Floor by price, Exacto by tool-calling reliability. Those four ride
+the slug as a suffix. Pinned does not: it sends
+`provider: { only: [tag], allow_fallbacks: false }`, so a busy or down provider
+fails the request rather than routing elsewhere. Both forms are built in
+`companions/model-settings.ts`.
+
+The context, price and speed on the card are the pinned endpoint's figures, or
+the range across every endpoint that is up. Which one a sorted request lands on
+is decided by OpenRouter at request time and is not knowable here, so the card
+gives both ends and a count rather than naming a provider.
 
 The browser calls the provider **directly**, with the key the user entered in
 Settings — OpenRouter allows any origin and every header the SDK sends, so no
@@ -53,11 +68,15 @@ mid-sentence. Conversations saved before timestamps existed have none. Those
 turns show no times and never trigger a marker. The threshold and the marker
 shape are commented in `conversation.ts`.
 
-**Pass reasoning back** (Settings → Companion model) is for a **reasoning
-model**. Such a model returns a private thinking block (`reasoning_details`)
-alongside its reply, and answers better for seeing it again in history. The app
-captures it and replays it verbatim on stored turns; the mechanics are in
-`conversation.ts`. The switch is off for a model with no reasoning to replay,
+**Reasoning** (Settings → Companion model) replays `reasoning_details` — the
+private thinking block a reasoning model returns alongside its reply — in the
+conversation history. The app captures it and replays it verbatim on stored
+turns; the mechanics are in `conversation.ts`.
+
+Only some models were trained to read their own reasoning back, and OpenRouter
+publishes nothing that says which: `supported_parameters` names `reasoning` when
+a model _returns_ it, not when replaying it helps. The card says so and points
+at the model's page. It is disabled where no endpoint advertises `reasoning`,
 and the field is then never sent.
 
 ### Shared prompt sections
