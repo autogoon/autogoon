@@ -26,8 +26,8 @@ to install and no wearable. Open it and enter your device token.
     own Vacuglide autopilot.
   - **[Companions](./modes/COMPANIONS.md)** — an AI companion who talks back and
     drives the toy themselves. Runs on API keys you supply.
-- **Switch by voice** — from home, say a mode's name to enter it; say exit to
-  come back and choose another, once you've stopped.
+- **Voice-first control** — apart from settings, most controls are worked by
+  voice while you play.
 
 ### Companions — someone to talk to
 
