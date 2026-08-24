@@ -7,10 +7,7 @@ import {
 } from '@/lib/companions/shared-prompt';
 import {
   DEFAULT_CHATTINESS,
-  DEFAULT_CONTEXT_WINDOW,
   DEFAULT_KNOWS_USER_TIME,
-  DEFAULT_MODEL,
-  DEFAULT_PASSES_REASONING,
   DEFAULT_PLAYFULNESS,
   DEFAULT_USES_REAL_TIME,
   type Companion,
@@ -34,9 +31,7 @@ const base: Companion = {
   accentColour: 'emerald',
   voiceId: 'v-base',
   systemPrompt: 'hi\n{{MEDIA_SECTION}}',
-  model: 'm',
-  contextWindow: 10,
-  passesReasoning: true,
+  recommendedModel: 'base/model',
   chattiness: 2,
   playfulness: 4,
   // On real time, so a zone: the pair applyOverlay refuses is the one without.
@@ -48,9 +43,7 @@ const overlay = (
   extra: {
     companion?: CompanionConfig;
     intro?: string;
-    model?: string;
-    contextWindow?: number;
-    passesReasoning?: boolean;
+    recommendedModel?: string;
     noMedia?: boolean;
     mediaSummary?: string;
   } = {},
@@ -63,9 +56,7 @@ const overlay = (
     base: 'autogoon.aimee',
     aboutThePack: 'test overlay',
     intro: extra.intro,
-    model: extra.model,
-    contextWindow: extra.contextWindow,
-    passesReasoning: extra.passesReasoning,
+    recommendedModel: extra.recommendedModel,
     mediaSummary: extra.mediaSummary,
     noMedia: extra.noMedia,
     companion: extra.companion ?? {},
@@ -104,9 +95,7 @@ describe('applyOverlay', () => {
       base,
       overlay({
         intro: 'a different evening',
-        model: 'm-new',
-        contextWindow: 200_000,
-        passesReasoning: false,
+        recommendedModel: 'overlay/model',
         companion: {
           description: 'her goth era',
           accentColour: 'violet',
@@ -120,9 +109,7 @@ describe('applyOverlay', () => {
     expect(out.description).toBe('her goth era');
     expect(out.accentColour).toBe('violet');
     expect(out.voiceId).toBe('v-new');
-    expect(out.model).toBe('m-new');
-    expect(out.contextWindow).toBe(200_000);
-    expect(out.passesReasoning).toBe(false);
+    expect(out.recommendedModel).toBe('overlay/model');
     expect(out.chattiness).toBe(5);
     expect(out.playfulness).toBe(1);
   });
@@ -271,11 +258,7 @@ describe('packToCompanionRaw + applyOverlay (pack-shaped base)', () => {
 describe('packToCompanion', () => {
   const completePack = (
     companion: CompanionConfig,
-    top: {
-      model?: string;
-      contextWindow?: number;
-      passesReasoning?: boolean;
-    } = {},
+    top: { recommendedModel?: string } = {},
   ) => ({
     manifest: {
       format: 1,
@@ -293,9 +276,9 @@ describe('packToCompanion', () => {
   it('builds a companion with app defaults for omitted fields', () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));
     expect(c.id).toBe('some.one');
-    expect(c.model).toBe(DEFAULT_MODEL);
-    expect(c.contextWindow).toBe(DEFAULT_CONTEXT_WINDOW);
-    expect(c.passesReasoning).toBe(DEFAULT_PASSES_REASONING);
+    // No recommendation is a fact about the pack, so it stays absent rather
+    // than defaulting to whatever the app happens to run on.
+    expect(c.recommendedModel).toBeUndefined();
     expect(c.chattiness).toBe(DEFAULT_CHATTINESS);
     expect(c.playfulness).toBe(DEFAULT_PLAYFULNESS);
     expect(c.usesRealTime).toBe(DEFAULT_USES_REAL_TIME);
@@ -313,22 +296,14 @@ describe('packToCompanion', () => {
     );
     expect(c.description).toBe('quiet');
   });
-  it("runs on the pack's own model, window and reasoning setting", () => {
+  it("carries the pack's recommended model, which is shown and not applied", () => {
     const c = packToCompanion(
       completePack(
         { name: 'One', voiceId: 'v1' },
-        {
-          model: 'openrouter/pack-13b',
-          contextWindow: 300_000,
-          passesReasoning: false,
-        },
+        { recommendedModel: 'openrouter/pack-13b' },
       ),
     );
-    expect([c.model, c.contextWindow, c.passesReasoning]).toEqual([
-      'openrouter/pack-13b',
-      300_000,
-      false,
-    ]);
+    expect(c.recommendedModel).toBe('openrouter/pack-13b');
   });
   it("carries the pack's intro to the transcript", () => {
     const c = packToCompanion(completePack({ name: 'One', voiceId: 'v1' }));

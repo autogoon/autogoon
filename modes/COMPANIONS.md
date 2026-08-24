@@ -8,18 +8,34 @@ configuration is one `Companion` object per companion in
 
 The app calls **OpenRouter**'s OpenAI-compatible chat-completions endpoint.
 Claude and the OpenAI APIs both restrict explicit content, so neither is viable
-here. OpenRouter fronts a wide range of hosted models. A companion's model is
-chosen per persona and can be changed later, with no infrastructure to stand up.
+here. OpenRouter fronts a wide range of hosted models, with no infrastructure to
+stand up.
 
 Explicit-content suitability is a property of the **chosen model**, not of
-OpenRouter itself. A companion's model (their `model` field in `companions.ts`)
-is picked because it doesn't restrict the kind of roleplay their persona calls
-for, and because it calls the device tools reliably.
+OpenRouter itself. One model runs every companion, picked under Settings →
+Companion model from the models that can call tools — a companion who can't call
+tools can talk about the toy but never drive it. Whether a model restricts the
+roleplay a persona calls for is worth trying before settling on it; a pack can
+name what it was written against (`recommendedModel`), and the card shows it.
 
-Calls go through the app's same-origin **`/api/llm` proxy route**. It forwards
-to `LLM_URL` and injects `OPENROUTER_API_KEY` server-side as a Bearer header.
-Requests stay same-origin, so there is no CORS handling. Streaming passes
-straight through.
+**Provider** routes the model. OpenRouter lists one endpoint per provider per
+model, and often several from one provider — a priority tier, a zero-retention
+region — each with its own price, context length and supported parameters.
+Default is OpenRouter's price-weighted load balancing; Nitro sorts by
+throughput, Floor by price, Exacto by tool-calling reliability. Those four ride
+the slug as a suffix. Pinned does not: it sends
+`provider: { only: [tag], allow_fallbacks: false }`, so a busy or down provider
+fails the request rather than routing elsewhere. Both forms are built in
+`companions/model-settings.ts`.
+
+The context, price and speed on the card are the pinned endpoint's figures, or
+the range across every endpoint that is up. Which one a sorted request lands on
+is decided by OpenRouter at request time and is not knowable here, so the card
+gives both ends and a count rather than naming a provider.
+
+The browser calls the provider **directly**, with the key the user entered in
+Settings — OpenRouter allows any origin and every header the SDK sends, so no
+server of ours sits in between and streaming is the provider's own response.
 
 ## One config object per companion
 
@@ -52,12 +68,19 @@ mid-sentence. Conversations saved before timestamps existed have none. Those
 turns show no times and never trigger a marker. The threshold and the marker
 shape are commented in `conversation.ts`.
 
-`passesReasoning` marks a **reasoning model**. Such a model returns a private
-thinking block (`reasoning_details`) alongside its reply, and was trained with
-that reasoning present in history. The app captures it from the stream and
-replays it verbatim on that companion's stored turns; the mechanics are in
-`conversation.ts`. A non-reasoning companion sets it `false`, and the field is
-never sent.
+**Reasoning** (Settings → Companion model) replays `reasoning_details` — the
+private thinking block a reasoning model returns alongside its reply — in the
+conversation history. The app captures it and replays it verbatim on stored
+turns; the mechanics are in `conversation.ts`.
+
+`supported_parameters` naming `reasoning` means the model accepts OpenRouter's
+`reasoning` request parameter — it can be asked to think. That is all the
+catalogue says. It says nothing about replaying `reasoning_details` in history,
+which is what this switch does and which only helps a model trained with its own
+reasoning in context. Nothing OpenRouter publishes identifies those, so the card
+points at the model's page instead of recommending a setting. The switch is
+disabled where no endpoint advertises `reasoning`, and the field is then never
+sent.
 
 ### Shared prompt sections
 
@@ -197,17 +220,18 @@ a pack.
 
 ## Configuration
 
-Everything is wired through env vars documented in
-[`.env.example`](../.env.example): `LLM_URL`, `OPENROUTER_API_KEY` and
-`ELEVENLABS_API_KEY`. All are read server-side only, so no key ever reaches the
-client.
+Companions runs on **the user's own keys**, entered under Settings → API keys:
+an OpenRouter key for the replies, an ElevenLabs key for hearing and speaking,
+and the chat endpoint (`https://openrouter.ai/api/v1` unless you point it
+elsewhere). They are kept in this browser's localStorage and sent to nothing but
+the two providers — there is no account, and no server of ours holds a key.
 
-**`COMPANIONS_ACCESS_IDS`** is the access gate. The Companions routes spend real
-money (LLM, TTS, STT) behind a shared URL, so on a deploy they are
-**fail-closed** (`access-check.ts`). With no IDs configured, the mode is hidden
-and every paid route rejects everything. Set at least one ID and enter it under
-Settings to unlock. Hand out different IDs to different people, and revoke one
-by deleting it.
+Both keys in force is the whole availability rule: with them, Companions is on
+the home screen and the Goonpacks tab shows; without, neither does. A pasted key
+is checked when it is saved, so a bad paste fails there rather than mid-session.
 
-Running locally (`npm run dev`) needs none of that. The gate is open in dev, and
-Companions appears as soon as your keys are in `.env`.
+Running locally, put the keys in `.env` (see [`.env.example`](../.env.example))
+and they are used as they are: a dev-server-only route (`src/app/api/dev/keys`)
+hands them to the browser at load, the Settings fields show them locked, and
+nothing is written to the browser. That route does not exist in a build, so a
+build is always the pasted-key path.

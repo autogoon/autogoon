@@ -49,7 +49,7 @@ test('a browser that has not asked for it is never sent to the microphone', asyn
   await page.getByRole('banner').getByText('Autogoon').click();
 
   // Exact: an accessible name matches as a substring by default, and "Listen"
-  // is inside both "Listening" and the Companions card's own description.
+  // is inside "Listening".
   await expect(
     page.getByRole('button', { name: 'Listen', exact: true }),
   ).toBeEnabled({ timeout: MODEL_LOAD_MS });

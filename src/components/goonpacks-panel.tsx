@@ -39,7 +39,7 @@ function contents(row: PackRow): string {
   if (m?.noMedia === true) parts.push('no media');
   if (s?.hasPrompt === true) parts.push('prompt');
   if (m?.companion.voiceId !== undefined) parts.push('voice');
-  if (m?.model !== undefined) parts.push('model');
+  if (m?.recommendedModel !== undefined) parts.push('model');
   if (m?.base !== undefined && m.companion.accentColour !== undefined) {
     parts.push('colour');
   }

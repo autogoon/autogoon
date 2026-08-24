@@ -1,10 +1,15 @@
-// The companion's LLM client: a thin wrapper over the openai SDK pointed at our
-// same-origin proxy route, which forwards to OpenRouter. The client sends the
-// companion's model itself; the route injects only the API key server-side, and
-// gates on the Companion access ID (checkAccess in companions/access-check.ts).
+// The companion's LLM client: a thin wrapper over the openai SDK, pointed
+// straight at the user's own provider with the user's own key (see
+// companions/keys.ts). Nothing of ours sits in between — OpenRouter allows the
+// browser's origin and every header the SDK sends.
 import OpenAI from 'openai';
 import { parseTextualToolCalls } from './textual-tool-calls';
-import { ACCESS_HEADER, getAccessId } from '@/lib/companions/access';
+import { readKeys } from '@/lib/companions/keys';
+import {
+  type ModelSettings,
+  routingRequest,
+} from '@/lib/companions/model-settings';
+import { llmErrorMessage } from '@/lib/companions/provider-error';
 
 export type LlmMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -162,17 +167,19 @@ function mergeToolCalls(acc: AssembledCall[], deltas: ToolCallDelta[]): void {
   }
 }
 
-export function createLlmClient(model: string): LlmClient {
-  // openai-node needs an ABSOLUTE baseURL. In the browser — the only place this
-  // client actually runs — that's the page origin; the fallback just keeps it
-  // constructable under the node test env, where the SDK call is mocked.
-  const baseURL =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/api/llm`
-      : 'http://localhost/api/llm';
+export function createLlmClient(settings: ModelSettings): LlmClient {
+  const { stream: streaming } = settings;
+  // The model to name and, when Settings pins one, the provider to insist on.
+  // `provider` is OpenRouter's own field rather than an OpenAI one, which is why
+  // it is spread in rather than typed by the SDK.
+  const routing = routingRequest(settings);
+  // Read once, here: a client is made per session (use-voice-session.ts), and
+  // Companions is hidden until both keys are stored, so there is no case of a
+  // key arriving mid-session for a request to pick up.
+  const { openRouterKey, llmUrl } = readKeys();
   const client = new OpenAI({
-    baseURL,
-    apiKey: 'unused', // the SDK requires one; the proxy gates on the access header
+    baseURL: llmUrl,
+    apiKey: openRouterKey,
     dangerouslyAllowBrowser: true, // we intentionally run in the browser, next to the device
   });
 
@@ -187,22 +194,51 @@ export function createLlmClient(model: string): LlmClient {
     },
   ): AsyncIterable<string> {
     const outgoing: OutgoingMessage[] = messages.map(toOutgoing);
-    const completion = await client.chat.completions.create(
-      {
-        model,
-        messages:
-          outgoing as unknown as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
-        stream: true,
-        // Ask for a final usage chunk (empty choices + usage) so we can report
-        // output tok/s. Providers that don't send it simply never fire onUsage.
-        stream_options: { include_usage: true },
-        ...(opts.tools !== undefined && opts.tools.length > 0
-          ? { tools: opts.tools }
-          : {}),
-      },
-      // Attach the Companion access ID, read fresh so a later unlock applies.
-      { signal: opts.signal, headers: { [ACCESS_HEADER]: getAccessId() } },
-    );
+    const request = {
+      ...routing,
+      messages:
+        outgoing as unknown as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
+      ...(opts.tools !== undefined && opts.tools.length > 0
+        ? { tools: opts.tools }
+        : {}),
+    };
+    // The request that fails is this one — a streaming call learns its status
+    // before the first chunk — so the provider's refusal is explained here
+    // rather than arriving at the UI as a bare number. An abort is not a
+    // failure: it's how barge-in and Stop end a turn, and the caller tells them
+    // apart by the signal, not by the message.
+    const explain = (e: unknown): never => {
+      if (opts.signal.aborted) throw e;
+      throw new Error(llmErrorMessage(e, llmUrl));
+    };
+    const completion = streaming
+      ? await client.chat.completions
+          .create(
+            {
+              ...request,
+              stream: true,
+              // Ask for a final usage chunk (empty choices + usage) so we can
+              // report output tok/s. Providers that don't send it simply never
+              // fire onUsage.
+              stream_options: { include_usage: true },
+            },
+            { signal: opts.signal },
+          )
+          .catch(explain)
+      : // Not streaming: one reply, arriving whole. It is turned into a
+        // single chunk of the streamed shape so everything below — reasoning,
+        // tool calls, usage, the textual-call recovery — reads one way only.
+        // A message's tool_calls carry no index; mergeToolCalls numbers them by
+        // arrival, which is the order they came in.
+        [
+          await client.chat.completions
+            .create({ ...request, stream: false }, { signal: opts.signal })
+            .then((whole) => ({
+              choices: [{ delta: whole.choices[0]?.message }],
+              usage: whole.usage,
+            }))
+            .catch(explain),
+        ];
     const reasoning: ReasoningEntry[] = [];
     const toolCalls: AssembledCall[] = [];
     // Kept so the finished text can be checked for calls the model wrote out

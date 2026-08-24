@@ -23,7 +23,6 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@elevenlabs/elevenlabs-js": "^2.58.0",
     "@radix-ui/react-select": "^2.3.7",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",

@@ -89,6 +89,11 @@ export type PackOption = {
   // What the card shows while this option is selected:
   description?: string; // override; the card falls back down the chain
   accent?: string; // accentColour override
+  // The model this option was written against, shown on the card. Advisory —
+  // the model actually used is the one in Settings — so nothing resolves it
+  // into a request; it rides here so the card names the selected pair's
+  // recommendation rather than the base's.
+  recommendedModel?: string;
   media: MediaCount; // media this option itself brings
   noMedia?: boolean; // overlay deliberately plays medialess
   changed: VariantSlot[]; // overlay only: slots it changes/adds — bolded
@@ -116,7 +121,7 @@ function changedSlots(p: LoadedPack): VariantSlot[] {
   if (p.summary.hasPrompt) out.push('prompt');
   if (p.manifest.companion.voiceId !== undefined) out.push('voice');
   if (p.manifest.companion.accentColour !== undefined) out.push('colour');
-  if (p.manifest.model !== undefined) out.push('model');
+  if (p.manifest.recommendedModel !== undefined) out.push('model');
   return out;
 }
 
@@ -162,6 +167,7 @@ const baseOption = (p: LoadedPack): PackOption => ({
   aboutThePack: p.manifest.aboutThePack,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
+  recommendedModel: p.manifest.recommendedModel,
   media: p.summary.media,
   changed: [],
   timezone: p.manifest.companion.timezone,
@@ -176,6 +182,7 @@ const overlayOption = (p: LoadedPack): PackOption => ({
   aboutThePack: p.manifest.aboutThePack,
   description: p.manifest.companion.description,
   accent: p.manifest.companion.accentColour,
+  recommendedModel: p.manifest.recommendedModel,
   media: p.summary.media,
   noMedia: p.manifest.noMedia,
   changed: changedSlots(p),

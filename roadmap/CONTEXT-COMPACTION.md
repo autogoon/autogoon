@@ -1,9 +1,10 @@
 # Context compaction — a conversation that outgrows the window
 
 A companion's thread only grows: every turn is appended, nothing but **Clear**
-removes one, and the whole of it is re-sent on the next turn. Each companion
-records a `contextWindow`, which nothing reads yet — this is the work that would
-read it.
+removes one, and the whole of it is re-sent on the next turn. Nothing records
+the window a thread has to fit in; OpenRouter reports it per model
+(`context_length`, already read for the Settings picker — see
+`companions/model-catalogue.ts`), and this is the work that would use it.
 
 `search_media` is what makes the window a real limit rather than headroom for
 long sessions. One result is up to `SEARCH_LIMIT` lines of ref, kind and

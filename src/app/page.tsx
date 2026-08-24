@@ -36,7 +36,8 @@ import {
   KeywordSpotterProvider,
   useKeywordSpotter,
 } from '@/components/keyword-spotter';
-import { useCompanionsAccess } from '@/hooks/use-companions-access';
+import { useApiKeys } from '@/hooks/use-api-keys';
+import { useModelSettings } from '@/hooks/use-model-settings';
 import { usePlayer } from '@/hooks/use-player';
 import { useVacuglideDevice } from '@/hooks/use-vacuglide-device';
 import { ROUTED_WORDS } from '@/hooks/use-voice-commands';
@@ -53,8 +54,9 @@ import {
 // A play mode's colour appears twice in its entry: the icon
 // (iconClass) and the row's accent — the colour name Card turns into the
 // tinted border/gradient shell.
-// On the dev server Companions is always available (the paid routes are open —
-// see access-check.ts); the access gate applies to builds/deploys.
+// The Inference tool is a dev-server feature (see inference/dev-only.ts).
+// Companions is not gated on this: it needs the user's own API keys, which the
+// dev server supplies through Settings like anywhere else.
 const IS_DEV = process.env.NODE_ENV === 'development';
 
 const PLAY_MODES = [
@@ -164,30 +166,28 @@ export default function Home() {
 function App() {
   const vacuglide = useVacuglideDevice();
   const player = usePlayer(vacuglide.player);
-  const access = useCompanionsAccess();
+  const apiKeys = useApiKeys();
+  const modelSettings = useModelSettings();
   const spotter = useKeywordSpotter();
   // Only the spotter's stable functions may be used in effect deps — the context
   // object's identity changes with grammar/flash state (see useVoiceCommands).
   const { setGlobalWords, keywordListener } = spotter;
   const [screen, setScreen] = useState<Screen>('home');
 
-  // Companions is hidden from the chooser, the home grammar and navigation until
-  // its access ID unlocks it (see useCompanionsAccess). The gate is fail-closed
-  // (see access-check.ts): with COMPANIONS_ACCESS_IDS unset nothing validates,
-  // so Companions stays hidden and the other play modes show as they do with no
-  // gate.
-  // The dev server is the exception: the paid routes are open there, so the
-  // card always shows — while the Settings box still validates real IDs.
+  // Companions is hidden from the chooser, the home grammar and navigation
+  // until both API keys are stored (see useApiKeys). Every turn it takes costs
+  // money, so without keys there is nothing it could do — and the other play
+  // modes, which call nothing, show exactly as they always do.
   const availablePlayModes = useMemo(
     () =>
-      access.granted || IS_DEV
+      apiKeys.available
         ? PLAY_MODES
         : PLAY_MODES.filter((a) => a.id !== 'companions'),
-    [access.granted],
+    [apiKeys.available],
   );
   // The Goonpacks tab manages companion packs, so it shows (and its word is
   // live) exactly when Companions itself is available.
-  const goonpacksShown = access.granted || IS_DEV;
+  const goonpacksShown = apiKeys.available;
 
   // A session is in progress whenever the Player is not idle. You can only
   // start one from its play mode's screen and you can't leave while it runs
@@ -290,20 +290,18 @@ function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // A deep-link or reload onto Companions while it's locked (or never unlocked)
-  // bounces home once the access check resolves. Waits for `checked` so a
-  // genuine reload-with-stored-ID isn't kicked out before validation lands.
-  // Never bounces on the dev server — Companions is always available there.
+  // A deep-link or reload onto Companions with no keys stored bounces home once
+  // the stored keys have been read. Waits for `checked` so a genuine reload
+  // isn't kicked out before the read lands.
   useEffect(() => {
     if (
-      access.checked &&
-      !access.granted &&
-      !IS_DEV &&
+      apiKeys.checked &&
+      !apiKeys.available &&
       (screen.split('/')[0] === 'companions' || screen === 'goonpacks')
     ) {
       navigate('home');
     }
-  }, [access.checked, access.granted, screen, navigate]);
+  }, [apiKeys.checked, apiKeys.available, screen, navigate]);
 
   // Route the global words. connect drives the device; a play mode name (on
   // home) enters that play mode; exit (while idle) goes back up. Everything
@@ -498,7 +496,8 @@ function App() {
               safeWord={safeWord}
               sanitizeSafeWord={sanitizeCandidate}
               onSaveSafeWord={saveSafeWord}
-              access={access}
+              apiKeys={apiKeys}
+              modelSettings={modelSettings}
             />
           </div>
         </main>

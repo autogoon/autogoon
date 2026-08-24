@@ -167,11 +167,11 @@ export function sameLocalDay(a: number, b: number): boolean {
 }
 
 // Build the LLM request: the system message first, then every turn. Assistant
-// turns carry reasoning_details ONLY when passesReasoning is true (reasoning
-// models); a non-reasoning companion never emits the field. Assistant tool-call
-// turns and the tool results that answer them are replayed as a valid agentic
-// sequence — this is what keeps the companion calling tools instead of narrating
-// them: they see they have actually called them before.
+// turns carry reasoning_details ONLY when passesReasoning is true — the
+// app-wide switch under Settings → Companion model, passed in by the caller.
+// Assistant tool-call turns and the tool results that answer them are replayed
+// as a valid agentic sequence — this is what keeps the companion calling tools
+// instead of narrating them: they see they have actually called them before.
 //
 // Time awareness: when both sides of a gap are stamped and the gap clears
 // GAP_MARKER_MIN_MS, a system stage direction — "(2 hours pass.)" — is inserted

@@ -31,7 +31,9 @@ Configuration:
 - Core playback functions require no external API keys.
 - **Companions** and the dev-only **Inference** subsystem require API
   credentials. Copy [`.env.example`](./.env.example) to `.env` and populate
-  provider keys.
+  provider keys. Companions picks them up from there automatically and shows
+  them locked under Settings → API keys; with no `.env`, you paste your own
+  there instead and they stay in that browser.
 - For local network access on `0.0.0.0`, configure `DEV_ALLOWED_ORIGINS` in
   `.env` to prevent cross-origin dev asset blocking.
 - Production compilation is verified with `npm run build`.

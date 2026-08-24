@@ -7,11 +7,13 @@
 // keeps it explicitly, media excluded), so she is on disk on any checkout,
 // including one where nothing has ever been imported.
 import { expect, test } from '@playwright/test';
+import { seedApiKeys } from './keys';
 import { ELISE_ROW, packsListed } from './packs';
 
 test('a pack source on disk is listed and playable without being imported', async ({
   page,
 }) => {
+  await seedApiKeys(page);
   await page.goto('/');
   await page.getByRole('button', { name: 'Goonpacks' }).click();
   await packsListed(page);

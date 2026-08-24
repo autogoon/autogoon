@@ -24,7 +24,7 @@ import { parseSidecar, SIDECAR_EXT } from '../src/lib/goonpacks/sidecar';
 import { MEDIA_TYPES, splitName } from '../src/lib/goonpacks/media';
 import { sidecarName } from '../src/inference/paths';
 import { experimentById } from '../src/inference/experiments';
-import { DEFAULT_MODEL } from '../src/lib/companions/companions';
+import { DEFAULT_MODEL } from '../src/lib/companions/model-settings';
 import { out } from './lib/colour';
 
 // Yellow names the pack, dim carries the steps, green is the summary that ends

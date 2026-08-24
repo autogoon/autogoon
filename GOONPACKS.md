@@ -127,24 +127,22 @@ words to search with.
 Write it with `npm run goonpack:summarise`. Run that again whenever the set
 changes.
 
-#### Setting the LLM model
+#### Recommending a model
 
-`model`, `contextWindow` and `passesReasoning` sit at the top level, beside `id`
-and `version`. Which model to run is a decision about the pack, and an overlay
-that rewrites a persona often changes it without changing who the companion is.
-All three are optional, and an overlay that sets none keeps its base's.
+`recommendedModel` sits at the top level, beside `id` and `version`. It is
+optional, it is advisory, and it is the only thing a pack says about models: the
+model every companion actually runs on is chosen under **Settings → Companion
+model**, because whoever supplies the API key pays for every reply.
 
-- **`model`** — the OpenRouter model slug the conversation runs on.
-- **`contextWindow`** — that model's context window, in tokens (a number, no
-  quotes).
-- **`passesReasoning`** — `true` for a reasoning model whose thinking should be
-  replayed to it with the conversation.
+- **`recommendedModel`** — the OpenRouter model slug this pack was written
+  against. Shown on the companion's card as "Written for …", and read into
+  nothing.
 
-Omit `model` and the pack runs on the app's default. Pick one that suits the
-persona and allows the kind of roleplay you're writing. Whether it will refuse,
-and whether it calls tools reliably, are properties of the model rather than of
-your prompt. Try one before settling on it. A model that stops calling tools
-gives you a companion who talks about the toy without ever driving it.
+Name one you have actually played the pack on. Whether a model will refuse the
+roleplay you're writing, and whether it calls tools reliably, are properties of
+the model rather than of your prompt — and a model that stops calling tools
+gives you a companion who talks about the toy without ever driving it. An
+overlay that sets one overrides its base's; one that doesn't keeps it.
 
 **Don't name a MiniMax model.** Anything under `minimax/` — M2.5, M3 — breaks
 two things every companion depends on, and it is the model that does it rather
@@ -157,12 +155,9 @@ than any one provider serving it:
   idea of the toy, and a silence reads to them as no silence at all.
 - Their thinking comes back inside the reply, wrapped in `<think>` tags, instead
   of separately. It is spoken aloud in their voice and kept in the transcript as
-  something they said.
-
-Set `contextWindow` and `passesReasoning` whenever you set `model`, and leave
-all three out otherwise. A pack that sets `model` alone takes the app's defaults
-for the other two; an overlay that sets `model` alone takes its base's. Either
-way the window and the flag belong to a different model from the one running.
+  something they said. This one is a streaming artefact — turning streaming off
+  under Settings separates the two again — but the first isn't, and the first is
+  enough.
 
 #### Describing the companion
 

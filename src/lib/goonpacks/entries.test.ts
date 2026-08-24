@@ -345,7 +345,7 @@ describe('buildEntries', () => {
         '1.1.0',
         base,
         {
-          top: { model: 'openrouter/goth-13b' },
+          top: { recommendedModel: 'openrouter/goth-13b' },
           companion: {
             description: 'gothed up',
             voiceId: 'v2',
