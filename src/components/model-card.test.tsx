@@ -143,6 +143,26 @@ describe('ModelCard', () => {
     ).toBe(false);
   });
 
+  it('says the model list failed rather than loading for ever', async () => {
+    // The list is a separate request from the endpoints. Leaving "Loading…" up
+    // when it rejects turns a failure into what reads as a hang.
+    fetchMock.mockImplementation((input) =>
+      String(input).endsWith('/models')
+        ? Promise.reject(new Error('offline'))
+        : Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve(ENDPOINTS),
+          } as unknown as Response),
+    );
+    await show({ routing: 'nitro' });
+    fireEvent.click(screen.getByRole('button', { name: /Change/ }));
+    expect(
+      await screen.findByText(/Couldn't load the model list \(offline\)/),
+    ).toBeDefined();
+    expect(screen.queryByText('Loading the catalogue…')).toBeNull();
+  });
+
   it('disables reasoning when the pinned endpoint returns none', async () => {
     await show({ routing: 'provider', provider: 'xai' });
     expect(screen.getByText(/returns no reasoning/)).toBeDefined();

@@ -118,6 +118,9 @@ export function ModelCard({
     undefined,
   );
   const [catalogue, setCatalogue] = useState<CatalogueModel[] | null>(null);
+  // The picker's own, not the shared `failure` below: a list that didn't arrive
+  // has to be said where the list would have been.
+  const [catalogueFailure, setCatalogueFailure] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [filter, setFilter] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
@@ -156,10 +159,11 @@ export function ModelCard({
   const openPicker = useCallback((): void => {
     setPicking(true);
     if (catalogue !== null) return;
+    setCatalogueFailure(null);
     fetchCatalogue()
       .then(setCatalogue)
       .catch((e: unknown) => {
-        setFailure(e instanceof Error ? e.message : String(e));
+        setCatalogueFailure(e instanceof Error ? e.message : String(e));
       });
   }, [catalogue]);
 
@@ -296,7 +300,11 @@ export function ModelCard({
                 autoComplete="off"
                 className={`${CONTROL_INPUT} mb-2 w-full`}
               />
-              {catalogue === null ? (
+              {catalogueFailure !== null ? (
+                <p className="text-destructive p-2 text-sm">
+                  {`Couldn't load the model list (${catalogueFailure}). Close and open it again to retry.`}
+                </p>
+              ) : catalogue === null ? (
                 <p className="text-muted-foreground p-2 text-sm">
                   Loading the catalogue…
                 </p>
