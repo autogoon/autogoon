@@ -122,17 +122,6 @@ server-only (its modules import node's filesystem to run a model), so a scoring
 _function_ can't cross into the browser without splitting the parser out, while
 a scoring _config_ is data and travels the same route as the pack.
 
-### Pin a provider
-
-A companion's model is a slug, and OpenRouter can route each turn to any
-provider serving it. Consecutive turns can land on different providers, making
-comparison by hand impossible and defeating prompt caching. Caching is
-per-provider.
-
-Send a provider (or endpoint tag, e.g. `xiaomi/fp8`) as OpenRouter's `provider`
-field, with fallbacks off so a pin that can't be served fails loudly. Show which
-provider served each turn: it comes back on every response.
-
 ### Reconsider the second person the prompts assume
 
 The shared prompt and the ambient cue both address the user as "he" throughout,

@@ -343,6 +343,8 @@ export function ModelCard({
             <p className="text-muted-foreground mb-2 text-sm">
               Several providers serve the same model, at their own price and
               context length. {ROUTING_BLURB[settings.routing]}
+              {settings.routing !== 'provider' &&
+                ' Consecutive turns can go to different providers, and prompt caching is per-provider: each move re-sends the whole conversation uncached, which can cost more the longer it gets.'}
             </p>
             <Segmented
               options={ROUTING_OPTIONS}

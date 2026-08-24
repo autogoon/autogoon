@@ -34,13 +34,11 @@ to install and no wearable. Open it and enter your device token.
 A companion has their own voice, remembers the conversation, and speaks
 unprompted.
 
-**Companions isn't usable on the public app yet.** Chat, voice and hearing are
-paid cloud services. On a deploy the mode is hidden unless you have an access
-ID. Run the dev server with your own keys and it's there, no ID needed.
+**Companions runs on your own API keys.** Chat, voice and hearing are paid cloud
+services, so the mode appears once you enter an OpenRouter and an ElevenLabs key
+under Settings → API keys — on the hosted app as well as a local checkout. The
+keys stay in your browser and nothing of ours is charged.
 [modes/COMPANIONS.md](./modes/COMPANIONS.md) covers setup, pictures and videos.
-**Coming to the hosted app** once those services run on
-[keys you enter in the app](./TODO.md#bring-your-own-api-keys) rather than the
-server's.
 
 ### Goonpacks — a companion in a zip
 
