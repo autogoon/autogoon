@@ -231,49 +231,52 @@ paragraphs is usually enough.
 
 ### 5. Write the persona
 
-`system-prompt.md` is who your companion is, in plain English, written _to_ them
-("You're 21, a painter…"). It is sent to the model as their instructions. Cover:
+`system-prompt.md` is your companion's persona, in plain English, written to
+them ("You're 21, a painter…"). The model receives it as instructions. Cover:
 
 - their character;
 - their setting;
 - how they talk;
 - how they behave during play.
 
-Say **who leads** — whether they take charge or follow. Nothing the app supplies
-decides it.
+Say whether your companion leads or follows. The app does not set this.
 
-**Don't name the device, or assume there is one.** `{{CONTROL_SECTION}}` tells
-your companion what the user is using and what its settings are called. A
-persona that names one is wrong for anyone on a different device.
+**Do not name the device, or assume there is one.** Users have different
+devices. `{{CONTROL_SECTION}}` tells your companion which device the user has
+and what its settings are called.
 
-**Don't set who controls the toy.** `{{CONTROL_SECTION}}` does it for every
-companion: never start without the user asking, steer freely once it is running,
-stop at any time.
+**Do not write rules about who controls the toy.** `{{CONTROL_SECTION}}` sets
+them for every companion:
 
-A persona that contradicts those rules doesn't replace them: the model gets both
-and may follow yours, dropping the user's say-so.
+- never start without the user asking;
+- adjust freely once running;
+- stop at any time.
 
-What you can set is how forward your companion is: one asks to start before the
-user does, another waits to be told.
+If your persona contradicts those rules, the model receives both and may follow
+your persona's. The user then loses control.
 
-The app supplies the mechanical rules as ready-made sections. Put a token on its
-own line where you want its section to appear. Every section the app supplies is
-in
-[`shared-prompt.ts`](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/shared-prompt.ts)
-— read it to see exactly what your companion is told :
+You can set how forward your companion is: one asks to start before the user
+does, another waits to be told.
+
+Four tokens, each on its own line, are replaced by app-supplied sections at that
+point:
 
 - **`{{OUTPUT_FORMAT_SECTION}}`** — the reply format: speech only, no stage
-  directions. Include it in every persona.
-- **`{{SHARED_STYLE_BULLETS}}`** — baseline speaking-style bullets. Put them
-  under your own STYLE heading and add your companion's own bullets after.
-- **`{{CONTROL_SECTION}}`** — the toy rules. Include it once, above the part of
-  your persona describing how they behave during play.
-- **`{{MEDIA_SECTION}}`** — how they search for and send pictures and videos.
-  Include it either way: with media it carries your pack's `mediaSummary`, and
-  with none it tells them they have nothing to send.
+  directions.
+- **`{{SHARED_STYLE_BULLETS}}`** — baseline speaking-style bullets. Put the
+  token under your own STYLE heading, with your companion's own bullets after
+  it.
+- **`{{CONTROL_SECTION}}`** — the toy rules. Include it once, above the part
+  about how they behave during play.
+- **`{{MEDIA_SECTION}}`** — how to search for and send pictures and videos. With
+  media it includes your pack's `mediaSummary`; without media it tells your
+  companion they have nothing to send.
 
 You should always include all four tokens. A `system-prompt.md` with no
 `{{MEDIA_SECTION}}` means the companion won't know how to send media.
+
+The full text of every app-supplied section is in
+[`shared-prompt.ts`](https://github.com/autogoon/autogoon/blob/main/src/lib/companions/shared-prompt.ts).
 
 Some other information is added automatically to the conversation to give the
 companion some context.
