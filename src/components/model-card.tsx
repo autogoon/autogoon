@@ -451,10 +451,10 @@ export function ModelCard({
 
       <div className="mt-2">
         <p className="text-foreground">Reasoning</p>
-        {/* Advertising `reasoning` says the model returns its thinking. It does
-            not say the model was trained to read that thinking replayed to it,
-            and OpenRouter publishes nothing that does — so the copy points at
-            the model's own page rather than recommending a setting. */}
+        {/* `supported_parameters: reasoning` means the model accepts the
+            `reasoning` request parameter, not that replaying reasoning_details
+            helps it. Nothing OpenRouter publishes says that, so the copy points
+            at the model's page rather than recommending a setting. */}
         <p className="text-muted-foreground mb-2 text-sm">
           {reasons === false
             ? 'This model returns no reasoning, so there is nothing to send.'

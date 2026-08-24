@@ -73,11 +73,14 @@ private thinking block a reasoning model returns alongside its reply — in the
 conversation history. The app captures it and replays it verbatim on stored
 turns; the mechanics are in `conversation.ts`.
 
-Only some models were trained to read their own reasoning back, and OpenRouter
-publishes nothing that says which: `supported_parameters` names `reasoning` when
-a model _returns_ it, not when replaying it helps. The card says so and points
-at the model's page. It is disabled where no endpoint advertises `reasoning`,
-and the field is then never sent.
+`supported_parameters` naming `reasoning` means the model accepts OpenRouter's
+`reasoning` request parameter — it can be asked to think. That is all the
+catalogue says. It says nothing about replaying `reasoning_details` in history,
+which is what this switch does and which only helps a model trained with its own
+reasoning in context. Nothing OpenRouter publishes identifies those, so the card
+points at the model's page instead of recommending a setting. The switch is
+disabled where no endpoint advertises `reasoning`, and the field is then never
+sent.
 
 ### Shared prompt sections
 
