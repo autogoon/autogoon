@@ -58,8 +58,8 @@ A pack is a folder holding at most three things:
     system-prompt.md  their persona — every complete pack, optional on an overlay
     media/            pictures and videos, each with a .md file — optional
 
-Nothing else. Any other file, or any subfolder inside `media/`, stops the
-import, and the error names it.
+Nothing else. Any other file at the top of the folder, or any subfolder inside
+`media/`, stops the import, and the error names it.
 
 For a complete pack, the quickest start is to copy
 [`goonpacks/elise/`](./goonpacks/elise/) and edit it. It is a working pack — the
@@ -226,8 +226,8 @@ other, too — the session is voice, and the user knows it.
 The persona describes the same scene from your companion's side. The two have to
 agree.
 
-Newlines are kept as written. A blank line starts a paragraph, and two
-paragraphs is usually enough.
+The intro is JSON text, so a newline is written `\n` and a blank line `\n\n`. A
+blank line starts a paragraph, and two paragraphs is usually enough.
 
 ### 5. Write the persona
 
@@ -258,8 +258,8 @@ your persona's. The user then loses control.
 You can set how forward your companion is: one asks to start before the user
 does, another waits to be told.
 
-Four tokens, each on its own line, are replaced by app-supplied sections at that
-point:
+Four tokens are replaced by app-supplied sections wherever they appear in the
+text:
 
 - **`{{OUTPUT_FORMAT_SECTION}}`** — the reply format: speech only, no stage
   directions.
@@ -315,11 +315,14 @@ a word that appears only in the description still finds the item. Each hit comes
 back with its caption, and your companion picks from those.
 
 **A file with no sidecar never reaches your companion.** It isn't in the zip, a
-pack read off disk leaves it out too, and it isn't in the count on their card.
+pack read off disk leaves it out too, and it isn't in the count on their card. A
+sidecar with no picture beside it, or a file in `media/` that isn't a picture or
+video, is reported as a stray name and doesn't stop the import.
 
-Names have to be exact in two ways: a sidecar's name must match its file's, and
-no two media files may share a name with different extensions (`beach.jpg` and
-`beach.mp4`), because the conversation refers to them by name.
+Names have to be exact in two ways: a sidecar's name must match its file's, case
+included (`Beach.JPG` needs `Beach.md`), and no two media files may share a name
+with different extensions (`beach.jpg` and `beach.mp4`), because the
+conversation refers to them by name.
 
 #### Writing the sidecars
 
@@ -330,10 +333,11 @@ edit that.
     npm run goonpack:describe-missing goonpacks/elise
 
 The first describes one picture, the second every picture in that pack with no
-sidecar yet. Both need `OPENROUTER_API_KEY` in `.env` (see
-[`.env.example`](./.env.example)), run on macOS only, and cost money — one LLM
-call per picture, so a set of a thousand is a thousand calls. Neither touches
-videos, so video sidecars are always written by hand.
+sidecar yet, or every pack under `goonpacks/` when no folder is named. Both need
+`OPENROUTER_API_KEY` in `.env` (see [`.env.example`](./.env.example)), run on
+macOS only, and cost money — one LLM call per picture, so a set of a thousand is
+a thousand calls. Neither touches videos, so video sidecars are always written
+by hand.
 
 `describe-missing` works in random order, so stopping a run early samples the
 whole pack. Stop the first one after a few, read what it wrote, and fix anything
@@ -341,11 +345,11 @@ wrong before letting it finish.
 
 #### Writing the mediaSummary
 
-A pack that ships media needs `mediaSummary` in its manifest, or it won't
-import. Your companion is given this instead of a list of every item, and uses
-it to judge what is worth offering and what words to search with. Say what sorts
-of picture the set holds, roughly in what proportion, and the words the captions
-use for them.
+A pack with at least one described picture or video needs `mediaSummary` in its
+manifest, or it won't import. Your companion is given this instead of a list of
+every item, and uses it to judge what is worth offering and what words to search
+with. Say what sorts of picture the set holds, roughly in what proportion, and
+the words the captions use for them.
 
 Write it yourself, or have it written from the sidecars the pack already has:
 
@@ -382,9 +386,12 @@ that fails, listing every problem instead. What it writes is `manifest.json`,
 `system-prompt.md`, and each media file that has a sidecar, with its sidecar.
 
 Media with no sidecar, and files that aren't media, are left out; a warning
-counts them and names the first few. The zip is `goonpacks/<folder>.zip`, named
-after the folder rather than the pack id, so two folders can hold two versions
-of one pack. Name no folder and it builds every pack under `goonpacks/`.
+counts them and names the first few. The build checks what it will zip, not the
+folder itself, so a hand-made zip carrying those files fails at import instead.
+Anything involving another pack, such as whether an overlay's base is installed,
+is only checked at import. The zip is `goonpacks/<folder>.zip`, named after the
+folder rather than the pack id, so two folders can hold two versions of one
+pack. Name no folder and it builds every pack under `goonpacks/`.
 
 ### 8. Test it
 
@@ -427,6 +434,9 @@ belong to the companion, not to the pack you are playing them with.
 - **A picture in an older conversation shows a placeholder.** You are playing a
   different pack from the one that sent it. Media is a reference, not a copy;
   select that pack again and it's back.
+- **The import says there isn't enough browser storage.** An import needs the
+  pack's size plus 64 MB free. The message says how much is needed and how much
+  there is.
 
 ### 10. Releasing a new version
 
@@ -440,7 +450,8 @@ them newest first.
 Only importing that same `id` and `version` again overwrites an installed
 version. The import confirmation shows this before anything is written: its
 button reads **Replace** rather than **Import**, above the line "Replaces the
-installed pack. Threads stay."
+installed pack. Threads stay." The installed copy is deleted before the new one
+is written.
 
 Removing a version leaves its overlays installed. They list as incompatible only
 once the last version of their base is gone.
