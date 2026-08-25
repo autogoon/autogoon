@@ -61,10 +61,17 @@ A pack is a folder holding at most three things:
 Nothing else. Any other file at the top of the folder, or any subfolder inside
 `media/`, stops the import, and the error names it.
 
-For a complete pack, the quickest start is to copy
-[`goonpacks/elise/`](./goonpacks/elise/) and edit it. It is a working pack — the
-companion these examples use — with all four `{{...}}` tokens already placed in
-its persona. It carries no media, because the repo distributes none.
+For a complete pack, start from Elise's two files — Elise is the companion these
+examples use. With a source checkout, copy
+[`goonpacks/elise/`](./goonpacks/elise/) and edit the copy. Without one, take
+the contents of
+[`manifest.json`](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/manifest.json)
+and
+[`system-prompt.md`](https://github.com/autogoon/autogoon/blob/main/goonpacks/elise/system-prompt.md)
+from GitHub.
+
+Elise's persona already has all four `{{...}}` tokens placed. The pack carries
+no media, because the repo distributes none.
 
 ### 3. Write manifest.json
 
@@ -407,6 +414,20 @@ the pack version, newest first, shown when there is more than one; and
 **Overlay**, `default` or any overlay installed for them. The card's
 description, colour, media count and list of what the overlay changes all follow
 what you pick.
+
+Check the pack's row on the Goonpacks tab: the media count should match the
+number of files with sidecars.
+
+Then check the companion:
+
+- Talk to them. They should be the person the persona describes, and the intro
+  should match the scene the persona then plays.
+- Ask for a picture or a video, to check media sends.
+- Start play, to check the toy responds and the companion follows the control
+  rules.
+
+The persona usually needs several rounds of edits before the companion behaves
+as it describes. A pack read from a checkout picks up each edit on reload.
 
 Picking an overlay continues the conversation you were already having. Threads
 belong to the companion, not to the pack you are playing them with.
